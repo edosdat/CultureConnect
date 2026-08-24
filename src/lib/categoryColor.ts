@@ -1,26 +1,30 @@
-/** Map UI category labels to Tailwind bg token classes. */
-const CAT: Record<string, string> = {
-  Musique: 'bg-culture-cat-musique',
-  'Théâtre & danse': 'bg-culture-cat-theatre',
-  Festival: 'bg-culture-cat-festival',
-  Cinéma: 'bg-culture-cat-cinema',
-  'Expo & patrimoine': 'bg-culture-cat-expo',
-  'Enfants / familles': 'bg-culture-cat-famille',
+/** Category pastilles / gradients via CSS vars (--cc-cat-*) in globals.css.
+ *  Avoid nested Tailwind opacity modifiers on culture-cat colors (often near-white).
+ */
+
+const CAT_KEY: Record<string, string> = {
+  Musique: 'musique',
+  'Théâtre & danse': 'theatre',
+  Festival: 'festival',
+  Cinéma: 'cinema',
+  'Expo & patrimoine': 'expo',
+  'Enfants / familles': 'famille',
 };
 
-const CAT_GRADIENT: Record<string, string> = {
-  Musique: 'from-culture-cat-musique/80 to-culture-cat-musique/40',
-  'Théâtre & danse': 'from-culture-cat-theatre/80 to-culture-cat-theatre/40',
-  Festival: 'from-culture-cat-festival/80 to-culture-cat-festival/40',
-  Cinéma: 'from-culture-cat-cinema/80 to-culture-cat-cinema/40',
-  'Expo & patrimoine': 'from-culture-cat-expo/80 to-culture-cat-expo/40',
-  'Enfants / familles': 'from-culture-cat-famille/80 to-culture-cat-famille/40',
-};
-
+/** Solid pastille: white text on category color (AA). */
 export function catBg(label: string): string {
-  return CAT[label] ?? 'bg-culture-muted';
+  const key = CAT_KEY[label];
+  return key ? `cc-cat-bg-${key}` : 'bg-culture-muted';
 }
 
+/** Compact banner / accent gradient from CSS vars. */
 export function catGradient(label: string): string {
-  return CAT_GRADIENT[label] ?? 'from-culture-muted/70 to-culture-sand';
+  const key = CAT_KEY[label];
+  return key ? `cc-cat-grad-${key}` : 'cc-cat-grad-muted';
+}
+
+/** CSS custom property name for inline styles (e.g. left accent bar). */
+export function catCssVar(label: string): string | null {
+  const key = CAT_KEY[label];
+  return key ? `--cc-cat-${key}` : null;
 }

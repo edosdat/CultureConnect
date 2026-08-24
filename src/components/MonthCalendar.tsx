@@ -36,8 +36,8 @@ export default function MonthCalendar({
   while (cells.length % 7 !== 0) cells.push(null);
 
   return (
-    <div className="min-w-0 overflow-x-hidden rounded-2xl border border-culture-line bg-culture-surface p-4 shadow-sm sm:p-5">
-      <div className="mb-4 flex items-center justify-between gap-3">
+    <div className="min-w-0 overflow-x-hidden rounded-2xl border border-culture-line bg-culture-surface p-3 shadow-sm sm:p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
         <button
           type="button"
           onClick={onPrevMonth}
@@ -46,7 +46,7 @@ export default function MonthCalendar({
         >
           ←
         </button>
-        <h2 className="font-display text-xl text-culture-ink sm:text-2xl">
+        <h2 className="font-display text-lg text-culture-ink sm:text-xl">
           {MONTH_NAMES_FR[month - 1]} {year}
         </h2>
         <button
@@ -59,18 +59,18 @@ export default function MonthCalendar({
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium uppercase tracking-wide text-culture-muted sm:gap-2">
+      <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-medium uppercase tracking-wide text-culture-muted sm:gap-1.5 sm:text-xs">
         {WEEKDAY_NAMES_FR.map((d) => (
-          <div key={d} className="py-1">
+          <div key={d} className="py-0.5">
             {d}
           </div>
         ))}
       </div>
 
-      <div className="mt-1 grid grid-cols-7 gap-1 sm:gap-2">
+      <div className="mt-1 grid grid-cols-7 gap-1 sm:gap-1.5">
         {cells.map((day, idx) => {
           if (day === null) {
-            return <div key={`e-${idx}`} className="aspect-square" />;
+            return <div key={`e-${idx}`} className="h-11 sm:h-12" />;
           }
           const iso = toIso(year, month, day);
           const count = counts.get(iso) ?? 0;
@@ -81,7 +81,7 @@ export default function MonthCalendar({
               type="button"
               onClick={() => onSelectDay(iso)}
               className={
-                'relative flex aspect-square flex-col items-center justify-center rounded-xl border text-sm transition ' +
+                'relative flex h-11 min-h-[44px] flex-col items-center justify-center rounded-lg border text-sm transition sm:h-12 sm:rounded-xl ' +
                 (selected
                   ? 'border-culture-terracotta bg-culture-terracotta text-white shadow'
                   : count > 0
@@ -89,7 +89,7 @@ export default function MonthCalendar({
                     : 'border-transparent text-culture-muted hover:bg-culture-cream/60')
               }
             >
-              <span className="font-medium">{day}</span>
+              <span className="font-medium leading-none">{day}</span>
               {count > 0 && (
                 <span
                   className={

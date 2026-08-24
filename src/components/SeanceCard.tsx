@@ -1,5 +1,6 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import type { DayItem } from '@/lib/types';
 import {
   formatDateFr,
@@ -9,13 +10,15 @@ import {
   labelCategorie,
 } from '@/lib/labels';
 import { MAIN_CATEGORY_LABELS, mainFromCategorie, mainFromGenreSlug } from '@/lib/categories';
-import { catBg, catGradient } from '@/lib/categoryColor';
+import { catBg, catCssVar, catGradient } from '@/lib/categoryColor';
 
 type Props = {
   item: DayItem;
   showDate?: boolean;
   onSelect: (key: string) => void;
   onSelectVenue?: (lieuId: string) => void;
+  /** Soft-collapse: extra créneaux sharing event_id+day */
+  extraSlots?: number;
 };
 
 function categoryLabelFor(item: DayItem): string {
@@ -32,11 +35,25 @@ function categoryLabelFor(item: DayItem): string {
   return labelCategorie(item.evenement.categorie);
 }
 
+function CategoryPill({ label }: { label: string }) {
+  return (
+    <span
+      className={
+        'inline-flex w-fit rounded-full px-2.5 py-0.5 text-[11px] font-medium text-white shadow-sm ' +
+        catBg(label)
+      }
+    >
+      {label}
+    </span>
+  );
+}
+
 export default function SeanceCard({
   item,
   showDate = false,
   onSelect,
   onSelectVenue,
+  extraSlots = 0,
 }: Props) {
   const catLabel = categoryLabelFor(item);
   const imageUrl =
@@ -65,6 +82,10 @@ export default function SeanceCard({
 
   const lieu = item.lieu;
   const isPeriod = item.kind === 'fallback';
+  const cssVar = catLabel ? catCssVar(catLabel) : null;
+  const accentStyle = cssVar
+    ? ({ borderLeftColor: `var(${cssVar})` } as CSSProperties)
+    : undefined;
 
   return (
     <button
@@ -72,55 +93,58 @@ export default function SeanceCard({
       onClick={() => onSelect(item.key)}
       className="group flex w-full min-w-0 flex-col overflow-hidden rounded-card border border-culture-line bg-culture-surface text-left shadow-card transition duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md"
     >
-      <div
-        className={
-          'relative aspect-[16/10] w-full overflow-hidden bg-gradient-to-br ' +
-          catGradient(catLabel)
-        }
-      >
-        {imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
+      {imageUrl ? (
+        <div
+          className={
+            'relative h-24 w-full overflow-hidden ' + catGradient(catLabel)
+          }
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={imageUrl}
             alt=""
             loading="lazy"
             className="h-full w-full object-cover transition duration-200 ease-out group-hover:scale-[1.03]"
           />
-        ) : (
-          <div className="flex h-full w-full items-end p-3">
-            <span className="font-display text-2xl text-white/90">
-              {(catLabel || title).slice(0, 1).toUpperCase()}
+          {catLabel && (
+            <span className="absolute left-3 top-3">
+              <CategoryPill label={catLabel} />
             </span>
-          </div>
-        )}
-        {catLabel && (
-          <span
-            className={
-              'absolute left-3 top-3 rounded-full px-2.5 py-0.5 text-[11px] font-medium text-white shadow-sm ' +
-              catBg(catLabel)
-            }
-          >
-            {catLabel}
-          </span>
-        )}
-        {isPeriod && (
-          <span className="absolute right-3 top-3 rounded-full bg-culture-surface/95 px-2 py-0.5 text-[10px] uppercase tracking-wide text-culture-muted">
-            Sur la période
-          </span>
-        )}
-      </div>
+          )}
+          {isPeriod && (
+            <span className="absolute right-3 top-3 rounded-full bg-culture-surface/95 px-2 py-0.5 text-[10px] uppercase tracking-wide text-culture-muted">
+              Sur la période
+            </span>
+          )}
+        </div>
+      ) : null}
 
-      <div className="flex min-w-0 flex-1 flex-col gap-1 p-3.5 sm:p-4">
-        {showDate && (
-          <span className="text-xs font-medium text-culture-terracotta">
-            {formatDateFr(item.dayIso)}
-          </span>
-        )}
+      <div
+        className={
+          'flex min-w-0 flex-1 flex-col gap-1 p-3.5 sm:p-4 ' +
+          (!imageUrl ? 'border-l-4 border-culture-line' : '')
+        }
+        style={!imageUrl ? accentStyle : undefined}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          {showDate && (
+            <span className="text-xs font-medium text-culture-terracotta">
+              {formatDateFr(item.dayIso)}
+            </span>
+          )}
+          {!imageUrl && isPeriod && (
+            <span className="rounded-full bg-culture-cream px-2 py-0.5 text-[10px] uppercase tracking-wide text-culture-muted">
+              Sur la période
+            </span>
+          )}
+        </div>
         <h3 className="font-display text-lg leading-snug text-culture-ink line-clamp-2">
           {title}
         </h3>
+        {!imageUrl && catLabel ? <CategoryPill label={catLabel} /> : null}
         <p className="text-sm text-culture-ink">
           {[time, price].filter(Boolean).join(' · ')}
+          {extraSlots > 0 ? ` · +${extraSlots} créneaux` : ''}
         </p>
         {lieu && (
           <p className="mt-auto pt-1 text-sm text-culture-muted">

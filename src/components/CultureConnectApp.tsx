@@ -308,7 +308,7 @@ export default function CultureConnectApp({
             : 'pour cette date';
 
   const monthPanel = (
-    <div className="rounded-2xl border border-culture-line bg-culture-surface p-3 shadow-sm sm:p-4">
+    <div className="max-w-md">
       <MonthCalendar
         year={year}
         month={month}
@@ -387,9 +387,7 @@ export default function CultureConnectApp({
           </button>
         </div>
 
-        {showMonthPanel && timeScope !== 'date' && (
-          <div className="max-w-xl">{monthPanel}</div>
-        )}
+        {showMonthPanel && timeScope !== 'date' && monthPanel}
 
         <SeanceGrid
           items={listItems}

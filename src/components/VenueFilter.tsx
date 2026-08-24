@@ -1,12 +1,13 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import type { Lieu } from '@/lib/types';
 
 type Props = {
   lieux: Lieu[];
   selectedLieuId: string | null;
   onChange: (lieuId: string | null) => void;
-  /** Compact inline chip + select (home P0) */
+  /** Compact chip that expands select (home P0) vs stacked block */
   variant?: 'inline' | 'block';
 };
 
@@ -16,6 +17,12 @@ export default function VenueFilter({
   onChange,
   variant = 'inline',
 }: Props) {
+  const [open, setOpen] = useState(Boolean(selectedLieuId));
+
+  useEffect(() => {
+    if (selectedLieuId) setOpen(true);
+  }, [selectedLieuId]);
+
   if (lieux.length === 0 && !selectedLieuId) return null;
 
   const selected = lieux.find((l) => l.lieu_id === selectedLieuId);
@@ -23,32 +30,54 @@ export default function VenueFilter({
   if (variant === 'inline') {
     return (
       <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <label htmlFor="cc-venue" className="text-sm text-culture-muted">
-          Lieu
-        </label>
-        <select
-          id="cc-venue"
-          value={selectedLieuId ?? ''}
-          onChange={(e) => onChange(e.target.value || null)}
-          className="max-w-full rounded-full border border-culture-line bg-culture-surface px-3 py-1.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
-          aria-label="Filtrer par lieu"
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-controls="cc-venue"
+          className={
+            'shrink-0 rounded-full border px-3.5 py-2 text-sm transition ' +
+            (selectedLieuId || open
+              ? 'border-culture-terracotta bg-culture-soft text-culture-clay shadow-sm'
+              : 'border-culture-line bg-culture-surface text-culture-ink hover:border-culture-terracotta/50')
+          }
         >
-          <option value="">Tous les lieux</option>
-          {lieux.map((l) => (
-            <option key={l.lieu_id} value={l.lieu_id}>
-              {l.nom}
-              {l.commune ? ` · ${l.commune}` : ''}
-            </option>
-          ))}
-        </select>
+          {selected ? selected.nom : 'Lieu'}
+          {selected ? '' : open ? ' ▾' : ' ▸'}
+        </button>
         {selected && (
           <button
             type="button"
-            onClick={() => onChange(null)}
+            onClick={() => {
+              onChange(null);
+              setOpen(false);
+            }}
             className="rounded-full bg-culture-soft px-2.5 py-1 text-xs text-culture-clay"
+            aria-label="Effacer le filtre lieu"
           >
-            {selected.nom} ×
+            ×
           </button>
+        )}
+        {open && (
+          <select
+            id="cc-venue"
+            value={selectedLieuId ?? ''}
+            onChange={(e) => {
+              const v = e.target.value || null;
+              onChange(v);
+              if (!v) setOpen(false);
+            }}
+            className="max-w-full min-w-[12rem] flex-1 rounded-full border border-culture-line bg-culture-surface px-3 py-1.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta sm:max-w-xs"
+            aria-label="Filtrer par lieu"
+          >
+            <option value="">Tous les lieux</option>
+            {lieux.map((l) => (
+              <option key={l.lieu_id} value={l.lieu_id}>
+                {l.nom}
+                {l.commune ? ` · ${l.commune}` : ''}
+              </option>
+            ))}
+          </select>
         )}
       </div>
     );

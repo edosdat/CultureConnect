@@ -34,7 +34,7 @@ export default function CategoryFilter({
         <div
           role="group"
           aria-label="Catégories"
-          className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex flex-nowrap gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {MAIN_CATEGORIES.map(({ id, label }) => {
             const active = selected.includes(id);

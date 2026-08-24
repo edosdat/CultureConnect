@@ -12,6 +12,15 @@
   --cc-muted: #57534e;
   --cc-line: #e7e0d8;
   --cc-soft: #f6d5c8;
+  --cc-sand: #f3e8da;
+
+  /* Category tokens (AA white-on-solid) */
+  --cc-cat-musique: #e85d3b;
+  --cc-cat-theatre: #7c3a6e;
+  --cc-cat-festival: #d97706;
+  --cc-cat-cinema: #3730a3;
+  --cc-cat-expo: #5f7a5a;
+  --cc-cat-famille: #0f766e;
 }
 
 html {
@@ -34,4 +43,64 @@ body {
 :focus-visible {
   outline: 2px solid var(--cc-terracotta);
   outline-offset: 2px;
+}
+
+/* Explicit category utilities — not reliant on Tailwind scanning src/lib */
+@layer utilities {
+  .cc-cat-bg-musique { background-color: var(--cc-cat-musique); }
+  .cc-cat-bg-theatre { background-color: var(--cc-cat-theatre); }
+  .cc-cat-bg-festival { background-color: var(--cc-cat-festival); }
+  .cc-cat-bg-cinema { background-color: var(--cc-cat-cinema); }
+  .cc-cat-bg-expo { background-color: var(--cc-cat-expo); }
+  .cc-cat-bg-famille { background-color: var(--cc-cat-famille); }
+
+  .cc-cat-grad-musique {
+    background-image: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--cc-cat-musique) 92%, white),
+      color-mix(in srgb, var(--cc-cat-musique) 55%, var(--cc-sand))
+    );
+  }
+  .cc-cat-grad-theatre {
+    background-image: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--cc-cat-theatre) 92%, white),
+      color-mix(in srgb, var(--cc-cat-theatre) 55%, var(--cc-sand))
+    );
+  }
+  .cc-cat-grad-festival {
+    background-image: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--cc-cat-festival) 92%, white),
+      color-mix(in srgb, var(--cc-cat-festival) 55%, var(--cc-sand))
+    );
+  }
+  .cc-cat-grad-cinema {
+    background-image: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--cc-cat-cinema) 92%, white),
+      color-mix(in srgb, var(--cc-cat-cinema) 55%, var(--cc-sand))
+    );
+  }
+  .cc-cat-grad-expo {
+    background-image: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--cc-cat-expo) 92%, white),
+      color-mix(in srgb, var(--cc-cat-expo) 55%, var(--cc-sand))
+    );
+  }
+  .cc-cat-grad-famille {
+    background-image: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--cc-cat-famille) 92%, white),
+      color-mix(in srgb, var(--cc-cat-famille) 55%, var(--cc-sand))
+    );
+  }
+  .cc-cat-grad-muted {
+    background-image: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--cc-muted) 70%, white),
+      var(--cc-sand)
+    );
+  }
 }
