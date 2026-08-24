@@ -1,0 +1,14 @@
+lieu_id,nom,statut,events,concerts_dates,detail
+L090,Racines (Port Viguerie),saison ouverte sans lineup,1,1,E048 «Racines — saison Port Viguerie»
+L091,La Centrale (Île du Ramier),saison ouverte sans lineup,1,1,E049 «La Centrale — saison Île du Ramier»
+L092,Les Jardins de Candie,saison ouverte + récurrence Candie (DJ/live),1,18,E047 «Les Jardins de Candie — saison guinguette»
+L095,Iris Guinguette (Jardin Michelet),saison ouverte sans lineup,1,1,E628 «Iris Guinguette — saison Jardin Michelet»
+L098,Turbine Bazacle,saison ouverte sans lineup,1,1,E629 «Turbine Bazacle — saison terrasse»
+L100,Les Canotiers,saison ouverte sans lineup,1,1,E630 «Les Canotiers — saison Quai de Tounis»
+L102,Museau Musette,saison ouverte sans lineup,1,1,E631 «Museau Musette — saison bistrot Canal du M»
+L104,Chez Molly (Montaudran),saison ouverte sans lineup,1,1,E632 «Chez Molly Côté Guinguette — saison Montau»
+L106,Le Petit L’U (L’Union),saison ouverte + closing 05/09,2,2,E633 «Le Petit L’U — saison L’Union» ; E498 09/05 «Closing — Le Petit L’U»
+L107,Guinguette de Tournefeuille,saison fermée (clôture 08/08),1,1,E671 «Guinguette de Tournefeuille — clôture sais»
+L108,Guinguette en l’air (Fenouillet),saison fermée (closing 15/08),1,1,E672 «Guinguette en l'air — closing 15/08 (hors »
+L109,L’Éphémère (Lacroix-Falgarde),concerts datés (3),3,3,E494 08/28 21:00 «Tu Luz Habana — musique cubaine / salsa» ; E495 08/29 21:00 «Moher — musique celtique / irlandaise» ; E496 08/30 18:30 «Cuarteto Tafi — musique d’Argentine»
+L110,Guinguette du BBT (Cornebarrieu),saison + concert 28/08 LEON Show Man,2,2,E637 «Guinguette du BBT — saison Cornebarrieu» ; E497 08/28 18:00 «LEON Show Man — Soul & Funk»

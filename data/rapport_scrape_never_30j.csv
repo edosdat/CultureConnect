@@ -1,0 +1,75 @@
+lieu_id,nom,avant,apres,nb_ajoutes,nb_ajoutes_prog,statut
+L001,Centre culturel Bellegarde,0,14,14,14,OK
+L002,Centre culturel Saint-Cyprien,0,7,7,7,OK
+L003,Centre culturel Bonnefoy,0,8,8,8,OK
+L004,Centre culturel Théâtre des Mazades,0,7,7,7,OK
+L005,Centre culturel Espace JOB,0,12,12,12,OK
+L006,Centre culturel La Brique Rouge,0,5,5,5,OK
+L007,Centre culturel Henri-Desbals,0,4,4,4,OK
+L008,Centre culturel Renan,0,18,18,18,OK
+L009,Centre culturel Soupetard,0,5,5,5,OK
+L010,Centre culturel Alban-Minville,0,6,6,6,OK
+L011,Centre culturel Reynerie,0,1,1,1,OK
+L012,Centre culturel Bordeblanche,0,1,1,1,OK
+L013,Centre culturel Saint-Simon,0,3,3,3,OK
+L020,Espace Roguet,0,1,1,1,OK
+L021,Centre culturel des Minimes,0,1,1,1,OK
+L022,MJC Ponts-Jumeaux,0,1,1,1,OK
+L023,FEP Étienne Billières,0,1,1,1,OK
+L024,MJC Empalot,0,1,1,1,OK
+L025,MJC Pont des Demoiselles,0,1,1,1,OK
+L026,MJC Croix-Daurade,0,1,1,1,OK
+L027,MJC Jacques Prévert,0,1,1,1,OK
+L028,MJC Ancely,0,1,1,1,OK
+L029,Maison de quartier Lalande,0,1,1,1,OK
+L030,MJC Balma,0,1,1,1,OK
+L031,MJC des Arts de Blagnac,0,1,1,1,OK
+L032,Petit Théâtre du Centre,0,1,1,1,OK
+L033,Pavillon blanc Henri-Molina,0,0,0,0,vide
+L034,Salle Jacques-Brel,0,0,0,0,vide
+L047,Théâtre Les 3 T,0,24,24,41,OK
+L052,Théâtre du Chien Blanc,0,1,1,1,OK
+L055,Théâtre de Poche,0,9,9,13,OK
+L058,Théâtre 2 l’Acte – Le Ring,0,1,1,1,OK
+L060,Le Grenier Théâtre,0,5,5,12,OK
+L074,Samba Résille,0,1,1,1,OK
+L077,La MAC (CROUS),0,1,1,1,OK
+L080,La Cabane (Cartoucherie),0,2,2,2,OK
+L084,Le Phare,0,1,1,1,OK
+L094,Guinguette d’Odyssud,0,0,0,0,vide
+L095,Iris Guinguette (Jardin Michelet),0,1,1,1,OK
+L096,La Pétanque des Copains,0,1,1,1,OK (Instagram only — scrape limité / stub)
+L097,Pompon (péniche),0,1,1,1,OK (Instagram only — scrape limité / stub)
+L098,Turbine Bazacle,0,1,1,1,OK
+L099,Pêcheurs de sable,0,1,1,1,OK (Instagram only — scrape limité / stub)
+L100,Les Canotiers,0,1,1,1,OK
+L101,Le Gros Arbre,0,1,1,1,OK (Instagram only — scrape limité / stub)
+L102,Museau Musette,0,1,1,1,OK
+L103,Les Terrasses de l’Atelier / Observatoire (Pech-David),0,0,0,0,vide
+L104,Chez Molly (Montaudran),0,1,1,1,OK
+L105,Brasa (Balma),0,0,0,0,vide (Linktree)
+L106,Le Petit L’U (L’Union),0,2,2,2,OK
+L107,Guinguette de Tournefeuille,0,1,1,1,OK
+L108,Guinguette en l’air (Fenouillet),0,1,1,1,OK
+L109,L’Éphémère (Lacroix-Falgarde),0,3,3,3,OK
+L110,Guinguette du BBT (Cornebarrieu),0,2,2,2,OK
+L111,Min-Ou,0,1,1,1,OK (Instagram only — scrape limité / stub)
+L120,Le Lido,0,0,0,0,vide
+L122,CRR – Espace Varèse,0,0,0,0,vide (Rassemblées déjà L057)
+L129,Cinéma Le Métro,0,1,1,1,OK
+L133,Forêt Magique (Domaine de Pontié),0,0,0,0,vide
+L136,Petit Théâtre Saint-Exupère (Odyssud),0,0,0,0,vide (hors Odyssud L062)
+L051,Théâtre le Vent des Signes,1,1,0,0,vide
+L056,Théâtre du Pavé,16,16,0,8,OK
+L061,Casino Théâtre Barrière,2,2,0,0,vide
+L062,Odyssud,4,14,10,17,OK
+L070,Halle aux Grains,28,28,0,0,OK préservé (hors fenêtre 30j)
+L081,Salle Nougaro,1,8,7,8,OK
+L090,Racines (Port Viguerie),1,1,0,1,OK
+L091,La Centrale (Île du Ramier),1,1,0,1,OK
+L092,Les Jardins de Candie,1,1,0,18,OK
+L093,Le Petit Bikini,4,4,0,0,vide fenêtre (déjà BDD)
+L121,La Place de la Danse (CDCN),1,8,7,14,OK
+L123,Les Abattoirs,5,5,0,0,vide
+L124,Quai des Savoirs,1,1,0,0,vide
+L128,Le Cratère,5,5,0,0,vide

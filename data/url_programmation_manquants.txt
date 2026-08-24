@@ -1,0 +1,4 @@
+lieu_id	nom	type	site_web
+L043	Pavillon Mazar	theatre	https://www.groupemerci.net/
+L054	Café-théâtre Les Minimes	cafe_theatre	https://www.lesminimes.com/
+L073	Espace Croix-Baragnon	centre_culturel	

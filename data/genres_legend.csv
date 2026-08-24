@@ -1,0 +1,23 @@
+slug,label_fr,famille
+classique_lyrique,Classique / lyrique,musique
+jazz_blues,Jazz / blues,musique
+rock_metal_punk,Rock / metal / punk,musique
+electro_techno,Électro / techno,musique
+hiphop_rap,Hip-hop / rap,musique
+funk_soul_rnb,Funk / soul / R&B,musique
+chanson_variete,Chanson / variété,musique
+musiques_monde_trad,Musiques du monde / trad,musique
+musique_autre,Musique (autre),musique
+guinguette_sorties,Guinguettes & sorties,musique
+theatre_contemporain,Théâtre contemporain,theatre
+theatre_classique,Théâtre classique,theatre
+humour_standup,Humour / stand-up,theatre
+jeune_public,Jeune public,theatre
+danse,Danse,theatre
+cirque_arts_rue,Cirque / arts de rue,theatre
+lecture_poesie,Lecture / poésie,theatre
+fiction,Fiction,cinema
+documentaire,Documentaire,cinema
+animation_jeune_public,Animation / jeune public,cinema
+patrimoine_retro,Patrimoine / rétro,cinema
+festival_avp,Festival / avant-première,cinema
