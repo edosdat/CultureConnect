@@ -363,7 +363,10 @@ export default function CultureConnectApp({
         selectedCategories,
         lieuIds,
         selectedGenres,
-        timeScope !== 'date',
+        timeScope === 'aujourdhui' ||
+          timeScope === 'soir' ||
+          timeScope === 'weekend' ||
+          timeScope === 'semaine',
       )) {
         if (seen.has(item.key)) continue;
         seen.add(item.key);
@@ -618,7 +621,7 @@ export default function CultureConnectApp({
   const filterBadge =
     selectedGenres.length +
     (selectedLieuId ? 1 : 0) +
-    (selectedCommune && selectedCommune !== 'Toulouse' ? 1 : 0);
+    (selectedCommune !== 'Toulouse' ? 1 : 0);
 
   return (
     <div className="mx-auto max-w-7xl min-w-0 overflow-x-hidden px-4 pb-16 pt-3 sm:px-6 sm:pt-6">

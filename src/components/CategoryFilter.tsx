@@ -30,11 +30,11 @@ export default function CategoryFilter({
 
   if (variant === 'chips') {
     return (
-      <div className="space-y-1.5">
+      <div className="relative">
         <div
           role="group"
           aria-label="Catégories"
-          className="flex flex-nowrap gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex flex-nowrap gap-1.5 overflow-x-auto pe-4 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {MAIN_CATEGORIES.map(({ id, label }) => {
             const active = selected.includes(id);
@@ -65,6 +65,10 @@ export default function CategoryFilter({
             </button>
           )}
         </div>
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-culture-cream to-transparent sm:hidden"
+        />
       </div>
     );
   }

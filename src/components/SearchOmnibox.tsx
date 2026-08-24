@@ -25,18 +25,19 @@ export default function SearchOmnibox({
       <input
         id="cc-search"
         type="text"
+        inputMode="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoComplete="off"
-        className="h-10 w-full rounded-full border border-culture-line bg-culture-surface py-0 pl-9 pr-10 text-base text-culture-ink sm:text-sm shadow-sm placeholder:text-culture-muted/70 focus:border-culture-terracotta focus:outline-none focus:ring-2 focus:ring-culture-terracotta/30"
+        className="h-10 w-full rounded-full border border-culture-line bg-culture-surface py-0 pl-9 pr-10 text-base text-culture-ink sm:text-sm shadow-sm placeholder:text-culture-muted/70 focus:border-culture-terracotta focus:outline-none focus:ring-2 focus:ring-culture-terracotta/30 [&::-webkit-search-cancel-button]:appearance-none"
       />
       {value && (
         <button
           type="button"
           onClick={() => onChange('')}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-culture-muted hover:text-culture-terracotta"
-          aria-label="Vider le champ"
+          aria-label="Effacer la recherche"
         >
           ×
         </button>

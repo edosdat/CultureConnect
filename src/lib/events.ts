@@ -10,7 +10,6 @@ import {
   isCinemaPeriodAggregate,
   isPublishableEvent,
   isPublishableProgrammeName,
-  normalizeForMatch,
 } from './publishable';
 
 /** @deprecated Prefer MAIN_CATEGORIES — kept for callers that still list raw CSV values. */
@@ -116,35 +115,14 @@ function sortKeyHeure(heure: string): string {
   return heure && heure.trim() ? heure.slice(0, 5) : '99:99';
 }
 
-function itemHeureDebut(item: DayItem): string {
-  if (item.kind === 'programme') return (item.programme.heure_debut || '').trim();
-  return (item.evenement.heure_debut || '').trim();
-}
-
-function itemTitle(item: DayItem): string {
-  if (item.kind === 'programme') return item.programme.nom_item || '';
-  return item.evenement.titre || '';
-}
-
-function hasClockTime(heure: string): boolean {
+function hasRealHeure(heure: string): boolean {
   return /^\d{1,2}:\d{2}/.test((heure || '').trim());
 }
 
-/**
- * Period-aggregates, venue-hours / resto, and undated cards stay visible
- * but sort after real timed soirées.
- */
-function isLowPriorityDayItem(item: DayItem): boolean {
-  if (item.kind === 'fallback') return true;
-  if (!hasClockTime(itemHeureDebut(item))) return true;
-  const t = normalizeForMatch(itemTitle(item));
-  if (/(resto|restaurant|bistrot|brasserie)/.test(t)) return true;
-  if (/\bhoraires?\b/.test(t)) return true;
-  if (/ouverture quotidienne|ouverture 7\s*\/\s*7/.test(t)) return true;
-  if (/[—\-–]\s*ouverture/.test(t) && !/soiree d['’ ]?ouverture/.test(t)) return true;
-  if (/pas de concerts? dat/.test(t) || /lineup non dat/.test(t)) return true;
-  if (/terrasse/.test(t) && /restaurant/.test(t)) return true;
-  return false;
+/** 0 = programme + clock, 1 = programme without time, 2 = fallback (Sur la période). */
+function kindSortRank(item: DayItem): number {
+  if (item.kind === 'fallback') return 2;
+  return hasRealHeure(item.programme.heure_debut) ? 0 : 1;
 }
 
 /** Lower = higher priority when no category filter (cinema last among mains). */
@@ -173,11 +151,17 @@ function sortDayItems(
   const deprioritizeCinema = opts?.deprioritizeCinema ?? false;
   all.sort((a, b) => {
     if (a.dayIso !== b.dayIso) return a.dayIso.localeCompare(b.dayIso);
-    const lowA = isLowPriorityDayItem(a) ? 1 : 0;
-    const lowB = isLowPriorityDayItem(b) ? 1 : 0;
-    if (lowA !== lowB) return lowA - lowB;
-    const ha = sortKeyHeure(itemHeureDebut(a));
-    const hb = sortKeyHeure(itemHeureDebut(b));
+    const ka = kindSortRank(a);
+    const kb = kindSortRank(b);
+    if (ka !== kb) return ka - kb;
+    const ha =
+      a.kind === 'programme'
+        ? sortKeyHeure(a.programme.heure_debut)
+        : sortKeyHeure(a.evenement.heure_debut);
+    const hb =
+      b.kind === 'programme'
+        ? sortKeyHeure(b.programme.heure_debut)
+        : sortKeyHeure(b.evenement.heure_debut);
     if (ha !== hb) return ha.localeCompare(hb);
     if (deprioritizeCinema) {
       const ra = categorieSortRank(categorieOfDayItem(a));
@@ -391,6 +375,7 @@ export function itemsForDateRange(
   categories: string[] = [],
   lieuIds: string[] = [],
   genres: string[] = [],
+  excludeLongFallbacks = false,
 ): DayItem[] {
   if (!startIso || !endIso || endIso < startIso) return [];
 
@@ -429,6 +414,7 @@ export function itemsForDateRange(
   for (const ev of events) {
     if (!isPublishableEvent(ev)) continue;
     if (eventIdsWithProgrammeInRange.has(ev.event_id)) continue;
+    if (excludeLongFallbacks && eventSpanDays(ev) > 7) continue;
     const dayIso = firstCoveredDayInRange(ev, startIso, endIso);
     if (!dayIso) continue;
     const lieuId = ev.lieu_id || ev.lieu?.lieu_id || '';
