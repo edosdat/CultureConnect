@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import type {
   DayItem,
@@ -55,6 +55,18 @@ function normalizeCommune(c: string | null | undefined): string {
   return (c || '').trim().toLocaleLowerCase('fr');
 }
 
+function itemHeureDebut(item: DayItem): string {
+  if (item.kind === 'programme') return (item.programme.heure_debut || '').trim();
+  return (item.evenement.heure_debut || '').trim();
+}
+
+/** Ce soir: heure_debut >= 19:00; exclude period cards without a clock time. */
+function startsAtOrAfter19(item: DayItem): boolean {
+  const h = itemHeureDebut(item);
+  if (!h || h.length < 4) return false;
+  return h.slice(0, 5) >= '19:00';
+}
+
 export default function CultureConnectApp({
   events,
   programme,
@@ -68,8 +80,8 @@ export default function CultureConnectApp({
   const paris = useMemo(() => parisParts(), []);
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
-  // Start weekend to match SSR; bump to "Ce soir" after 17h Paris on client
-  const [timeScope, setTimeScope] = useState<TimeScopeId>('weekend');
+  // SSR: Aujourd'hui; client: Ce soir after 17h Paris
+  const [timeScope, setTimeScope] = useState<TimeScopeId>('aujourdhui');
   const [selectedDay, setSelectedDay] = useState<string | null>(paris.iso);
   const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -81,8 +93,7 @@ export default function CultureConnectApp({
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
   useEffect(() => {
-    const next = defaultTimeScope();
-    if (next !== 'weekend') setTimeScope(next);
+    setTimeScope(defaultTimeScope());
   }, []);
 
 
@@ -260,6 +271,10 @@ export default function CultureConnectApp({
       }
     }
 
+    if (timeScope === 'soir') {
+      items = items.filter(startsAtOrAfter19);
+    }
+
     const q = query.trim();
     if (q) {
       items = items.filter((item) =>
@@ -276,6 +291,7 @@ export default function CultureConnectApp({
     selectedGenres,
     query,
     genresLegend,
+    timeScope,
   ]);
 
   /** Pour toi = reco ranked within the same filtered list (chips + ville + query + scope). */
@@ -372,7 +388,7 @@ export default function CultureConnectApp({
       setSelectedDay(day);
       syncMonthFromIso(day);
       setShowMonthPanel(true);
-    } else if (scope === 'soir') {
+    } else if (scope === 'aujourdhui' || scope === 'soir') {
       setSelectedDay(paris.iso);
       syncMonthFromIso(paris.iso);
     } else {
@@ -433,15 +449,17 @@ export default function CultureConnectApp({
   const monthLabel = `${MONTH_NAMES_FR[month - 1]} ${year}`;
   const n = listItems.length;
   const emptyScopeHint =
-    timeScope === 'soir'
-      ? 'ce soir'
-      : timeScope === 'weekend'
-        ? 'ce week-end'
-        : timeScope === 'semaine'
-          ? 'cette semaine'
-          : selectedDay
-            ? `le ${contextLabel}`
-            : contextLabel;
+    timeScope === 'aujourdhui'
+      ? "aujourd'hui"
+      : timeScope === 'soir'
+        ? 'ce soir'
+        : timeScope === 'weekend'
+          ? 'ce week-end'
+          : timeScope === 'semaine'
+            ? 'cette semaine'
+            : selectedDay
+              ? `le ${contextLabel}`
+              : contextLabel;
 
   const monthCalendar = (
     <MonthCalendar
@@ -640,6 +658,15 @@ export default function CultureConnectApp({
                 Essaie une autre période, une autre catégorie, ou élargis la
                 recherche.
               </p>
+              {timeScope === 'soir' && (
+                <button
+                  type="button"
+                  onClick={() => handleScopeChange('aujourdhui')}
+                  className="mt-5 mr-2 rounded-full border border-culture-terracotta bg-white px-5 py-2.5 text-sm font-semibold text-culture-terracotta shadow-sm transition hover:bg-culture-soft"
+                >
+                  Voir aujourd&apos;hui
+                </button>
+              )}
               {timeScope !== 'weekend' && (
                 <button
                   type="button"

@@ -2,7 +2,7 @@
  * Time-scope helpers for CultureConnect home (Europe/Paris local dates).
  */
 
-export type TimeScopeId = 'soir' | 'weekend' | 'semaine' | 'date';
+export type TimeScopeId = 'aujourdhui' | 'soir' | 'weekend' | 'semaine' | 'date';
 
 export type DateRange = {
   startIso: string;
@@ -55,7 +55,7 @@ export function parisParts(now = new Date()): {
 
 export function defaultTimeScope(now = new Date()): TimeScopeId {
   const { hour } = parisParts(now);
-  return hour >= 17 ? 'soir' : 'weekend';
+  return hour >= 17 ? 'soir' : 'aujourdhui';
 }
 
 function addDaysIso(iso: string, delta: number): string {
@@ -133,7 +133,8 @@ export function resolveScopeRange(
   calendarMonth?: { year: number; month: number },
 ): DateRange {
   const { iso, weekday } = parisParts(now);
-  if (scope === 'soir') {
+  // Aujourd'hui + Ce soir share today; Ce soir also filters heure >= 19:00 in the app.
+  if (scope === 'aujourdhui' || scope === 'soir') {
     return { startIso: iso, endIso: iso, days: [iso] };
   }
   if (scope === 'weekend') {
@@ -186,6 +187,7 @@ export function scopeContextLabel(
   scope: TimeScopeId,
   range: DateRange,
 ): string {
+  if (scope === 'aujourdhui') return "aujourd'hui";
   if (scope === 'soir') return 'ce soir';
   if (scope === 'semaine') {
     if (range.startIso === range.endIso) return formatDayShort(range.startIso);
@@ -212,8 +214,9 @@ export const TIME_SCOPE_CHIPS: ReadonlyArray<{
   id: TimeScopeId;
   label: string;
 }> = [
+  { id: 'aujourdhui', label: "Aujourd'hui" },
   { id: 'soir', label: 'Ce soir' },
-  { id: 'weekend', label: 'Ce week-end' },
+  { id: 'weekend', label: 'Ce WE' },
   { id: 'semaine', label: 'Cette semaine' },
   { id: 'date', label: 'Date…' },
 ];
