@@ -4,8 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const LINKS = [
-  { href: '/', label: 'Accueil' },
-  { href: '/', label: 'Événements' },
+  { href: '/', label: 'Agenda' },
   { href: '/artistes', label: 'Artistes' },
 ] as const;
 
@@ -14,10 +13,9 @@ export default function SiteNav() {
   const onArtistes = pathname.startsWith('/artistes');
   const onHome = pathname === '/' || pathname === '';
 
-  function isActive(label: string): boolean {
-    if (label === 'Artistes') return onArtistes;
-    // Accueil + Événements both point at the calendar home
-    if (label === 'Événements' || label === 'Accueil') return onHome;
+  function isActive(href: string): boolean {
+    if (href === '/artistes') return onArtistes;
+    if (href === '/') return onHome;
     return false;
   }
 
@@ -26,23 +24,23 @@ export default function SiteNav() {
       aria-label="Navigation principale"
       className="border-b border-culture-sand/80 bg-culture-cream/80 backdrop-blur"
     >
-      <div className="mx-auto flex max-w-6xl items-center gap-1 px-4 py-3 sm:px-6">
+      <div className="mx-auto flex max-w-7xl min-w-0 items-center gap-1 px-4 py-3 sm:px-6">
         <Link
           href="/"
-          className="mr-3 font-display text-lg text-culture-ink hover:text-culture-terracotta"
+          className="mr-3 shrink-0 font-display text-lg text-culture-ink hover:text-culture-terracotta"
         >
           CultureConnect
         </Link>
-        <div className="flex flex-wrap gap-1">
+        <div className="flex min-w-0 flex-nowrap gap-1 overflow-x-auto">
           {LINKS.map(({ href, label }) => {
-            const active = isActive(label);
+            const active = isActive(href);
             return (
               <Link
-                key={label}
+                key={href}
                 href={href}
                 aria-current={active ? 'page' : undefined}
                 className={
-                  'rounded-full px-3 py-1.5 text-sm transition ' +
+                  'shrink-0 rounded-full px-3 py-1.5 text-sm transition ' +
                   (active
                     ? 'bg-culture-terracotta text-white shadow-sm'
                     : 'text-culture-muted hover:bg-white hover:text-culture-ink')

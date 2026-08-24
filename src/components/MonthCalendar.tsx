@@ -36,7 +36,7 @@ export default function MonthCalendar({
   while (cells.length % 7 !== 0) cells.push(null);
 
   return (
-    <div className="rounded-2xl border border-culture-sand bg-white p-4 shadow-sm sm:p-5">
+    <div className="min-w-0 overflow-x-hidden rounded-2xl border border-culture-sand bg-white p-4 shadow-sm sm:p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <button
           type="button"

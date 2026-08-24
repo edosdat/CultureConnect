@@ -34,7 +34,7 @@ export const MAIN_CATEGORY_LABELS: Record<MainCategoryId, string> = {
   enfants_famille: 'Enfants / familles',
 };
 
-/** Normalized evenements.categorie → main UI bucket */
+/** Normalized evenements.categorie → main UI bucket (autre intentionally unmapped). */
 export const CATEGORIE_TO_MAIN: Record<string, MainCategoryId> = {
   // Normalized bucket ids
   musique: 'musique',
@@ -57,12 +57,11 @@ export const CATEGORIE_TO_MAIN: Record<string, MainCategoryId> = {
   cirque: 'theatre_danse',
   lecture: 'theatre_danse',
 
-  // Festival
+  // Festival (no "autre" — leave unmapped so junk doesn't land in Festival)
   festival: 'festival',
   festival_estival: 'festival',
   festival_multi: 'festival',
   salon: 'festival',
-  autre: 'festival',
 
   // Cinéma
   cinema: 'cinema',
@@ -95,6 +94,7 @@ export const FAMILLE_TO_MAIN: Record<string, MainCategoryId> = {
 /**
  * Genre slug → main (overrides famille when needed).
  * expo_patrimoine / enfants_famille are OWN mains — never under musique.
+ * `autre` intentionally unmapped.
  */
 export const GENRE_SLUG_TO_MAIN: Record<string, MainCategoryId> = {
   // Musique styles + guinguette chip
@@ -121,7 +121,6 @@ export const GENRE_SLUG_TO_MAIN: Record<string, MainCategoryId> = {
 
   // Festival
   festival_multi: 'festival',
-  atelier_mediation: 'festival',
 
   // Cinéma
   fiction: 'cinema',
@@ -132,8 +131,9 @@ export const GENRE_SLUG_TO_MAIN: Record<string, MainCategoryId> = {
 
   // Top-level buckets (NOT musique)
   expo_patrimoine: 'expo_patrimoine',
-  expo: 'expo_patrimoine', // legacy
+  expo: 'expo_patrimoine',
   enfants_famille: 'enfants_famille',
+  atelier_mediation: 'enfants_famille',
 };
 
 export function labelMainCategory(id: MainCategoryId | string): string {
@@ -142,7 +142,8 @@ export function labelMainCategory(id: MainCategoryId | string): string {
 
 export function mainFromCategorie(categorie: string): MainCategoryId | null {
   if (!categorie) return null;
-  return CATEGORIE_TO_MAIN[categorie] ?? null;
+  const key = categorie.trim().toLowerCase();
+  return CATEGORIE_TO_MAIN[key] ?? null;
 }
 
 export function mainFromFamille(famille: string): MainCategoryId | null {
@@ -153,23 +154,23 @@ export function mainFromFamille(famille: string): MainCategoryId | null {
 
 export function mainFromGenreSlug(slug: string): MainCategoryId | null {
   if (!slug) return null;
-  return GENRE_SLUG_TO_MAIN[slug] ?? null;
+  const key = slug.trim().toLowerCase();
+  return GENRE_SLUG_TO_MAIN[key] ?? null;
 }
 
 /**
- * Mains that apply to an item: from event categorie and/or programme genre.
- * Used for multi-select category filtering (OR across selected mains).
+ * Prefer categorie mapping when it maps to a main.
+ * Use genre slug only if categorie is empty/unmapped.
  */
 export function mainsForItem(
   categorie: string,
   genreSlug: string,
 ): MainCategoryId[] {
-  const set = new Set<MainCategoryId>();
   const fromCat = mainFromCategorie(categorie);
-  if (fromCat) set.add(fromCat);
+  if (fromCat) return [fromCat];
   const fromGenre = mainFromGenreSlug(genreSlug);
-  if (fromGenre) set.add(fromGenre);
-  return Array.from(set);
+  if (fromGenre) return [fromGenre];
+  return [];
 }
 
 /** True if item matches at least one selected main (empty selection = all). */
@@ -190,9 +191,10 @@ export function genreBelongsToMains(
   selectedMains: string[],
 ): boolean {
   if (selectedMains.length === 0) return false;
+  // Prefer slug mapping (covers synthetic legend rows with empty/autre famille)
   const fromSlug = mainFromGenreSlug(genre.slug);
+  if (fromSlug) return selectedMains.includes(fromSlug);
   const fromFamille = mainFromFamille(genre.famille);
-  const main = fromSlug ?? fromFamille;
-  if (!main) return false;
-  return selectedMains.includes(main);
+  if (!fromFamille) return false;
+  return selectedMains.includes(fromFamille);
 }

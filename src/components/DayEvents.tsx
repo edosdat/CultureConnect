@@ -78,7 +78,7 @@ export default function DayEvents({
         (isMonthView ? ' ce mois' : '');
 
   return (
-    <div className="rounded-2xl border border-culture-sand bg-white p-4 shadow-sm sm:p-5">
+    <div className="min-w-0 overflow-x-hidden rounded-2xl border border-culture-sand bg-white p-4 shadow-sm sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h2 className="font-display text-xl text-culture-ink">{title}</h2>
@@ -101,7 +101,7 @@ export default function DayEvents({
         </p>
       )}
 
-      <ul className="mt-4 max-h-[70vh] space-y-3 overflow-y-auto pr-1">
+      <ul className="mt-4 max-h-[70vh] space-y-3 overflow-y-auto overflow-x-hidden pr-1">
         {items.map((item) => {
           if (item.kind === 'programme') {
             const { programme: p, evenement: ev, lieu } = item;
@@ -114,7 +114,7 @@ export default function DayEvents({
                 <button
                   type="button"
                   onClick={() => onSelectItem(item.key)}
-                  className="w-full rounded-xl border border-culture-sand bg-culture-cream/50 p-3 text-left transition hover:border-culture-terracotta/50 hover:bg-culture-cream"
+                  className="w-full min-w-0 break-words rounded-xl border border-culture-sand bg-culture-cream/50 p-3 text-left transition hover:border-culture-terracotta/50 hover:bg-culture-cream"
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     {showDateLabels && (
@@ -171,7 +171,7 @@ export default function DayEvents({
               <button
                 type="button"
                 onClick={() => onSelectItem(item.key)}
-                className="w-full rounded-xl border border-dashed border-culture-sand bg-white p-3 text-left transition hover:border-culture-terracotta/50 hover:bg-culture-cream/40"
+                className="w-full min-w-0 break-words rounded-xl border border-dashed border-culture-sand bg-white p-3 text-left transition hover:border-culture-terracotta/50 hover:bg-culture-cream/40"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   {showDateLabels && (

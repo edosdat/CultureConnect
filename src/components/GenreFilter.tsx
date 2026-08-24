@@ -1,7 +1,12 @@
 'use client';
 
 import type { GenreLegend } from '@/lib/types';
-import { genreBelongsToMains, labelMainCategory } from '@/lib/categories';
+import {
+  genreBelongsToMains,
+  labelMainCategory,
+  mainFromGenreSlug,
+} from '@/lib/categories';
+import { humanizeGenreSlug } from '@/lib/labels';
 
 type Props = {
   /** Genre slugs available for the current selection (month/day + other filters). */
@@ -12,6 +17,25 @@ type Props = {
   /** Selected main category ids — genres only show when at least one is set. */
   selectedMains: string[];
 };
+
+function syntheticLegend(slug: string): GenreLegend {
+  return {
+    slug,
+    label_fr: humanizeGenreSlug(slug),
+    famille: '',
+  };
+}
+
+function belongsToSelectedMains(
+  g: GenreLegend,
+  selectedMains: string[],
+): boolean {
+  if (genreBelongsToMains(g, selectedMains)) return true;
+  // Slugs missing from legend: use GENRE_SLUG_TO_MAIN only
+  const fromSlug = mainFromGenreSlug(g.slug);
+  if (fromSlug && selectedMains.includes(fromSlug)) return true;
+  return false;
+}
 
 export default function GenreFilter({
   availableSlugs,
@@ -35,22 +59,26 @@ export default function GenreFilter({
 
   const legendBySlug = new Map(legend.map((g) => [g.slug, g]));
 
-  const inSelectedMains = (g: GenreLegend) =>
-    genreBelongsToMains(g, selectedMains);
+  const resolve = (slug: string): GenreLegend =>
+    legendBySlug.get(slug) ?? syntheticLegend(slug);
 
+  // availableSlugs already category-filtered; synthesize missing legend rows
+  // and keep those that match mains via slug (or always show when mains selected)
   const available = availableSlugs
-    .map((slug) => legendBySlug.get(slug))
-    .filter((g): g is GenreLegend => Boolean(g))
-    .filter(inSelectedMains);
+    .map(resolve)
+    .filter((g) => {
+      if (belongsToSelectedMains(g, selectedMains)) return true;
+      const fromSlug = mainFromGenreSlug(g.slug);
+      if (fromSlug && selectedMains.includes(fromSlug)) return true;
+      // always show if present in availableSlugs when a main is selected
+      return selectedMains.length > 0;
+    });
 
   // Keep selected genres visible even if they fall out of the current slice
-  // (e.g. after changing day), so the user can clear them — but only if they
-  // still belong to a selected main.
   const selectedExtra = selected
     .filter((slug) => !availableSlugs.includes(slug))
-    .map((slug) => legendBySlug.get(slug))
-    .filter((g): g is GenreLegend => Boolean(g))
-    .filter(inSelectedMains);
+    .map(resolve)
+    .filter((g) => belongsToSelectedMains(g, selectedMains));
 
   const allVisible = [...available, ...selectedExtra];
 
@@ -58,7 +86,7 @@ export default function GenreFilter({
   const byMain = new Map<string, GenreLegend[]>();
   for (const g of allVisible) {
     const main =
-      selectedMains.find((m) => genreBelongsToMains(g, [m])) ?? 'autre';
+      selectedMains.find((m) => belongsToSelectedMains(g, [m])) ?? 'autre';
     const list = byMain.get(main) ?? [];
     list.push(g);
     byMain.set(main, list);
@@ -96,7 +124,7 @@ export default function GenreFilter({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="min-w-0 space-y-2">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
           Genres

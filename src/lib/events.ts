@@ -6,12 +6,21 @@ import type {
   ProgrammeWithContext,
 } from './types';
 import { matchesMainCategories } from './categories';
+import {
+  isPublishableEvent,
+  isPublishableProgrammeName,
+} from './publishable';
 
 /** @deprecated Prefer MAIN_CATEGORIES — kept for callers that still list raw CSV values. */
 export function getCategories(events: Evenement[]): string[] {
-  return Array.from(new Set(events.map((e) => e.categorie).filter(Boolean))).sort(
-    (a, b) => a.localeCompare(b, 'fr'),
-  );
+  return Array.from(
+    new Set(
+      events
+        .filter(isPublishableEvent)
+        .map((e) => e.categorie)
+        .filter(Boolean),
+    ),
+  ).sort((a, b) => a.localeCompare(b, 'fr'));
 }
 
 /** Inclusive YYYY-MM-DD range helper */
@@ -20,6 +29,23 @@ export function eventOccursOnDay(event: Evenement, dayIso: string): boolean {
   const end = event.date_fin || event.date_debut;
   if (!start) return false;
   return start <= dayIso && end >= dayIso;
+}
+
+/** Inclusive day count between date_debut and date_fin (1 if same day / missing fin). */
+export function eventSpanDays(ev: {
+  date_debut: string;
+  date_fin: string;
+}): number {
+  const start = ev.date_debut;
+  const end = ev.date_fin || ev.date_debut;
+  if (!start) return 0;
+  const [ys, ms, ds] = start.split('-').map(Number);
+  const [ye, me, de] = end.split('-').map(Number);
+  if (!ys || !ms || !ds || !ye || !me || !de) return 1;
+  const t0 = Date.UTC(ys, ms - 1, ds);
+  const t1 = Date.UTC(ye, me - 1, de);
+  const diff = Math.floor((t1 - t0) / 86400000);
+  return Math.max(1, diff + 1);
 }
 
 function categorieOf(item: ProgrammeWithContext): string {
@@ -40,6 +66,11 @@ export function genreOfItem(item: DayItem): string {
 
 function genreOfProgramme(item: ProgrammeWithContext): string {
   return item.programme.genre || item.evenement?.genre || '';
+}
+
+function isProgrammePublishable(p: ProgrammeWithContext): boolean {
+  if (p.evenement) return isPublishableEvent(p.evenement);
+  return isPublishableProgrammeName(p.programme.nom_item);
 }
 
 /**
@@ -65,6 +96,27 @@ function sortKeyHeure(heure: string): string {
   return heure && heure.trim() ? heure.slice(0, 5) : '99:99';
 }
 
+function sortDayItems(all: DayItem[]): DayItem[] {
+  all.sort((a, b) => {
+    if (a.dayIso !== b.dayIso) return a.dayIso.localeCompare(b.dayIso);
+    const ha =
+      a.kind === 'programme'
+        ? sortKeyHeure(a.programme.heure_debut)
+        : sortKeyHeure(a.evenement.heure_debut);
+    const hb =
+      b.kind === 'programme'
+        ? sortKeyHeure(b.programme.heure_debut)
+        : sortKeyHeure(b.evenement.heure_debut);
+    if (ha !== hb) return ha.localeCompare(hb);
+    const ta =
+      a.kind === 'programme' ? a.programme.nom_item : a.evenement.titre;
+    const tb =
+      b.kind === 'programme' ? b.programme.nom_item : b.evenement.titre;
+    return ta.localeCompare(tb, 'fr');
+  });
+  return all;
+}
+
 /**
  * Day agenda: unitary programme items for that date (preferred),
  * plus one fallback card per evenement covering the day with no programme rows that day.
@@ -77,7 +129,9 @@ export function itemsForDay(
   lieuIds: string[] = [],
   genres: string[] = [],
 ): DayItem[] {
-  const programmeThatDay = programme.filter((p) => p.programme.date === dayIso);
+  const programmeThatDay = programme.filter(
+    (p) => p.programme.date === dayIso && isProgrammePublishable(p),
+  );
   const eventIdsWithProgramme = new Set(
     programmeThatDay.map((p) => p.programme.event_id).filter(Boolean),
   );
@@ -104,6 +158,7 @@ export function itemsForDay(
 
   const fallbackItems: DayItem[] = events
     .filter((ev) => {
+      if (!isPublishableEvent(ev)) return false;
       if (!eventOccursOnDay(ev, dayIso)) return false;
       if (eventIdsWithProgramme.has(ev.event_id)) return false;
       const lieuId = ev.lieu_id || ev.lieu?.lieu_id || '';
@@ -124,29 +179,33 @@ export function itemsForDay(
       lieu: ev.lieu,
     }));
 
-  const all = [...programmeItems, ...fallbackItems];
-  all.sort((a, b) => {
-    const ha =
-      a.kind === 'programme'
-        ? sortKeyHeure(a.programme.heure_debut)
-        : sortKeyHeure(a.evenement.heure_debut);
-    const hb =
-      b.kind === 'programme'
-        ? sortKeyHeure(b.programme.heure_debut)
-        : sortKeyHeure(b.evenement.heure_debut);
-    if (ha !== hb) return ha.localeCompare(hb);
-    const ta =
-      a.kind === 'programme' ? a.programme.nom_item : a.evenement.titre;
-    const tb =
-      b.kind === 'programme' ? b.programme.nom_item : b.evenement.titre;
-    return ta.localeCompare(tb, 'fr');
-  });
-  return all;
+  return sortDayItems([...programmeItems, ...fallbackItems]);
 }
 
 /**
- * Month agenda: all programme + fallback items for days in the month,
- * matching filters, sorted by date then heure.
+ * First day of the month that an event covers (or date_debut if it falls in month).
+ * Returns null if the event does not intersect the month.
+ */
+function firstCoveredDayInMonth(
+  ev: Evenement,
+  year: number,
+  month: number,
+): string | null {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const monthStart = `${year}-${String(month).padStart(2, '0')}-01`;
+  const monthEnd = `${year}-${String(month).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+  const start = ev.date_debut;
+  const end = ev.date_fin || ev.date_debut;
+  if (!start) return null;
+  if (end < monthStart || start > monthEnd) return null;
+  // Prefer date_debut when it falls in the month; else first day of month in span
+  if (start >= monthStart && start <= monthEnd) return start;
+  return monthStart;
+}
+
+/**
+ * Month agenda: programme items for days in month + fallback events at most ONCE
+ * per event_id (on the first day of the month that the event covers).
  */
 export function itemsForMonth(
   programme: ProgrammeWithContext[],
@@ -158,33 +217,76 @@ export function itemsForMonth(
   genres: string[] = [],
 ): DayItem[] {
   const daysInMonth = new Date(year, month, 0).getDate();
-  const all: DayItem[] = [];
-  for (let d = 1; d <= daysInMonth; d++) {
-    const iso = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    all.push(
-      ...itemsForDay(programme, events, iso, categories, lieuIds, genres),
-    );
+  const monthStart = `${year}-${String(month).padStart(2, '0')}-01`;
+  const monthEnd = `${year}-${String(month).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+
+  const programmeItems: DayItem[] = programme
+    .filter((p) => {
+      const d = p.programme.date;
+      if (!d || d < monthStart || d > monthEnd) return false;
+      return isProgrammePublishable(p);
+    })
+    .filter((p) =>
+      matchesFilters(
+        categorieOf(p),
+        lieuIdOf(p),
+        genreOfProgramme(p),
+        categories,
+        lieuIds,
+        genres,
+      ),
+    )
+    .map((p) => ({
+      kind: 'programme' as const,
+      key: `p:${p.programme.programme_id}`,
+      dayIso: p.programme.date,
+      programme: p.programme,
+      evenement: p.evenement,
+      lieu: p.lieu,
+    }));
+
+  // Event ids that already have at least one programme row in this month
+  const eventIdsWithProgrammeInMonth = new Set(
+    programmeItems.map((i) =>
+      i.kind === 'programme' ? i.programme.event_id : '',
+    ).filter(Boolean),
+  );
+
+  const fallbackItems: DayItem[] = [];
+  for (const ev of events) {
+    if (!isPublishableEvent(ev)) continue;
+    if (eventIdsWithProgrammeInMonth.has(ev.event_id)) continue;
+    const dayIso = firstCoveredDayInMonth(ev, year, month);
+    if (!dayIso) continue;
+    const lieuId = ev.lieu_id || ev.lieu?.lieu_id || '';
+    if (
+      !matchesFilters(
+        ev.categorie,
+        lieuId,
+        ev.genre || '',
+        categories,
+        lieuIds,
+        genres,
+      )
+    )
+      continue;
+    fallbackItems.push({
+      kind: 'fallback',
+      key: `e:${ev.event_id}:${dayIso}`,
+      dayIso,
+      evenement: ev,
+      lieu: ev.lieu,
+    });
   }
-  all.sort((a, b) => {
-    if (a.dayIso !== b.dayIso) return a.dayIso.localeCompare(b.dayIso);
-    const ha =
-      a.kind === 'programme'
-        ? sortKeyHeure(a.programme.heure_debut)
-        : sortKeyHeure(a.evenement.heure_debut);
-    const hb =
-      b.kind === 'programme'
-        ? sortKeyHeure(b.programme.heure_debut)
-        : sortKeyHeure(b.evenement.heure_debut);
-    if (ha !== hb) return ha.localeCompare(hb);
-    const ta =
-      a.kind === 'programme' ? a.programme.nom_item : a.evenement.titre;
-    const tb =
-      b.kind === 'programme' ? b.programme.nom_item : b.evenement.titre;
-    return ta.localeCompare(tb, 'fr');
-  });
-  return all;
+
+  return sortDayItems([...programmeItems, ...fallbackItems]);
 }
 
+/**
+ * Calendar badges: programme items that day + fallback only if
+ * spanDays <= 7 OR dayIso === date_debut (or first day in month).
+ * Long expos don't put +1 on every day.
+ */
 export function countItemsByDay(
   programme: ProgrammeWithContext[],
   events: EventWithDetails[],
@@ -196,18 +298,76 @@ export function countItemsByDay(
 ): Map<string, number> {
   const counts = new Map<string, number>();
   const daysInMonth = new Date(year, month, 0).getDate();
-  for (let d = 1; d <= daysInMonth; d++) {
-    const iso = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    const n = itemsForDay(
-      programme,
-      events,
-      iso,
-      categories,
-      lieuIds,
-      genres,
-    ).length;
-    if (n > 0) counts.set(iso, n);
+  const monthStart = `${year}-${String(month).padStart(2, '0')}-01`;
+  const monthEnd = `${year}-${String(month).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+
+  // Programme counts per day
+  for (const p of programme) {
+    const d = p.programme.date;
+    if (!d || d < monthStart || d > monthEnd) continue;
+    if (!isProgrammePublishable(p)) continue;
+    if (
+      !matchesFilters(
+        categorieOf(p),
+        lieuIdOf(p),
+        genreOfProgramme(p),
+        categories,
+        lieuIds,
+        genres,
+      )
+    )
+      continue;
+    counts.set(d, (counts.get(d) ?? 0) + 1);
   }
+
+  // Event ids with programme on a given day (for fallback exclusion that day)
+  const programmeEventIdsByDay = new Map<string, Set<string>>();
+  for (const p of programme) {
+    const d = p.programme.date;
+    if (!d || d < monthStart || d > monthEnd) continue;
+    if (!isProgrammePublishable(p)) continue;
+    if (!p.programme.event_id) continue;
+    let set = programmeEventIdsByDay.get(d);
+    if (!set) {
+      set = new Set();
+      programmeEventIdsByDay.set(d, set);
+    }
+    set.add(p.programme.event_id);
+  }
+
+  for (const ev of events) {
+    if (!isPublishableEvent(ev)) continue;
+    const lieuId = ev.lieu_id || ev.lieu?.lieu_id || '';
+    if (
+      !matchesFilters(
+        ev.categorie,
+        lieuId,
+        ev.genre || '',
+        categories,
+        lieuIds,
+        genres,
+      )
+    )
+      continue;
+
+    const span = eventSpanDays(ev);
+    const firstInMonth = firstCoveredDayInMonth(ev, year, month);
+    if (!firstInMonth) continue;
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const iso = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      if (!eventOccursOnDay(ev, iso)) continue;
+      if (programmeEventIdsByDay.get(iso)?.has(ev.event_id)) continue;
+
+      // Count fallback only if short span OR this is date_debut / first day in month
+      const isAnchor =
+        iso === ev.date_debut || iso === firstInMonth;
+      if (span > 7 && !isAnchor) continue;
+
+      counts.set(iso, (counts.get(iso) ?? 0) + 1);
+    }
+  }
+
   return counts;
 }
 
@@ -239,6 +399,7 @@ export function lieuxForDay(
     const map = new Map<string, Lieu>();
     for (const p of programme) {
       if (!p.lieu) continue;
+      if (!isProgrammePublishable(p)) continue;
       if (
         !matchesMainCategories(
           categorieOf(p),
@@ -252,6 +413,7 @@ export function lieuxForDay(
     }
     for (const ev of events) {
       if (!ev.lieu) continue;
+      if (!isPublishableEvent(ev)) continue;
       if (!matchesMainCategories(ev.categorie, ev.genre || '', categories))
         continue;
       if (genres.length > 0 && !genres.includes(ev.genre || '')) continue;
@@ -315,6 +477,7 @@ export function eventsForDay(
   categories: string[],
 ): EventWithDetails[] {
   return events.filter((ev) => {
+    if (!isPublishableEvent(ev)) return false;
     if (!eventOccursOnDay(ev, dayIso)) return false;
     if (!matchesMainCategories(ev.categorie, ev.genre || '', categories))
       return false;

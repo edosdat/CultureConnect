@@ -13,7 +13,7 @@ import {
   itemsForMonth,
   lieuxForDay,
 } from '@/lib/events';
-import { genreBelongsToMains } from '@/lib/categories';
+import { genreBelongsToMains, mainFromGenreSlug } from '@/lib/categories';
 import { MONTH_NAMES_FR } from '@/lib/labels';
 import CategoryFilter from './CategoryFilter';
 import GenreFilter from './GenreFilter';
@@ -77,8 +77,9 @@ export default function CultureConnectApp({
       const next = prev.filter((slug) => {
         if (!availableGenreSlugs.includes(slug)) return false;
         const g = legendBySlug.get(slug);
-        if (!g) return false;
-        return genreBelongsToMains(g, selectedCategories);
+        if (g) return genreBelongsToMains(g, selectedCategories);
+        const m = mainFromGenreSlug(slug);
+        return m != null && selectedCategories.includes(m);
       });
       return next.length === prev.length ? prev : next;
     });
@@ -213,7 +214,7 @@ export default function CultureConnectApp({
   const monthLabel = `${MONTH_NAMES_FR[month - 1]} ${year}`;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <div className="mx-auto max-w-7xl min-w-0 overflow-x-hidden px-4 py-6 sm:px-6 sm:py-10">
       <header className="mb-6 lg:mb-8">
         <p className="text-sm font-medium uppercase tracking-[0.2em] text-culture-terracotta">
           Toulouse & alentours
@@ -249,7 +250,7 @@ export default function CultureConnectApp({
           </div>
         </aside>
 
-        <div className="min-w-0">
+        <div className="min-w-0 overflow-x-hidden">
           <div className="grid gap-6 lg:grid-cols-5">
             <div className="lg:col-span-3">
               <MonthCalendar

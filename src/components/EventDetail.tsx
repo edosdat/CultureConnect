@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import type { DayItem } from '@/lib/types';
 import {
   formatDateRange,
@@ -17,7 +18,20 @@ type Props = {
   onSelectVenue?: (lieuId: string) => void;
 };
 
+function useEscapeClose(active: boolean, onClose: () => void) {
+  useEffect(() => {
+    if (!active) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [active, onClose]);
+}
+
 export default function EventDetail({ item, onClose, onSelectVenue }: Props) {
+  useEscapeClose(Boolean(item), onClose);
+
   if (!item) return null;
 
   if (item.kind === 'programme') {
@@ -37,11 +51,11 @@ export default function EventDetail({ item, onClose, onSelectVenue }: Props) {
         onClick={onClose}
       >
         <div
-          className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-t-3xl border border-culture-sand bg-culture-cream shadow-xl sm:rounded-3xl"
+          className="max-h-[92vh] w-full max-w-2xl min-w-0 overflow-y-auto overflow-x-hidden rounded-t-3xl border border-culture-sand bg-culture-cream shadow-xl sm:rounded-3xl"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="sticky top-0 flex items-start justify-between gap-3 border-b border-culture-sand bg-culture-cream/95 px-5 py-4 backdrop-blur">
-            <div>
+            <div className="min-w-0 break-words">
               <div className="flex flex-wrap gap-2">
                 {categorie && (
                   <span className="rounded-full bg-white px-2.5 py-0.5 text-xs text-culture-terracotta">
@@ -56,18 +70,18 @@ export default function EventDetail({ item, onClose, onSelectVenue }: Props) {
               </div>
               <h2
                 id="event-detail-title"
-                className="mt-2 font-display text-2xl text-culture-ink"
+                className="mt-2 font-display text-2xl text-culture-ink break-words"
               >
                 {p.nom_item}
               </h2>
               {ev?.titre && (
-                <p className="mt-1 text-sm text-culture-muted">{ev.titre}</p>
+                <p className="mt-1 text-sm text-culture-muted break-words">{ev.titre}</p>
               )}
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-culture-sand bg-white px-3 py-1 text-sm text-culture-ink hover:bg-culture-sand"
+              className="shrink-0 rounded-full border border-culture-sand bg-white px-3 py-1 text-sm text-culture-ink hover:bg-culture-sand"
               aria-label="Fermer"
             >
               Fermer
@@ -146,14 +160,14 @@ export default function EventDetail({ item, onClose, onSelectVenue }: Props) {
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
                   Cadre / évènement
                 </h3>
-                <p className="mt-1 font-medium text-culture-ink">{ev.titre}</p>
+                <p className="mt-1 font-medium text-culture-ink break-words">{ev.titre}</p>
                 {(ev.date_debut || ev.date_fin) && (
                   <p className="text-sm text-culture-muted">
                     {formatDateRange(ev.date_debut, ev.date_fin)}
                   </p>
                 )}
                 {ev.description_courte && (
-                  <p className="mt-2 text-culture-ink leading-relaxed">
+                  <p className="mt-2 text-culture-ink leading-relaxed break-words">
                     {ev.description_courte}
                   </p>
                 )}
@@ -165,7 +179,7 @@ export default function EventDetail({ item, onClose, onSelectVenue }: Props) {
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
                   Notes
                 </h3>
-                <p className="mt-1 text-sm text-culture-ink">{p.notes}</p>
+                <p className="mt-1 text-sm text-culture-ink break-words">{p.notes}</p>
               </section>
             )}
 
@@ -200,17 +214,17 @@ export default function EventDetail({ item, onClose, onSelectVenue }: Props) {
       onClick={onClose}
     >
       <div
-        className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-t-3xl border border-culture-sand bg-culture-cream shadow-xl sm:rounded-3xl"
+        className="max-h-[92vh] w-full max-w-2xl min-w-0 overflow-y-auto overflow-x-hidden rounded-t-3xl border border-culture-sand bg-culture-cream shadow-xl sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 flex items-start justify-between gap-3 border-b border-culture-sand bg-culture-cream/95 px-5 py-4 backdrop-blur">
-          <div>
+          <div className="min-w-0 break-words">
             <span className="rounded-full bg-white px-2.5 py-0.5 text-xs text-culture-terracotta">
               {labelCategorie(event.categorie)}
             </span>
             <h2
               id="event-detail-title"
-              className="mt-2 font-display text-2xl text-culture-ink"
+              className="mt-2 font-display text-2xl text-culture-ink break-words"
             >
               {event.titre}
             </h2>
@@ -221,7 +235,7 @@ export default function EventDetail({ item, onClose, onSelectVenue }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-culture-sand bg-white px-3 py-1 text-sm text-culture-ink hover:bg-culture-sand"
+            className="shrink-0 rounded-full border border-culture-sand bg-white px-3 py-1 text-sm text-culture-ink hover:bg-culture-sand"
             aria-label="Fermer"
           >
             Fermer
@@ -298,7 +312,7 @@ export default function EventDetail({ item, onClose, onSelectVenue }: Props) {
               <h3 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
                 Description
               </h3>
-              <p className="mt-1 text-culture-ink leading-relaxed">
+              <p className="mt-1 text-culture-ink leading-relaxed break-words">
                 {event.description_courte}
               </p>
             </section>
