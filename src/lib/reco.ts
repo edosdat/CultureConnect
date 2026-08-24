@@ -640,20 +640,30 @@ function scoreItemAgainst(
     }
   }
 
-  const catWeight =
-    signals.genres.size > 0 ? W_CATEGORIE_SOFT : W_CATEGORIE;
-  for (const c of signals.categories) {
-    if (fields.mainCats.includes(c)) {
-      score += catWeight;
-      strong += catWeight;
-      hitCat = true;
-      break;
+  // If the user named precise genres (jazz, électro…), do NOT boost parent
+  // category alone — that was surfacing guinguettes for « j'aime le jazz ».
+  // Category boost only when there are no genre intents, or as a small combo
+  // when the item already matched one of those genres.
+  if (signals.genres.size === 0) {
+    for (const c of signals.categories) {
+      if (fields.mainCats.includes(c)) {
+        score += W_CATEGORIE;
+        strong += W_CATEGORIE;
+        hitCat = true;
+        break;
+      }
     }
-  }
-
-  if (hitGenre && hitCat) {
-    score += COMBO_BONUS;
-    strong += COMBO_BONUS;
+  } else if (hitGenre) {
+    for (const c of signals.categories) {
+      if (fields.mainCats.includes(c)) {
+        hitCat = true;
+        break;
+      }
+    }
+    if (hitCat) {
+      score += COMBO_BONUS;
+      strong += COMBO_BONUS;
+    }
   }
 
   for (const token of signals.textTokens) {
@@ -776,6 +786,15 @@ export type ScoredDayItem = {
  * Score DayItems against free-text tastes; return top N with score > 0.
  * Prefers items with at least one strong signal (genre/cat/title ≥ 6).
  */
+const GUINGUETTE_GENRE = 'guinguette_sorties';
+
+/** Precise music genres without an explicit guinguette intent → drop guinguettes. */
+function shouldDropGuinguettes(signals: TasteSignals): boolean {
+  if (signals.genres.has(GUINGUETTE_GENRE)) return false;
+  const others = [...signals.genres].filter((g) => g && g !== GUINGUETTE_GENRE);
+  return others.length > 0;
+}
+
 export function recommendForTastes(
   items: DayItem[],
   tastes: string,
@@ -793,17 +812,21 @@ export function recommendForTastes(
     return [];
   }
 
+  const dropGuinguette = shouldDropGuinguettes(signals);
   const fieldsList = items.map(itemFields);
   const idfMap = computeIdfDampening(fieldsList, signals.textTokens);
   const limit = Math.max(1, Math.min(topN, 12));
 
   const scored: Array<ScoredDayItem & { strong: number }> = [];
   for (let i = 0; i < items.length; i++) {
-    const { score, strong } = scoreItemAgainst(
-      fieldsList[i]!,
-      signals,
-      idfMap,
-    );
+    const fields = fieldsList[i]!;
+    if (
+      dropGuinguette &&
+      fields.genreSlugs.some((s) => s === GUINGUETTE_GENRE)
+    ) {
+      continue;
+    }
+    const { score, strong } = scoreItemAgainst(fields, signals, idfMap);
     if (score > 0) scored.push({ item: items[i]!, score, strong });
   }
 
