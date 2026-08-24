@@ -114,7 +114,9 @@ export function loadArtistes(): Artiste[] {
   }));
 }
 
-export function loadCultureData(): CultureData {
+let cachedCulture: CultureData | null = null;
+
+function buildCultureData(): CultureData {
   const lieux = loadLieux();
   const evenements = loadEvenements();
   const films = loadFilms();
@@ -175,6 +177,12 @@ export function loadCultureData(): CultureData {
     artistesWithDates,
     artistesMode: hasTable ? 'table' : 'derived',
   };
+}
+
+export function loadCultureData(): CultureData {
+  if (cachedCulture) return cachedCulture;
+  cachedCulture = buildCultureData();
+  return cachedCulture;
 }
 
 /** @deprecated Prefer loadCultureData — kept for compatibility */

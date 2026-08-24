@@ -1,39 +1,20 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import type {
-  DayItem,
-  EventWithDetails,
-  GenreLegend,
-  Lieu,
-  ProgrammeWithContext,
-} from '@/lib/types';
+import type { DayItem, GenreLegend, Lieu } from '@/lib/types';
+import type { AgendaDetailResponse, AgendaListResponse } from '@/lib/slim';
 import { recommendForProfile, recommendForTastes } from '@/lib/reco';
 import { extractMoods, hasScorableState } from '@/lib/signals';
 import { useTastesUi } from './Providers';
 import { useSignals } from './SignalsProvider';
-import {
-  countItemsByDay,
-  genresForSelection,
-  itemsForDateRange,
-  itemsForDay,
-  lieuxForDay,
-} from '@/lib/events';
-import {
-  filmIdOfItem,
-  isCinemaDayItem,
-  nouveautesCine,
-  pickAussiCeSoir,
-} from '@/lib/nouveautesCine';
+import { densifiedCardCount } from '@/lib/densify';
+import { filmIdOfItem } from '@/lib/nouveautesCine';
 import { genreBelongsToMains, mainFromGenreSlug } from '@/lib/categories';
-import { MONTH_NAMES_FR, formatLieuAffiche } from '@/lib/labels';
+import { MONTH_NAMES_FR } from '@/lib/labels';
 import {
-  defaultTimeScope,
-  parisParts,
   resolveScopeRange,
   scopeContextLabel,
-  upcomingRange,
   type TimeScopeId,
 } from '@/lib/timeScope';
 import CategoryFilter from './CategoryFilter';
@@ -42,19 +23,22 @@ import CityFilter from './CityFilter';
 import VenueFilter from './VenueFilter';
 import MonthCalendar from './MonthCalendar';
 import MonthCalendarDrawer from './MonthCalendarDrawer';
-import SeanceGrid, { densifiedCardCount } from './SeanceGrid';
+import SeanceGrid from './SeanceGrid';
 import TimeScopeBar from './TimeScopeBar';
 import SearchOmnibox from './SearchOmnibox';
 import EventDetail from './EventDetail';
 import LoginNudge from './LoginNudge';
-import {
-  cachedNormalizedBlob,
-  matchesNormalizedHaystack,
-} from '@/lib/searchText';
 
 type Props = {
-  events: EventWithDetails[];
-  programme: ProgrammeWithContext[];
+  initialScope: TimeScopeId;
+  initialParisIso: string;
+  initialItems: DayItem[];
+  initialNouveautes: DayItem[];
+  initialTotal: number;
+  initialDensifiedTotal: number;
+  initialVenues: Lieu[];
+  initialGenreSlugs: string[];
+  communes: string[];
   genresLegend: GenreLegend[];
   initialYear: number;
   initialMonth: number;
@@ -68,24 +52,47 @@ function normalizeCommune(c: string | null | undefined): string {
   return (c || '').trim().toLocaleLowerCase('fr');
 }
 
-function itemHeureDebut(item: DayItem): string {
-  if (item.kind === 'programme') return (item.programme.heure_debut || '').trim();
-  return (item.evenement.heure_debut || '').trim();
-}
-
-/** Ce soir: heure_debut >= 19:00; exclude period cards without a clock time. */
-function startsAtOrAfter19(item: DayItem): boolean {
-  const h = itemHeureDebut(item);
-  if (!h || h.length < 4) return false;
-  return h.slice(0, 5) >= '19:00';
-}
-
 const AGENDA_PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 250;
 
+function buildAgendaParams(opts: {
+  scope: TimeScopeId;
+  commune: string | null;
+  q: string;
+  cats: string[];
+  genres: string[];
+  lieuId: string | null;
+  selectedDate: string | null;
+  year: number;
+  month: number;
+  offset?: number;
+  includeCounts?: boolean;
+}): URLSearchParams {
+  const p = new URLSearchParams();
+  p.set('scope', opts.scope);
+  if (opts.commune) p.set('commune', opts.commune);
+  if (opts.q) p.set('q', opts.q);
+  if (opts.cats.length) p.set('cat', opts.cats.join(','));
+  if (opts.genres.length) p.set('genres', opts.genres.join(','));
+  if (opts.lieuId) p.set('lieu', opts.lieuId);
+  if (opts.selectedDate) p.set('date', opts.selectedDate);
+  p.set('year', String(opts.year));
+  p.set('month', String(opts.month));
+  if (opts.offset) p.set('offset', String(opts.offset));
+  if (opts.includeCounts) p.set('counts', '1');
+  return p;
+}
+
 export default function CultureConnectApp({
-  events,
-  programme,
+  initialScope,
+  initialParisIso,
+  initialItems,
+  initialNouveautes,
+  initialTotal,
+  initialDensifiedTotal,
+  initialVenues,
+  initialGenreSlugs,
+  communes,
   genresLegend,
   initialYear,
   initialMonth,
@@ -96,12 +103,10 @@ export default function CultureConnectApp({
   const tasteState = session?.user?.tasteState ?? null;
   const tastes =
     tasteState?.tastesText?.trim() || session?.user?.tastes?.trim() || '';
-  const paris = useMemo(() => parisParts(), []);
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
-  // SSR: Aujourd'hui; client: Ce soir after 17h Paris
-  const [timeScope, setTimeScope] = useState<TimeScopeId>('aujourdhui');
-  const [selectedDay, setSelectedDay] = useState<string | null>(paris.iso);
+  const [timeScope, setTimeScope] = useState<TimeScopeId>(initialScope);
+  const [selectedDay, setSelectedDay] = useState<string | null>(initialParisIso);
   const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -113,9 +118,24 @@ export default function CultureConnectApp({
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
   const [visibleCount, setVisibleCount] = useState(AGENDA_PAGE_SIZE);
 
-  useEffect(() => {
-    setTimeScope(defaultTimeScope());
-  }, []);
+  const [listItems, setListItems] = useState<DayItem[]>(initialItems);
+  const [nouveautesItems, setNouveautesItems] =
+    useState<DayItem[]>(initialNouveautes);
+  const [total, setTotal] = useState(initialTotal);
+  const [densifiedTotalApi, setDensifiedTotalApi] = useState(
+    initialDensifiedTotal,
+  );
+  const [venueOptions, setVenueOptions] = useState<Lieu[]>(initialVenues);
+  const [availableGenreSlugs, setAvailableGenreSlugs] =
+    useState<string[]>(initialGenreSlugs);
+  const [counts, setCounts] = useState<Map<string, number>>(new Map());
+  const [detailItem, setDetailItem] = useState<DayItem | null>(null);
+  const [relatedFilmItems, setRelatedFilmItems] = useState<DayItem[]>([]);
+  const [aussiCeSoirItems, setAussiCeSoirItems] = useState<DayItem[]>([]);
+
+  const skipListFetch = useRef(true);
+  const listFetchGen = useRef(0);
+  const detailFetchGen = useRef(0);
 
   // Input stays instant; filtering/range wait ~250ms. Clearing flushes immediately.
   useEffect(() => {
@@ -149,22 +169,6 @@ export default function CultureConnectApp({
   /** Debounced: date range, commune skip, matching. */
   const searching = debouncedQuery.trim().length > 0;
 
-  /** Furthest YYYY-MM-DD in loaded programme + events (for search widen). */
-  const dataMaxIso = useMemo(() => {
-    let max = '';
-    for (const p of programme) {
-      const d = (p.programme.date || '').trim();
-      if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d > max) max = d;
-    }
-    for (const e of events) {
-      for (const raw of [e.date_debut, e.date_fin]) {
-        const d = (raw || '').trim();
-        if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d > max) max = d;
-      }
-    }
-    return max;
-  }, [programme, events]);
-
   const scopeRange = useMemo(
     () =>
       resolveScopeRange(timeScope, selectedDay, new Date(), {
@@ -174,136 +178,72 @@ export default function CultureConnectApp({
     [timeScope, selectedDay, year, month],
   );
 
-  const range = useMemo(() => {
-    // Search: ignore TimeScope for the date range — all upcoming dates.
-    if (searching) {
-      return upcomingRange(paris.iso, dataMaxIso, 90);
-    }
-    return scopeRange;
-  }, [searching, paris.iso, dataMaxIso, scopeRange]);
-
   const contextLabel = useMemo(
-    () => scopeContextLabel(timeScope, range),
-    [timeScope, range],
+    () => scopeContextLabel(timeScope, scopeRange),
+    [timeScope, scopeRange],
   );
 
-  /** All lieux appearing in programme + events (app scope). */
-  const lieuxById = useMemo(() => {
-    const byId = new Map<string, Lieu>();
-    for (const p of programme) {
-      if (p.lieu?.lieu_id) byId.set(p.lieu.lieu_id, p.lieu);
+  function applyList(data: AgendaListResponse, append = false) {
+    setListItems((prev) => (append ? [...prev, ...data.items] : data.items));
+    if (!append) {
+      setNouveautesItems(data.nouveautes ?? []);
+      setTotal(data.total);
+      setDensifiedTotalApi(data.densifiedTotal);
+      setVenueOptions(data.venues ?? []);
+      setAvailableGenreSlugs(data.genreSlugs ?? []);
+    } else {
+      setTotal(data.total);
+      setDensifiedTotalApi(data.densifiedTotal);
     }
-    for (const e of events) {
-      if (e.lieu?.lieu_id) byId.set(e.lieu.lieu_id, e.lieu);
-    }
-    return byId;
-  }, [programme, events]);
-
-  const communeOptions = useMemo(() => {
-    const set = new Set<string>();
-    for (const lieu of lieuxById.values()) {
-      const c = (lieu.commune || '').trim();
-      if (c) set.add(c);
-    }
-    const list = Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'));
-    // Ensure Toulouse is present when in data (already is if in set)
-    return list;
-  }, [lieuxById]);
-
-  const communeLieuIds = useMemo(() => {
-    if (!selectedCommune) return null;
-    const target = normalizeCommune(selectedCommune);
-    const ids: string[] = [];
-    for (const lieu of lieuxById.values()) {
-      if (normalizeCommune(lieu.commune) === target) {
-        ids.push(lieu.lieu_id);
-      }
-    }
-    return ids;
-  }, [lieuxById, selectedCommune]);
-
-  /**
-   * Empty array = no lieu filter (all agglo).
-   * When a commune is selected, pass explicit matching lieu_ids.
-   */
-  const lieuIdsForFilters = useMemo(() => {
-    // Search: skip default commune (Toulouse) so agglo hits like Lacroix-Falgarde show.
-    // Explicit venue chip still applies.
-    if (searching) {
-      if (selectedLieuId) return [selectedLieuId];
-      return [];
-    }
-    if (selectedLieuId) {
-      if (!selectedCommune) return [selectedLieuId];
-      const lieu = lieuxById.get(selectedLieuId);
-      if (
-        lieu &&
-        normalizeCommune(lieu.commune) === normalizeCommune(selectedCommune)
-      ) {
-        return [selectedLieuId];
-      }
-      // Inconsistent lieu vs commune — treat as commune-only filter
-      return communeLieuIds && communeLieuIds.length > 0
-        ? communeLieuIds
-        : ['__no_match__'];
-    }
-    if (selectedCommune) {
-      return communeLieuIds && communeLieuIds.length > 0
-        ? communeLieuIds
-        : ['__no_match__'];
-    }
-    return [];
-  }, [searching, selectedLieuId, selectedCommune, lieuxById, communeLieuIds]);
-
-  useEffect(() => {
-    if (!selectedLieuId || !selectedCommune) return;
-    const lieu = lieuxById.get(selectedLieuId);
-    if (
-      !lieu ||
-      normalizeCommune(lieu.commune) !== normalizeCommune(selectedCommune)
-    ) {
-      setSelectedLieuId(null);
-    }
-  }, [selectedCommune, selectedLieuId, lieuxById]);
-
-  function handleCommuneChange(next: string | null) {
-    setSelectedCommune(next);
-    if (selectedLieuId) {
-      const lieu = lieuxById.get(selectedLieuId);
-      if (
-        next != null &&
-        (!lieu || normalizeCommune(lieu.commune) !== normalizeCommune(next))
-      ) {
-        setSelectedLieuId(null);
-      }
+    if (data.counts) {
+      setCounts(new Map(Object.entries(data.counts)));
     }
   }
 
-  const availableGenreSlugs = useMemo(() => {
-    if (selectedCategories.length === 0) return [];
-    // Don't expand over the 90-day search window — genre chips aren't the search UI.
-    const days = scopeRange.days;
-    const lieuIds = searching ? [] : lieuIdsForFilters;
-    const set = new Set<string>();
-    for (const iso of days) {
-      for (const slug of genresForSelection(
-        programme,
-        events,
-        iso,
-        selectedCategories,
-        lieuIds,
-      )) {
-        set.add(slug);
-      }
+  useEffect(() => {
+    if (skipListFetch.current) {
+      skipListFetch.current = false;
+      return;
     }
-    return Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'));
+    const gen = ++listFetchGen.current;
+    const params = buildAgendaParams({
+      scope: timeScope,
+      commune: selectedCommune,
+      q: debouncedQuery.trim(),
+      cats: selectedCategories,
+      genres: selectedGenres,
+      lieuId: selectedLieuId,
+      selectedDate: selectedDay,
+      year,
+      month,
+      includeCounts: showMonthPanel,
+    });
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/agenda?${params.toString()}`);
+        if (!res.ok) return;
+        const data = (await res.json()) as AgendaListResponse;
+        if (cancelled || gen !== listFetchGen.current) return;
+        applyList(data);
+      } catch {
+        /* keep previous window */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [
-    programme,
-    events,
-    scopeRange.days,
+    timeScope,
+    selectedDay,
+    year,
+    month,
+    debouncedQuery,
+    selectedCommune,
+    selectedLieuId,
     selectedCategories,
-    lieuIdsForFilters,
-    searching,
+    selectedGenres,
+    showMonthPanel,
   ]);
 
   useEffect(() => {
@@ -322,101 +262,6 @@ export default function CultureConnectApp({
     });
   }, [availableGenreSlugs, selectedCategories, genresLegend]);
 
-  const counts = useMemo(() => {
-    const lieuIds = lieuIdsForFilters;
-    return countItemsByDay(
-      programme,
-      events,
-      year,
-      month,
-      selectedCategories,
-      lieuIds,
-      selectedGenres,
-    );
-  }, [
-    programme,
-    events,
-    year,
-    month,
-    selectedCategories,
-    lieuIdsForFilters,
-    selectedGenres,
-  ]);
-
-  // Persist normalized search blobs across keystrokes; reset when data/legend change.
-  const searchHayCache = useMemo(
-    () => new Map<string, string>(),
-    [programme, events, genresLegend],
-  );
-
-  const listItems = useMemo(() => {
-    const lieuIds = lieuIdsForFilters;
-    let items: DayItem[];
-
-    if (searching) {
-      items = itemsForDateRange(
-        programme,
-        events,
-        range.startIso,
-        range.endIso,
-        selectedCategories,
-        lieuIds,
-        selectedGenres,
-      );
-      const q = debouncedQuery.trim();
-      if (q) {
-        items = items.filter((item) =>
-          matchesNormalizedHaystack(
-            cachedNormalizedBlob(searchHayCache, item, genresLegend),
-            q,
-          ),
-        );
-      }
-      return items;
-    }
-
-    const seen = new Set<string>();
-    items = [];
-    for (const iso of range.days) {
-      for (const item of itemsForDay(
-        programme,
-        events,
-        iso,
-        selectedCategories,
-        lieuIds,
-        selectedGenres,
-        timeScope === 'aujourdhui' ||
-          timeScope === 'soir' ||
-          timeScope === 'weekend' ||
-          timeScope === 'semaine',
-      )) {
-        if (seen.has(item.key)) continue;
-        seen.add(item.key);
-        items.push(item);
-      }
-    }
-
-    // Ce soir ≥19h only when not searching (scope ignored for evening filter too).
-    if (timeScope === 'soir') {
-      items = items.filter(startsAtOrAfter19);
-    }
-    return items;
-  }, [
-    programme,
-    events,
-    range.startIso,
-    range.endIso,
-    range.days,
-    selectedCategories,
-    lieuIdsForFilters,
-    selectedGenres,
-    debouncedQuery,
-    genresLegend,
-    timeScope,
-    searching,
-    searchHayCache,
-  ]);
-
   /** Pour toi = profile first (clicks), tastesText last; same filtered listItems. */
   const pourToiItems = useMemo(() => {
     if (tasteState && hasScorableState(tasteState)) {
@@ -425,18 +270,6 @@ export default function CultureConnectApp({
     if (tastes) return recommendForTastes(listItems, tastes, 10).map((s) => s.item);
     return [];
   }, [listItems, tastes, tasteState]);
-
-  const showNouveautesPack =
-    paris.weekday === 3 &&
-    !searchingUi &&
-    (timeScope === 'aujourdhui' ||
-      timeScope === 'soir' ||
-      timeScope === 'semaine');
-
-  const nouveautesItems = useMemo(
-    () => (showNouveautesPack ? nouveautesCine(programme, paris.iso) : []),
-    [showNouveautesPack, programme, paris.iso],
-  );
 
   const packFilmIds = useMemo(() => {
     const ids = new Set<string>();
@@ -457,19 +290,6 @@ export default function CultureConnectApp({
     });
   }, [listItems, packFilmIds]);
 
-  const ceSoirTonight = useMemo(() => {
-    const items = itemsForDay(
-      programme,
-      events,
-      paris.iso,
-      [],
-      [],
-      [],
-      true,
-    );
-    return items.filter(startsAtOrAfter19);
-  }, [programme, events, paris.iso]);
-
   /** Cards after film_id / créneau collapse — pack included, not doubled. */
   const packCardCount = useMemo(
     () => densifiedCardCount(nouveautesItems),
@@ -479,7 +299,10 @@ export default function CultureConnectApp({
     () => densifiedCardCount(gridItems),
     [gridItems],
   );
-  const densifiedTotal = packCardCount + gridCardCount;
+  const haveAllItems = listItems.length >= total;
+  const densifiedTotal = haveAllItems
+    ? packCardCount + gridCardCount
+    : Math.max(densifiedTotalApi, packCardCount + gridCardCount);
 
   // Reset infinite-scroll window when scope / filters / query change.
   useEffect(() => {
@@ -498,100 +321,88 @@ export default function CultureConnectApp({
 
   const handleLoadMore = useCallback(() => {
     setVisibleCount((c) => c + AGENDA_PAGE_SIZE);
-  }, []);
-
-  const venueOptions = useMemo(() => {
-    if (searching) {
-      // Don't scan 90 days of lieuxForDay; venue chip still works via selectedLieuId.
-      return Array.from(lieuxById.values()).sort((a, b) =>
-        formatLieuAffiche(a).localeCompare(formatLieuAffiche(b), 'fr'),
-      );
-    }
-    const byId = new Map<string, Lieu>();
-    for (const iso of scopeRange.days) {
-      for (const lieu of lieuxForDay(
-        programme,
-        events,
-        iso,
-        selectedCategories,
-        year,
-        month,
-        selectedGenres,
-      )) {
-        byId.set(lieu.lieu_id, lieu);
-      }
-    }
-    let list = Array.from(byId.values());
-    if (selectedCommune) {
-      const target = normalizeCommune(selectedCommune);
-      list = list.filter(
-        (l) => normalizeCommune(l.commune) === target,
-      );
-    }
-    return list.sort((a, b) =>
-      formatLieuAffiche(a).localeCompare(formatLieuAffiche(b), 'fr'),
-    );
+    if (listItems.length >= total) return;
+    const gen = ++listFetchGen.current;
+    const params = buildAgendaParams({
+      scope: timeScope,
+      commune: selectedCommune,
+      q: debouncedQuery.trim(),
+      cats: selectedCategories,
+      genres: selectedGenres,
+      lieuId: selectedLieuId,
+      selectedDate: selectedDay,
+      year,
+      month,
+      offset: listItems.length,
+      includeCounts: showMonthPanel,
+    });
+    void fetch(`/api/agenda?${params.toString()}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: AgendaListResponse | null) => {
+        if (!data || gen !== listFetchGen.current) return;
+        applyList(data, true);
+      })
+      .catch(() => undefined);
   }, [
-    searching,
-    lieuxById,
-    programme,
-    events,
-    scopeRange.days,
+    listItems.length,
+    total,
+    timeScope,
+    selectedCommune,
+    debouncedQuery,
     selectedCategories,
+    selectedGenres,
+    selectedLieuId,
+    selectedDay,
     year,
     month,
-    selectedGenres,
-    selectedCommune,
+    showMonthPanel,
   ]);
 
   const selectedItem =
+    detailItem ??
     listItems.find((i) => i.key === selectedItemKey) ??
     pourToiItems.find((i) => i.key === selectedItemKey) ??
     nouveautesItems.find((i) => i.key === selectedItemKey) ??
-    ceSoirTonight.find((i) => i.key === selectedItemKey) ??
     null;
 
   useEffect(() => {
-    if (!selectedItem) return;
-    trackItem(selectedItem, 'open_card');
+    if (!selectedItemKey) {
+      setDetailItem(null);
+      setRelatedFilmItems([]);
+      setAussiCeSoirItems([]);
+      return;
+    }
+    const slim =
+      listItems.find((i) => i.key === selectedItemKey) ??
+      pourToiItems.find((i) => i.key === selectedItemKey) ??
+      nouveautesItems.find((i) => i.key === selectedItemKey) ??
+      null;
+    if (slim) setDetailItem(slim);
+    const gen = ++detailFetchGen.current;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/agenda?id=${encodeURIComponent(selectedItemKey)}`,
+        );
+        if (!res.ok) return;
+        const data = (await res.json()) as AgendaDetailResponse;
+        if (cancelled || gen !== detailFetchGen.current) return;
+        setDetailItem(data.item);
+        setRelatedFilmItems(data.relatedItems ?? []);
+        setAussiCeSoirItems(data.aussiCeSoir ?? []);
+        trackItem(data.item, 'open_card');
+      } catch {
+        if (slim) trackItem(slim, 'open_card');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
     // track by key so reopening the same fiche dedups in 30 min
   }, [selectedItemKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const aussiCeSoirItems = useMemo(() => {
-    if (!selectedItem || !isCinemaDayItem(selectedItem)) return [];
-    return pickAussiCeSoir(ceSoirTonight, selectedItem, 3);
-  }, [selectedItem, ceSoirTonight]);
-
-  const relatedFilmItems = useMemo(() => {
-    if (!selectedItem || selectedItem.kind !== 'programme') return [];
-    const fid = (selectedItem.programme.film_id || '').trim();
-    if (!fid) return [];
-    const pool = [...listItems, ...pourToiItems, ...nouveautesItems];
-    const seen = new Set<string>();
-    const out: Extract<DayItem, { kind: 'programme' }>[] = [];
-    for (const i of pool) {
-      if (i.kind !== 'programme') continue;
-      if ((i.programme.film_id || '').trim() !== fid) continue;
-      if (seen.has(i.key)) continue;
-      seen.add(i.key);
-      out.push(i);
-    }
-    out.sort((a, b) => {
-      const la = formatLieuAffiche(a.lieu);
-      const lb = formatLieuAffiche(b.lieu);
-      const byLieu = la.localeCompare(lb, 'fr');
-      if (byLieu !== 0) return byLieu;
-      const da = a.programme.date || a.dayIso;
-      const db = b.programme.date || b.dayIso;
-      if (da !== db) return da.localeCompare(db);
-      return (a.programme.heure_debut || '').localeCompare(
-        b.programme.heure_debut || '',
-      );
-    });
-    return out;
-  }, [selectedItem, listItems, pourToiItems, nouveautesItems]);
-
-  const showDateLabels = range.days.length > 1;
+  const showDateLabels = !searching && scopeRange.days.length > 1;
 
   function syncMonthFromIso(iso: string) {
     const [y, m] = iso.split('-').map(Number);
@@ -610,13 +421,13 @@ export default function CultureConnectApp({
     setTimeScope(scope);
     setSelectedItemKey(null);
     if (scope === 'date') {
-      const day = selectedDay || paris.iso;
+      const day = selectedDay || initialParisIso;
       setSelectedDay(day);
       syncMonthFromIso(day);
       setShowMonthPanel(true);
     } else if (scope === 'aujourdhui' || scope === 'soir') {
-      setSelectedDay(paris.iso);
-      syncMonthFromIso(paris.iso);
+      setSelectedDay(initialParisIso);
+      syncMonthFromIso(initialParisIso);
     } else {
       const next = resolveScopeRange(scope, selectedDay);
       syncMonthFromIso(next.startIso);
@@ -656,6 +467,19 @@ export default function CultureConnectApp({
 
   function handleSelectVenue(lieuId: string) {
     setSelectedLieuId(lieuId);
+  }
+
+  function handleCommuneChange(next: string | null) {
+    setSelectedCommune(next);
+    if (selectedLieuId) {
+      const lieu = venueOptions.find((l) => l.lieu_id === selectedLieuId);
+      if (
+        next != null &&
+        (!lieu || normalizeCommune(lieu.commune) !== normalizeCommune(next))
+      ) {
+        setSelectedLieuId(null);
+      }
+    }
   }
 
   function handleCategoriesChange(next: string[]) {
@@ -808,7 +632,7 @@ export default function CultureConnectApp({
               }
             >
               <CityFilter
-                communes={communeOptions}
+                communes={communes}
                 selectedCommune={selectedCommune}
                 onChange={handleCommuneChange}
                 variant="inline"

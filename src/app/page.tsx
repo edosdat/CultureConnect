@@ -1,21 +1,24 @@
 import CultureConnectApp from '@/components/CultureConnectApp';
-import { loadCultureData } from '@/lib/data';
+import { loadHomeWindow } from '@/lib/agendaQuery';
 
 export default function HomePage() {
-  const data = loadCultureData();
-
-  // Fenêtre produit ~ 24/08/2026 – 23/09/2026 : démarrer sur août 2026
-  const initialYear = 2026;
-  const initialMonth = 8;
+  const boot = loadHomeWindow();
 
   return (
     <main>
       <CultureConnectApp
-        events={data.events}
-        programme={data.programmeWithContext}
-        genresLegend={data.genresLegend}
-        initialYear={initialYear}
-        initialMonth={initialMonth}
+        initialScope={boot.scope}
+        initialParisIso={boot.parisIso}
+        initialItems={boot.items}
+        initialNouveautes={boot.nouveautes}
+        initialTotal={boot.total}
+        initialDensifiedTotal={boot.densifiedTotal}
+        initialVenues={boot.venues}
+        initialGenreSlugs={boot.genreSlugs}
+        communes={boot.communes}
+        genresLegend={boot.genresLegend}
+        initialYear={2026}
+        initialMonth={8}
       />
     </main>
   );
