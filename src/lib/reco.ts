@@ -1086,8 +1086,6 @@ function applyVivantQuota(
     const rest: ScoredDayItem[] = [];
     const cineQ = diversifyByGenreIntents(restCine, fieldsOf, genreIntents, restSlots);
     const svQ = diversifyByGenreIntents(restSv, fieldsOf, genreIntents, restSlots);
-    let i = 0;
-    let j = 0;
     // Fill remaining by score, alternating groups so cine cannot wipe SV leftovers.
     const cineByScore = [...cineQ];
     const svByScore = [...svQ];
@@ -1099,8 +1097,6 @@ function applyVivantQuota(
       if (rest.length >= restSlots) break;
       rest.push(e);
     }
-    void i;
-    void j;
     const out = [...reserved, ...rest];
     // Never fill 10 with cine if a neighbor SV remains.
     const hasCineOnly =
