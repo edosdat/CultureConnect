@@ -11,6 +11,8 @@ type Props = {
   onSelectItem: (key: string) => void;
   onSelectVenue?: (lieuId: string) => void;
   empty?: ReactNode;
+  /** Active search → 1 card per film_id across the list. Agenda → per day. */
+  collapseFilmsById?: boolean;
 };
 
 type DenseRow = {
@@ -46,7 +48,7 @@ function pickRepresentative(g: DayItem[]): DayItem {
     if (day !== 0) return day;
     return heureKey(a).localeCompare(heureKey(b));
   });
-  return ranked[0];
+  return ranked[0]!;
 }
 
 function earliestHeureOf(g: DayItem[]): string {
@@ -76,10 +78,11 @@ function citiesSummaryOf(g: DayItem[]): string {
 
 /**
  * Soft-collapse:
- * - same film_id across the whole list → one card (N salles · dès HH:MM)
- * - else same event_id+day+title → +N créneaux
+ * - search (collapseFilmsById): one card per film_id
+ * - agenda: one card per film_id per day (several Vaiana OK)
+ * - else: same event_id+day+title → +N créneaux
  */
-function densify(items: DayItem[]): DenseRow[] {
+function densify(items: DayItem[], collapseFilmsById: boolean): DenseRow[] {
   const groups = new Map<string, DayItem[]>();
   const order: string[] = [];
   const filmFlags = new Map<string, boolean>();
@@ -90,7 +93,9 @@ function densify(items: DayItem[]): DenseRow[] {
     if (item.kind === 'programme') {
       const filmId = (item.programme.film_id || '').trim();
       if (filmId) {
-        groupKey = `film:${filmId}`;
+        groupKey = collapseFilmsById
+          ? `film:${filmId}`
+          : `film:${item.dayIso}:${filmId}`;
         isFilm = true;
       } else if (item.programme.event_id) {
         groupKey = `p:${item.dayIso}:${item.programme.event_id}:${item.programme.nom_item}`;
@@ -107,10 +112,9 @@ function densify(items: DayItem[]): DenseRow[] {
   return order.map((k) => {
     const g = groups.get(k)!;
     const isFilmGroup = filmFlags.get(k) === true;
-    const item = isFilmGroup ? pickRepresentative(g) : (() => {
-      const sorted = [...g].sort((a, b) => heureKey(a).localeCompare(heureKey(b)));
-      return sorted[0];
-    })();
+    const item = isFilmGroup
+      ? pickRepresentative(g)
+      : [...g].sort((a, b) => heureKey(a).localeCompare(heureKey(b)))[0]!;
     const venues = new Set(
       g.map((i) => i.lieu?.lieu_id).filter((id): id is string => Boolean(id)),
     );
@@ -132,12 +136,13 @@ export default function SeanceGrid({
   onSelectItem,
   onSelectVenue,
   empty,
+  collapseFilmsById = false,
 }: Props) {
   if (items.length === 0) {
     return <div className="py-10">{empty}</div>;
   }
 
-  const rows = densify(items);
+  const rows = densify(items, collapseFilmsById);
 
   return (
     <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

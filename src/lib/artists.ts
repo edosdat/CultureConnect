@@ -5,6 +5,7 @@ import type {
   GenreLegend,
   ProgrammeWithContext,
 } from './types';
+import { normalizeForMatch } from './publishable';
 
 const ARTIST_TYPES = new Set(['artiste', 'dj']);
 
@@ -179,7 +180,7 @@ export function filterArtistes(
   opts: { genres?: string[]; query?: string },
 ): ArtisteWithDates[] {
   const genres = opts.genres ?? [];
-  const q = (opts.query ?? '').trim().toLowerCase();
+  const q = normalizeForMatch(opts.query ?? '').trim();
 
   return artistes.filter((a) => {
     if (genres.length > 0) {
@@ -187,7 +188,7 @@ export function filterArtistes(
       if (!hit) return false;
     }
     if (q) {
-      const hay = `${a.nom} ${a.nom_normalise}`.toLowerCase();
+      const hay = normalizeForMatch(`${a.nom} ${a.nom_normalise}`);
       if (!hay.includes(q)) return false;
     }
     return true;

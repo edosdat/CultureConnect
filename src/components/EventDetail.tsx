@@ -22,7 +22,7 @@ type Props = {
   item: DayItem | null;
   onClose: () => void;
   onSelectVenue?: (lieuId: string) => void;
-  /** Other screenings of the same film (other venues / slots) */
+  /** All screenings of the same film_id in current scope (incl. selected) */
   relatedItems?: DayItem[];
 };
 
@@ -35,6 +35,87 @@ function useEscapeClose(active: boolean, onClose: () => void) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [active, onClose]);
+}
+
+type VenueGroup = {
+  label: string;
+  lieuId: string | null;
+  rows: { key: string; date: string; heure: string }[];
+};
+
+function groupSeancesByVenue(items: DayItem[]): VenueGroup[] {
+  const map = new Map<string, VenueGroup>();
+  const order: string[] = [];
+  for (const rel of items) {
+    if (rel.kind !== 'programme') continue;
+    const label = formatLieuAffiche(rel.lieu) || rel.lieu?.commune || 'Lieu';
+    const lieuId = rel.lieu?.lieu_id || rel.programme.lieu_id || null;
+    const key = lieuId || `label:${label}`;
+    if (!map.has(key)) {
+      map.set(key, { label, lieuId, rows: [] });
+      order.push(key);
+    }
+    const heure =
+      formatHeure(rel.programme.heure_debut) +
+      (rel.programme.heure_fin
+        ? ` – ${formatHeure(rel.programme.heure_fin)}`
+        : '');
+    map.get(key)!.rows.push({
+      key: rel.key,
+      date: rel.programme.date || rel.dayIso,
+      heure,
+    });
+  }
+  for (const g of map.values()) {
+    g.rows.sort((a, b) => {
+      const d = a.date.localeCompare(b.date);
+      if (d !== 0) return d;
+      return a.heure.localeCompare(b.heure);
+    });
+  }
+  return order
+    .map((k) => map.get(k)!)
+    .sort((a, b) => a.label.localeCompare(b.label, 'fr'));
+}
+
+function FilmSeancesList({
+  items,
+  onSelectVenue,
+}: {
+  items: DayItem[];
+  onSelectVenue?: (lieuId: string) => void;
+}) {
+  const groups = groupSeancesByVenue(items);
+  if (groups.length === 0) return null;
+  return (
+    <ul className="mt-2 space-y-3 text-sm text-culture-ink">
+      {groups.map((g) => (
+        <li key={g.lieuId || g.label}>
+          <p className="font-medium">
+            {g.lieuId && onSelectVenue ? (
+              <button
+                type="button"
+                onClick={() => onSelectVenue(g.lieuId!)}
+                className="text-left text-culture-terracotta hover:underline"
+              >
+                {g.label}
+              </button>
+            ) : (
+              g.label
+            )}
+          </p>
+          <ul className="mt-1 space-y-0.5 text-culture-muted">
+            {g.rows.map((row) => (
+              <li key={row.key} className="flex flex-wrap gap-x-2">
+                <span>{formatDateFr(row.date)}</span>
+                {row.heure ? <span>· {row.heure}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export default function EventDetail({ item, onClose, onSelectVenue, relatedItems = [] }: Props) {
@@ -51,6 +132,7 @@ export default function EventDetail({ item, onClose, onSelectVenue, relatedItems
       (p.heure_fin ? ` – ${formatHeure(p.heure_fin)}` : '');
     const categorie = ev?.categorie ?? '';
     const url = p.url || ev?.url_source || '';
+    const hasFilmSeances = relatedItems.length > 0;
 
     return (
       <div
@@ -99,34 +181,66 @@ export default function EventDetail({ item, onClose, onSelectVenue, relatedItems
           </div>
 
           <div className="space-y-5 px-5 py-5">
-            <dl className="grid gap-3 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-culture-muted">Date</dt>
-                <dd className="font-medium text-culture-ink">
-                  {p.date ? formatDateFr(p.date) : '—'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-culture-muted">Horaires</dt>
-                <dd className="font-medium text-culture-ink">
-                  {time || 'Non indiqués'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-culture-muted">Prix</dt>
-                <dd className="font-medium text-culture-ink">
-                  {formatItemPrix(p.prix_item, ev)}
-                </dd>
-              </div>
-              {p.scene_salle && (
+            {!hasFilmSeances && (
+              <dl className="grid gap-3 text-sm sm:grid-cols-2">
                 <div>
-                  <dt className="text-culture-muted">Salle / scène</dt>
-                  <dd className="font-medium text-culture-ink">{p.scene_salle}</dd>
+                  <dt className="text-culture-muted">Date</dt>
+                  <dd className="font-medium text-culture-ink">
+                    {p.date ? formatDateFr(p.date) : '—'}
+                  </dd>
                 </div>
-              )}
-            </dl>
+                <div>
+                  <dt className="text-culture-muted">Horaires</dt>
+                  <dd className="font-medium text-culture-ink">
+                    {time || 'Non indiqués'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-culture-muted">Prix</dt>
+                  <dd className="font-medium text-culture-ink">
+                    {formatItemPrix(p.prix_item, ev)}
+                  </dd>
+                </div>
+                {p.scene_salle && (
+                  <div>
+                    <dt className="text-culture-muted">Salle / scène</dt>
+                    <dd className="font-medium text-culture-ink">{p.scene_salle}</dd>
+                  </div>
+                )}
+              </dl>
+            )}
 
-            {lieu && (
+            {hasFilmSeances && (
+              <dl className="grid gap-3 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-culture-muted">Prix</dt>
+                  <dd className="font-medium text-culture-ink">
+                    {formatItemPrix(p.prix_item, ev)}
+                  </dd>
+                </div>
+              </dl>
+            )}
+
+            {hasFilmSeances && (
+              <section>
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
+                  Séances
+                </h3>
+                <FilmSeancesList
+                  items={relatedItems}
+                  onSelectVenue={
+                    onSelectVenue
+                      ? (lieuId) => {
+                          onSelectVenue(lieuId);
+                          onClose();
+                        }
+                      : undefined
+                  }
+                />
+              </section>
+            )}
+
+            {!hasFilmSeances && lieu && (
               <section>
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
                   Lieu
@@ -162,61 +276,6 @@ export default function EventDetail({ item, onClose, onSelectVenue, relatedItems
                     Site du lieu
                   </a>
                 )}
-              </section>
-            )}
-
-            {relatedItems.length > 0 && (
-              <section>
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
-                  Aussi dans d&apos;autres salles
-                </h3>
-                <ul className="mt-2 space-y-1.5 text-sm text-culture-ink">
-                  {relatedItems.map((rel) => {
-                    if (rel.kind !== 'programme') return null;
-                    const label = formatLieuAffiche(rel.lieu) || 'Lieu';
-                    const lid = rel.lieu?.lieu_id || rel.programme.lieu_id;
-                    const t =
-                      formatHeure(rel.programme.heure_debut) +
-                      (rel.programme.heure_fin
-                        ? ` – ${formatHeure(rel.programme.heure_fin)}`
-                        : '');
-                    const whenBits = [
-                      t || null,
-                      rel.programme.date && rel.programme.date !== p.date
-                        ? formatDateFr(rel.programme.date)
-                        : null,
-                    ].filter(Boolean);
-                    const meta = whenBits.join(' · ');
-                    return (
-                      <li key={rel.key}>
-                        {onSelectVenue && lid ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              onSelectVenue(lid);
-                              onClose();
-                            }}
-                            className="text-left hover:underline"
-                          >
-                            <span className="font-medium text-culture-terracotta">
-                              {label}
-                            </span>
-                            {meta ? (
-                              <span className="text-culture-muted"> — {meta}</span>
-                            ) : null}
-                          </button>
-                        ) : (
-                          <span>
-                            <span className="font-medium">{label}</span>
-                            {meta ? (
-                              <span className="text-culture-muted"> — {meta}</span>
-                            ) : null}
-                          </span>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
               </section>
             )}
 

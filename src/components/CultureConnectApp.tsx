@@ -34,6 +34,7 @@ import SeanceGrid from './SeanceGrid';
 import TimeScopeBar from './TimeScopeBar';
 import SearchOmnibox from './SearchOmnibox';
 import EventDetail from './EventDetail';
+import { itemSearchBlob, matchesSearch } from '@/lib/searchText';
 
 type Props = {
   events: EventWithDetails[];
@@ -42,38 +43,6 @@ type Props = {
   initialYear: number;
   initialMonth: number;
 };
-
-function itemSearchBlob(item: DayItem): string {
-  const parts: string[] = [];
-  if (item.kind === 'programme') {
-    parts.push(item.programme.nom_item);
-    if (item.evenement?.titre) parts.push(item.evenement.titre);
-    if (item.evenement?.description_courte)
-      parts.push(item.evenement.description_courte);
-    if (item.programme.notes) parts.push(item.programme.notes);
-    if (item.programme.description_item)
-      parts.push(item.programme.description_item);
-    if (item.programme.genre) parts.push(item.programme.genre);
-    if (item.evenement?.casting) parts.push(item.evenement.casting);
-  } else {
-    parts.push(item.evenement.titre);
-    if (item.evenement.description_courte)
-      parts.push(item.evenement.description_courte);
-    if (item.evenement.genre) parts.push(item.evenement.genre);
-    if (item.evenement.casting) parts.push(item.evenement.casting);
-  }
-  if (item.lieu) {
-    const aff = formatLieuAffiche(item.lieu);
-    if (aff) parts.push(aff);
-    if (item.lieu.nom) parts.push(item.lieu.nom);
-    if (item.lieu.commune) parts.push(item.lieu.commune);
-    if (item.lieu.label_affiche) parts.push(item.lieu.label_affiche);
-  }
-  if (item.kind === 'programme' && item.programme.film_id) {
-    parts.push(item.programme.film_id);
-  }
-  return parts.join(' ').toLowerCase();
-}
 
 function sortieWord(n: number): string {
   return n <= 1 ? 'sortie' : 'sorties';
@@ -196,9 +165,11 @@ export default function CultureConnectApp({
       }
     }
 
-    const q = query.trim().toLowerCase();
+    const q = query.trim();
     if (q) {
-      items = items.filter((item) => itemSearchBlob(item).includes(q));
+      items = items.filter((item) =>
+        matchesSearch(itemSearchBlob(item, genresLegend), q),
+      );
     }
     return items;
   }, [
@@ -209,6 +180,7 @@ export default function CultureConnectApp({
     selectedLieuId,
     selectedGenres,
     query,
+    genresLegend,
   ]);
 
   /** Time-scope pool without category/genre/lieu chips — chips must not crush Pour toi. */
@@ -540,6 +512,7 @@ export default function CultureConnectApp({
               </button>
             </div>
             <SeanceGrid
+              collapseFilmsById={Boolean(query.trim())}
               items={pourToiItems}
               showDate={showDateLabels}
               onSelectItem={setSelectedItemKey}
@@ -568,6 +541,7 @@ export default function CultureConnectApp({
         )}
 
         <SeanceGrid
+              collapseFilmsById={Boolean(query.trim())}
           items={listItems}
           showDate={showDateLabels}
           onSelectItem={setSelectedItemKey}
