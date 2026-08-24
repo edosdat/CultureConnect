@@ -59,7 +59,7 @@ export default function MonthCalendarDrawer({
   if (!mounted || !shouldRender) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-40 overflow-x-hidden" role="presentation">
+    <div className="fixed inset-0 z-40 h-dvh min-h-dvh overflow-x-hidden" role="presentation">
       <button
         type="button"
         tabIndex={-1}
@@ -76,7 +76,7 @@ export default function MonthCalendarDrawer({
         aria-label={title}
         className={
           'absolute flex min-w-0 w-full max-w-full flex-col overflow-x-hidden bg-culture-surface shadow-xl ' +
-          'inset-x-0 bottom-0 max-h-[70vh] rounded-t-3xl border border-culture-line ' +
+          'inset-x-0 bottom-0 max-h-[70vh] max-h-[70dvh] rounded-t-3xl border border-culture-line pb-[env(safe-area-inset-bottom,0px)] ' +
           'md:inset-y-0 md:left-auto md:right-0 md:max-h-none md:max-w-md md:rounded-none md:border-y-0 md:border-l md:border-r-0 ' +
           'transition-transform duration-200 ease-out ' +
           (visible
