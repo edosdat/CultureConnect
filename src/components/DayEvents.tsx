@@ -63,19 +63,24 @@ export default function DayEvents({
 }: Props) {
   const programmeCount = items.filter((i) => i.kind === 'programme').length;
   const fallbackCount = items.length - programmeCount;
-  const isMonthView = !dayIso;
+  const isRangeView = !dayIso;
 
-  const title = isMonthView ? monthLabel : formatDateFr(dayIso);
+  const title = isRangeView ? monthLabel : formatDateFr(dayIso);
+  const rangeHint =
+    monthLabel.toLowerCase().includes('week-end') ||
+    monthLabel.toLowerCase().includes('weekend')
+      ? 'ce week-end'
+      : 'ce mois';
   const subtitle =
     items.length === 0
-      ? isMonthView
-        ? 'Aucun élément ce mois-ci (avec les filtres actuels).'
+      ? isRangeView
+        ? `Aucun élément ${rangeHint} (avec les filtres actuels).`
         : 'Aucun élément ce jour-là (avec les filtres actuels).'
       : `${items.length} élément${items.length > 1 ? 's' : ''}` +
         (fallbackCount > 0 && programmeCount > 0
           ? ` · ${programmeCount} séance${programmeCount > 1 ? 's' : ''}`
           : '') +
-        (isMonthView ? ' ce mois' : '');
+        (isRangeView ? ` ${rangeHint}` : '');
 
   return (
     <div className="min-w-0 overflow-x-hidden rounded-2xl border border-culture-sand bg-white p-4 shadow-sm sm:p-5">
@@ -95,7 +100,7 @@ export default function DayEvents({
         )}
       </div>
 
-      {isMonthView && items.length === 0 && (
+      {isRangeView && items.length === 0 && (
         <p className="mt-4 text-sm text-culture-muted">
           Affinez les filtres ou choisissez un jour dans le calendrier.
         </p>

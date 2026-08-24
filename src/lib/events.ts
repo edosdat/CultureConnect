@@ -68,9 +68,21 @@ function genreOfProgramme(item: ProgrammeWithContext): string {
   return item.programme.genre || item.evenement?.genre || '';
 }
 
+/**
+ * BOTH parent event (if any) AND nom_item must pass junk filters.
+ * Previously returned early on parent event and never checked nom_item.
+ */
 function isProgrammePublishable(p: ProgrammeWithContext): boolean {
-  if (p.evenement) return isPublishableEvent(p.evenement);
-  return isPublishableProgrammeName(p.programme.nom_item);
+  if (
+    !isPublishableProgrammeName(p.programme.nom_item, {
+      notes: p.programme.notes,
+      description: p.programme.description_item,
+    })
+  ) {
+    return false;
+  }
+  if (p.evenement && !isPublishableEvent(p.evenement)) return false;
+  return true;
 }
 
 /**
@@ -96,7 +108,30 @@ function sortKeyHeure(heure: string): string {
   return heure && heure.trim() ? heure.slice(0, 5) : '99:99';
 }
 
-function sortDayItems(all: DayItem[]): DayItem[] {
+/** Lower = higher priority when no category filter (cinema last among mains). */
+function categorieSortRank(categorie: string): number {
+  const c = (categorie || '').toLowerCase();
+  if (c.includes('musique') || c.includes('concert')) return 0;
+  if (c.includes('theatre') || c.includes('danse') || c.includes('humour'))
+    return 1;
+  if (c.includes('festival')) return 2;
+  if (c.includes('expo') || c.includes('patrimoine') || c.includes('visite'))
+    return 3;
+  if (c.includes('enfant') || c.includes('famille')) return 4;
+  if (c.includes('cinema') || c.includes('cinematheque')) return 8;
+  return 5;
+}
+
+function categorieOfDayItem(item: DayItem): string {
+  if (item.kind === 'programme') return item.evenement?.categorie ?? '';
+  return item.evenement.categorie ?? '';
+}
+
+function sortDayItems(
+  all: DayItem[],
+  opts?: { deprioritizeCinema?: boolean },
+): DayItem[] {
+  const deprioritizeCinema = opts?.deprioritizeCinema ?? false;
   all.sort((a, b) => {
     if (a.dayIso !== b.dayIso) return a.dayIso.localeCompare(b.dayIso);
     const ha =
@@ -108,6 +143,11 @@ function sortDayItems(all: DayItem[]): DayItem[] {
         ? sortKeyHeure(b.programme.heure_debut)
         : sortKeyHeure(b.evenement.heure_debut);
     if (ha !== hb) return ha.localeCompare(hb);
+    if (deprioritizeCinema) {
+      const ra = categorieSortRank(categorieOfDayItem(a));
+      const rb = categorieSortRank(categorieOfDayItem(b));
+      if (ra !== rb) return ra - rb;
+    }
     const ta =
       a.kind === 'programme' ? a.programme.nom_item : a.evenement.titre;
     const tb =
@@ -179,7 +219,9 @@ export function itemsForDay(
       lieu: ev.lieu,
     }));
 
-  return sortDayItems([...programmeItems, ...fallbackItems]);
+  return sortDayItems([...programmeItems, ...fallbackItems], {
+    deprioritizeCinema: categories.length === 0,
+  });
 }
 
 /**
@@ -279,7 +321,9 @@ export function itemsForMonth(
     });
   }
 
-  return sortDayItems([...programmeItems, ...fallbackItems]);
+  return sortDayItems([...programmeItems, ...fallbackItems], {
+    deprioritizeCinema: categories.length === 0,
+  });
 }
 
 /**
