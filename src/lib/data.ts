@@ -11,6 +11,7 @@ import type {
   CultureData,
   Evenement,
   EventWithDetails,
+  Film,
   GenreLegend,
   Lieu,
   ProgrammeItem,
@@ -41,7 +42,10 @@ function csvExists(filename: string): boolean {
 }
 
 export function loadLieux(): Lieu[] {
-  return readCsv<Lieu>('lieux.csv');
+  return readCsv<Lieu>('lieux.csv').map((r) => ({
+    ...r,
+    label_affiche: r.label_affiche ?? '',
+  }));
 }
 
 export function loadEvenements(): Evenement[] {
@@ -63,12 +67,28 @@ export function loadEvenements(): Evenement[] {
   }));
 }
 
+export function loadFilms(): Film[] {
+  if (!csvExists('films.csv')) return [];
+  return readCsv<Film>('films.csv').map((r) => ({
+    ...r,
+    titre: r.titre ?? '',
+    titre_normalise: r.titre_normalise ?? '',
+    genre_principal: r.genre_principal ?? '',
+    nb_seances: r.nb_seances ?? '',
+    nb_salles: r.nb_salles ?? '',
+    lieux_ids: r.lieux_ids ?? '',
+    image_url: r.image_url ?? '',
+    notes: r.notes ?? '',
+  }));
+}
+
 export function loadProgramme(): ProgrammeItem[] {
   const rows = readCsv<ProgrammeItem>('programme.csv');
-  // Tolerant to older CSVs missing artiste_id / enriched columns
+  // Official film_id from CSV only — do not invent from titre matching.
   return rows.map((r) => ({
     ...r,
     artiste_id: r.artiste_id ?? '',
+    film_id: r.film_id ?? '',
     description_item: r.description_item ?? '',
     image_url: r.image_url ?? '',
     billetterie_url: r.billetterie_url ?? '',
@@ -96,6 +116,7 @@ export function loadArtistes(): Artiste[] {
 export function loadCultureData(): CultureData {
   const lieux = loadLieux();
   const evenements = loadEvenements();
+  const films = loadFilms();
   const programme = loadProgramme();
   const genresLegend = loadGenresLegend();
   const artistes = loadArtistes();
@@ -135,18 +156,21 @@ export function loadCultureData(): CultureData {
     lieux,
     evenements,
     programme,
+    films,
     events,
     programmeWithContext,
     genresLegend,
-    artistes: hasTable ? artistes : artistesWithDates.map((a) => ({
-      artiste_id: a.artiste_id,
-      nom: a.nom,
-      nom_normalise: a.nom_normalise,
-      genre_principal: a.genre_principal,
-      genres_secondaires: a.genres_secondaires,
-      url_photo: a.url_photo,
-      notes: a.notes,
-    })),
+    artistes: hasTable
+      ? artistes
+      : artistesWithDates.map((a) => ({
+          artiste_id: a.artiste_id,
+          nom: a.nom,
+          nom_normalise: a.nom_normalise,
+          genre_principal: a.genre_principal,
+          genres_secondaires: a.genres_secondaires,
+          url_photo: a.url_photo,
+          notes: a.notes,
+        })),
     artistesWithDates,
     artistesMode: hasTable ? 'table' : 'derived',
   };

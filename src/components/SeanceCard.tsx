@@ -6,6 +6,7 @@ import {
   formatDateFr,
   formatHeure,
   formatItemPrix,
+  formatLieuAffiche,
   formatPrix,
   labelCategorie,
 } from '@/lib/labels';
@@ -17,8 +18,14 @@ type Props = {
   showDate?: boolean;
   onSelect: (key: string) => void;
   onSelectVenue?: (lieuId: string) => void;
-  /** Soft-collapse: extra créneaux sharing event_id+day */
+  /** Soft-collapse: extra créneaux / séances sharing group key */
   extraSlots?: number;
+  /** Soft-collapse film: nombre total de salles distinctes */
+  salleCount?: number;
+  /** Soft-collapse film: earliest screening time (HH:MM) */
+  earliestHeure?: string;
+  /** Soft-collapse film: short cities summary */
+  citiesSummary?: string;
 };
 
 function categoryLabelFor(item: DayItem): string {
@@ -54,6 +61,9 @@ export default function SeanceCard({
   onSelect,
   onSelectVenue,
   extraSlots = 0,
+  salleCount = 0,
+  earliestHeure = '',
+  citiesSummary = '',
 }: Props) {
   const catLabel = categoryLabelFor(item);
   const imageUrl =
@@ -64,8 +74,12 @@ export default function SeanceCard({
   const title =
     item.kind === 'programme' ? item.programme.nom_item : item.evenement.titre;
 
-  const time =
-    item.kind === 'programme'
+  const isFilmMulti = salleCount > 1;
+  const time = isFilmMulti
+    ? earliestHeure
+      ? `dès ${formatHeure(earliestHeure)}`
+      : ''
+    : item.kind === 'programme'
       ? formatHeure(item.programme.heure_debut) +
         (item.programme.heure_fin
           ? ` – ${formatHeure(item.programme.heure_fin)}`
@@ -86,6 +100,20 @@ export default function SeanceCard({
   const accentStyle = cssVar
     ? ({ borderLeftColor: `var(${cssVar})` } as CSSProperties)
     : undefined;
+
+  const softBits: string[] = [];
+  if (salleCount > 1) softBits.push(`${salleCount} salles`);
+  if (extraSlots > 0) {
+    softBits.push(
+      salleCount > 0 ? `+${extraSlots} séances` : `+${extraSlots} créneaux`,
+    );
+  }
+
+  const venueLabel = isFilmMulti
+    ? citiesSummary || (lieu ? formatLieuAffiche(lieu) : '')
+    : lieu
+      ? formatLieuAffiche(lieu)
+      : '';
 
   return (
     <button
@@ -144,42 +172,33 @@ export default function SeanceCard({
         {!imageUrl && catLabel ? <CategoryPill label={catLabel} /> : null}
         <p className="text-sm text-culture-ink">
           {[time, price].filter(Boolean).join(' · ')}
-          {extraSlots > 0 ? ` · +${extraSlots} créneaux` : ''}
+          {softBits.length > 0 ? ` · ${softBits.join(' · ')}` : ''}
         </p>
-        {lieu && (
+        {venueLabel && (
           <p className="mt-auto pt-1 text-sm text-culture-muted">
-            <span
-              role={onSelectVenue ? 'link' : undefined}
-              tabIndex={onSelectVenue ? 0 : undefined}
-              onClick={
-                onSelectVenue
-                  ? (e) => {
-                      e.stopPropagation();
-                      onSelectVenue(lieu.lieu_id);
-                    }
-                  : undefined
-              }
-              onKeyDown={
-                onSelectVenue
-                  ? (e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onSelectVenue(lieu.lieu_id);
-                      }
-                    }
-                  : undefined
-              }
-              className={
-                onSelectVenue
-                  ? 'cursor-pointer hover:text-culture-terracotta hover:underline'
-                  : undefined
-              }
-              title={onSelectVenue ? 'Filtrer sur ce lieu' : undefined}
-            >
-              {lieu.nom}
-              {lieu.commune ? ` · ${lieu.commune}` : ''}
-            </span>
+            {!isFilmMulti && lieu && onSelectVenue ? (
+              <span
+                role="link"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectVenue(lieu.lieu_id);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onSelectVenue(lieu.lieu_id);
+                  }
+                }}
+                className="cursor-pointer hover:text-culture-terracotta hover:underline"
+                title="Filtrer sur ce lieu"
+              >
+                {venueLabel}
+              </span>
+            ) : (
+              <span>{venueLabel}</span>
+            )}
           </p>
         )}
       </div>

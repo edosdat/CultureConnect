@@ -1,3 +1,5 @@
+import type { Lieu } from './types';
+
 import { MAIN_CATEGORY_LABELS, mainFromCategorie } from './categories';
 
 export const CATEGORIE_LABELS: Record<string, string> = {
@@ -112,4 +114,14 @@ export function labelTypeItem(type: string): string {
 /** Humanize a genre slug when not in legend (replace _ with space, capitalize). */
 export function humanizeGenreSlug(slug: string): string {
   return humanizeSlug(slug);
+}
+
+/** Prefer label_affiche, else « Commune — Nom », else nom. */
+export function formatLieuAffiche(
+  lieu: Pick<Lieu, 'nom' | 'commune' | 'label_affiche'> | null | undefined,
+): string {
+  if (!lieu) return '';
+  if (lieu.label_affiche) return lieu.label_affiche;
+  const joined = [lieu.commune, lieu.nom].filter(Boolean).join(' — ');
+  return joined || lieu.nom || '';
 }

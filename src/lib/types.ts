@@ -1,6 +1,8 @@
 export type Lieu = {
   lieu_id: string;
   nom: string;
+  /** Affichage UX : « Commune — Nom » (ex. Labège — Pathé Toulouse Labège) */
+  label_affiche?: string;
   type: string;
   adresse: string;
   commune: string;
@@ -56,12 +58,32 @@ export type ProgrammeItem = {
   genre: string;
   /** Join key to artistes.csv when present */
   artiste_id: string;
+  /** Join key to films.csv when present (F0001…) */
+  film_id?: string;
   description_item?: string;
   image_url?: string;
   billetterie_url?: string;
   duree_min?: string;
   public_cible?: string;
   scraped_at?: string;
+};
+
+/** Row from data/films.csv — film regroupé multi-salles. */
+export type Film = {
+  film_id: string;
+  titre: string;
+  titre_normalise: string;
+  genre_principal: string;
+  nb_seances: string;
+  nb_salles: string;
+  lieux_ids: string;
+  image_url: string;
+  notes: string;
+};
+
+/** Film with linked programme screenings (optional UX helper). */
+export type FilmWithScreenings = Film & {
+  screenings: ProgrammeItem[];
 };
 
 export type GenreLegend = {
@@ -141,6 +163,7 @@ export type CultureData = {
   lieux: Lieu[];
   evenements: Evenement[];
   programme: ProgrammeItem[];
+  films: Film[];
   events: EventWithDetails[];
   programmeWithContext: ProgrammeWithContext[];
   genresLegend: GenreLegend[];

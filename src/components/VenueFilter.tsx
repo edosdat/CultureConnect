@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { Lieu } from '@/lib/types';
+import { formatLieuAffiche } from '@/lib/labels';
 
 type Props = {
   lieux: Lieu[];
@@ -26,6 +27,7 @@ export default function VenueFilter({
   if (lieux.length === 0 && !selectedLieuId) return null;
 
   const selected = lieux.find((l) => l.lieu_id === selectedLieuId);
+  const selectedLabel = selected ? formatLieuAffiche(selected) : '';
 
   if (variant === 'inline') {
     return (
@@ -42,7 +44,7 @@ export default function VenueFilter({
               : 'border-culture-line bg-culture-surface text-culture-ink hover:border-culture-terracotta/50')
           }
         >
-          {selected ? selected.nom : 'Lieu'}
+          {selected ? selectedLabel : 'Lieu'}
           {selected ? '' : open ? ' ▾' : ' ▸'}
         </button>
         {selected && (
@@ -73,8 +75,7 @@ export default function VenueFilter({
             <option value="">Tous les lieux</option>
             {lieux.map((l) => (
               <option key={l.lieu_id} value={l.lieu_id}>
-                {l.nom}
-                {l.commune ? ` · ${l.commune}` : ''}
+                {formatLieuAffiche(l)}
               </option>
             ))}
           </select>
@@ -108,8 +109,7 @@ export default function VenueFilter({
         <option value="">Tous les lieux</option>
         {lieux.map((l) => (
           <option key={l.lieu_id} value={l.lieu_id}>
-            {l.nom}
-            {l.commune ? ` · ${l.commune}` : ''}
+            {formatLieuAffiche(l)}
           </option>
         ))}
       </select>

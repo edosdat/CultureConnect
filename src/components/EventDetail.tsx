@@ -11,6 +11,7 @@ import {
   formatDateRange,
   formatHeure,
   formatItemPrix,
+  formatLieuAffiche,
   formatPrix,
   formatDateFr,
   labelCategorie,
@@ -21,6 +22,8 @@ type Props = {
   item: DayItem | null;
   onClose: () => void;
   onSelectVenue?: (lieuId: string) => void;
+  /** Other screenings of the same film (other venues / slots) */
+  relatedItems?: DayItem[];
 };
 
 function useEscapeClose(active: boolean, onClose: () => void) {
@@ -34,7 +37,7 @@ function useEscapeClose(active: boolean, onClose: () => void) {
   }, [active, onClose]);
 }
 
-export default function EventDetail({ item, onClose, onSelectVenue }: Props) {
+export default function EventDetail({ item, onClose, onSelectVenue, relatedItems = [] }: Props) {
   useEscapeClose(Boolean(item), onClose);
 
   if (!item) return null;
@@ -138,10 +141,10 @@ export default function EventDetail({ item, onClose, onSelectVenue }: Props) {
                       }}
                       className="text-left text-culture-terracotta hover:underline"
                     >
-                      {lieu.nom}
+                      {formatLieuAffiche(lieu)}
                     </button>
                   ) : (
-                    lieu.nom
+                    formatLieuAffiche(lieu)
                   )}
                 </p>
                 <p className="text-sm text-culture-muted">
@@ -159,6 +162,61 @@ export default function EventDetail({ item, onClose, onSelectVenue }: Props) {
                     Site du lieu
                   </a>
                 )}
+              </section>
+            )}
+
+            {relatedItems.length > 0 && (
+              <section>
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
+                  Aussi dans d&apos;autres salles
+                </h3>
+                <ul className="mt-2 space-y-1.5 text-sm text-culture-ink">
+                  {relatedItems.map((rel) => {
+                    if (rel.kind !== 'programme') return null;
+                    const label = formatLieuAffiche(rel.lieu) || 'Lieu';
+                    const lid = rel.lieu?.lieu_id || rel.programme.lieu_id;
+                    const t =
+                      formatHeure(rel.programme.heure_debut) +
+                      (rel.programme.heure_fin
+                        ? ` – ${formatHeure(rel.programme.heure_fin)}`
+                        : '');
+                    const whenBits = [
+                      t || null,
+                      rel.programme.date && rel.programme.date !== p.date
+                        ? formatDateFr(rel.programme.date)
+                        : null,
+                    ].filter(Boolean);
+                    const meta = whenBits.join(' · ');
+                    return (
+                      <li key={rel.key}>
+                        {onSelectVenue && lid ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onSelectVenue(lid);
+                              onClose();
+                            }}
+                            className="text-left hover:underline"
+                          >
+                            <span className="font-medium text-culture-terracotta">
+                              {label}
+                            </span>
+                            {meta ? (
+                              <span className="text-culture-muted"> — {meta}</span>
+                            ) : null}
+                          </button>
+                        ) : (
+                          <span>
+                            <span className="font-medium">{label}</span>
+                            {meta ? (
+                              <span className="text-culture-muted"> — {meta}</span>
+                            ) : null}
+                          </span>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
               </section>
             )}
 
@@ -311,10 +369,10 @@ export default function EventDetail({ item, onClose, onSelectVenue }: Props) {
                     }}
                     className="text-left text-culture-terracotta hover:underline"
                   >
-                    {lieu.nom}
+                    {formatLieuAffiche(lieu)}
                   </button>
                 ) : (
-                  lieu.nom
+                  formatLieuAffiche(lieu)
                 )}
               </p>
               <p className="text-sm text-culture-muted">

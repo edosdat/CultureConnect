@@ -18,7 +18,7 @@ import {
   lieuxForDay,
 } from '@/lib/events';
 import { genreBelongsToMains, mainFromGenreSlug } from '@/lib/categories';
-import { MONTH_NAMES_FR } from '@/lib/labels';
+import { MONTH_NAMES_FR, formatLieuAffiche } from '@/lib/labels';
 import {
   defaultTimeScope,
   parisParts,
@@ -62,8 +62,16 @@ function itemSearchBlob(item: DayItem): string {
     if (item.evenement.genre) parts.push(item.evenement.genre);
     if (item.evenement.casting) parts.push(item.evenement.casting);
   }
-  if (item.lieu?.nom) parts.push(item.lieu.nom);
-  if (item.lieu?.commune) parts.push(item.lieu.commune);
+  if (item.lieu) {
+    const aff = formatLieuAffiche(item.lieu);
+    if (aff) parts.push(aff);
+    if (item.lieu.nom) parts.push(item.lieu.nom);
+    if (item.lieu.commune) parts.push(item.lieu.commune);
+    if (item.lieu.label_affiche) parts.push(item.lieu.label_affiche);
+  }
+  if (item.kind === 'programme' && item.programme.film_id) {
+    parts.push(item.programme.film_id);
+  }
   return parts.join(' ').toLowerCase();
 }
 
@@ -245,7 +253,7 @@ export default function CultureConnectApp({
       }
     }
     return Array.from(byId.values()).sort((a, b) =>
-      a.nom.localeCompare(b.nom, 'fr'),
+      formatLieuAffiche(a).localeCompare(formatLieuAffiche(b), 'fr'),
     );
   }, [
     programme,
@@ -261,6 +269,41 @@ export default function CultureConnectApp({
     listItems.find((i) => i.key === selectedItemKey) ??
     pourToiItems.find((i) => i.key === selectedItemKey) ??
     null;
+
+  const relatedFilmItems = useMemo(() => {
+    if (!selectedItem || selectedItem.kind !== 'programme') return [];
+    const fid = (selectedItem.programme.film_id || '').trim();
+    if (!fid) return [];
+    const pool = [...listItems, ...pourToiItems];
+    const seen = new Set<string>();
+    const out: DayItem[] = [];
+    for (const i of pool) {
+      if (i.key === selectedItem.key) continue;
+      if (i.kind !== 'programme') continue;
+      if ((i.programme.film_id || '').trim() !== fid) continue;
+      if (seen.has(i.key)) continue;
+      seen.add(i.key);
+      out.push(i);
+    }
+    // Prefer one row per venue (earliest time)
+    const byVenue = new Map<string, DayItem>();
+    for (const i of out) {
+      if (i.kind !== 'programme') continue;
+      const vid = i.lieu?.lieu_id || i.programme.lieu_id || i.key;
+      const prev = byVenue.get(vid);
+      if (!prev) {
+        byVenue.set(vid, i);
+        continue;
+      }
+      const t = i.programme.heure_debut || '';
+      const pt =
+        prev.kind === 'programme' ? prev.programme.heure_debut || '' : '';
+      if (t && (!pt || t < pt)) byVenue.set(vid, i);
+    }
+    return Array.from(byVenue.values()).sort((a, b) =>
+      formatLieuAffiche(a.lieu).localeCompare(formatLieuAffiche(b.lieu), 'fr'),
+    );
+  }, [selectedItem, listItems, pourToiItems]);
 
   const showDateLabels = range.days.length > 1;
 
@@ -566,6 +609,7 @@ export default function CultureConnectApp({
         item={selectedItem}
         onClose={() => setSelectedItemKey(null)}
         onSelectVenue={handleSelectVenue}
+        relatedItems={relatedFilmItems}
       />
     </div>
   );
