@@ -71,6 +71,23 @@ function hasJunkInFields(...fields: Array<string | undefined | null>): boolean {
   return false;
 }
 
+
+/** Cinema "à l'affiche / période" room cards — not real films or séances. */
+export function isCinemaPeriodAggregate(ev: {
+  titre?: string;
+  categorie?: string;
+}): boolean {
+  const cat = normalizeForMatch(ev.categorie || '');
+  if (cat !== 'cinema') return false;
+  const titre = normalizeForMatch(ev.titre || '');
+  if (!titre) return false;
+  const hasAffiche =
+    titre.includes("a l'affiche") || titre.includes('a l affiche');
+  const hasPeriode = titre.includes('periode');
+  const filmsAffiche = titre.includes('films a l');
+  return (hasAffiche && hasPeriode) || (filmsAffiche && hasPeriode);
+}
+
 export function isPublishableEvent(ev: {
   titre: string;
   statut: string;
@@ -80,6 +97,8 @@ export function isPublishableEvent(ev: {
 }): boolean {
   const statut = normalizeForMatch(ev.statut || '').trim();
   if (statut && EXCLUDED_STATUTS.has(statut)) return false;
+
+  if (isCinemaPeriodAggregate(ev)) return false;
 
   if (hasJunkInFields(ev.titre, ev.description_courte, ev.notes)) {
     return false;

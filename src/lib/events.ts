@@ -7,6 +7,7 @@ import type {
 } from './types';
 import { matchesMainCategories } from './categories';
 import {
+  isCinemaPeriodAggregate,
   isPublishableEvent,
   isPublishableProgrammeName,
 } from './publishable';
@@ -81,7 +82,13 @@ function isProgrammePublishable(p: ProgrammeWithContext): boolean {
   ) {
     return false;
   }
-  if (p.evenement && !isPublishableEvent(p.evenement)) return false;
+  if (
+    p.evenement &&
+    !isPublishableEvent(p.evenement) &&
+    !isCinemaPeriodAggregate(p.evenement)
+  ) {
+    return false;
+  }
   return true;
 }
 
