@@ -59,9 +59,16 @@ export function calendarPayloadFromDayItem(item: DayItem): CalendarPayload | nul
       .join(', ');
     const description = [
       ev?.titre && ev.titre !== p.nom_item ? ev.titre : '',
-      ev?.description_courte || '',
+      p.description_item ||
+        ev?.description_longue ||
+        ev?.description_courte ||
+        '',
       p.notes || '',
-      p.url || ev?.url_source || '',
+      p.billetterie_url ||
+        p.url ||
+        ev?.billetterie_url ||
+        ev?.url_source ||
+        '',
     ]
       .filter(Boolean)
       .join('\n\n');
@@ -72,7 +79,12 @@ export function calendarPayloadFromDayItem(item: DayItem): CalendarPayload | nul
       heureFin: normalizeTime(p.heure_fin),
       description,
       location,
-      url: p.url || ev?.url_source || '',
+      url:
+        p.billetterie_url ||
+        p.url ||
+        ev?.billetterie_url ||
+        ev?.url_source ||
+        '',
     };
   }
 
@@ -87,11 +99,14 @@ export function calendarPayloadFromDayItem(item: DayItem): CalendarPayload | nul
     date,
     heureDebut: normalizeTime(event.heure_debut),
     heureFin: normalizeTime(event.heure_fin),
-    description: [event.description_courte, event.url_source]
+    description: [
+      event.description_longue || event.description_courte || '',
+      event.billetterie_url || event.url_source || '',
+    ]
       .filter(Boolean)
       .join('\n\n'),
     location,
-    url: event.url_source || '',
+    url: event.billetterie_url || event.url_source || '',
   };
 }
 
