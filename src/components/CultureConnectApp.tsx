@@ -617,7 +617,7 @@ export default function CultureConnectApp({
   const filterBadge =
     selectedCategories.length +
     selectedGenres.length +
-    (selectedCommune != null ? 1 : 0) +
+    (selectedCommune != null && selectedCommune !== 'Toulouse' ? 1 : 0) +
     (selectedLieuId ? 1 : 0);
 
   return (
@@ -644,6 +644,12 @@ export default function CultureConnectApp({
           onChange={handleScopeChange}
         />
 
+        <CategoryFilter
+          selected={selectedCategories}
+          onChange={handleCategoriesChange}
+          variant="chips"
+        />
+
         <div className="md:hidden">
           <button
             type="button"
@@ -663,19 +669,13 @@ export default function CultureConnectApp({
           </button>
         </div>
 
-        {/* Category + Genre: collapsed behind Filtres on mobile; always on md+ */}
+        {/* Genre (and not categories): collapsed behind Filtres on mobile; always on md+ */}
         <div
           className={
             (showFiltersMobile ? 'flex' : 'hidden') +
             ' flex-col gap-2.5 md:flex md:gap-4'
           }
         >
-          <CategoryFilter
-            selected={selectedCategories}
-            onChange={handleCategoriesChange}
-            variant="chips"
-          />
-
           <GenreFilter
             availableSlugs={availableGenreSlugs}
             legend={genresLegend}
@@ -735,8 +735,6 @@ export default function CultureConnectApp({
         >
           {monthCalendar}
         </MonthCalendarDrawer>
-
-        <LoginNudge />
 
         {session?.user && tastes && pourToiItems.length > 0 && (
           <section className="space-y-3 rounded-card-lg border border-culture-soft/80 bg-culture-surface/80 p-3 sm:p-4">
@@ -851,6 +849,8 @@ export default function CultureConnectApp({
             )
           }
         />
+
+        <LoginNudge />
       </div>
 
       <EventDetail

@@ -24,7 +24,7 @@ export default function SearchOmnibox({
       </span>
       <input
         id="cc-search"
-        type="search"
+        type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
@@ -36,7 +36,7 @@ export default function SearchOmnibox({
           type="button"
           onClick={() => onChange('')}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-culture-muted hover:text-culture-terracotta"
-          aria-label="Effacer la recherche"
+          aria-label="Vider le champ"
         >
           ×
         </button>
