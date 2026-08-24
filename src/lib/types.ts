@@ -40,6 +40,8 @@ export type Evenement = {
   organisateur?: string;
   scraped_at?: string;
   source_extrait?: string;
+  /** agenda | masque — masque = hors liste */
+  publication?: string;
 };
 
 export type ProgrammeItem = {

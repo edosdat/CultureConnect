@@ -64,6 +64,7 @@ export function loadEvenements(): Evenement[] {
     organisateur: r.organisateur ?? '',
     scraped_at: r.scraped_at ?? '',
     source_extrait: r.source_extrait ?? '',
+    publication: r.publication ?? '',
   }));
 }
 

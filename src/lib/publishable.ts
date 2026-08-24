@@ -94,9 +94,12 @@ export function isPublishableEvent(ev: {
   categorie: string;
   description_courte?: string;
   notes?: string;
+  publication?: string;
 }): boolean {
   const statut = normalizeForMatch(ev.statut || '').trim();
   if (statut && EXCLUDED_STATUTS.has(statut)) return false;
+
+  if (normalizeForMatch(ev.publication || '').trim() === 'masque') return false;
 
   if (isCinemaPeriodAggregate(ev)) return false;
 

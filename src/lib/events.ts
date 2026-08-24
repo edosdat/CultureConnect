@@ -204,6 +204,7 @@ export function itemsForDay(
   categories: string[] = [],
   lieuIds: string[] = [],
   genres: string[] = [],
+  excludeLongFallbacks = false,
 ): DayItem[] {
   const programmeThatDay = programme.filter(
     (p) => p.programme.date === dayIso && isProgrammePublishable(p),
@@ -237,6 +238,7 @@ export function itemsForDay(
       if (!isPublishableEvent(ev)) return false;
       if (!eventOccursOnDay(ev, dayIso)) return false;
       if (eventIdsWithProgramme.has(ev.event_id)) return false;
+      if (excludeLongFallbacks && eventSpanDays(ev) > 7) return false;
       const lieuId = ev.lieu_id || ev.lieu?.lieu_id || '';
       return matchesFilters(
         ev.categorie,
