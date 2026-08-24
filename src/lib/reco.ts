@@ -1,13 +1,18 @@
 /**
- * « Pour toi » lexical/cultural matcher (no external API/LLM).
+ * « Pour toi » lexical/cultural matcher (no external API/LLM at runtime).
  *
- * Strategy: normalize FR tastes → extract phrases then tokens → expand via a
- * synonym/category/genre lexicon → score DayItems with genre/cat/title/lieu/
- * blob weights, IDF dampening for overly common tokens, and a category+genre
- * combo bonus. Prefer strong signals (genre/cat/title ≥ 6); sort by score then
- * sooner dayIso.
+ * Strategy: normalize FR tastes → match known phrases then unigrams → expand
+ * via a synonym lexicon to category codes + genre slugs → score DayItems with
+ * weighted genre/category/title/lieu/blob hits, IDF dampening when a token hits
+ * >35% of the pool, and a category+genre combo bonus. Prefer strong signals
+ * (genre/cat/title ≥ 6); sort by score desc then sooner dayIso.
  */
 import type { DayItem } from '@/lib/types';
+import {
+  mainFromCategorie,
+  mainFromGenreSlug,
+  type MainCategoryId,
+} from '@/lib/categories';
 
 /** Light French stopwords — keep matching useful content words. */
 const FR_STOPWORDS = new Set([
@@ -129,9 +134,6 @@ const FR_STOPWORDS = new Set([
   'preferer',
   'plait',
   'plaire',
-  'sortir',
-  'sortie',
-  'sorties',
   'voir',
   'aller',
   'fan',
@@ -148,506 +150,497 @@ const FR_STOPWORDS = new Set([
   'choses',
 ]);
 
-/** Multi-word phrases (normalized, no accents) → expansion keys. Longer first. */
-const KNOWN_PHRASES: ReadonlyArray<[string, string[]]> = [
-  ['jeune public', ['enfants_famille', 'jeune_public', 'animation_jeune_public']],
-  ['arts de rue', ['cirque_arts_rue', 'theatre_danse']],
-  ['art de rue', ['cirque_arts_rue', 'theatre_danse']],
-  ['musiques du monde', ['musiques_monde_trad', 'musique']],
-  ['musique du monde', ['musiques_monde_trad', 'musique']],
-  ['hip hop', ['hiphop_rap', 'musique']],
-  ['hip-hop', ['hiphop_rap', 'musique']],
-  ['stand up', ['humour_standup', 'theatre_danse']],
-  ['stand-up', ['humour_standup', 'theatre_danse']],
-  ['plein air', ['cinema', 'festival']],
-  ['avant premiere', ['festival_avp', 'cinema']],
-  ['avant-premiere', ['festival_avp', 'cinema']],
-  ['r and b', ['funk_soul_rnb', 'musique']],
-  ['r&b', ['funk_soul_rnb', 'musique']],
-];
+/** Scoring weights (tuned for discrimination). */
+const W_GENRE = 15;
+const W_CATEGORIE = 10;
+const W_TITRE = 6;
+const W_LIEU = 3;
+const W_BLOB = 1;
+const W_PREFIX = 2;
+const COMBO_BONUS = 4;
+const STRONG_SIGNAL = 6;
+const IDF_FRACTION = 0.35;
+const IDF_DAMP = 0.25;
 
-/**
- * Lexicon: normalized token/phrase → category codes + genre slugs (+ raw aliases).
- * Values are matched against item categorie / genre fields and free text.
- */
-const LEXICON: Record<string, string[]> = {
-  // --- Categories ---
-  musique: ['musique'],
-  concert: ['musique'],
-  concerts: ['musique'],
-  live: ['musique'],
-  cinema: ['cinema', 'fiction'],
-  cine: ['cinema', 'fiction'],
-  film: ['cinema', 'fiction'],
-  films: ['cinema', 'fiction'],
-  seance: ['cinema', 'fiction'],
-  seances: ['cinema', 'fiction'],
-  theatre: ['theatre_danse'],
-  theatres: ['theatre_danse'],
-  danse: ['danse', 'theatre_danse'],
-  ballet: ['danse', 'theatre_danse'],
-  festival: ['festival'],
-  festivals: ['festival'],
-  expo: ['expo_patrimoine'],
-  expos: ['expo_patrimoine'],
-  exposition: ['expo_patrimoine'],
-  expositions: ['expo_patrimoine'],
-  musee: ['expo_patrimoine'],
-  musees: ['expo_patrimoine'],
-  patrimoine: ['expo_patrimoine', 'patrimoine_retro'],
-  visite: ['expo_patrimoine'],
-  visites: ['expo_patrimoine'],
-  enfants: ['enfants_famille', 'jeune_public'],
-  enfant: ['enfants_famille', 'jeune_public'],
-  famille: ['enfants_famille', 'jeune_public'],
-  familles: ['enfants_famille', 'jeune_public'],
-  kids: ['enfants_famille', 'jeune_public'],
-
-  // --- Music genres ---
-  jazz: ['jazz_blues', 'musique'],
-  blues: ['jazz_blues', 'musique'],
-  rock: ['rock_metal_punk', 'musique'],
-  metal: ['rock_metal_punk', 'musique'],
-  punk: ['rock_metal_punk', 'musique'],
-  electro: ['electro_techno', 'musique'],
-  electronique: ['electro_techno', 'musique'],
-  techno: ['electro_techno', 'musique'],
-  house: ['electro_techno', 'musique'],
-  club: ['electro_techno', 'musique'],
-  dj: ['electro_techno', 'musique'],
-  rap: ['hiphop_rap', 'musique'],
-  hiphop: ['hiphop_rap', 'musique'],
-  funk: ['funk_soul_rnb', 'musique'],
-  soul: ['funk_soul_rnb', 'musique'],
-  rnb: ['funk_soul_rnb', 'musique'],
-  chanson: ['chanson_variete', 'musique'],
-  variete: ['chanson_variete', 'musique'],
-  francaise: ['chanson_variete', 'musique'],
-  classique: ['classique_lyrique', 'musique'],
-  opera: ['classique_lyrique', 'musique'],
-  lyrique: ['classique_lyrique', 'musique'],
-  symphonique: ['classique_lyrique', 'musique'],
-  orchestre: ['classique_lyrique', 'musique'],
-  monde: ['musiques_monde_trad', 'musique'],
-  trad: ['musiques_monde_trad', 'musique'],
-  traditionnelle: ['musiques_monde_trad', 'musique'],
-  folk: ['musiques_monde_trad', 'musique'],
-  guinguette: ['guinguette_sorties', 'musique'],
-  guinguettes: ['guinguette_sorties', 'musique'],
-  bal: ['guinguette_sorties', 'musique'],
-
-  // --- Theatre / danse / humour ---
-  humour: ['humour_standup', 'theatre_danse'],
-  humoriste: ['humour_standup', 'theatre_danse'],
-  comedie: ['humour_standup', 'theatre_danse'],
-  comique: ['humour_standup', 'theatre_danse'],
-  standup: ['humour_standup', 'theatre_danse'],
-  one: ['humour_standup'],
-  man: ['humour_standup'],
-  cirque: ['cirque_arts_rue', 'theatre_danse'],
-  rue: ['cirque_arts_rue', 'theatre_danse'],
-  contemporain: ['theatre_contemporain', 'theatre_danse'],
-  contemporaine: ['theatre_contemporain', 'theatre_danse'],
-  lecture: ['lecture_poesie', 'theatre_danse'],
-  poesie: ['lecture_poesie', 'theatre_danse'],
-  poeme: ['lecture_poesie', 'theatre_danse'],
-
-  // --- Cinema genres ---
-  fiction: ['fiction', 'cinema'],
-  documentaire: ['documentaire', 'cinema'],
-  docu: ['documentaire', 'cinema'],
-  animation: ['animation_jeune_public', 'cinema'],
-  anime: ['animation_jeune_public', 'cinema'],
-  retro: ['patrimoine_retro', 'cinema'],
-  patrimoniale: ['patrimoine_retro', 'cinema'],
-  avp: ['festival_avp', 'cinema'],
-
-  // --- Slug passthrough (if user types them) ---
-  jazz_blues: ['jazz_blues', 'musique'],
-  rock_metal_punk: ['rock_metal_punk', 'musique'],
-  electro_techno: ['electro_techno', 'musique'],
-  hiphop_rap: ['hiphop_rap', 'musique'],
-  funk_soul_rnb: ['funk_soul_rnb', 'musique'],
-  chanson_variete: ['chanson_variete', 'musique'],
-  classique_lyrique: ['classique_lyrique', 'musique'],
-  musiques_monde_trad: ['musiques_monde_trad', 'musique'],
-  guinguette_sorties: ['guinguette_sorties', 'musique'],
-  theatre_danse: ['theatre_danse'],
-  theatre_contemporain: ['theatre_contemporain', 'theatre_danse'],
-  theatre_classique: ['theatre_classique', 'theatre_danse'],
-  humour_standup: ['humour_standup', 'theatre_danse'],
-  jeune_public: ['jeune_public', 'enfants_famille'],
-  cirque_arts_rue: ['cirque_arts_rue', 'theatre_danse'],
-  lecture_poesie: ['lecture_poesie', 'theatre_danse'],
-  expo_patrimoine: ['expo_patrimoine'],
-  enfants_famille: ['enfants_famille', 'jeune_public'],
-  animation_jeune_public: ['animation_jeune_public', 'cinema'],
-  patrimoine_retro: ['patrimoine_retro', 'cinema'],
-  festival_avp: ['festival_avp', 'cinema'],
+type LexTarget = {
+  genres?: string[];
+  categories?: MainCategoryId[];
 };
 
-const MAIN_CATEGORIES = new Set([
-  'musique',
-  'cinema',
-  'theatre_danse',
-  'festival',
-  'expo_patrimoine',
-  'enfants_famille',
-]);
+/**
+ * Free-text taste synonyms → catalog genre slugs / main categories.
+ * Keys are normalized (NFD-stripped, lowercased).
+ */
+const SYNONYM_LEXICON: Record<string, LexTarget> = {
+  // Music genres
+  jazz: { genres: ['jazz_blues'], categories: ['musique'] },
+  blues: { genres: ['jazz_blues'], categories: ['musique'] },
+  'jazz blues': { genres: ['jazz_blues'], categories: ['musique'] },
+  rock: { genres: ['rock_metal_punk'], categories: ['musique'] },
+  metal: { genres: ['rock_metal_punk'], categories: ['musique'] },
+  punk: { genres: ['rock_metal_punk'], categories: ['musique'] },
+  'rock metal': { genres: ['rock_metal_punk'], categories: ['musique'] },
+  electro: { genres: ['electro_techno'], categories: ['musique'] },
+  techno: { genres: ['electro_techno'], categories: ['musique'] },
+  electronique: { genres: ['electro_techno'], categories: ['musique'] },
+  house: { genres: ['electro_techno'], categories: ['musique'] },
+  club: { genres: ['electro_techno'], categories: ['musique'] },
+  dj: { genres: ['electro_techno'], categories: ['musique'] },
+  'electro techno': { genres: ['electro_techno'], categories: ['musique'] },
+  hiphop: { genres: ['hiphop_rap'], categories: ['musique'] },
+  'hip hop': { genres: ['hiphop_rap'], categories: ['musique'] },
+  rap: { genres: ['hiphop_rap'], categories: ['musique'] },
+  funk: { genres: ['funk_soul_rnb'], categories: ['musique'] },
+  soul: { genres: ['funk_soul_rnb'], categories: ['musique'] },
+  rnb: { genres: ['funk_soul_rnb'], categories: ['musique'] },
+  'r and b': { genres: ['funk_soul_rnb'], categories: ['musique'] },
+  chanson: { genres: ['chanson_variete'], categories: ['musique'] },
+  variete: { genres: ['chanson_variete'], categories: ['musique'] },
+  classique: { genres: ['classique_lyrique'], categories: ['musique'] },
+  lyrique: { genres: ['classique_lyrique'], categories: ['musique'] },
+  opera: { genres: ['classique_lyrique'], categories: ['musique'] },
+  orchestre: { genres: ['classique_lyrique'], categories: ['musique'] },
+  concert: { categories: ['musique'] },
+  concerts: { categories: ['musique'] },
+  musique: { categories: ['musique'] },
+  live: { categories: ['musique'] },
+  monde: { genres: ['musiques_monde_trad'], categories: ['musique'] },
+  'musiques du monde': {
+    genres: ['musiques_monde_trad'],
+    categories: ['musique'],
+  },
+  'musique du monde': {
+    genres: ['musiques_monde_trad'],
+    categories: ['musique'],
+  },
+  trad: { genres: ['musiques_monde_trad'], categories: ['musique'] },
+  traditionnelle: {
+    genres: ['musiques_monde_trad'],
+    categories: ['musique'],
+  },
+  folk: { genres: ['musiques_monde_trad'], categories: ['musique'] },
+  guinguette: { genres: ['guinguette_sorties'], categories: ['musique'] },
+  guinguettes: { genres: ['guinguette_sorties'], categories: ['musique'] },
 
-const GENRE_SLUGS = new Set([
-  'classique_lyrique',
-  'jazz_blues',
-  'rock_metal_punk',
-  'electro_techno',
-  'hiphop_rap',
-  'funk_soul_rnb',
-  'chanson_variete',
-  'musiques_monde_trad',
-  'musique_autre',
-  'guinguette_sorties',
-  'guinguette_bal',
-  'theatre_contemporain',
-  'theatre_classique',
-  'humour_standup',
-  'jeune_public',
-  'danse',
-  'cirque_arts_rue',
-  'lecture_poesie',
-  'fiction',
-  'documentaire',
-  'animation_jeune_public',
-  'patrimoine_retro',
-  'festival_avp',
-  'expo_patrimoine',
-  'expo',
-  'enfants_famille',
-  'atelier_mediation',
-  'festival_multi',
-]);
+  // Theatre / danse / humour
+  standup: { genres: ['humour_standup'], categories: ['theatre_danse'] },
+  'stand up': { genres: ['humour_standup'], categories: ['theatre_danse'] },
+  humour: { genres: ['humour_standup'], categories: ['theatre_danse'] },
+  comedie: { genres: ['humour_standup'], categories: ['theatre_danse'] },
+  comique: { genres: ['humour_standup'], categories: ['theatre_danse'] },
+  theatre: { categories: ['theatre_danse'] },
+  theatres: { categories: ['theatre_danse'] },
+  'theatre contemporain': {
+    genres: ['theatre_contemporain'],
+    categories: ['theatre_danse'],
+  },
+  'theatre classique': {
+    genres: ['theatre_classique'],
+    categories: ['theatre_danse'],
+  },
+  danse: { genres: ['danse'], categories: ['theatre_danse'] },
+  ballet: { genres: ['danse'], categories: ['theatre_danse'] },
+  cirque: { genres: ['cirque_arts_rue'], categories: ['theatre_danse'] },
+  'arts de rue': {
+    genres: ['cirque_arts_rue'],
+    categories: ['theatre_danse'],
+  },
+  'art de rue': {
+    genres: ['cirque_arts_rue'],
+    categories: ['theatre_danse'],
+  },
+  lecture: { genres: ['lecture_poesie'], categories: ['theatre_danse'] },
+  poesie: { genres: ['lecture_poesie'], categories: ['theatre_danse'] },
 
-const STRONG_SIGNAL = 6;
+  // Cinema
+  film: { genres: ['fiction'], categories: ['cinema'] },
+  films: { genres: ['fiction'], categories: ['cinema'] },
+  cine: { genres: ['fiction'], categories: ['cinema'] },
+  cinema: { genres: ['fiction'], categories: ['cinema'] },
+  seance: { genres: ['fiction'], categories: ['cinema'] },
+  seances: { genres: ['fiction'], categories: ['cinema'] },
+  cinematheque: { categories: ['cinema'] },
+  documentaire: { genres: ['documentaire'], categories: ['cinema'] },
+  docu: { genres: ['documentaire'], categories: ['cinema'] },
+  fiction: { genres: ['fiction'], categories: ['cinema'] },
+  animation: {
+    genres: ['animation_jeune_public'],
+    categories: ['cinema'],
+  },
+  retro: { genres: ['patrimoine_retro'], categories: ['cinema'] },
+  'avant premiere': { genres: ['festival_avp'], categories: ['cinema'] },
+  'plein air': { categories: ['cinema', 'festival'] },
+
+  // Expo / patrimoine
+  expo: { genres: ['expo_patrimoine'], categories: ['expo_patrimoine'] },
+  expos: { genres: ['expo_patrimoine'], categories: ['expo_patrimoine'] },
+  exposition: {
+    genres: ['expo_patrimoine'],
+    categories: ['expo_patrimoine'],
+  },
+  expositions: {
+    genres: ['expo_patrimoine'],
+    categories: ['expo_patrimoine'],
+  },
+  musee: { genres: ['expo_patrimoine'], categories: ['expo_patrimoine'] },
+  musees: { genres: ['expo_patrimoine'], categories: ['expo_patrimoine'] },
+  patrimoine: {
+    genres: ['expo_patrimoine', 'patrimoine_retro'],
+    categories: ['expo_patrimoine'],
+  },
+  'expo patrimoine': {
+    genres: ['expo_patrimoine'],
+    categories: ['expo_patrimoine'],
+  },
+  visite: { categories: ['expo_patrimoine'] },
+  visites: { categories: ['expo_patrimoine'] },
+  conference: { categories: ['expo_patrimoine'] },
+  galerie: { categories: ['expo_patrimoine'] },
+
+  // Enfants / famille
+  enfants: {
+    genres: ['enfants_famille', 'jeune_public', 'animation_jeune_public'],
+    categories: ['enfants_famille'],
+  },
+  enfant: {
+    genres: ['enfants_famille', 'jeune_public'],
+    categories: ['enfants_famille'],
+  },
+  famille: {
+    genres: ['enfants_famille', 'jeune_public'],
+    categories: ['enfants_famille'],
+  },
+  familles: {
+    genres: ['enfants_famille'],
+    categories: ['enfants_famille'],
+  },
+  'jeune public': {
+    genres: ['jeune_public', 'animation_jeune_public', 'enfants_famille'],
+    categories: ['enfants_famille'],
+  },
+  kids: { genres: ['enfants_famille'], categories: ['enfants_famille'] },
+  atelier: {
+    genres: ['atelier_mediation', 'enfants_famille'],
+    categories: ['enfants_famille'],
+  },
+
+  // Festival
+  festival: {
+    genres: ['festival_multi', 'festival_avp'],
+    categories: ['festival'],
+  },
+  festivals: { categories: ['festival'] },
+  salon: { categories: ['festival'] },
+};
+
+/** Lexicon keys sorted longest-first for greedy phrase matching. */
+const LEXICON_KEYS_LONGEST = Object.keys(SYNONYM_LEXICON).sort(
+  (a, b) => b.length - a.length || a.localeCompare(b),
+);
 
 function normalize(text: string): string {
   return text
     .toLowerCase()
     .normalize('NFD')
     .replace(/\p{M}/gu, '')
-    .replace(/['’]/g, ' ')
+    .replace(/['']/g, ' ')
     .replace(/œ/g, 'oe')
-    .replace(/æ/g, 'ae');
+    .replace(/æ/g, 'ae')
+    .replace(/[-_/]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
-export type TasteSignal = {
-  /** Original taste token or phrase (normalized). */
-  raw: string;
-  /** Expanded keys: category codes, genre slugs, and the raw token itself. */
-  keys: string[];
+/** Split into raw word tokens (normalized, may include stopwords). */
+function rawWords(text: string): string[] {
+  return normalize(text)
+    .split(/[^a-z0-9]+/i)
+    .filter(Boolean);
+}
+
+/** Extract meaningful unigram tokens (≥2 chars, not stopwords). */
+export function tokenizeTastes(tastes: string): string[] {
+  const raw = rawWords(tastes);
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const t of raw) {
+    if (t.length < 2) continue;
+    if (FR_STOPWORDS.has(t)) continue;
+    if (seen.has(t)) continue;
+    seen.add(t);
+    out.push(t);
+  }
+  return out;
+}
+
+/** Consecutive non-stopword bigrams from the taste string. */
+function extractBigrams(tastes: string): string[] {
+  const words = rawWords(tastes);
+  const content: string[] = [];
+  for (const w of words) {
+    if (w.length < 2) continue;
+    if (FR_STOPWORDS.has(w)) continue;
+    content.push(w);
+  }
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (let i = 0; i < content.length - 1; i++) {
+    const bg = `${content[i]} ${content[i + 1]}`;
+    if (seen.has(bg)) continue;
+    seen.add(bg);
+    out.push(bg);
+  }
+  return out;
+}
+
+export type TasteSignals = {
+  genres: Set<string>;
+  categories: Set<MainCategoryId>;
+  /** Free unigrams / bigrams for text matching (IDF-dampened). */
+  textTokens: string[];
 };
 
-/** Extract meaningful tokens (≥2 chars, not stopwords), phrases first. */
-export function tokenizeTastes(tastes: string): string[] {
-  return expandTastes(tastes).map((s) => s.raw);
-}
+/** Expand free-text tastes into genre/category signals + text tokens. */
+export function expandTastes(tastes: string): TasteSignals {
+  const genres = new Set<string>();
+  const categories = new Set<MainCategoryId>();
+  const norm = normalize(tastes);
+  const consumedSpans: Array<[number, number]> = [];
 
-/** Full expansion used by scoring (phrases + unigrams + lexicon). */
-export function expandTastes(tastes: string): TasteSignal[] {
-  const norm = normalize(tastes).replace(/\s+/g, ' ').trim();
-  if (!norm) return [];
+  const applyTarget = (target: LexTarget | undefined) => {
+    if (!target) return;
+    for (const g of target.genres ?? []) genres.add(g);
+    for (const c of target.categories ?? []) categories.add(c);
+  };
 
-  const consumed = new Set<number>(); // char indices covered by phrases
-  const signals: TasteSignal[] = [];
-  const seenRaw = new Set<string>();
-
-  // 1) Known multi-word phrases
-  for (const [phrase, expansion] of KNOWN_PHRASES) {
+  // 1) Greedy longest lexicon phrases over the full normalized string
+  for (const key of LEXICON_KEYS_LONGEST) {
+    const nKey = normalize(key);
+    if (!nKey) continue;
     let from = 0;
-    while (from < norm.length) {
-      const idx = norm.indexOf(phrase, from);
+    while (from <= norm.length) {
+      const idx = norm.indexOf(nKey, from);
       if (idx < 0) break;
-      const end = idx + phrase.length;
-      const leftOk = idx === 0 || /[^a-z0-9]/.test(norm[idx - 1]!);
-      const rightOk = end >= norm.length || /[^a-z0-9]/.test(norm[end]!);
-      if (leftOk && rightOk) {
-        for (let i = idx; i < end; i++) consumed.add(i);
-        if (!seenRaw.has(phrase)) {
-          seenRaw.add(phrase);
-          signals.push({
-            raw: phrase,
-            keys: uniqueKeys([phrase, ...expansion, ...(LEXICON[phrase] ?? [])]),
-          });
+      const end = idx + nKey.length;
+      const beforeOk = idx === 0 || norm[idx - 1] === ' ';
+      const afterOk = end === norm.length || norm[end] === ' ';
+      if (beforeOk && afterOk) {
+        const overlaps = consumedSpans.some(([a, b]) => idx < b && end > a);
+        if (!overlaps) {
+          consumedSpans.push([idx, end]);
+          applyTarget(SYNONYM_LEXICON[key]);
         }
       }
       from = idx + 1;
     }
   }
 
-  // 2) Adjacent bigrams from remaining unigrams (light cultural glue)
-  const rawTokens = norm.split(/[^a-z0-9]+/i).filter(Boolean);
-  // Rebuild positions for bigram skip when overlapping consumed — approximate via join
-  const unigrams: string[] = [];
-  {
-    let pos = 0;
-    for (const t of rawTokens) {
-      const idx = norm.indexOf(t, pos);
-      const end = idx >= 0 ? idx + t.length : -1;
-      let covered = false;
-      if (idx >= 0) {
-        for (let i = idx; i < end; i++) {
-          if (consumed.has(i)) {
-            covered = true;
-            break;
-          }
-        }
-        pos = end;
-      }
-      if (covered) continue;
-      if (t.length < 2) continue;
-      if (FR_STOPWORDS.has(t)) continue;
-      unigrams.push(t);
-    }
+  const unigrams = tokenizeTastes(tastes);
+  const bigrams = extractBigrams(tastes);
+
+  // 2) Map leftover unigrams / bigrams through lexicon
+  for (const u of unigrams) {
+    applyTarget(SYNONYM_LEXICON[u] ?? SYNONYM_LEXICON[normalize(u)]);
+  }
+  for (const bg of bigrams) {
+    applyTarget(SYNONYM_LEXICON[bg] ?? SYNONYM_LEXICON[normalize(bg)]);
   }
 
-  for (let i = 0; i < unigrams.length - 1; i++) {
-    const bigram = `${unigrams[i]} ${unigrams[i + 1]}`;
-    const fromLex = LEXICON[bigram];
-    const fromPhrase = KNOWN_PHRASES.find(([p]) => p === bigram)?.[1];
-    if (!fromLex && !fromPhrase) continue;
-    if (seenRaw.has(bigram)) continue;
-    seenRaw.add(bigram);
-    signals.push({
-      raw: bigram,
-      keys: uniqueKeys([bigram, ...(fromLex ?? []), ...(fromPhrase ?? [])]),
-    });
-  }
-
-  // 3) Unigrams
-  for (const t of unigrams) {
-    if (seenRaw.has(t)) continue;
-    seenRaw.add(t);
-    signals.push({
-      raw: t,
-      keys: uniqueKeys([t, ...(LEXICON[t] ?? [])]),
-    });
-  }
-
-  return signals;
-}
-
-function uniqueKeys(keys: string[]): string[] {
-  const out: string[] = [];
+  // 3) Text tokens: phrases first, then unigrams (for title/lieu/blob)
+  const textTokens: string[] = [];
   const seen = new Set<string>();
-  for (const k of keys) {
-    const n = normalize(k).trim();
-    if (!n || seen.has(n)) continue;
-    seen.add(n);
-    out.push(n);
+  for (const bg of bigrams) {
+    if (seen.has(bg)) continue;
+    seen.add(bg);
+    textTokens.push(bg);
   }
-  return out;
+  for (const u of unigrams) {
+    if (seen.has(u)) continue;
+    seen.add(u);
+    textTokens.push(u);
+  }
+
+  return { genres, categories, textTokens };
 }
 
-function itemGenreFields(item: DayItem): string[] {
-  const raw: string[] = [];
-  if (item.kind === 'programme') {
-    if (item.programme.genre) raw.push(item.programme.genre);
-    if (item.evenement?.genre) raw.push(item.evenement.genre);
-  } else if (item.evenement.genre) {
-    raw.push(item.evenement.genre);
-  }
-  return uniqueKeys(raw.flatMap((g) => g.split(/[,;/|]+/)));
-}
+type ItemFields = {
+  genreSlugs: string[];
+  mainCats: MainCategoryId[];
+  titre: string;
+  lieu: string;
+  blob: string;
+  allText: string;
+};
 
-function itemCategoryFields(item: DayItem): string[] {
-  const raw: string[] = [];
-  if (item.kind === 'programme') {
-    if (item.evenement?.categorie) raw.push(item.evenement.categorie);
-    if (item.programme.type_item) raw.push(item.programme.type_item);
-  } else if (item.evenement.categorie) {
-    raw.push(item.evenement.categorie);
-  }
-  // Map legacy categorie aliases toward main buckets for matching
-  const mapped: string[] = [];
-  for (const c of raw) {
-    const n = normalize(c);
-    mapped.push(n);
-    const lex = LEXICON[n];
-    if (lex) mapped.push(...lex);
-    if (n === 'concert' || n === 'guinguette' || n === 'soiree') mapped.push('musique');
-    if (n === 'theatre' || n === 'humour' || n === 'cirque' || n === 'danse')
-      mapped.push('theatre_danse');
-    if (n === 'exposition' || n === 'expo' || n === 'visite' || n === 'conference')
-      mapped.push('expo_patrimoine');
-    if (n === 'atelier') mapped.push('enfants_famille');
-  }
-  return uniqueKeys(mapped);
-}
+function itemFields(item: DayItem): ItemFields {
+  const genreParts: string[] = [];
+  const catParts: string[] = [];
+  const titreParts: string[] = [];
+  const blobParts: string[] = [];
 
-function titleText(item: DayItem): string {
   if (item.kind === 'programme') {
-    return normalize(
-      [
-        item.programme.nom_item,
-        item.evenement?.titre ?? '',
-        item.evenement?.categorie ?? '',
-        item.programme.genre,
-        item.evenement?.genre ?? '',
-        item.programme.type_item,
-      ].join(' '),
-    );
+    titreParts.push(item.programme.nom_item);
+    if (item.programme.genre) genreParts.push(item.programme.genre);
+    if (item.programme.type_item) catParts.push(item.programme.type_item);
+    if (item.programme.notes) blobParts.push(item.programme.notes);
+    if (item.programme.description_item)
+      blobParts.push(item.programme.description_item);
+    if (item.evenement?.titre) titreParts.push(item.evenement.titre);
+    if (item.evenement?.categorie) catParts.push(item.evenement.categorie);
+    if (item.evenement?.genre) genreParts.push(item.evenement.genre);
+    if (item.evenement?.description_courte)
+      blobParts.push(item.evenement.description_courte);
+    if (item.evenement?.description_longue)
+      blobParts.push(item.evenement.description_longue);
+    if (item.evenement?.tags) blobParts.push(item.evenement.tags);
+    if (item.evenement?.casting) blobParts.push(item.evenement.casting);
+  } else {
+    titreParts.push(item.evenement.titre);
+    if (item.evenement.categorie) catParts.push(item.evenement.categorie);
+    if (item.evenement.genre) genreParts.push(item.evenement.genre);
+    if (item.evenement.description_courte)
+      blobParts.push(item.evenement.description_courte);
+    if (item.evenement.description_longue)
+      blobParts.push(item.evenement.description_longue);
+    if (item.evenement.tags) blobParts.push(item.evenement.tags);
+    if (item.evenement.casting) blobParts.push(item.evenement.casting);
   }
-  return normalize(
-    [item.evenement.titre, item.evenement.categorie, item.evenement.genre].join(
+
+  const lieuParts = [item.lieu?.nom ?? '', item.lieu?.commune ?? ''];
+  if (item.lieu?.type) blobParts.push(item.lieu.type);
+
+  const rawGenres =
+    item.kind === 'programme'
+      ? [item.programme.genre, item.evenement?.genre ?? '']
+      : [item.evenement.genre];
+  const genreSlugs = [
+    ...new Set(
+      rawGenres
+        .flatMap((g) => String(g || '').split(/[,;/|]+/))
+        .map((g) => g.trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  ];
+
+  const rawCat =
+    item.kind === 'programme'
+      ? (item.evenement?.categorie || '').trim()
+      : (item.evenement.categorie || '').trim();
+
+  const mainCats: MainCategoryId[] = [];
+  const fromCat = mainFromCategorie(rawCat);
+  if (fromCat) mainCats.push(fromCat);
+  for (const g of genreSlugs) {
+    const fromGenre = mainFromGenreSlug(g);
+    if (fromGenre && !mainCats.includes(fromGenre)) mainCats.push(fromGenre);
+  }
+
+  const titre = normalize(
+    [...titreParts, rawCat, ...genreSlugs, ...catParts].join(' '),
+  );
+  const lieu = normalize(lieuParts.join(' '));
+  const blob = normalize(blobParts.join(' '));
+  const allText = normalize(
+    [titre, lieu, blob, ...genreSlugs.map((g) => g.replace(/_/g, ' '))].join(
       ' ',
     ),
   );
+
+  return { genreSlugs, mainCats, titre, lieu, blob, allText };
 }
 
-function lieuText(item: DayItem): string {
-  return normalize(
-    [item.lieu?.nom ?? '', item.lieu?.commune ?? ''].join(' '),
+function textContains(hay: string, needle: string): boolean {
+  if (!needle || !hay) return false;
+  if (needle.includes(' ')) return hay.includes(needle);
+  if (needle.length <= 3) {
+    const re = new RegExp(`(?:^|[^a-z0-9])${needle}(?:[^a-z0-9]|$)`);
+    return re.test(hay);
+  }
+  return hay.includes(needle);
+}
+
+function titlePrefixHit(titre: string, token: string): boolean {
+  if (token.length < 4 || !titre) return false;
+  const words = titre.split(/[^a-z0-9]+/).filter(Boolean);
+  return words.some(
+    (w) => w.startsWith(token) || (token.startsWith(w) && w.length >= 4),
   );
 }
 
-function blobText(item: DayItem): string {
-  const parts: string[] = [];
-  if (item.kind === 'programme') {
-    if (item.programme.notes) parts.push(item.programme.notes);
-    if (item.programme.description_item) parts.push(item.programme.description_item);
-    if (item.evenement?.description_courte)
-      parts.push(item.evenement.description_courte);
-    if (item.evenement?.description_longue)
-      parts.push(item.evenement.description_longue);
-    if (item.evenement?.tags) parts.push(item.evenement.tags);
-    if (item.evenement?.casting) parts.push(item.evenement.casting);
-  } else {
-    if (item.evenement.description_courte)
-      parts.push(item.evenement.description_courte);
-    if (item.evenement.description_longue)
-      parts.push(item.evenement.description_longue);
-    if (item.evenement.tags) parts.push(item.evenement.tags);
-    if (item.evenement.casting) parts.push(item.evenement.casting);
-  }
-  if (item.lieu?.type) parts.push(item.lieu.type);
-  return normalize(parts.join(' '));
-}
+type ScoreBreakdown = { score: number; strong: number };
 
-type ScoreBreakdown = {
-  score: number;
-  strong: number;
-  hadGenre: boolean;
-  hadCat: boolean;
-};
-
-function scoreItemAgainstSignals(
-  item: DayItem,
-  signals: TasteSignal[],
-  idfByRaw: Map<string, number>,
+function scoreItemAgainst(
+  fields: ItemFields,
+  signals: TasteSignals,
+  idfMap: Map<string, number>,
 ): ScoreBreakdown {
-  const genres = new Set(itemGenreFields(item));
-  const cats = new Set(itemCategoryFields(item));
-  const title = titleText(item);
-  const lieu = lieuText(item);
-  const blob = blobText(item);
-
   let score = 0;
   let strong = 0;
-  let hadGenre = false;
-  let hadCat = false;
+  let hitGenre = false;
+  let hitCat = false;
 
-  for (const sig of signals) {
-    const damp = idfByRaw.get(sig.raw) ?? 1;
-    let contrib = 0;
-    let localStrong = 0;
-    let localGenre = false;
-    let localCat = false;
-
-    for (const key of sig.keys) {
-      if (GENRE_SLUGS.has(key) && genres.has(key)) {
-        contrib += 15;
-        localStrong += 15;
-        localGenre = true;
-        continue;
-      }
-      if (
-        (MAIN_CATEGORIES.has(key) || key === 'concert') &&
-        (cats.has(key) ||
-          (key === 'musique' && (cats.has('concert') || cats.has('musique'))) ||
-          (key === 'expo_patrimoine' &&
-            (cats.has('expo') || cats.has('exposition') || cats.has('expo_patrimoine'))))
-      ) {
-        contrib += 10;
-        localStrong += 10;
-        localCat = true;
-        continue;
-      }
-      // Title / name / category / genre text contains token/phrase
-      if (title.includes(key)) {
-        contrib += 6;
-        localStrong += 6;
-        continue;
-      }
-      if (lieu.includes(key)) {
-        contrib += 3;
-        continue;
-      }
-      if (blob.includes(key)) {
-        contrib += 1;
-        continue;
-      }
-      // Light prefix match (≥4 char) on title only
-      if (key.length >= 4) {
-        const words = title.split(/[^a-z0-9]+/).filter(Boolean);
-        if (words.some((w) => w.startsWith(key) || key.startsWith(w) && w.length >= 4)) {
-          contrib += 2;
-        }
-      }
+  for (const g of signals.genres) {
+    if (!g) continue;
+    if (fields.genreSlugs.some((s) => s === g)) {
+      score += W_GENRE;
+      strong += W_GENRE;
+      hitGenre = true;
+      break;
     }
-
-    if (localGenre && localCat) {
-      contrib += 4;
-      localStrong += 4;
-    }
-
-    if (localGenre) hadGenre = true;
-    if (localCat) hadCat = true;
-
-    score += contrib * damp;
-    strong += localStrong * damp;
   }
 
-  // Item-level combo bonus if any mapped cat + genre hit across signals
-  if (hadGenre && hadCat) {
-    // already awarded per-signal when both on same signal; add a light item bonus
-    // only if we never got the per-signal +4 (multiple signals split cat/genre)
-    // Skip extra to avoid double-counting when both on same signal.
+  for (const c of signals.categories) {
+    if (fields.mainCats.includes(c)) {
+      score += W_CATEGORIE;
+      strong += W_CATEGORIE;
+      hitCat = true;
+      break;
+    }
   }
 
-  return { score, strong, hadGenre, hadCat };
+  if (hitGenre && hitCat) {
+    score += COMBO_BONUS;
+    strong += COMBO_BONUS;
+  }
+
+  for (const token of signals.textTokens) {
+    const damp = idfMap.get(token) ?? 1;
+    if (textContains(fields.titre, token)) {
+      const add = W_TITRE * damp;
+      score += add;
+      strong += add;
+      continue;
+    }
+    if (titlePrefixHit(fields.titre, token)) {
+      score += W_PREFIX * damp;
+      continue;
+    }
+    if (textContains(fields.lieu, token)) {
+      score += W_LIEU * damp;
+      continue;
+    }
+    if (textContains(fields.blob, token) || textContains(fields.allText, token)) {
+      score += W_BLOB * damp;
+    }
+  }
+
+  return { score, strong };
 }
 
-/** Fraction of candidates a raw token matches (>35% → dampen). */
+/** If a raw token matches >35% of candidates, dampen its text contribution. */
 function computeIdfDampening(
-  items: DayItem[],
-  signals: TasteSignal[],
+  fieldsList: ItemFields[],
+  tokens: string[],
 ): Map<string, number> {
   const out = new Map<string, number>();
-  if (items.length === 0) return out;
-  const threshold = 0.35;
-
-  for (const sig of signals) {
+  const N = fieldsList.length;
+  if (N === 0) return out;
+  for (const token of tokens) {
     let hits = 0;
-    for (const item of items) {
-      const title = titleText(item);
-      const lieu = lieuText(item);
-      const blob = blobText(item);
-      const genres = itemGenreFields(item);
-      const cats = itemCategoryFields(item);
-      const hay = `${title} ${lieu} ${blob} ${genres.join(' ')} ${cats.join(' ')}`;
-      const matched = sig.keys.some((k) => hay.includes(k));
-      if (matched) hits++;
+    for (const f of fieldsList) {
+      if (textContains(f.allText, token)) hits += 1;
     }
-    const frac = hits / items.length;
-    out.set(sig.raw, frac > threshold ? 0.25 : 1);
+    out.set(token, hits / N > IDF_FRACTION ? IDF_DAMP : 1);
   }
   return out;
 }
@@ -670,15 +663,26 @@ export function recommendForTastes(
   if (!trimmed || items.length === 0) return [];
 
   const signals = expandTastes(trimmed);
-  if (signals.length === 0) return [];
+  if (
+    signals.genres.size === 0 &&
+    signals.categories.size === 0 &&
+    signals.textTokens.length === 0
+  ) {
+    return [];
+  }
 
-  const idfByRaw = computeIdfDampening(items, signals);
+  const fieldsList = items.map(itemFields);
+  const idfMap = computeIdfDampening(fieldsList, signals.textTokens);
   const limit = Math.max(1, Math.min(topN, 12));
 
   const scored: Array<ScoredDayItem & { strong: number }> = [];
-  for (const item of items) {
-    const { score, strong } = scoreItemAgainstSignals(item, signals, idfByRaw);
-    if (score > 0) scored.push({ item, score, strong });
+  for (let i = 0; i < items.length; i++) {
+    const { score, strong } = scoreItemAgainst(
+      fieldsList[i]!,
+      signals,
+      idfMap,
+    );
+    if (score > 0) scored.push({ item: items[i]!, score, strong });
   }
 
   scored.sort((a, b) => {
