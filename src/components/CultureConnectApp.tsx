@@ -213,8 +213,8 @@ export default function CultureConnectApp({
   const monthLabel = `${MONTH_NAMES_FR[month - 1]} ${year}`;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
-      <header className="mb-8">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+      <header className="mb-6 lg:mb-8">
         <p className="text-sm font-medium uppercase tracking-[0.2em] text-culture-terracotta">
           Toulouse & alentours
         </p>
@@ -227,53 +227,53 @@ export default function CultureConnectApp({
         </p>
       </header>
 
-      <div className="mb-4">
-        <CategoryFilter
-          selected={selectedCategories}
-          onChange={handleCategoriesChange}
-        />
-      </div>
+      <div className="lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:items-start lg:gap-8">
+        <aside className="mb-6 rounded-2xl border border-culture-sand bg-white/80 p-4 shadow-sm lg:sticky lg:top-4 lg:mb-0 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
+          <div className="space-y-5">
+            <CategoryFilter
+              selected={selectedCategories}
+              onChange={handleCategoriesChange}
+            />
+            <GenreFilter
+              availableSlugs={availableGenreSlugs}
+              legend={genresLegend}
+              selected={selectedGenres}
+              onChange={setSelectedGenres}
+              selectedMains={selectedCategories}
+            />
+            <VenueFilter
+              lieux={venueOptions}
+              selectedLieuId={selectedLieuId}
+              onChange={setSelectedLieuId}
+            />
+          </div>
+        </aside>
 
-      <div className="mb-4">
-        <GenreFilter
-          availableSlugs={availableGenreSlugs}
-          legend={genresLegend}
-          selected={selectedGenres}
-          onChange={setSelectedGenres}
-          selectedMains={selectedCategories}
-        />
-      </div>
-
-      <div className="mb-6">
-        <VenueFilter
-          lieux={venueOptions}
-          selectedLieuId={selectedLieuId}
-          onChange={setSelectedLieuId}
-        />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-5">
-        <div className="lg:col-span-3">
-          <MonthCalendar
-            year={year}
-            month={month}
-            selectedDay={selectedDay}
-            counts={counts}
-            onSelectDay={handleSelectDay}
-            onPrevMonth={goPrevMonth}
-            onNextMonth={goNextMonth}
-          />
-        </div>
-        <div className="lg:col-span-2">
-          <DayEvents
-            dayIso={selectedDay}
-            monthLabel={monthLabel}
-            items={listItems}
-            showDateLabels={!selectedDay}
-            onSelectItem={setSelectedItemKey}
-            onSelectVenue={handleSelectVenue}
-            onClearDay={selectedDay ? clearDaySelection : undefined}
-          />
+        <div className="min-w-0">
+          <div className="grid gap-6 lg:grid-cols-5">
+            <div className="lg:col-span-3">
+              <MonthCalendar
+                year={year}
+                month={month}
+                selectedDay={selectedDay}
+                counts={counts}
+                onSelectDay={handleSelectDay}
+                onPrevMonth={goPrevMonth}
+                onNextMonth={goNextMonth}
+              />
+            </div>
+            <div className="lg:col-span-2">
+              <DayEvents
+                dayIso={selectedDay}
+                monthLabel={monthLabel}
+                items={listItems}
+                showDateLabels={!selectedDay}
+                onSelectItem={setSelectedItemKey}
+                onSelectVenue={handleSelectVenue}
+                onClearDay={selectedDay ? clearDaySelection : undefined}
+              />
+            </div>
+          </div>
         </div>
       </div>
 

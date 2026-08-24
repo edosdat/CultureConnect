@@ -23,26 +23,24 @@ export default function VenueFilter({ lieux, selectedLieuId, onChange }: Props) 
             onClick={() => onChange(null)}
             className="text-xs text-culture-terracotta hover:underline"
           >
-            Tous les lieux
+            Tous
           </button>
         )}
       </div>
-      <div className="flex flex-wrap gap-2">
-        <select
-          value={selectedLieuId ?? ''}
-          onChange={(e) => onChange(e.target.value || null)}
-          className="max-w-full rounded-full border border-culture-sand bg-white px-3 py-1.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
-          aria-label="Filtrer par lieu"
-        >
-          <option value="">Tous les lieux</option>
-          {lieux.map((l) => (
-            <option key={l.lieu_id} value={l.lieu_id}>
-              {l.nom}
-              {l.commune ? ` · ${l.commune}` : ''}
-            </option>
-          ))}
-        </select>
-      </div>
+      <select
+        value={selectedLieuId ?? ''}
+        onChange={(e) => onChange(e.target.value || null)}
+        className="w-full rounded-xl border border-culture-sand bg-white px-3 py-2 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
+        aria-label="Filtrer par lieu"
+      >
+        <option value="">Tous les lieux</option>
+        {lieux.map((l) => (
+          <option key={l.lieu_id} value={l.lieu_id}>
+            {l.nom}
+            {l.commune ? ` · ${l.commune}` : ''}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

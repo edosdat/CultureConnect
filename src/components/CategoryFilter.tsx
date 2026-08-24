@@ -35,7 +35,7 @@ export default function CategoryFilter({ selected, onChange }: Props) {
           </button>
         )}
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-1.5">
         {MAIN_CATEGORIES.map(({ id, label }) => {
           const active = selected.includes(id);
           return (
@@ -45,7 +45,7 @@ export default function CategoryFilter({ selected, onChange }: Props) {
               onClick={() => toggle(id)}
               aria-pressed={active}
               className={
-                'rounded-full border px-3 py-1.5 text-sm transition ' +
+                'w-full rounded-xl border px-3 py-2 text-left text-sm transition ' +
                 (active
                   ? 'border-culture-terracotta bg-culture-terracotta text-white shadow-sm'
                   : 'border-culture-sand bg-white text-culture-ink hover:border-culture-terracotta/50')

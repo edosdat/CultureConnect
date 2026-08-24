@@ -84,7 +84,7 @@ export default function GenreFilter({
         onClick={() => toggle(g.slug)}
         aria-pressed={active}
         className={
-          'rounded-full border px-3 py-1.5 text-sm transition ' +
+          'rounded-full border px-2.5 py-1 text-xs transition ' +
           (active
             ? 'border-culture-sage bg-culture-sage text-white shadow-sm'
             : 'border-culture-sand bg-white text-culture-ink hover:border-culture-sage/60')
