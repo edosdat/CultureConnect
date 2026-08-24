@@ -95,8 +95,12 @@ export default function CultureConnectApp({
   }, []);
 
   const range = useMemo(
-    () => resolveScopeRange(timeScope, selectedDay),
-    [timeScope, selectedDay],
+    () =>
+      resolveScopeRange(timeScope, selectedDay, new Date(), {
+        year,
+        month,
+      }),
+    [timeScope, selectedDay, year, month],
   );
 
   const contextLabel = useMemo(
@@ -251,22 +255,31 @@ export default function CultureConnectApp({
     }
   }
 
+  function clearDayIfOutsideMonth(nextYear: number, nextMonth: number) {
+    if (timeScope !== 'date') return;
+    setSelectedDay((prev) => {
+      if (!prev) return null;
+      const [y, m] = prev.split('-').map(Number);
+      if (y === nextYear && m === nextMonth) return prev;
+      return null;
+    });
+    setSelectedItemKey(null);
+  }
+
   function goPrevMonth() {
-    if (month === 1) {
-      setYear((y) => y - 1);
-      setMonth(12);
-    } else {
-      setMonth((m) => m - 1);
-    }
+    const nextYear = month === 1 ? year - 1 : year;
+    const nextMonth = month === 1 ? 12 : month - 1;
+    setYear(nextYear);
+    setMonth(nextMonth);
+    clearDayIfOutsideMonth(nextYear, nextMonth);
   }
 
   function goNextMonth() {
-    if (month === 12) {
-      setYear((y) => y + 1);
-      setMonth(1);
-    } else {
-      setMonth((m) => m + 1);
-    }
+    const nextYear = month === 12 ? year + 1 : year;
+    const nextMonth = month === 12 ? 1 : month + 1;
+    setYear(nextYear);
+    setMonth(nextMonth);
+    clearDayIfOutsideMonth(nextYear, nextMonth);
   }
 
   function handleSelectDay(iso: string) {
@@ -306,7 +319,7 @@ export default function CultureConnectApp({
           ? 'cette semaine'
           : selectedDay
             ? `le ${contextLabel}`
-            : 'pour cette date';
+            : contextLabel;
 
   const monthPanel = (
     <div className="max-w-md">

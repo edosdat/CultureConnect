@@ -112,10 +112,25 @@ export function weekRange(todayIso: string, weekday: number): DateRange {
   return { startIso: todayIso, endIso: end, days: daysBetween(todayIso, end) };
 }
 
+
+/** All YYYY-MM-DD days in a calendar month (month 1–12). */
+export function daysInMonth(year: number, month: number): string[] {
+  const last = new Date(year, month, 0).getDate();
+  const out: string[] = [];
+  for (let d = 1; d <= last; d++) {
+    out.push(
+      `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
+    );
+  }
+  return out;
+}
+
 export function resolveScopeRange(
   scope: TimeScopeId,
   selectedDateIso: string | null,
   now = new Date(),
+  /** When scope is `date` and no day is selected, list the displayed calendar month. */
+  calendarMonth?: { year: number; month: number },
 ): DateRange {
   const { iso, weekday } = parisParts(now);
   if (scope === 'soir') {
@@ -127,9 +142,23 @@ export function resolveScopeRange(
   if (scope === 'semaine') {
     return weekRange(iso, weekday);
   }
-  // date
-  const day = selectedDateIso || iso;
-  return { startIso: day, endIso: day, days: [day] };
+  // date: one day if selected, else whole displayed month
+  if (selectedDateIso) {
+    return {
+      startIso: selectedDateIso,
+      endIso: selectedDateIso,
+      days: [selectedDateIso],
+    };
+  }
+  if (calendarMonth) {
+    const days = daysInMonth(calendarMonth.year, calendarMonth.month);
+    return {
+      startIso: days[0]!,
+      endIso: days[days.length - 1]!,
+      days,
+    };
+  }
+  return { startIso: iso, endIso: iso, days: [iso] };
 }
 
 const MONTH_SHORT_FR = [
@@ -162,7 +191,11 @@ export function scopeContextLabel(
     if (range.startIso === range.endIso) return formatDayShort(range.startIso);
     return `${formatDayShort(range.startIso)} – ${formatDayShort(range.endIso)}`;
   }
-  if (scope === 'date') return formatDayShort(range.startIso);
+  if (scope === 'date') {
+    if (range.startIso === range.endIso) return formatDayShort(range.startIso);
+    const [y, m] = range.startIso.split('-').map(Number);
+    return `${MONTH_SHORT_FR[(m ?? 1) - 1]} ${y}`;
+  }
   // weekend
   if (range.startIso === range.endIso) {
     return `week-end ${formatDayShort(range.startIso)}`;
