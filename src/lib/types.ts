@@ -24,6 +24,20 @@ export type Evenement = {
   description_courte: string;
   statut: string;
   genre: string;
+  /** Enriched (optional / may be empty on older rows) */
+  description_longue?: string;
+  tags?: string;
+  public_cible?: string;
+  age_min?: string;
+  duree_min?: string;
+  langue?: string;
+  casting?: string;
+  image_url?: string;
+  billetterie_url?: string;
+  accessibilite?: string;
+  organisateur?: string;
+  scraped_at?: string;
+  source_extrait?: string;
 };
 
 export type ProgrammeItem = {
@@ -42,6 +56,12 @@ export type ProgrammeItem = {
   genre: string;
   /** Join key to artistes.csv when present */
   artiste_id: string;
+  description_item?: string;
+  image_url?: string;
+  billetterie_url?: string;
+  duree_min?: string;
+  public_cible?: string;
+  scraped_at?: string;
 };
 
 export type GenreLegend = {
@@ -59,6 +79,10 @@ export type Artiste = {
   genres_secondaires: string;
   url_photo: string;
   notes: string;
+  bio_courte?: string;
+  url_site?: string;
+  url_reseaux?: string;
+  scraped_at?: string;
 };
 
 /** One date/appearance for an artist around Toulouse. */

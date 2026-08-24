@@ -45,15 +45,36 @@ export function loadLieux(): Lieu[] {
 }
 
 export function loadEvenements(): Evenement[] {
-  return readCsv<Evenement>('evenements.csv');
+  return readCsv<Evenement>('evenements.csv').map((r) => ({
+    ...r,
+    description_longue: r.description_longue ?? '',
+    tags: r.tags ?? '',
+    public_cible: r.public_cible ?? '',
+    age_min: r.age_min ?? '',
+    duree_min: r.duree_min ?? '',
+    langue: r.langue ?? '',
+    casting: r.casting ?? '',
+    image_url: r.image_url ?? '',
+    billetterie_url: r.billetterie_url ?? '',
+    accessibilite: r.accessibilite ?? '',
+    organisateur: r.organisateur ?? '',
+    scraped_at: r.scraped_at ?? '',
+    source_extrait: r.source_extrait ?? '',
+  }));
 }
 
 export function loadProgramme(): ProgrammeItem[] {
   const rows = readCsv<ProgrammeItem>('programme.csv');
-  // Ensure artiste_id is always a string even on older CSVs
+  // Tolerant to older CSVs missing artiste_id / enriched columns
   return rows.map((r) => ({
     ...r,
     artiste_id: r.artiste_id ?? '',
+    description_item: r.description_item ?? '',
+    image_url: r.image_url ?? '',
+    billetterie_url: r.billetterie_url ?? '',
+    duree_min: r.duree_min ?? '',
+    public_cible: r.public_cible ?? '',
+    scraped_at: r.scraped_at ?? '',
   }));
 }
 
@@ -63,7 +84,13 @@ export function loadGenresLegend(): GenreLegend[] {
 
 export function loadArtistes(): Artiste[] {
   if (!csvExists('artistes.csv')) return [];
-  return readCsv<Artiste>('artistes.csv');
+  return readCsv<Artiste>('artistes.csv').map((r) => ({
+    ...r,
+    bio_courte: r.bio_courte ?? '',
+    url_site: r.url_site ?? '',
+    url_reseaux: r.url_reseaux ?? '',
+    scraped_at: r.scraped_at ?? '',
+  }));
 }
 
 export function loadCultureData(): CultureData {
