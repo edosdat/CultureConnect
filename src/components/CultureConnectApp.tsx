@@ -203,10 +203,31 @@ export default function CultureConnectApp({
     query,
   ]);
 
+  /** Time-scope pool without category/genre/lieu chips — chips must not crush Pour toi. */
+  const pourToiPool = useMemo(() => {
+    const seen = new Set<string>();
+    const items: DayItem[] = [];
+    for (const iso of range.days) {
+      for (const item of itemsForDay(
+        programme,
+        events,
+        iso,
+        [],
+        [],
+        [],
+      )) {
+        if (seen.has(item.key)) continue;
+        seen.add(item.key);
+        items.push(item);
+      }
+    }
+    return items;
+  }, [programme, events, range.days]);
+
   const pourToiItems = useMemo(() => {
     if (!tastes) return [];
-    return recommendForTastes(listItems, tastes, 10).map((s) => s.item);
-  }, [listItems, tastes]);
+    return recommendForTastes(pourToiPool, tastes, 10).map((s) => s.item);
+  }, [pourToiPool, tastes]);
 
   const venueOptions = useMemo(() => {
     const byId = new Map<string, Lieu>();
