@@ -509,6 +509,7 @@ export default function CultureConnectApp({
               </button>
             </div>
             <SeanceGrid
+              collapseFilmsById={Boolean(query.trim())}
               items={pourToiItems}
               showDate={showDateLabels}
               onSelectItem={setSelectedItemKey}
@@ -537,6 +538,7 @@ export default function CultureConnectApp({
         )}
 
         <SeanceGrid
+              collapseFilmsById={Boolean(query.trim())}
           items={listItems}
           showDate={showDateLabels}
           onSelectItem={setSelectedItemKey}
