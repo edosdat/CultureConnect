@@ -87,6 +87,7 @@ export default function CultureConnectApp({
   const [selectedLieuId, setSelectedLieuId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [showMonthPanel, setShowMonthPanel] = useState(false);
+  const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
   useEffect(() => {
     const next = defaultTimeScope();
@@ -321,61 +322,101 @@ export default function CultureConnectApp({
     </div>
   );
 
+  const filterBadge =
+    selectedCategories.length +
+    selectedGenres.length +
+    (selectedLieuId ? 1 : 0);
+
   return (
-    <div className="mx-auto max-w-7xl min-w-0 overflow-x-hidden px-4 pb-16 pt-4 sm:px-6 sm:pt-6">
-      <header className="mb-4">
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-culture-terracotta">
+    <div className="mx-auto max-w-7xl min-w-0 overflow-x-hidden px-4 pb-16 pt-3 sm:px-6 sm:pt-6">
+      <header className="mb-2 sm:mb-4">
+        <p className="hidden text-xs font-medium uppercase tracking-[0.2em] text-culture-terracotta sm:block">
           Toulouse & alentours
         </p>
-        <h1 className="mt-1 font-display text-3xl text-culture-ink sm:text-4xl">
+        <h1 className="font-display text-2xl text-culture-ink sm:mt-1 sm:text-4xl">
           Agenda
         </h1>
-        <p className="mt-2 max-w-2xl text-sm text-culture-muted sm:text-base">
+        <p className="mt-2 hidden max-w-2xl text-sm text-culture-muted sm:block sm:text-base">
           Qu&apos;est-ce qu&apos;on fait ce soir ou ce week-end à Toulouse&nbsp;?
         </p>
       </header>
 
-      <div className="sticky top-0 z-20 -mx-4 mb-5 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
+      <div className="sticky top-0 z-20 -mx-4 mb-3 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:mb-5 sm:px-6">
         <SearchOmnibox value={query} onChange={setQuery} />
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-2.5 sm:space-y-4">
         <TimeScopeBar
           scope={timeScope}
           onChange={handleScopeChange}
           datePanel={timeScope === 'date' ? monthPanel : undefined}
         />
 
-        <CategoryFilter
-          selected={selectedCategories}
-          onChange={handleCategoriesChange}
-          variant="chips"
-        />
-
-        <GenreFilter
-          availableSlugs={availableGenreSlugs}
-          legend={genresLegend}
-          selected={selectedGenres}
-          onChange={setSelectedGenres}
-          selectedMains={selectedCategories}
-          hideWhenNoCategory
-        />
-
-        <VenueFilter
-          lieux={venueOptions}
-          selectedLieuId={selectedLieuId}
-          onChange={setSelectedLieuId}
-          variant="inline"
-        />
-
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-          <p className="text-sm text-culture-muted">
-            <span className="font-medium text-culture-ink">
-              {n} {sortieWord(n)}
+        <div className="md:hidden">
+          <button
+            type="button"
+            onClick={() => setShowFiltersMobile((v) => !v)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-culture-line bg-culture-surface px-3 py-1.5 text-sm font-medium text-culture-ink hover:border-culture-terracotta/50"
+            aria-expanded={showFiltersMobile}
+          >
+            Filtres
+            {filterBadge > 0 ? (
+              <span className="rounded-full bg-culture-terracotta px-1.5 text-xs text-white">
+                {filterBadge}
+              </span>
+            ) : null}
+            <span aria-hidden className="text-culture-muted">
+              {showFiltersMobile ? '▴' : '▾'}
             </span>
-            {contextLabel ? ` · ${contextLabel}` : ''}
-            {query.trim() ? ` · « ${query.trim()} »` : ''}
-          </p>
+          </button>
+        </div>
+
+        {/* Category + Genre: collapsed behind Filtres on mobile; always on md+ */}
+        <div
+          className={
+            (showFiltersMobile ? 'flex' : 'hidden') +
+            ' flex-col gap-2.5 md:flex md:gap-4'
+          }
+        >
+          <CategoryFilter
+            selected={selectedCategories}
+            onChange={handleCategoriesChange}
+            variant="chips"
+          />
+
+          <GenreFilter
+            availableSlugs={availableGenreSlugs}
+            legend={genresLegend}
+            selected={selectedGenres}
+            onChange={setSelectedGenres}
+            selectedMains={selectedCategories}
+            hideWhenNoCategory
+          />
+        </div>
+
+        {/* Count + Venue chip on one row (Venue also gated by Filtres on mobile) */}
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 pt-0.5 sm:pt-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <p className="text-sm text-culture-muted">
+              <span className="font-medium text-culture-ink">
+                {n} {sortieWord(n)}
+              </span>
+              {contextLabel ? ` · ${contextLabel}` : ''}
+              {query.trim() ? ` · « ${query.trim()} »` : ''}
+            </p>
+            <div
+              className={
+                (showFiltersMobile ? 'block' : 'hidden') + ' min-w-0 md:block'
+              }
+            >
+              <VenueFilter
+                lieux={venueOptions}
+                selectedLieuId={selectedLieuId}
+                onChange={setSelectedLieuId}
+                variant="inline"
+              />
+            </div>
+          </div>
           <button
             type="button"
             onClick={() => setShowMonthPanel((v) => !v)}

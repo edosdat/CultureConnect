@@ -122,7 +122,7 @@ export default function GenreFilter({
   }
 
   return (
-    <div className="min-w-0 space-y-2">
+    <div className="min-w-0 space-y-1.5">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-culture-muted">
           Genres
@@ -152,13 +152,13 @@ export default function GenreFilter({
                 <p className="text-xs font-medium text-culture-muted/80">
                   {labelMainCategory(main)}
                 </p>
-                <div className="flex flex-wrap gap-2">{items.map(renderChip)}</div>
+                <div className="flex flex-wrap gap-1.5">{items.map(renderChip)}</div>
               </div>
             );
           })}
         </div>
       ) : (
-        <div className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex gap-1.5 overflow-x-auto pb-0.5 sm:flex-wrap sm:overflow-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {allVisible
             .slice()
             .sort((a, b) => a.label_fr.localeCompare(b.label_fr, 'fr'))

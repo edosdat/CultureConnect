@@ -30,11 +30,11 @@ export default function CategoryFilter({
 
   if (variant === 'chips') {
     return (
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <div
           role="group"
           aria-label="Catégories"
-          className="flex flex-nowrap gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex flex-nowrap gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {MAIN_CATEGORIES.map(({ id, label }) => {
             const active = selected.includes(id);
@@ -45,7 +45,7 @@ export default function CategoryFilter({
                 onClick={() => toggle(id)}
                 aria-pressed={active}
                 className={
-                  'shrink-0 rounded-full border px-3.5 py-2 text-sm transition ' +
+                  'shrink-0 rounded-full border px-3 py-1.5 text-sm transition ' +
                   (active
                     ? 'border-culture-terracotta bg-culture-soft text-culture-clay shadow-sm'
                     : 'border-culture-line bg-culture-surface text-culture-ink hover:border-culture-terracotta/50')
@@ -59,7 +59,7 @@ export default function CategoryFilter({
             <button
               type="button"
               onClick={() => onChange([])}
-              className="shrink-0 rounded-full px-3 py-2 text-sm text-culture-terracotta hover:underline"
+              className="shrink-0 rounded-full px-2.5 py-1.5 text-sm text-culture-terracotta hover:underline"
             >
               Tout effacer
             </button>

@@ -36,7 +36,7 @@ export default function VenueFilter({
           aria-expanded={open}
           aria-controls="cc-venue"
           className={
-            'shrink-0 rounded-full border px-3.5 py-2 text-sm transition ' +
+            'shrink-0 rounded-full border px-3 py-1.5 text-sm transition ' +
             (selectedLieuId || open
               ? 'border-culture-terracotta bg-culture-soft text-culture-clay shadow-sm'
               : 'border-culture-line bg-culture-surface text-culture-ink hover:border-culture-terracotta/50')
