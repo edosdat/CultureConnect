@@ -1,7 +1,5 @@
 'use client';
 
-import type { ReactNode } from 'react';
-
 import {
   TIME_SCOPE_CHIPS,
   type TimeScopeId,
@@ -10,11 +8,9 @@ import {
 type Props = {
   scope: TimeScopeId;
   onChange: (scope: TimeScopeId) => void;
-  /** When scope is 'date', show compact calendar below */
-  datePanel?: ReactNode;
 };
 
-export default function TimeScopeBar({ scope, onChange, datePanel }: Props) {
+export default function TimeScopeBar({ scope, onChange }: Props) {
   return (
     <div className="space-y-2">
       <div className="relative">
@@ -43,13 +39,11 @@ export default function TimeScopeBar({ scope, onChange, datePanel }: Props) {
             );
           })}
         </div>
-        {/* Mobile: hint that chips scroll horizontally; hide once desktop fits */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-culture-cream to-transparent sm:hidden"
         />
       </div>
-      {scope === 'date' && datePanel}
     </div>
   );
 }

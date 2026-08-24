@@ -31,6 +31,7 @@ import GenreFilter from './GenreFilter';
 import CityFilter from './CityFilter';
 import VenueFilter from './VenueFilter';
 import MonthCalendar from './MonthCalendar';
+import MonthCalendarDrawer from './MonthCalendarDrawer';
 import SeanceGrid from './SeanceGrid';
 import TimeScopeBar from './TimeScopeBar';
 import SearchOmnibox from './SearchOmnibox';
@@ -442,18 +443,16 @@ export default function CultureConnectApp({
             ? `le ${contextLabel}`
             : contextLabel;
 
-  const monthPanel = (
-    <div className="max-w-md">
-      <MonthCalendar
-        year={year}
-        month={month}
-        selectedDay={timeScope === 'date' ? selectedDay : null}
-        counts={counts}
-        onSelectDay={handleSelectDay}
-        onPrevMonth={goPrevMonth}
-        onNextMonth={goNextMonth}
-      />
-    </div>
+  const monthCalendar = (
+    <MonthCalendar
+      year={year}
+      month={month}
+      selectedDay={timeScope === 'date' ? selectedDay : null}
+      counts={counts}
+      onSelectDay={handleSelectDay}
+      onPrevMonth={goPrevMonth}
+      onNextMonth={goNextMonth}
+    />
   );
 
   const filterBadge =
@@ -484,7 +483,6 @@ export default function CultureConnectApp({
         <TimeScopeBar
           scope={timeScope}
           onChange={handleScopeChange}
-          datePanel={timeScope === 'date' ? monthPanel : undefined}
         />
 
         <div className="md:hidden">
@@ -570,7 +568,13 @@ export default function CultureConnectApp({
           </button>
         </div>
 
-        {showMonthPanel && timeScope !== 'date' && monthPanel}
+        <MonthCalendarDrawer
+          open={showMonthPanel}
+          onClose={() => setShowMonthPanel(false)}
+          title={monthLabel}
+        >
+          {monthCalendar}
+        </MonthCalendarDrawer>
 
         <LoginNudge />
 
