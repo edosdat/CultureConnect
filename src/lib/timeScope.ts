@@ -2,7 +2,7 @@
  * Time-scope helpers for CultureConnect home (Europe/Paris local dates).
  */
 
-export type TimeScopeId = 'soir' | 'apres19' | 'weekend' | 'semaine' | 'date';
+export type TimeScopeId = 'soir' | 'weekend' | 'semaine' | 'date';
 
 export type DateRange = {
   startIso: string;
@@ -133,7 +133,7 @@ export function resolveScopeRange(
   calendarMonth?: { year: number; month: number },
 ): DateRange {
   const { iso, weekday } = parisParts(now);
-  if (scope === 'soir' || scope === 'apres19') {
+  if (scope === 'soir') {
     return { startIso: iso, endIso: iso, days: [iso] };
   }
   if (scope === 'weekend') {
@@ -187,7 +187,6 @@ export function scopeContextLabel(
   range: DateRange,
 ): string {
   if (scope === 'soir') return 'ce soir';
-  if (scope === 'apres19') return 'après 19h';
   if (scope === 'semaine') {
     if (range.startIso === range.endIso) return formatDayShort(range.startIso);
     return `${formatDayShort(range.startIso)} – ${formatDayShort(range.endIso)}`;
@@ -214,7 +213,6 @@ export const TIME_SCOPE_CHIPS: ReadonlyArray<{
   label: string;
 }> = [
   { id: 'soir', label: 'Ce soir' },
-  { id: 'apres19', label: 'Après 19h' },
   { id: 'weekend', label: 'Ce week-end' },
   { id: 'semaine', label: 'Cette semaine' },
   { id: 'date', label: 'Date…' },

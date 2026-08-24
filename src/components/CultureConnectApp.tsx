@@ -30,8 +30,7 @@ import CategoryFilter from './CategoryFilter';
 import GenreFilter from './GenreFilter';
 import CityFilter from './CityFilter';
 import VenueFilter from './VenueFilter';
-import MonthCalendarDrawer from './MonthCalendarDrawer';
-import MonthCalendarDrawer from './MonthCalendarDrawer';
+import MonthCalendar from './MonthCalendar';
 import SeanceGrid from './SeanceGrid';
 import TimeScopeBar from './TimeScopeBar';
 import SearchOmnibox from './SearchOmnibox';
@@ -53,18 +52,6 @@ function sortieWord(n: number): string {
 
 function normalizeCommune(c: string | null | undefined): string {
   return (c || '').trim().toLocaleLowerCase('fr');
-}
-
-function itemHeureDebut(item: DayItem): string {
-  if (item.kind === 'programme') return (item.programme.heure_debut || '').trim();
-  return (item.evenement.heure_debut || '').trim();
-}
-
-/** True if start time is HH:MM >= 19:00. Empty / period cards = exclude. */
-function startsAtOrAfter19(item: DayItem): boolean {
-  const h = itemHeureDebut(item);
-  if (!h || h.length < 4) return false;
-  return h.slice(0, 5) >= '19:00';
 }
 
 export default function CultureConnectApp({
@@ -272,10 +259,6 @@ export default function CultureConnectApp({
       }
     }
 
-    if (timeScope === 'apres19') {
-      items = items.filter(startsAtOrAfter19);
-    }
-
     const q = query.trim();
     if (q) {
       items = items.filter((item) =>
@@ -292,7 +275,6 @@ export default function CultureConnectApp({
     selectedGenres,
     query,
     genresLegend,
-    timeScope,
   ]);
 
   /** Pour toi = reco ranked within the same filtered list (chips + ville + query + scope). */
@@ -389,7 +371,7 @@ export default function CultureConnectApp({
       setSelectedDay(day);
       syncMonthFromIso(day);
       setShowMonthPanel(true);
-    } else if (scope === 'soir' || scope === 'apres19') {
+    } else if (scope === 'soir') {
       setSelectedDay(paris.iso);
       syncMonthFromIso(paris.iso);
     } else {
@@ -452,26 +434,26 @@ export default function CultureConnectApp({
   const emptyScopeHint =
     timeScope === 'soir'
       ? 'ce soir'
-      : timeScope === 'apres19'
-        ? 'après 19h'
-        : timeScope === 'weekend'
-          ? 'ce week-end'
-          : timeScope === 'semaine'
-            ? 'cette semaine'
-            : selectedDay
-              ? `le ${contextLabel}`
-              : contextLabel;
+      : timeScope === 'weekend'
+        ? 'ce week-end'
+        : timeScope === 'semaine'
+          ? 'cette semaine'
+          : selectedDay
+            ? `le ${contextLabel}`
+            : contextLabel;
 
-  const monthCalendar = (
-    <MonthCalendar
-      year={year}
-      month={month}
-      selectedDay={timeScope === 'date' ? selectedDay : null}
-      counts={counts}
-      onSelectDay={handleSelectDay}
-      onPrevMonth={goPrevMonth}
-      onNextMonth={goNextMonth}
-    />
+  const monthPanel = (
+    <div className="max-w-md">
+      <MonthCalendar
+        year={year}
+        month={month}
+        selectedDay={timeScope === 'date' ? selectedDay : null}
+        counts={counts}
+        onSelectDay={handleSelectDay}
+        onPrevMonth={goPrevMonth}
+        onNextMonth={goNextMonth}
+      />
+    </div>
   );
 
   const filterBadge =
@@ -502,6 +484,7 @@ export default function CultureConnectApp({
         <TimeScopeBar
           scope={timeScope}
           onChange={handleScopeChange}
+          datePanel={timeScope === 'date' ? monthPanel : undefined}
         />
 
         <div className="md:hidden">
@@ -587,13 +570,7 @@ export default function CultureConnectApp({
           </button>
         </div>
 
-        <MonthCalendarDrawer
-          open={showMonthPanel}
-          onClose={() => setShowMonthPanel(false)}
-          title={monthLabel}
-        >
-          {monthCalendar}
-        </MonthCalendarDrawer>
+        {showMonthPanel && timeScope !== 'date' && monthPanel}
 
         <LoginNudge />
 
