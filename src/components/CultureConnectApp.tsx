@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import type {
   DayItem,
@@ -24,6 +24,7 @@ import {
   parisParts,
   resolveScopeRange,
   scopeContextLabel,
+  upcomingRange,
   type TimeScopeId,
 } from '@/lib/timeScope';
 import CategoryFilter from './CategoryFilter';
@@ -32,7 +33,7 @@ import CityFilter from './CityFilter';
 import VenueFilter from './VenueFilter';
 import MonthCalendar from './MonthCalendar';
 import MonthCalendarDrawer from './MonthCalendarDrawer';
-import SeanceGrid from './SeanceGrid';
+import SeanceGrid, { densifiedCardCount } from './SeanceGrid';
 import TimeScopeBar from './TimeScopeBar';
 import SearchOmnibox from './SearchOmnibox';
 import EventDetail from './EventDetail';
@@ -67,6 +68,8 @@ function startsAtOrAfter19(item: DayItem): boolean {
   return h.slice(0, 5) >= '19:00';
 }
 
+const AGENDA_PAGE_SIZE = 20;
+
 export default function CultureConnectApp({
   events,
   programme,
@@ -91,20 +94,48 @@ export default function CultureConnectApp({
   const [query, setQuery] = useState('');
   const [showMonthPanel, setShowMonthPanel] = useState(false);
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(AGENDA_PAGE_SIZE);
 
   useEffect(() => {
     setTimeScope(defaultTimeScope());
   }, []);
 
+  const searching = query.trim().length > 0;
 
-  const range = useMemo(
-    () =>
-      resolveScopeRange(timeScope, selectedDay, new Date(), {
-        year,
-        month,
-      }),
-    [timeScope, selectedDay, year, month],
-  );
+  /** Furthest YYYY-MM-DD in loaded programme + events (for search widen). */
+  const dataMaxIso = useMemo(() => {
+    let max = '';
+    for (const p of programme) {
+      const d = (p.programme.date || '').trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d > max) max = d;
+    }
+    for (const e of events) {
+      for (const raw of [e.date_debut, e.date_fin]) {
+        const d = (raw || '').trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d > max) max = d;
+      }
+    }
+    return max;
+  }, [programme, events]);
+
+  const range = useMemo(() => {
+    // Search: ignore TimeScope for the date range — all upcoming dates.
+    if (searching) {
+      return upcomingRange(paris.iso, dataMaxIso, 90);
+    }
+    return resolveScopeRange(timeScope, selectedDay, new Date(), {
+      year,
+      month,
+    });
+  }, [
+    searching,
+    paris.iso,
+    dataMaxIso,
+    timeScope,
+    selectedDay,
+    year,
+    month,
+  ]);
 
   const contextLabel = useMemo(
     () => scopeContextLabel(timeScope, range),
@@ -271,7 +302,8 @@ export default function CultureConnectApp({
       }
     }
 
-    if (timeScope === 'soir') {
+    // Ce soir ≥19h only when not searching (scope ignored for evening filter too).
+    if (timeScope === 'soir' && !searching) {
       items = items.filter(startsAtOrAfter19);
     }
 
@@ -292,6 +324,7 @@ export default function CultureConnectApp({
     query,
     genresLegend,
     timeScope,
+    searching,
   ]);
 
   /** Pour toi = reco ranked within the same filtered list (chips + ville + query + scope). */
@@ -299,6 +332,31 @@ export default function CultureConnectApp({
     if (!tastes) return [];
     return recommendForTastes(listItems, tastes, 10).map((s) => s.item);
   }, [listItems, tastes]);
+
+  /** Cards after film_id / créneau collapse — source of truth for agenda count + pagination. */
+  const densifiedTotal = useMemo(
+    () => densifiedCardCount(listItems),
+    [listItems],
+  );
+
+  // Reset infinite-scroll window when scope / filters / query change.
+  useEffect(() => {
+    setVisibleCount(AGENDA_PAGE_SIZE);
+  }, [
+    timeScope,
+    selectedDay,
+    year,
+    month,
+    query,
+    selectedCommune,
+    selectedLieuId,
+    selectedCategories,
+    selectedGenres,
+  ]);
+
+  const handleLoadMore = useCallback(() => {
+    setVisibleCount((c) => c + AGENDA_PAGE_SIZE);
+  }, []);
 
   const venueOptions = useMemo(() => {
     const byId = new Map<string, Lieu>();
@@ -447,7 +505,15 @@ export default function CultureConnectApp({
   }
 
   const monthLabel = `${MONTH_NAMES_FR[month - 1]} ${year}`;
-  const n = listItems.length;
+  const n = densifiedTotal;
+  const shown = Math.min(visibleCount, n);
+  const countLabel =
+    n === 0
+      ? `0 ${sortieWord(0)}`
+      : shown < n
+        ? `${shown} sur ${n} ${sortieWord(n)}`
+        : `${n} ${sortieWord(n)}`;
+  const rangeLabel = searching ? 'toutes dates' : contextLabel;
   const emptyScopeHint =
     timeScope === 'aujourdhui'
       ? "aujourd'hui"
@@ -550,9 +616,9 @@ export default function CultureConnectApp({
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <p className="text-sm text-culture-muted">
               <span className="font-medium text-culture-ink">
-                {n} {sortieWord(n)}
+                {countLabel}
               </span>
-              {contextLabel ? ` · ${contextLabel}` : ''}
+              {rangeLabel ? ` · ${rangeLabel}` : ''}
               {query.trim() ? ` · « ${query.trim()} »` : ''}
             </p>
             <div
@@ -648,6 +714,8 @@ export default function CultureConnectApp({
           showDate={showDateLabels}
           onSelectItem={setSelectedItemKey}
           onSelectVenue={handleSelectVenue}
+          visibleCount={visibleCount}
+          onLoadMore={handleLoadMore}
           empty={
             <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-6 py-12 text-center">
               <p className="font-display text-xl text-culture-ink">

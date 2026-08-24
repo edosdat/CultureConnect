@@ -58,22 +58,43 @@ export function defaultTimeScope(now = new Date()): TimeScopeId {
   return hour >= 17 ? 'soir' : 'aujourdhui';
 }
 
-function addDaysIso(iso: string, delta: number): string {
+export function addDaysIso(iso: string, delta: number): string {
   const [y, m, d] = iso.split('-').map(Number);
   const utc = Date.UTC(y, m - 1, d + delta);
   const dt = new Date(utc);
   return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
 }
 
-function daysBetween(startIso: string, endIso: string): string[] {
+export function daysBetween(startIso: string, endIso: string): string[] {
   const out: string[] = [];
   let cur = startIso;
   while (cur <= endIso) {
     out.push(cur);
     cur = addDaysIso(cur, 1);
-    if (out.length > 60) break;
+    // Allow up to ~3 months (search “all upcoming” is capped at +90 days).
+    if (out.length > 100) break;
   }
   return out;
+}
+
+/**
+ * Today → max date present in loaded data, capped at +capDays (default 90).
+ * Used when the search query is non-empty so users can find a band/film without knowing the date.
+ */
+export function upcomingRange(
+  todayIso: string,
+  dataMaxIso: string,
+  capDays = 90,
+): DateRange {
+  const capIso = addDaysIso(todayIso, capDays);
+  let end = dataMaxIso && dataMaxIso >= todayIso ? dataMaxIso : todayIso;
+  if (end > capIso) end = capIso;
+  if (end < todayIso) end = todayIso;
+  return {
+    startIso: todayIso,
+    endIso: end,
+    days: daysBetween(todayIso, end),
+  };
 }
 
 /**
