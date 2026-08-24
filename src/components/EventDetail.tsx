@@ -28,6 +28,9 @@ type Props = {
   /** 1–3 vivant suggestions for a cinema fiche (same modal). */
   aussiCeSoirItems?: DayItem[];
   onSelectItem?: (key: string) => void;
+  onAgenda?: () => void;
+  onIcs?: () => void;
+  onReserve?: () => void;
 };
 
 function useEscapeClose(active: boolean, onClose: () => void) {
@@ -146,6 +149,16 @@ function AussiCeSoirSection({
   );
 }
 
+function reserveUrlOf(item: DayItem): string {
+  if (item.kind === 'programme') {
+    return (
+      (item.programme.billetterie_url || '').trim() ||
+      (item.evenement?.billetterie_url || '').trim()
+    );
+  }
+  return (item.evenement.billetterie_url || '').trim();
+}
+
 export default function EventDetail({
   item,
   onClose,
@@ -153,6 +166,9 @@ export default function EventDetail({
   relatedItems = [],
   aussiCeSoirItems = [],
   onSelectItem,
+  onAgenda,
+  onIcs,
+  onReserve,
 }: Props) {
   useEscapeClose(Boolean(item), onClose);
 
@@ -354,18 +370,33 @@ export default function EventDetail({
                     href={googleCalendarUrl(cal)}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => onAgenda?.()}
                     className="inline-flex items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-medium text-white hover:bg-culture-clay"
                   >
                     Google Agenda
                   </a>
                   <button
                     type="button"
-                    onClick={() => downloadIcs(cal)}
+                    onClick={() => {
+                      onIcs?.();
+                      downloadIcs(cal);
+                    }}
                     className="inline-flex items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
                   >
                     Télécharger (.ics)
                   </button>
                 </>
+              )}
+              {reserveUrlOf(item) && (
+                <a
+                  href={reserveUrlOf(item)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => onReserve?.()}
+                  className="inline-flex items-center rounded-full border border-culture-terracotta bg-white px-4 py-2 text-sm font-medium text-culture-terracotta hover:bg-culture-soft"
+                >
+                  Réserver
+                </a>
               )}
               {url && (
                 <a
@@ -515,19 +546,34 @@ export default function EventDetail({
                   href={googleCalendarUrl(cal)}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => onAgenda?.()}
                   className="inline-flex items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-medium text-white hover:bg-culture-clay"
                 >
                   Google Agenda
                 </a>
                 <button
                   type="button"
-                  onClick={() => downloadIcs(cal)}
+                  onClick={() => {
+                      onIcs?.();
+                      downloadIcs(cal);
+                    }}
                   className="inline-flex items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
                 >
                   Télécharger (.ics)
                 </button>
               </>
             )}
+            {reserveUrlOf(item) && (
+              <a
+                href={reserveUrlOf(item)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => onReserve?.()}
+                className="inline-flex items-center rounded-full border border-culture-terracotta bg-white px-4 py-2 text-sm font-medium text-culture-terracotta hover:bg-culture-soft"
+                >
+                Réserver
+                </a>
+              )}
             {event.url_source && (
               <a
                 href={event.url_source}

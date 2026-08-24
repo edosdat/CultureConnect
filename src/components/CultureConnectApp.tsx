@@ -9,8 +9,10 @@ import type {
   Lieu,
   ProgrammeWithContext,
 } from '@/lib/types';
-import { recommendForTastes } from '@/lib/reco';
+import { recommendForProfile, recommendForTastes } from '@/lib/reco';
+import { extractMoods, hasScorableState } from '@/lib/signals';
 import { useTastesUi } from './Providers';
+import { useSignals } from './SignalsProvider';
 import {
   countItemsByDay,
   genresForSelection,
@@ -90,7 +92,10 @@ export default function CultureConnectApp({
 }: Props) {
   const { data: session } = useSession();
   const { openTastes } = useTastesUi();
-  const tastes = session?.user?.tastes?.trim() ?? '';
+  const { track, trackItem } = useSignals();
+  const tasteState = session?.user?.tasteState ?? null;
+  const tastes =
+    tasteState?.tastesText?.trim() || session?.user?.tastes?.trim() || '';
   const paris = useMemo(() => parisParts(), []);
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
@@ -121,6 +126,17 @@ export default function CultureConnectApp({
     const id = window.setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS);
     return () => window.clearTimeout(id);
   }, [query]);
+
+  useEffect(() => {
+    const q = debouncedQuery.trim();
+    if (!q) return;
+    track({
+      kind: 'search',
+      query: q,
+      moods: extractMoods(q),
+      genres: [],
+    });
+  }, [debouncedQuery]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleQueryChange(next: string) {
     setQuery(next);
@@ -401,11 +417,14 @@ export default function CultureConnectApp({
     searchHayCache,
   ]);
 
-  /** Pour toi = reco ranked within the same filtered list (chips + ville + query + scope). */
+  /** Pour toi = profile first (clicks), tastesText last; same filtered listItems. */
   const pourToiItems = useMemo(() => {
-    if (!tastes) return [];
-    return recommendForTastes(listItems, tastes, 10).map((s) => s.item);
-  }, [listItems, tastes]);
+    if (tasteState && hasScorableState(tasteState)) {
+      return recommendForProfile(listItems, tasteState, 10).map((s) => s.item);
+    }
+    if (tastes) return recommendForTastes(listItems, tastes, 10).map((s) => s.item);
+    return [];
+  }, [listItems, tastes, tasteState]);
 
   const showNouveautesPack =
     paris.weekday === 3 &&
@@ -532,6 +551,12 @@ export default function CultureConnectApp({
     ceSoirTonight.find((i) => i.key === selectedItemKey) ??
     null;
 
+  useEffect(() => {
+    if (!selectedItem) return;
+    trackItem(selectedItem, 'open_card');
+    // track by key so reopening the same fiche dedups in 30 min
+  }, [selectedItemKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const aussiCeSoirItems = useMemo(() => {
     if (!selectedItem || !isCinemaDayItem(selectedItem)) return [];
     return pickAussiCeSoir(ceSoirTonight, selectedItem, 3);
@@ -579,6 +604,9 @@ export default function CultureConnectApp({
   function handleScopeChange(scope: TimeScopeId) {
     // Search always = all upcoming dates; keep previous chip to restore on clear.
     if (searchingUi) return;
+    if (scope !== timeScope) {
+      track({ kind: 'chip_time', chip: scope, genres: [], moods: [] });
+    }
     setTimeScope(scope);
     setSelectedItemKey(null);
     if (scope === 'date') {
@@ -631,9 +659,21 @@ export default function CultureConnectApp({
   }
 
   function handleCategoriesChange(next: string[]) {
+    const added = next.filter((c) => !selectedCategories.includes(c));
     setSelectedCategories(next);
     if (next.length === 0) {
       setSelectedGenres([]);
+    }
+    for (const chip of added) {
+      track({ kind: 'chip_cat', chip, categorie: chip, genres: [], moods: [] });
+    }
+  }
+
+  function handleGenresChange(next: string[]) {
+    const added = next.filter((g) => !selectedGenres.includes(g));
+    setSelectedGenres(next);
+    for (const chip of added) {
+      track({ kind: 'chip_genre', chip, genres: [chip], moods: extractMoods(chip) });
     }
   }
 
@@ -745,7 +785,7 @@ export default function CultureConnectApp({
             availableSlugs={availableGenreSlugs}
             legend={genresLegend}
             selected={selectedGenres}
-            onChange={setSelectedGenres}
+            onChange={handleGenresChange}
             selectedMains={selectedCategories}
             hideWhenNoCategory
           />
@@ -801,7 +841,7 @@ export default function CultureConnectApp({
           {monthCalendar}
         </MonthCalendarDrawer>
 
-        {session?.user && tastes && pourToiItems.length > 0 && (
+        {session?.user && pourToiItems.length > 0 && (
           <section className="space-y-3 rounded-card-lg border border-culture-soft/80 bg-culture-surface/80 p-3 sm:p-4">
             <div className="flex flex-wrap items-end justify-between gap-2">
               <div>
@@ -828,24 +868,6 @@ export default function CultureConnectApp({
               empty={null}
             />
           </section>
-        )}
-
-        {session?.user && !tastes && (
-          <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-5 py-6 text-center sm:px-6">
-            <p className="font-display text-lg text-culture-ink">
-              Dis-nous ce que tu aimes
-            </p>
-            <p className="mt-1 text-sm text-culture-muted">
-              On te proposera des sorties «&nbsp;Pour toi&nbsp;» dans l&apos;agenda.
-            </p>
-            <button
-              type="button"
-              onClick={openTastes}
-              className="mt-4 rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-culture-clay"
-            >
-              Remplir mes goûts
-            </button>
-          </div>
         )}
 
         {packCardCount > 0 ? (
@@ -940,6 +962,9 @@ export default function CultureConnectApp({
         relatedItems={relatedFilmItems}
         aussiCeSoirItems={aussiCeSoirItems}
         onSelectItem={setSelectedItemKey}
+        onAgenda={() => selectedItem && trackItem(selectedItem, 'agenda_add')}
+        onIcs={() => selectedItem && trackItem(selectedItem, 'ics')}
+        onReserve={() => selectedItem && trackItem(selectedItem, 'reserve')}
       />
     </div>
   );

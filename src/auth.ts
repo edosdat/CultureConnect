@@ -48,30 +48,56 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         const incoming = session as {
           tastes?: string;
           tastesSetAt?: string;
-          user?: { tastes?: string; tastesSetAt?: string };
+          tasteState?: import('@/lib/signals').AccountTasteState;
+          user?: {
+            tastes?: string;
+            tastesSetAt?: string;
+            tasteState?: import('@/lib/signals').AccountTasteState;
+          };
         };
-        const tastes =
-          typeof incoming.tastes === 'string'
-            ? incoming.tastes
-            : typeof incoming.user?.tastes === 'string'
-              ? incoming.user.tastes
-              : undefined;
-        if (typeof tastes === 'string') {
-          token.tastes = tastes;
-          token.tastesSetAt =
-            incoming.tastesSetAt ??
-            incoming.user?.tastesSetAt ??
-            new Date().toISOString();
+        const tasteState = incoming.tasteState ?? incoming.user?.tasteState;
+        if (tasteState && typeof tasteState === 'object') {
+          token.tasteState = tasteState;
+          token.tastes =
+            typeof tasteState.tastesText === 'string'
+              ? tasteState.tastesText
+              : token.tastes;
+          token.tastesSetAt = tasteState.tastesSetAt ?? token.tastesSetAt;
+        } else {
+          const tastes =
+            typeof incoming.tastes === 'string'
+              ? incoming.tastes
+              : typeof incoming.user?.tastes === 'string'
+                ? incoming.user.tastes
+                : undefined;
+          if (typeof tastes === 'string') {
+            token.tastes = tastes;
+            token.tastesSetAt =
+              incoming.tastesSetAt ??
+              incoming.user?.tastesSetAt ??
+              new Date().toISOString();
+            const prev = token.tasteState;
+            token.tasteState = {
+              signalsRecent: prev?.signalsRecent ?? [],
+              profile: prev?.profile ?? { cats: {}, genres: {}, moods: {}, communes: {} },
+              tastesText: tastes,
+              tastesSetAt: token.tastesSetAt,
+            };
+          }
         }
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
+        const state = token.tasteState;
+        session.user.tasteState = state;
         session.user.tastes =
-          typeof token.tastes === 'string' ? token.tastes : '';
+          (state && typeof state.tastesText === 'string' && state.tastesText) ||
+          (typeof token.tastes === 'string' ? token.tastes : '');
         session.user.tastesSetAt =
-          typeof token.tastesSetAt === 'string' ? token.tastesSetAt : undefined;
+          (state && state.tastesSetAt) ||
+          (typeof token.tastesSetAt === 'string' ? token.tastesSetAt : undefined);
       }
       return session;
     },

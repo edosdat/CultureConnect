@@ -39,17 +39,10 @@ export default function TastesModal({
   const tastes = session?.user?.tastes?.trim() ?? '';
   const authenticated = status === 'authenticated' && Boolean(session?.user);
 
-  // After login with empty tastes → open once
+  // Free text only via « Mes goûts » — never auto-modal before the first card.
   useEffect(() => {
-    if (!authenticated) {
-      autoPrompted.current = false;
-      return;
-    }
-    if (!tastes && !autoPrompted.current) {
-      autoPrompted.current = true;
-      onRequestOpen();
-    }
-  }, [authenticated, tastes, onRequestOpen]);
+    if (!authenticated) autoPrompted.current = false;
+  }, [authenticated]);
 
   // Sync textarea when opening
   useEffect(() => {
@@ -91,9 +84,15 @@ export default function TastesModal({
         tastes: string;
         tastesSetAt?: string;
       };
+      const payload = data as {
+        tastes: string;
+        tastesSetAt?: string;
+        tasteState?: import('@/lib/signals').AccountTasteState;
+      };
       await update({
-        tastes: data.tastes,
-        tastesSetAt: data.tastesSetAt,
+        tastes: payload.tastes,
+        tastesSetAt: payload.tastesSetAt,
+        tasteState: payload.tasteState,
       });
       onClose();
     } catch (err) {

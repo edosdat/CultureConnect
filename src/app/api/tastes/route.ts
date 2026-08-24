@@ -1,5 +1,14 @@
 import { NextResponse } from 'next/server';
 import { auth, unstable_update } from '@/auth';
+import {
+  concatTastesText,
+  extractMoods,
+  makeSignal,
+  mergeSignalLists,
+  parseTasteState,
+  rebuildTasteState,
+  type AccountTasteState,
+} from '@/lib/signals';
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -14,7 +23,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'JSON invalide' }, { status: 400 });
   }
 
-  const tastes =
+  const incoming =
     body &&
     typeof body === 'object' &&
     'tastes' in body &&
@@ -22,31 +31,63 @@ export async function POST(req: Request) {
       ? (body as { tastes: string }).tastes.trim()
       : null;
 
-  if (tastes === null) {
+  if (incoming === null) {
     return NextResponse.json(
       { error: 'Champ tastes (string) requis' },
       { status: 400 },
     );
   }
 
-  if (tastes.length > 4000) {
+  if (incoming.length > 4000) {
     return NextResponse.json(
       { error: 'Texte trop long (max 4000 caractères)' },
       { status: 400 },
     );
   }
 
-  const tastesSetAt = new Date().toISOString();
+  const current =
+    parseTasteState(session.user.tasteState) ??
+    rebuildTasteState(
+      [],
+      session.user.tastes,
+      session.user.tastesSetAt,
+    );
+
+  const tastes = concatTastesText(current.tastesText, incoming) ?? incoming;
+  const tastesSetAt =
+    tastes !== current.tastesText
+      ? new Date().toISOString()
+      : current.tastesSetAt ?? new Date().toISOString();
+
+  const textSignal = makeSignal({
+    kind: 'tastes_text',
+    moods: extractMoods(incoming),
+    query: incoming.slice(0, 200),
+  });
+  const signals = mergeSignalLists(current.signalsRecent, [textSignal], 40);
+  const tasteState: AccountTasteState = rebuildTasteState(
+    signals,
+    tastes,
+    tastesSetAt,
+  );
+
   const updated = await unstable_update({
     user: {
-      tastes,
-      tastesSetAt,
+      tastes: tasteState.tastesText ?? '',
+      tastesSetAt: tasteState.tastesSetAt,
+      tasteState,
     },
-  });
+    tasteState,
+  } as never);
+
+  const nextUser = updated?.user as
+    | { tastes?: string; tastesSetAt?: string; tasteState?: AccountTasteState }
+    | undefined;
 
   return NextResponse.json({
     ok: true,
-    tastes: updated?.user?.tastes ?? tastes,
-    tastesSetAt: updated?.user?.tastesSetAt ?? tastesSetAt,
+    tastes: nextUser?.tastes ?? tasteState.tastesText ?? tastes,
+    tastesSetAt: nextUser?.tastesSetAt ?? tasteState.tastesSetAt,
+    tasteState: nextUser?.tasteState ?? tasteState,
   });
 }

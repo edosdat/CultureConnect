@@ -15,6 +15,17 @@ import {
   mainFromGenreSlug,
   type MainCategoryId,
 } from '@/lib/categories';
+import {
+  cinemaActionShare,
+  cineFicheCount,
+  extractMoods,
+  hasActionSignals,
+  lastOpenCardDayIso,
+  profileMaxWeight,
+  userMentionedGuinguette,
+  type AccountTasteState,
+  type TasteProfile,
+} from '@/lib/signals';
 
 /** Light French stopwords — keep matching useful content words. */
 const FR_STOPWORDS = new Set([
@@ -856,4 +867,356 @@ export function recommendForTastes(
   }
 
   return pool.slice(0, limit);
+}
+
+
+/** Ciné mood/genre → vivant neighbor slugs / main cats. */
+export const CINE_VIVANT_NEIGHBORS: Record<string, string[]> = {
+  horreur: ['theatre_contemporain', 'lecture_poesie', 'electro_techno', 'rock_metal_punk'],
+  horror: ['theatre_contemporain', 'lecture_poesie', 'electro_techno', 'rock_metal_punk'],
+  epouvante: ['theatre_contemporain', 'lecture_poesie', 'electro_techno', 'rock_metal_punk'],
+  thriller: ['theatre_contemporain', 'lecture_poesie', 'electro_techno', 'rock_metal_punk'],
+  suspense: ['theatre_contemporain', 'lecture_poesie', 'electro_techno', 'rock_metal_punk'],
+  polar: ['theatre_contemporain', 'lecture_poesie', 'electro_techno', 'rock_metal_punk'],
+  comedie: ['humour_standup', 'chanson_variete', 'guinguette_sorties'],
+  humour: ['humour_standup', 'chanson_variete', 'guinguette_sorties'],
+  animation: ['enfants_famille', 'cirque_arts_rue', 'jeune_public'],
+  jeunesse: ['enfants_famille', 'cirque_arts_rue', 'jeune_public'],
+  animation_jeune_public: ['enfants_famille', 'cirque_arts_rue', 'jeune_public'],
+  documentaire: ['expo_patrimoine', 'lecture_poesie', 'festival'],
+  docu: ['expo_patrimoine', 'lecture_poesie', 'festival'],
+  retro: ['classique_lyrique', 'theatre_classique', 'expo_patrimoine'],
+  patrimoine: ['classique_lyrique', 'theatre_classique', 'expo_patrimoine'],
+  patrimoine_retro: ['classique_lyrique', 'theatre_classique', 'expo_patrimoine'],
+  fiction: ['theatre_contemporain', 'chanson_variete', 'jazz_blues'],
+};
+
+const VIVANT_QUOTA_CATS: ReadonlySet<MainCategoryId> = new Set([
+  'musique',
+  'theatre_danse',
+  'festival',
+  'expo_patrimoine',
+  'enfants_famille',
+]);
+
+const W_PROFILE_GENRE = 15;
+const W_PROFILE_MOOD_NEIGHBOR = 12;
+const W_PROFILE_CAT = 8;
+const W_PROFILE_COMBO = 4;
+const W_PROFILE_COMMUNE = 3;
+const W_PROFILE_SAME_EVENING = 2;
+const FICTION_NEIGHBOR_LIGHT = 0.5;
+
+function isCinemaFields(fields: ItemFields): boolean {
+  return fields.mainCats.includes('cinema');
+}
+
+function isVivantQuotaFields(fields: ItemFields): boolean {
+  return fields.mainCats.some((c) => VIVANT_QUOTA_CATS.has(c));
+}
+
+function itemMoods(fields: ItemFields): string[] {
+  return extractMoods(fields.titre, fields.blob, fields.genreSlugs.join(' '));
+}
+
+function neighborMatch(
+  fields: ItemFields,
+  targets: string[],
+): boolean {
+  if (fields.genreSlugs.some((g) => targets.includes(g))) return true;
+  if (fields.mainCats.some((c) => targets.includes(c))) return true;
+  return false;
+}
+
+function profileHasPrecise(profile: TasteProfile): boolean {
+  return Object.keys(profile.genres).length > 0 || Object.keys(profile.moods).length > 0;
+}
+
+function scoreItemFromProfile(
+  fields: ItemFields,
+  item: DayItem,
+  state: AccountTasteState,
+  lastDayIso: string | undefined,
+  textScore: number,
+  textCoeff: number,
+): number {
+  const profile = state.profile;
+  const pmax = profileMaxWeight(profile);
+  let score = 0;
+
+  let hitGenre = false;
+  let bestGenre = 0;
+  for (const g of fields.genreSlugs) {
+    const w = profile.genres[g];
+    if (!w) continue;
+    hitGenre = true;
+    bestGenre = Math.max(bestGenre, W_PROFILE_GENRE * (w / pmax));
+  }
+  score += bestGenre;
+
+  const moods = itemMoods(fields);
+  const hitMood = moods.some((m) => (profile.moods[m] ?? 0) > 0);
+  const vivant = !isCinemaFields(fields);
+
+  if (vivant) {
+    let bestNeighbor = 0;
+    const keys: Array<[string, number]> = [
+      ...Object.entries(profile.moods),
+      ...Object.entries(profile.genres),
+    ];
+    for (const [key, w] of keys) {
+      const targets = CINE_VIVANT_NEIGHBORS[key];
+      if (!targets || w <= 0) continue;
+      if (!neighborMatch(fields, targets)) continue;
+      const light = key === 'fiction' ? FICTION_NEIGHBOR_LIGHT : 1;
+      bestNeighbor = Math.max(
+        bestNeighbor,
+        W_PROFILE_MOOD_NEIGHBOR * (w / pmax) * light,
+      );
+    }
+    score += bestNeighbor;
+  }
+
+  const isGuinguette = fields.genreSlugs.includes(GUINGUETTE_GENRE);
+  const allowGuinguetteCat =
+    !isGuinguette ||
+    userMentionedGuinguette(state) ||
+    (profile.moods['comedie'] ?? 0) > 0 ||
+    (profile.moods['humour'] ?? 0) > 0;
+
+  const precise = profileHasPrecise(profile);
+  let hitCat = false;
+  let bestCatW = 0;
+  for (const c of fields.mainCats) {
+    const w = profile.cats[c];
+    if (!w) continue;
+    if (isGuinguette && c === 'musique' && !allowGuinguetteCat) continue;
+    hitCat = true;
+    if (w > bestCatW) bestCatW = w;
+  }
+  if (hitCat) {
+    const overlap = hitGenre || hitMood;
+    if (hitGenre) {
+      score += W_PROFILE_COMBO;
+    } else if (!precise || overlap) {
+      score += W_PROFILE_CAT * (bestCatW / pmax);
+    }
+  }
+
+  const commune = (item.lieu?.commune || '').trim();
+  if (commune && (profile.communes[commune] ?? 0) > 0) {
+    score += W_PROFILE_COMMUNE;
+  }
+
+  if (lastDayIso && item.dayIso === lastDayIso) {
+    score += W_PROFILE_SAME_EVENING;
+  }
+
+  if (textScore > 0 && textCoeff > 0) {
+    score += textScore * textCoeff;
+  }
+
+  return score;
+}
+
+function itemMatchesAnyNeighbor(
+  fields: ItemFields,
+  profile: TasteProfile,
+): boolean {
+  if (isCinemaFields(fields)) return false;
+  const keys = [...Object.keys(profile.moods), ...Object.keys(profile.genres)];
+  for (const key of keys) {
+    const targets = CINE_VIVANT_NEIGHBORS[key];
+    if (targets && neighborMatch(fields, targets)) return true;
+  }
+  return false;
+}
+
+function shouldApplyVivantQuota(state: AccountTasteState): boolean {
+  const share = cinemaActionShare(state.signalsRecent);
+  const fiches = cineFicheCount(state.signalsRecent);
+  return share >= 0.5 || fiches >= 2;
+}
+
+/**
+ * Force 1–2 neighbor vivant slots when the profile is ciné-heavy.
+ * Round-robin multi-genre stays inside cine vs SV groups.
+ */
+function applyVivantQuota(
+  scored: ScoredDayItem[],
+  fieldsOf: (item: DayItem) => ItemFields,
+  state: AccountTasteState,
+  genreIntents: string[],
+  topN: number,
+): ScoredDayItem[] {
+  if (scored.length === 0) return [];
+  const limit = Math.max(1, Math.min(topN, 12));
+
+  const cine: ScoredDayItem[] = [];
+  const sv: ScoredDayItem[] = [];
+  const other: ScoredDayItem[] = [];
+  for (const entry of scored) {
+    const f = fieldsOf(entry.item);
+    if (isCinemaFields(f)) cine.push(entry);
+    else if (isVivantQuotaFields(f)) sv.push(entry);
+    else other.push(entry);
+  }
+
+  const cineDiv = diversifyByGenreIntents(cine, fieldsOf, genreIntents, limit);
+  const svDiv = diversifyByGenreIntents(sv, fieldsOf, genreIntents, limit);
+
+  const quota = shouldApplyVivantQuota(state);
+  const neighborSV = sv.filter((e) =>
+    itemMatchesAnyNeighbor(fieldsOf(e.item), state.profile),
+  );
+
+  if (quota && neighborSV.length > 0) {
+    const reserveN = Math.min(2, neighborSV.length);
+    const reserved = diversifyByGenreIntents(
+      neighborSV,
+      fieldsOf,
+      genreIntents,
+      reserveN,
+    );
+    const reservedSet = new Set(reserved);
+    const restSource = scored.filter((e) => !reservedSet.has(e));
+    const restCine = restSource.filter((e) => isCinemaFields(fieldsOf(e.item)));
+    const restSv = restSource.filter((e) => !isCinemaFields(fieldsOf(e.item)));
+    const restSlots = Math.max(0, limit - reserved.length);
+    const rest: ScoredDayItem[] = [];
+    const cineQ = diversifyByGenreIntents(restCine, fieldsOf, genreIntents, restSlots);
+    const svQ = diversifyByGenreIntents(restSv, fieldsOf, genreIntents, restSlots);
+    let i = 0;
+    let j = 0;
+    // Fill remaining by score, alternating groups so cine cannot wipe SV leftovers.
+    const cineByScore = [...cineQ];
+    const svByScore = [...svQ];
+    const merged = [...cineByScore, ...svByScore].sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.item.dayIso.localeCompare(b.item.dayIso);
+    });
+    for (const e of merged) {
+      if (rest.length >= restSlots) break;
+      rest.push(e);
+    }
+    void i;
+    void j;
+    const out = [...reserved, ...rest];
+    // Never fill 10 with cine if a neighbor SV remains.
+    const hasCineOnly =
+      out.length > 0 && out.every((e) => isCinemaFields(fieldsOf(e.item)));
+    if (hasCineOnly) {
+      const leftover = neighborSV.find((e) => !out.includes(e));
+      if (leftover) {
+        out[out.length - 1] = leftover;
+      }
+    }
+    const seen = new Set<ScoredDayItem>();
+    const uniq: ScoredDayItem[] = [];
+    for (const e of out) {
+      if (seen.has(e)) continue;
+      seen.add(e);
+      uniq.push(e);
+    }
+    uniq.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.item.dayIso.localeCompare(b.item.dayIso);
+    });
+    return uniq.slice(0, limit);
+  }
+
+  // No quota: keep existing diversification, still mix cine/SV by score.
+  const combined = [...cineDiv, ...svDiv, ...other].sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return a.item.dayIso.localeCompare(b.item.dayIso);
+  });
+  const seen = new Set<ScoredDayItem>();
+  const out: ScoredDayItem[] = [];
+  for (const e of combined) {
+    if (out.length >= limit) break;
+    if (seen.has(e)) continue;
+    seen.add(e);
+    out.push(e);
+  }
+  return out;
+}
+
+/**
+ * Score DayItems from the click profile first; tastesText is last-resort.
+ * Pool is the already-filtered listItems (same chips / search / scope).
+ */
+export function recommendForProfile(
+  items: DayItem[],
+  state: AccountTasteState,
+  topN = 10,
+): ScoredDayItem[] {
+  if (items.length === 0) return [];
+  const profile = state.profile;
+  const hasProfile =
+    Object.keys(profile.cats).length > 0 ||
+    Object.keys(profile.genres).length > 0 ||
+    Object.keys(profile.moods).length > 0 ||
+    Object.keys(profile.communes).length > 0;
+  const tastes = (state.tastesText || '').trim();
+  if (!hasProfile && !tastes) return [];
+
+  const fieldsList = items.map(itemFields);
+  const lastDayIso = lastOpenCardDayIso(state.signalsRecent);
+  const textCoeff = hasActionSignals(state.signalsRecent) ? 0.15 : 0.35;
+
+  let textSignals: TasteSignals | null = null;
+  let idfMap = new Map<string, number>();
+  if (tastes) {
+    textSignals = expandTastes(tastes);
+    idfMap = computeIdfDampening(fieldsList, textSignals.textTokens);
+  }
+
+  const dropGuinguetteFromText = textSignals
+    ? shouldDropGuinguettes(textSignals)
+    : false;
+  const allowGuinguette =
+    userMentionedGuinguette(state) ||
+    (profile.moods['comedie'] ?? 0) > 0 ||
+    (profile.moods['humour'] ?? 0) > 0 ||
+    (profile.genres[GUINGUETTE_GENRE] ?? 0) > 0;
+
+  const scored: ScoredDayItem[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const fields = fieldsList[i]!;
+    const item = items[i]!;
+    if (
+      dropGuinguetteFromText &&
+      !allowGuinguette &&
+      fields.genreSlugs.some((s) => s === GUINGUETTE_GENRE)
+    ) {
+      continue;
+    }
+    const textScore =
+      textSignals != null
+        ? scoreItemAgainst(fields, textSignals, idfMap).score
+        : 0;
+    const score = scoreItemFromProfile(
+      fields,
+      item,
+      state,
+      lastDayIso,
+      textScore,
+      tastes ? textCoeff : 0,
+    );
+    if (score > 0) scored.push({ item, score });
+  }
+
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return a.item.dayIso.localeCompare(b.item.dayIso);
+  });
+
+  const fieldsByRef = new Map<DayItem, ItemFields>();
+  for (let i = 0; i < items.length; i++) {
+    fieldsByRef.set(items[i]!, fieldsList[i]!);
+  }
+  const fieldsOf = (item: DayItem) => fieldsByRef.get(item) ?? itemFields(item);
+  const genreIntents = Object.keys(profile.genres);
+
+  return applyVivantQuota(scored, fieldsOf, state, genreIntents, topN);
 }

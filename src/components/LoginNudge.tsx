@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useTastesUi } from './Providers';
+import { LOGIN_NUDGE_DISMISS_KEY as DISMISS_KEY } from '@/lib/signals';
 
-const DISMISS_KEY = 'cc_login_nudge_dismissed';
 
 /** Soft, dismissible invite to sign in — guests only, when Google auth is on. */
 export default function LoginNudge() {

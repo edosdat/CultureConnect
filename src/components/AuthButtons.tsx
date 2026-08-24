@@ -3,11 +3,14 @@
 import { useEffect, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useTastesUi } from './Providers';
+import { useSignals } from './SignalsProvider';
 
 export default function AuthButtons() {
   const { data: session, status } = useSession();
   const { openTastes, googleAuthEnabled } = useTastesUi();
+  const { loginNudgeReady, loginNudgeDismissed, dismissLoginNudge } = useSignals();
   const [providersOk, setProvidersOk] = useState<boolean | null>(null);
+  const showRemember = loginNudgeReady && !loginNudgeDismissed;
 
   useEffect(() => {
     let cancelled = false;
@@ -85,7 +88,27 @@ export default function AuthButtons() {
   }
 
   return (
-    <div className="flex shrink-0 flex-col items-end gap-0.5">
+    <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+      {showRemember ? (
+        <span className="flex max-w-[7.5rem] items-center gap-0.5 sm:max-w-none">
+          <button
+            type="button"
+            onClick={() => signIn('google', { callbackUrl: '/' })}
+            className="text-left text-[10px] font-medium leading-tight text-culture-terracotta hover:underline sm:text-xs"
+          >
+            On retient ça&nbsp;?
+          </button>
+          <button
+            type="button"
+            onClick={dismissLoginNudge}
+            className="px-0.5 text-xs leading-none text-culture-muted hover:text-culture-ink"
+            aria-label="Fermer"
+          >
+            ×
+          </button>
+        </span>
+      ) : null}
+      <div className="flex shrink-0 flex-col items-end gap-0.5">
       <button
         type="button"
         title="Se connecter avec Google"
@@ -111,6 +134,7 @@ export default function AuthButtons() {
       <span className="hidden text-[10px] leading-none text-culture-muted sm:inline">
         Pour des suggestions perso
       </span>
+      </div>
     </div>
   );
 }
