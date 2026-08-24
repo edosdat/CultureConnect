@@ -1,11 +1,32 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useTastesUi } from './Providers';
 
 export default function AuthButtons() {
   const { data: session, status } = useSession();
   const { openTastes, googleAuthEnabled } = useTastesUi();
+  const [providersOk, setProvidersOk] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/auth/providers')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        setProvidersOk(Boolean(data && data.google));
+      })
+      .catch(() => {
+        if (!cancelled) setProvidersOk(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const enabled =
+    providersOk === true || (providersOk === null && googleAuthEnabled);
 
   if (status === 'loading') {
     return (
@@ -53,7 +74,7 @@ export default function AuthButtons() {
     );
   }
 
-  if (!googleAuthEnabled) {
+  if (!enabled) {
     return (
       <p className="ml-auto max-w-[11rem] text-right text-[11px] leading-snug text-culture-muted sm:max-w-none sm:text-xs">
         Connexion Google bientôt disponible

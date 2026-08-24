@@ -1,21 +1,46 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
 
-/** True when Google OAuth env vars are present (no secrets invented). */
-export const isGoogleAuthConfigured = Boolean(
-  process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET,
-);
+/**
+ * Read Google OAuth credentials at runtime.
+ * Use bracket access so Next.js does not inline empty values at build time.
+ * Accepts Auth.js names + Google Cloud / legacy aliases.
+ */
+export function googleClientId(): string {
+  const env = process.env;
+  return (
+    env['AUTH_GOOGLE_ID'] ||
+    env['GOOGLE_CLIENT_ID'] ||
+    env['AUTH_GOOGLE_CLIENT_ID'] ||
+    ''
+  ).trim();
+}
+
+export function googleClientSecret(): string {
+  const env = process.env;
+  return (
+    env['AUTH_GOOGLE_SECRET'] ||
+    env['GOOGLE_CLIENT_SECRET'] ||
+    env['AUTH_GOOGLE_CLIENT_SECRET'] ||
+    ''
+  ).trim();
+}
+
+/** Per-request / cold-start check — never a baked module const for UI. */
+export function isGoogleAuthConfigured(): boolean {
+  return Boolean(googleClientId() && googleClientSecret());
+}
 
 export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   trustHost: true,
-  providers: isGoogleAuthConfigured
-    ? [
-        Google({
-          clientId: process.env.AUTH_GOOGLE_ID!,
-          clientSecret: process.env.AUTH_GOOGLE_SECRET!,
-        }),
-      ]
-    : [],
+  // Always register Google; credentials resolved when the module loads on the server
+  // (Vercel cold start has Production env). Empty id → provider unused / providers API empty.
+  providers: [
+    Google({
+      clientId: googleClientId(),
+      clientSecret: googleClientSecret(),
+    }),
+  ],
   session: { strategy: 'jwt' },
   callbacks: {
     async jwt({ token, trigger, session }) {
