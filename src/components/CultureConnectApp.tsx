@@ -28,6 +28,7 @@ import {
 } from '@/lib/timeScope';
 import CategoryFilter from './CategoryFilter';
 import GenreFilter from './GenreFilter';
+import CityFilter from './CityFilter';
 import VenueFilter from './VenueFilter';
 import MonthCalendar from './MonthCalendar';
 import SeanceGrid from './SeanceGrid';
@@ -47,6 +48,10 @@ type Props = {
 
 function sortieWord(n: number): string {
   return n <= 1 ? 'sortie' : 'sorties';
+}
+
+function normalizeCommune(c: string | null | undefined): string {
+  return (c || '').trim().toLocaleLowerCase('fr');
 }
 
 export default function CultureConnectApp({
@@ -69,6 +74,7 @@ export default function CultureConnectApp({
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedLieuId, setSelectedLieuId] = useState<string | null>(null);
+  const [selectedCommune, setSelectedCommune] = useState<string | null>('Toulouse');
   const [query, setQuery] = useState('');
   const [showMonthPanel, setShowMonthPanel] = useState(false);
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
@@ -92,9 +98,95 @@ export default function CultureConnectApp({
     [timeScope, range],
   );
 
+  /** All lieux appearing in programme + events (app scope). */
+  const lieuxById = useMemo(() => {
+    const byId = new Map<string, Lieu>();
+    for (const p of programme) {
+      if (p.lieu?.lieu_id) byId.set(p.lieu.lieu_id, p.lieu);
+    }
+    for (const e of events) {
+      if (e.lieu?.lieu_id) byId.set(e.lieu.lieu_id, e.lieu);
+    }
+    return byId;
+  }, [programme, events]);
+
+  const communeOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const lieu of lieuxById.values()) {
+      const c = (lieu.commune || '').trim();
+      if (c) set.add(c);
+    }
+    const list = Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'));
+    // Ensure Toulouse is present when in data (already is if in set)
+    return list;
+  }, [lieuxById]);
+
+  const communeLieuIds = useMemo(() => {
+    if (!selectedCommune) return null;
+    const target = normalizeCommune(selectedCommune);
+    const ids: string[] = [];
+    for (const lieu of lieuxById.values()) {
+      if (normalizeCommune(lieu.commune) === target) {
+        ids.push(lieu.lieu_id);
+      }
+    }
+    return ids;
+  }, [lieuxById, selectedCommune]);
+
+  /**
+   * Empty array = no lieu filter (all agglo).
+   * When a commune is selected, pass explicit matching lieu_ids.
+   */
+  const lieuIdsForFilters = useMemo(() => {
+    if (selectedLieuId) {
+      if (!selectedCommune) return [selectedLieuId];
+      const lieu = lieuxById.get(selectedLieuId);
+      if (
+        lieu &&
+        normalizeCommune(lieu.commune) === normalizeCommune(selectedCommune)
+      ) {
+        return [selectedLieuId];
+      }
+      // Inconsistent lieu vs commune — treat as commune-only filter
+      return communeLieuIds && communeLieuIds.length > 0
+        ? communeLieuIds
+        : ['__no_match__'];
+    }
+    if (selectedCommune) {
+      return communeLieuIds && communeLieuIds.length > 0
+        ? communeLieuIds
+        : ['__no_match__'];
+    }
+    return [];
+  }, [selectedLieuId, selectedCommune, lieuxById, communeLieuIds]);
+
+  useEffect(() => {
+    if (!selectedLieuId || !selectedCommune) return;
+    const lieu = lieuxById.get(selectedLieuId);
+    if (
+      !lieu ||
+      normalizeCommune(lieu.commune) !== normalizeCommune(selectedCommune)
+    ) {
+      setSelectedLieuId(null);
+    }
+  }, [selectedCommune, selectedLieuId, lieuxById]);
+
+  function handleCommuneChange(next: string | null) {
+    setSelectedCommune(next);
+    if (selectedLieuId) {
+      const lieu = lieuxById.get(selectedLieuId);
+      if (
+        next != null &&
+        (!lieu || normalizeCommune(lieu.commune) !== normalizeCommune(next))
+      ) {
+        setSelectedLieuId(null);
+      }
+    }
+  }
+
   const availableGenreSlugs = useMemo(() => {
     if (selectedCategories.length === 0) return [];
-    const lieuIds = selectedLieuId ? [selectedLieuId] : [];
+    const lieuIds = lieuIdsForFilters;
     const set = new Set<string>();
     for (const iso of range.days) {
       for (const slug of genresForSelection(
@@ -108,7 +200,7 @@ export default function CultureConnectApp({
       }
     }
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'));
-  }, [programme, events, range.days, selectedCategories, selectedLieuId]);
+  }, [programme, events, range.days, selectedCategories, lieuIdsForFilters]);
 
   useEffect(() => {
     setSelectedGenres((prev) => {
@@ -127,7 +219,7 @@ export default function CultureConnectApp({
   }, [availableGenreSlugs, selectedCategories, genresLegend]);
 
   const counts = useMemo(() => {
-    const lieuIds = selectedLieuId ? [selectedLieuId] : [];
+    const lieuIds = lieuIdsForFilters;
     return countItemsByDay(
       programme,
       events,
@@ -143,12 +235,12 @@ export default function CultureConnectApp({
     year,
     month,
     selectedCategories,
-    selectedLieuId,
+    lieuIdsForFilters,
     selectedGenres,
   ]);
 
   const listItems = useMemo(() => {
-    const lieuIds = selectedLieuId ? [selectedLieuId] : [];
+    const lieuIds = lieuIdsForFilters;
     const seen = new Set<string>();
     let items: DayItem[] = [];
     for (const iso of range.days) {
@@ -178,7 +270,7 @@ export default function CultureConnectApp({
     events,
     range.days,
     selectedCategories,
-    selectedLieuId,
+    lieuIdsForFilters,
     selectedGenres,
     query,
     genresLegend,
@@ -225,7 +317,14 @@ export default function CultureConnectApp({
         byId.set(lieu.lieu_id, lieu);
       }
     }
-    return Array.from(byId.values()).sort((a, b) =>
+    let list = Array.from(byId.values());
+    if (selectedCommune) {
+      const target = normalizeCommune(selectedCommune);
+      list = list.filter(
+        (l) => normalizeCommune(l.commune) === target,
+      );
+    }
+    return list.sort((a, b) =>
       formatLieuAffiche(a).localeCompare(formatLieuAffiche(b), 'fr'),
     );
   }, [
@@ -236,6 +335,7 @@ export default function CultureConnectApp({
     year,
     month,
     selectedGenres,
+    selectedCommune,
   ]);
 
   const selectedItem =
@@ -382,6 +482,7 @@ export default function CultureConnectApp({
   const filterBadge =
     selectedCategories.length +
     selectedGenres.length +
+    (selectedCommune != null ? 1 : 0) +
     (selectedLieuId ? 1 : 0);
 
   return (
@@ -463,9 +564,16 @@ export default function CultureConnectApp({
             </p>
             <div
               className={
-                (showFiltersMobile ? 'block' : 'hidden') + ' min-w-0 md:block'
+                (showFiltersMobile ? 'flex' : 'hidden') +
+                ' min-w-0 flex-wrap items-center gap-2 md:flex'
               }
             >
+              <CityFilter
+                communes={communeOptions}
+                selectedCommune={selectedCommune}
+                onChange={handleCommuneChange}
+                variant="inline"
+              />
               <VenueFilter
                 lieux={venueOptions}
                 selectedLieuId={selectedLieuId}
@@ -509,7 +617,6 @@ export default function CultureConnectApp({
               </button>
             </div>
             <SeanceGrid
-              collapseFilmsById={Boolean(query.trim())}
               items={pourToiItems}
               showDate={showDateLabels}
               onSelectItem={setSelectedItemKey}
@@ -538,7 +645,6 @@ export default function CultureConnectApp({
         )}
 
         <SeanceGrid
-              collapseFilmsById={Boolean(query.trim())}
           items={listItems}
           showDate={showDateLabels}
           onSelectItem={setSelectedItemKey}
