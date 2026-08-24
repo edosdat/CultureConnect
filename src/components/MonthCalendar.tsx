@@ -36,12 +36,12 @@ export default function MonthCalendar({
   while (cells.length % 7 !== 0) cells.push(null);
 
   return (
-    <div className="min-w-0 overflow-x-hidden rounded-2xl border border-culture-sand bg-white p-4 shadow-sm sm:p-5">
+    <div className="min-w-0 overflow-x-hidden rounded-2xl border border-culture-line bg-culture-surface p-4 shadow-sm sm:p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <button
           type="button"
           onClick={onPrevMonth}
-          className="rounded-full border border-culture-sand px-3 py-1.5 text-sm text-culture-ink hover:bg-culture-cream"
+          className="rounded-full border border-culture-line px-3 py-1.5 text-sm text-culture-ink hover:bg-culture-cream"
           aria-label="Mois précédent"
         >
           ←
@@ -52,7 +52,7 @@ export default function MonthCalendar({
         <button
           type="button"
           onClick={onNextMonth}
-          className="rounded-full border border-culture-sand px-3 py-1.5 text-sm text-culture-ink hover:bg-culture-cream"
+          className="rounded-full border border-culture-line px-3 py-1.5 text-sm text-culture-ink hover:bg-culture-cream"
           aria-label="Mois suivant"
         >
           →
@@ -85,7 +85,7 @@ export default function MonthCalendar({
                 (selected
                   ? 'border-culture-terracotta bg-culture-terracotta text-white shadow'
                   : count > 0
-                    ? 'border-culture-sand bg-culture-cream text-culture-ink hover:border-culture-terracotta/60'
+                    ? 'border-culture-line bg-culture-cream text-culture-ink hover:border-culture-terracotta/60'
                     : 'border-transparent text-culture-muted hover:bg-culture-cream/60')
               }
             >

@@ -5,22 +5,31 @@ import type {
   DayItem,
   EventWithDetails,
   GenreLegend,
+  Lieu,
   ProgrammeWithContext,
 } from '@/lib/types';
 import {
   countItemsByDay,
   genresForSelection,
   itemsForDay,
-  itemsForMonth,
   lieuxForDay,
 } from '@/lib/events';
 import { genreBelongsToMains, mainFromGenreSlug } from '@/lib/categories';
 import { MONTH_NAMES_FR } from '@/lib/labels';
+import {
+  defaultTimeScope,
+  parisParts,
+  resolveScopeRange,
+  scopeContextLabel,
+  type TimeScopeId,
+} from '@/lib/timeScope';
 import CategoryFilter from './CategoryFilter';
 import GenreFilter from './GenreFilter';
 import VenueFilter from './VenueFilter';
 import MonthCalendar from './MonthCalendar';
-import DayEvents from './DayEvents';
+import SeanceGrid from './SeanceGrid';
+import TimeScopeBar from './TimeScopeBar';
+import SearchOmnibox from './SearchOmnibox';
 import EventDetail from './EventDetail';
 
 type Props = {
@@ -30,34 +39,6 @@ type Props = {
   initialYear: number;
   initialMonth: number;
 };
-
-type TimeScope = 'today' | 'weekend' | 'month' | 'day';
-
-/** Today's date as YYYY-MM-DD in Europe/Paris. */
-export function getTodayIsoParis(now = new Date()): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Europe/Paris',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(now);
-}
-
-/** Fri / Sat / Sun ISO dates of the week that contains `todayIso` (Paris calendar day). */
-export function getWeekendIsosParis(todayIso: string): [string, string, string] {
-  const [y, m, d] = todayIso.split('-').map(Number);
-  const date = new Date(Date.UTC(y, m - 1, d, 12));
-  const dow = date.getUTCDay(); // 0=Sun … 6=Sat
-  const offsetToFri = dow === 0 ? -2 : 5 - dow;
-  const fri = new Date(date);
-  fri.setUTCDate(fri.getUTCDate() + offsetToFri);
-  const sat = new Date(fri);
-  sat.setUTCDate(fri.getUTCDate() + 1);
-  const sun = new Date(fri);
-  sun.setUTCDate(fri.getUTCDate() + 2);
-  const fmt = (dt: Date) => dt.toISOString().slice(0, 10);
-  return [fmt(fri), fmt(sat), fmt(sun)];
-}
 
 function itemSearchBlob(item: DayItem): string {
   const parts: string[] = [];
@@ -69,13 +50,22 @@ function itemSearchBlob(item: DayItem): string {
     if (item.programme.notes) parts.push(item.programme.notes);
     if (item.programme.description_item)
       parts.push(item.programme.description_item);
+    if (item.programme.genre) parts.push(item.programme.genre);
+    if (item.evenement?.casting) parts.push(item.evenement.casting);
   } else {
     parts.push(item.evenement.titre);
     if (item.evenement.description_courte)
       parts.push(item.evenement.description_courte);
+    if (item.evenement.genre) parts.push(item.evenement.genre);
+    if (item.evenement.casting) parts.push(item.evenement.casting);
   }
   if (item.lieu?.nom) parts.push(item.lieu.nom);
+  if (item.lieu?.commune) parts.push(item.lieu.commune);
   return parts.join(' ').toLowerCase();
+}
+
+function sortieWord(n: number): string {
+  return n <= 1 ? 'sortie' : 'sorties';
 }
 
 export default function CultureConnectApp({
@@ -85,51 +75,52 @@ export default function CultureConnectApp({
   initialYear,
   initialMonth,
 }: Props) {
-  const todayIso = useMemo(() => getTodayIsoParis(), []);
-  const weekendIsos = useMemo(() => getWeekendIsosParis(todayIso), [todayIso]);
-
+  const paris = useMemo(() => parisParts(), []);
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
-  /** Default home: Ce week-end (design brief). */
-  const [timeScope, setTimeScope] = useState<TimeScope>('weekend');
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  // Start weekend to match SSR; bump to "Ce soir" after 17h Paris on client
+  const [timeScope, setTimeScope] = useState<TimeScopeId>('weekend');
+  const [selectedDay, setSelectedDay] = useState<string | null>(paris.iso);
   const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);
-  /** Main category ids: musique | theatre_danse | festival | cinema | expo_patrimoine | enfants_famille */
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedLieuId, setSelectedLieuId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [showMonthPanel, setShowMonthPanel] = useState(false);
 
-  const listDayIso =
-    timeScope === 'today'
-      ? todayIso
-      : timeScope === 'day'
-        ? selectedDay
-        : null;
+  useEffect(() => {
+    const next = defaultTimeScope();
+    if (next !== 'weekend') setTimeScope(next);
+  }, []);
+
+  const range = useMemo(
+    () => resolveScopeRange(timeScope, selectedDay),
+    [timeScope, selectedDay],
+  );
+
+  const contextLabel = useMemo(
+    () => scopeContextLabel(timeScope, range),
+    [timeScope, range],
+  );
 
   const availableGenreSlugs = useMemo(() => {
     if (selectedCategories.length === 0) return [];
     const lieuIds = selectedLieuId ? [selectedLieuId] : [];
-    return genresForSelection(
-      programme,
-      events,
-      listDayIso,
-      selectedCategories,
-      lieuIds,
-      year,
-      month,
-    );
-  }, [
-    programme,
-    events,
-    listDayIso,
-    selectedCategories,
-    selectedLieuId,
-    year,
-    month,
-  ]);
+    const set = new Set<string>();
+    for (const iso of range.days) {
+      for (const slug of genresForSelection(
+        programme,
+        events,
+        iso,
+        selectedCategories,
+        lieuIds,
+      )) {
+        set.add(slug);
+      }
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'));
+  }, [programme, events, range.days, selectedCategories, selectedLieuId]);
 
-  // Drop genre selections that no longer belong to selected mains / available set.
   useEffect(() => {
     setSelectedGenres((prev) => {
       if (prev.length === 0) return prev;
@@ -169,47 +160,21 @@ export default function CultureConnectApp({
 
   const listItems = useMemo(() => {
     const lieuIds = selectedLieuId ? [selectedLieuId] : [];
-    let items: DayItem[];
-
-    if (timeScope === 'today') {
-      items = itemsForDay(
+    const seen = new Set<string>();
+    let items: DayItem[] = [];
+    for (const iso of range.days) {
+      for (const item of itemsForDay(
         programme,
         events,
-        todayIso,
+        iso,
         selectedCategories,
         lieuIds,
         selectedGenres,
-      );
-    } else if (timeScope === 'day' && selectedDay) {
-      items = itemsForDay(
-        programme,
-        events,
-        selectedDay,
-        selectedCategories,
-        lieuIds,
-        selectedGenres,
-      );
-    } else if (timeScope === 'weekend') {
-      items = weekendIsos.flatMap((iso) =>
-        itemsForDay(
-          programme,
-          events,
-          iso,
-          selectedCategories,
-          lieuIds,
-          selectedGenres,
-        ),
-      );
-    } else {
-      items = itemsForMonth(
-        programme,
-        events,
-        year,
-        month,
-        selectedCategories,
-        lieuIds,
-        selectedGenres,
-      );
+      )) {
+        if (seen.has(item.key)) continue;
+        seen.add(item.key);
+        items.push(item);
+      }
     }
 
     const q = query.trim().toLowerCase();
@@ -220,42 +185,70 @@ export default function CultureConnectApp({
   }, [
     programme,
     events,
-    timeScope,
-    selectedDay,
-    todayIso,
-    weekendIsos,
-    year,
-    month,
+    range.days,
     selectedCategories,
     selectedLieuId,
     selectedGenres,
     query,
   ]);
 
-  const venueOptions = useMemo(
-    () =>
-      lieuxForDay(
+  const venueOptions = useMemo(() => {
+    const byId = new Map<string, Lieu>();
+    for (const iso of range.days) {
+      for (const lieu of lieuxForDay(
         programme,
         events,
-        listDayIso,
+        iso,
         selectedCategories,
         year,
         month,
         selectedGenres,
-      ),
-    [
-      programme,
-      events,
-      listDayIso,
-      selectedCategories,
-      year,
-      month,
-      selectedGenres,
-    ],
-  );
+      )) {
+        byId.set(lieu.lieu_id, lieu);
+      }
+    }
+    return Array.from(byId.values()).sort((a, b) =>
+      a.nom.localeCompare(b.nom, 'fr'),
+    );
+  }, [
+    programme,
+    events,
+    range.days,
+    selectedCategories,
+    year,
+    month,
+    selectedGenres,
+  ]);
 
   const selectedItem =
     listItems.find((i) => i.key === selectedItemKey) ?? null;
+
+  const showDateLabels = range.days.length > 1;
+
+  function syncMonthFromIso(iso: string) {
+    const [y, m] = iso.split('-').map(Number);
+    if (y && m) {
+      setYear(y);
+      setMonth(m);
+    }
+  }
+
+  function handleScopeChange(scope: TimeScopeId) {
+    setTimeScope(scope);
+    setSelectedItemKey(null);
+    if (scope === 'date') {
+      const day = selectedDay || paris.iso;
+      setSelectedDay(day);
+      syncMonthFromIso(day);
+      setShowMonthPanel(true);
+    } else if (scope === 'soir') {
+      setSelectedDay(paris.iso);
+      syncMonthFromIso(paris.iso);
+    } else {
+      const next = resolveScopeRange(scope, selectedDay);
+      syncMonthFromIso(next.startIso);
+    }
+  }
 
   function goPrevMonth() {
     if (month === 1) {
@@ -264,9 +257,6 @@ export default function CultureConnectApp({
     } else {
       setMonth((m) => m - 1);
     }
-    setTimeScope('month');
-    setSelectedDay(null);
-    setSelectedItemKey(null);
   }
 
   function goNextMonth() {
@@ -276,60 +266,14 @@ export default function CultureConnectApp({
     } else {
       setMonth((m) => m + 1);
     }
-    setTimeScope('month');
-    setSelectedDay(null);
-    setSelectedItemKey(null);
   }
 
   function handleSelectDay(iso: string) {
-    if (timeScope === 'day' && selectedDay === iso) {
-      setTimeScope('month');
-      setSelectedDay(null);
-    } else {
-      setTimeScope('day');
-      setSelectedDay(iso);
-      const [y, m] = iso.split('-').map(Number);
-      if (y && m) {
-        setYear(y);
-        setMonth(m);
-      }
-    }
+    setTimeScope('date');
+    setSelectedDay(iso);
+    syncMonthFromIso(iso);
     setSelectedItemKey(null);
-  }
-
-  function clearDaySelection() {
-    setTimeScope('month');
-    setSelectedDay(null);
-    setSelectedItemKey(null);
-  }
-
-  function setScopeToday() {
-    setTimeScope('today');
-    setSelectedDay(todayIso);
-    const [y, m] = todayIso.split('-').map(Number);
-    if (y && m) {
-      setYear(y);
-      setMonth(m);
-    }
-    setSelectedItemKey(null);
-  }
-
-  function setScopeWeekend() {
-    setTimeScope('weekend');
-    setSelectedDay(null);
-    const fri = weekendIsos[0];
-    const [y, m] = fri.split('-').map(Number);
-    if (y && m) {
-      setYear(y);
-      setMonth(m);
-    }
-    setSelectedItemKey(null);
-  }
-
-  function setScopeMonth() {
-    setTimeScope('month');
-    setSelectedDay(null);
-    setSelectedItemKey(null);
+    setShowMonthPanel(true);
   }
 
   function handleSelectVenue(lieuId: string) {
@@ -343,141 +287,146 @@ export default function CultureConnectApp({
     }
   }
 
-  const monthLabel = `${MONTH_NAMES_FR[month - 1]} ${year}`;
-  const listHeading =
-    timeScope === 'weekend'
-      ? 'Ce week-end'
-      : timeScope === 'today'
-        ? undefined
-        : timeScope === 'month'
-          ? monthLabel
-          : undefined;
-  const dayIsoForList =
-    timeScope === 'today'
-      ? todayIso
-      : timeScope === 'day'
-        ? selectedDay
-        : null;
-  const showDateLabels = timeScope === 'weekend' || timeScope === 'month';
+  function fallbackToWeekend() {
+    setTimeScope('weekend');
+    setSelectedItemKey(null);
+    const next = resolveScopeRange('weekend', null);
+    syncMonthFromIso(next.startIso);
+  }
 
-  const scopeChipClass = (active: boolean) =>
-    active
-      ? 'rounded-full bg-culture-terracotta px-3 py-1.5 text-xs font-semibold text-white shadow-sm'
-      : 'rounded-full border border-culture-sand bg-white px-3 py-1.5 text-xs font-medium text-culture-ink transition hover:border-culture-terracotta/40 hover:bg-culture-cream/60';
+  const monthLabel = `${MONTH_NAMES_FR[month - 1]} ${year}`;
+  const n = listItems.length;
+  const emptyScopeHint =
+    timeScope === 'soir'
+      ? 'ce soir'
+      : timeScope === 'weekend'
+        ? 'ce week-end'
+        : timeScope === 'semaine'
+          ? 'cette semaine'
+          : selectedDay
+            ? `le ${contextLabel}`
+            : 'pour cette date';
+
+  const monthPanel = (
+    <div className="rounded-2xl border border-culture-line bg-culture-surface p-3 shadow-sm sm:p-4">
+      <MonthCalendar
+        year={year}
+        month={month}
+        selectedDay={timeScope === 'date' ? selectedDay : null}
+        counts={counts}
+        onSelectDay={handleSelectDay}
+        onPrevMonth={goPrevMonth}
+        onNextMonth={goNextMonth}
+      />
+    </div>
+  );
 
   return (
-    <div className="mx-auto max-w-7xl min-w-0 overflow-x-hidden px-4 py-6 sm:px-6 sm:py-10">
-      <header className="mb-4 lg:mb-6">
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-culture-terracotta">
+    <div className="mx-auto max-w-7xl min-w-0 overflow-x-hidden px-4 pb-16 pt-4 sm:px-6 sm:pt-6">
+      <header className="mb-4">
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-culture-terracotta">
           Toulouse & alentours
         </p>
-        <h1 className="mt-1 font-display text-4xl text-culture-ink sm:text-5xl">
-          CultureConnect
+        <h1 className="mt-1 font-display text-3xl text-culture-ink sm:text-4xl">
+          Agenda
         </h1>
-        <p className="mt-3 max-w-2xl text-culture-muted">
-          Calendrier culturel — films, concerts, théâtre et plus : chaque séance
-          du jour, autour de Toulouse.
+        <p className="mt-2 max-w-2xl text-sm text-culture-muted sm:text-base">
+          Qu&apos;est-ce qu&apos;on fait ce soir ou ce week-end à Toulouse&nbsp;?
         </p>
       </header>
 
-      <div className="sticky top-0 z-20 -mx-4 mb-4 border-b border-culture-sand/80 bg-culture-cream/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div
-            className="flex flex-wrap gap-2"
-            role="group"
-            aria-label="Période"
-          >
-            <button
-              type="button"
-              className={scopeChipClass(timeScope === 'today')}
-              onClick={setScopeToday}
-            >
-              Aujourd&apos;hui
-            </button>
-            <button
-              type="button"
-              className={scopeChipClass(timeScope === 'weekend')}
-              onClick={setScopeWeekend}
-            >
-              Ce week-end
-            </button>
-            <button
-              type="button"
-              className={scopeChipClass(timeScope === 'month')}
-              onClick={setScopeMonth}
-            >
-              Ce mois
-            </button>
-          </div>
-          <label className="relative block min-w-0 flex-1 sm:max-w-md">
-            <span className="sr-only">Rechercher</span>
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher un spectacle, un lieu…"
-              className="w-full rounded-full border border-culture-sand bg-white px-4 py-2 text-sm text-culture-ink shadow-sm outline-none placeholder:text-culture-muted focus:border-culture-terracotta/50 focus:ring-2 focus:ring-culture-terracotta/20"
-            />
-          </label>
-        </div>
+      <div className="sticky top-0 z-20 -mx-4 mb-5 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
+        <SearchOmnibox value={query} onChange={setQuery} />
       </div>
 
-      <div className="lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:items-start lg:gap-8">
-        <aside className="mb-6 rounded-2xl border border-culture-sand bg-white/80 p-4 shadow-sm lg:sticky lg:top-24 lg:mb-0 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
-          <div className="space-y-5">
-            <CategoryFilter
-              selected={selectedCategories}
-              onChange={handleCategoriesChange}
-            />
-            <GenreFilter
-              availableSlugs={availableGenreSlugs}
-              legend={genresLegend}
-              selected={selectedGenres}
-              onChange={setSelectedGenres}
-              selectedMains={selectedCategories}
-            />
-            <VenueFilter
-              lieux={venueOptions}
-              selectedLieuId={selectedLieuId}
-              onChange={setSelectedLieuId}
-            />
-          </div>
-        </aside>
+      <div className="space-y-4">
+        <TimeScopeBar
+          scope={timeScope}
+          onChange={handleScopeChange}
+          datePanel={timeScope === 'date' ? monthPanel : undefined}
+        />
 
-        <div className="min-w-0 overflow-x-hidden">
-          <div className="grid gap-6 lg:grid-cols-5">
-            <div className="lg:col-span-3 opacity-95">
-              <MonthCalendar
-                year={year}
-                month={month}
-                selectedDay={
-                  timeScope === 'day' || timeScope === 'today'
-                    ? dayIsoForList
-                    : null
-                }
-                counts={counts}
-                onSelectDay={handleSelectDay}
-                onPrevMonth={goPrevMonth}
-                onNextMonth={goNextMonth}
-              />
-            </div>
-            <div className="lg:col-span-2">
-              <DayEvents
-                dayIso={dayIsoForList}
-                monthLabel={listHeading ?? monthLabel}
-                items={listItems}
-                showDateLabels={showDateLabels}
-                onSelectItem={setSelectedItemKey}
-                onSelectVenue={handleSelectVenue}
-                onClearDay={
-                  timeScope === 'day' || timeScope === 'today'
-                    ? clearDaySelection
-                    : undefined
-                }
-              />
-            </div>
-          </div>
+        <CategoryFilter
+          selected={selectedCategories}
+          onChange={handleCategoriesChange}
+          variant="chips"
+        />
+
+        <GenreFilter
+          availableSlugs={availableGenreSlugs}
+          legend={genresLegend}
+          selected={selectedGenres}
+          onChange={setSelectedGenres}
+          selectedMains={selectedCategories}
+          hideWhenNoCategory
+        />
+
+        <VenueFilter
+          lieux={venueOptions}
+          selectedLieuId={selectedLieuId}
+          onChange={setSelectedLieuId}
+          variant="inline"
+        />
+
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <p className="text-sm text-culture-muted">
+            <span className="font-medium text-culture-ink">
+              {n} {sortieWord(n)}
+            </span>
+            {contextLabel ? ` · ${contextLabel}` : ''}
+            {query.trim() ? ` · « ${query.trim()} »` : ''}
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowMonthPanel((v) => !v)}
+            className="text-sm font-medium text-culture-terracotta hover:underline"
+            aria-expanded={showMonthPanel}
+          >
+            {showMonthPanel ? 'Masquer le mois' : 'Voir le mois'}
+            {showMonthPanel ? '' : ` (${monthLabel})`}
+          </button>
         </div>
+
+        {showMonthPanel && timeScope !== 'date' && (
+          <div className="max-w-xl">{monthPanel}</div>
+        )}
+
+        <SeanceGrid
+          items={listItems}
+          showDate={showDateLabels}
+          onSelectItem={setSelectedItemKey}
+          onSelectVenue={handleSelectVenue}
+          empty={
+            <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-6 py-12 text-center">
+              <p className="font-display text-xl text-culture-ink">
+                Rien {emptyScopeHint}
+                {selectedCategories.length > 0 ? ' pour cette catégorie' : ''}
+              </p>
+              <p className="mt-2 text-sm text-culture-muted">
+                Essaie une autre période, une autre catégorie, ou élargis la
+                recherche.
+              </p>
+              {timeScope !== 'weekend' && (
+                <button
+                  type="button"
+                  onClick={fallbackToWeekend}
+                  className="mt-5 rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-culture-clay"
+                >
+                  Voir ce week-end
+                </button>
+              )}
+              {timeScope === 'weekend' && selectedCategories.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => handleCategoriesChange([])}
+                  className="mt-5 rounded-full border border-culture-line bg-culture-surface px-5 py-2.5 text-sm font-medium text-culture-ink hover:border-culture-terracotta/50"
+                >
+                  Toutes les catégories
+                </button>
+              )}
+            </div>
+          }
+        />
       </div>
 
       <EventDetail

@@ -16,6 +16,8 @@ type Props = {
   onChange: (next: string[]) => void;
   /** Selected main category ids — genres only show when at least one is set. */
   selectedMains: string[];
+  /** When true, hide the "choose a category" placeholder entirely */
+  hideWhenNoCategory?: boolean;
 };
 
 function syntheticLegend(slug: string): GenreLegend {
@@ -31,7 +33,6 @@ function belongsToSelectedMains(
   selectedMains: string[],
 ): boolean {
   if (genreBelongsToMains(g, selectedMains)) return true;
-  // Slugs missing from legend: use GENRE_SLUG_TO_MAIN only
   const fromSlug = mainFromGenreSlug(g.slug);
   if (fromSlug && selectedMains.includes(fromSlug)) return true;
   return false;
@@ -43,8 +44,10 @@ export default function GenreFilter({
   selected,
   onChange,
   selectedMains,
+  hideWhenNoCategory = true,
 }: Props) {
   if (selectedMains.length === 0) {
+    if (hideWhenNoCategory) return null;
     return (
       <div className="space-y-1">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
@@ -62,19 +65,15 @@ export default function GenreFilter({
   const resolve = (slug: string): GenreLegend =>
     legendBySlug.get(slug) ?? syntheticLegend(slug);
 
-  // availableSlugs already category-filtered; synthesize missing legend rows
-  // and keep those that match mains via slug (or always show when mains selected)
   const available = availableSlugs
     .map(resolve)
     .filter((g) => {
       if (belongsToSelectedMains(g, selectedMains)) return true;
       const fromSlug = mainFromGenreSlug(g.slug);
       if (fromSlug && selectedMains.includes(fromSlug)) return true;
-      // always show if present in availableSlugs when a main is selected
       return selectedMains.length > 0;
     });
 
-  // Keep selected genres visible even if they fall out of the current slice
   const selectedExtra = selected
     .filter((slug) => !availableSlugs.includes(slug))
     .map(resolve)
@@ -82,7 +81,6 @@ export default function GenreFilter({
 
   const allVisible = [...available, ...selectedExtra];
 
-  // Group by main bucket for clarity when several mains are selected
   const byMain = new Map<string, GenreLegend[]>();
   for (const g of allVisible) {
     const main =
@@ -112,10 +110,10 @@ export default function GenreFilter({
         onClick={() => toggle(g.slug)}
         aria-pressed={active}
         className={
-          'rounded-full border px-2.5 py-1 text-xs transition ' +
+          'shrink-0 rounded-full border px-2.5 py-1.5 text-xs transition ' +
           (active
             ? 'border-culture-sage bg-culture-sage text-white shadow-sm'
-            : 'border-culture-sand bg-white text-culture-ink hover:border-culture-sage/60')
+            : 'border-culture-line bg-culture-surface text-culture-ink hover:border-culture-sage/60')
         }
       >
         {g.label_fr}
@@ -126,9 +124,9 @@ export default function GenreFilter({
   return (
     <div className="min-w-0 space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
+        <p className="text-xs font-semibold uppercase tracking-wide text-culture-muted">
           Genres
-        </h2>
+        </p>
         {selected.length > 0 && (
           <button
             type="button"
@@ -160,7 +158,7 @@ export default function GenreFilter({
           })}
         </div>
       ) : (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {allVisible
             .slice()
             .sort((a, b) => a.label_fr.localeCompare(b.label_fr, 'fr'))
