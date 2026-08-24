@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react'
 import { useSession } from 'next-auth/react';
 import type {
   DayItem,
@@ -78,28 +78,11 @@ export default function CultureConnectApp({
   const [query, setQuery] = useState('');
   const [showMonthPanel, setShowMonthPanel] = useState(false);
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
-  const monthPanelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const next = defaultTimeScope();
     if (next !== 'weekend') setTimeScope(next);
   }, []);
-
-  // Click outside the month calendar clears the selected day (back to whole month).
-  useEffect(() => {
-    if (timeScope !== 'date' || !selectedDay) return;
-    function onPointerDown(e: PointerEvent) {
-      const root = monthPanelRef.current;
-      if (!root) return;
-      const target = e.target as Node | null;
-      if (!target) return;
-      if (root.contains(target)) return;
-      // Keep day if interacting with event detail / cards is handled by not wrapping those in monthPanelRef
-      setSelectedDay(null);
-    }
-    document.addEventListener('pointerdown', onPointerDown);
-    return () => document.removeEventListener('pointerdown', onPointerDown);
-  }, [timeScope, selectedDay]);
 
 
   const range = useMemo(
@@ -460,7 +443,7 @@ export default function CultureConnectApp({
             : contextLabel;
 
   const monthPanel = (
-    <div className="max-w-md" ref={monthPanelRef}>
+    <div className="max-w-md">
       <MonthCalendar
         year={year}
         month={month}
