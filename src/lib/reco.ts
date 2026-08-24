@@ -4,7 +4,9 @@
  * Strategy: normalize FR tastes → match known phrases then unigrams → expand
  * via a synonym lexicon to category codes + genre slugs → score DayItems with
  * weighted genre/category/title/lieu/blob hits, IDF dampening when a token hits
- * >35% of the pool, and a category+genre combo bonus. Prefer strong signals
+ * >35% of the pool, and a category+genre combo bonus. Soften category when
+ * specific genres are present; diversify multi-genre tastes by round-robin;
+ * light Levenshtein≤1 on long unigram lexicon keys. Prefer strong signals
  * (genre/cat/title ≥ 6); sort by score desc then sooner dayIso.
  */
 import type { DayItem } from '@/lib/types';
@@ -122,6 +124,7 @@ const FR_STOPWORDS = new Set([
   'm',
   't',
   's',
+  'up',
   'très',
   'trop',
   'bien',
@@ -153,6 +156,8 @@ const FR_STOPWORDS = new Set([
 /** Scoring weights (tuned for discrimination). */
 const W_GENRE = 15;
 const W_CATEGORIE = 10;
+/** Soft category when specific genre intents are present (~0.35×). */
+const W_CATEGORIE_SOFT = W_CATEGORIE * 0.35;
 const W_TITRE = 6;
 const W_LIEU = 3;
 const W_BLOB = 1;
@@ -204,7 +209,6 @@ const SYNONYM_LEXICON: Record<string, LexTarget> = {
   concerts: { categories: ['musique'] },
   musique: { categories: ['musique'] },
   live: { categories: ['musique'] },
-  monde: { genres: ['musiques_monde_trad'], categories: ['musique'] },
   'musiques du monde': {
     genres: ['musiques_monde_trad'],
     categories: ['musique'],
@@ -272,24 +276,36 @@ const SYNONYM_LEXICON: Record<string, LexTarget> = {
   'plein air': { categories: ['cinema', 'festival'] },
 
   // Expo / patrimoine
-  expo: { genres: ['expo_patrimoine'], categories: ['expo_patrimoine'] },
-  expos: { genres: ['expo_patrimoine'], categories: ['expo_patrimoine'] },
+  expo: {
+    genres: ['expo', 'expo_patrimoine'],
+    categories: ['expo_patrimoine'],
+  },
+  expos: {
+    genres: ['expo', 'expo_patrimoine'],
+    categories: ['expo_patrimoine'],
+  },
   exposition: {
-    genres: ['expo_patrimoine'],
+    genres: ['expo', 'expo_patrimoine'],
     categories: ['expo_patrimoine'],
   },
   expositions: {
-    genres: ['expo_patrimoine'],
+    genres: ['expo', 'expo_patrimoine'],
     categories: ['expo_patrimoine'],
   },
-  musee: { genres: ['expo_patrimoine'], categories: ['expo_patrimoine'] },
-  musees: { genres: ['expo_patrimoine'], categories: ['expo_patrimoine'] },
+  musee: {
+    genres: ['expo', 'expo_patrimoine'],
+    categories: ['expo_patrimoine'],
+  },
+  musees: {
+    genres: ['expo', 'expo_patrimoine'],
+    categories: ['expo_patrimoine'],
+  },
   patrimoine: {
-    genres: ['expo_patrimoine', 'patrimoine_retro'],
+    genres: ['expo', 'expo_patrimoine', 'patrimoine_retro'],
     categories: ['expo_patrimoine'],
   },
   'expo patrimoine': {
-    genres: ['expo_patrimoine'],
+    genres: ['expo', 'expo_patrimoine'],
     categories: ['expo_patrimoine'],
   },
   visite: { categories: ['expo_patrimoine'] },
@@ -343,7 +359,7 @@ function normalize(text: string): string {
     .toLowerCase()
     .normalize('NFD')
     .replace(/\p{M}/gu, '')
-    .replace(/['']/g, ' ')
+    .replace(/['’‘]/g, ' ')
     .replace(/œ/g, 'oe')
     .replace(/æ/g, 'ae')
     .replace(/[-_/]+/g, ' ')
@@ -400,6 +416,37 @@ export type TasteSignals = {
   textTokens: string[];
 };
 
+
+/** Classic Levenshtein distance (light lexicon typo tolerance). */
+function levenshtein(a: string, b: string): number {
+  if (a === b) return 0;
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  let curr = new Array<number>(b.length + 1);
+  for (let i = 0; i < a.length; i++) {
+    curr[0] = i + 1;
+    for (let j = 0; j < b.length; j++) {
+      const cost = a[i] === b[j] ? 0 : 1;
+      curr[j + 1] = Math.min(prev[j + 1]! + 1, curr[j]! + 1, prev[j]! + cost);
+    }
+    [prev, curr] = [curr, prev];
+  }
+  return prev[b.length]!;
+}
+
+/** Fuzzy lexicon hit for a single unigram (keys ≥5 chars, distance ≤1). */
+function fuzzyLexiconUnigram(token: string): LexTarget | undefined {
+  const nu = normalize(token);
+  if (nu.length < 5) return undefined;
+  for (const key of Object.keys(SYNONYM_LEXICON)) {
+    const nk = normalize(key);
+    if (nk.includes(' ') || nk.length < 5) continue;
+    if (levenshtein(nu, nk) <= 1) return SYNONYM_LEXICON[key];
+  }
+  return undefined;
+}
+
 /** Expand free-text tastes into genre/category signals + text tokens. */
 export function expandTastes(tastes: string): TasteSignals {
   const genres = new Set<string>();
@@ -438,9 +485,13 @@ export function expandTastes(tastes: string): TasteSignals {
   const unigrams = tokenizeTastes(tastes);
   const bigrams = extractBigrams(tastes);
 
-  // 2) Map leftover unigrams / bigrams through lexicon
+  // 2) Map leftover unigrams / bigrams through lexicon (+ light typos on unigrams)
   for (const u of unigrams) {
-    applyTarget(SYNONYM_LEXICON[u] ?? SYNONYM_LEXICON[normalize(u)]);
+    applyTarget(
+      SYNONYM_LEXICON[u] ??
+        SYNONYM_LEXICON[normalize(u)] ??
+        fuzzyLexiconUnigram(u),
+    );
   }
   for (const bg of bigrams) {
     applyTarget(SYNONYM_LEXICON[bg] ?? SYNONYM_LEXICON[normalize(bg)]);
@@ -589,10 +640,12 @@ function scoreItemAgainst(
     }
   }
 
+  const catWeight =
+    signals.genres.size > 0 ? W_CATEGORIE_SOFT : W_CATEGORIE;
   for (const c of signals.categories) {
     if (fields.mainCats.includes(c)) {
-      score += W_CATEGORIE;
-      strong += W_CATEGORIE;
+      score += catWeight;
+      strong += catWeight;
       hitCat = true;
       break;
     }
@@ -645,6 +698,75 @@ function computeIdfDampening(
   return out;
 }
 
+
+/** First taste-genre slug that exactly matches an item genre slug. */
+function primaryMatchedGenre(
+  fields: ItemFields,
+  genreIntents: Iterable<string>,
+): string | null {
+  for (const g of genreIntents) {
+    if (!g) continue;
+    if (fields.genreSlugs.some((s) => s === g)) return g;
+  }
+  return null;
+}
+
+/**
+ * Round-robin across primary matched genre intents so one genre cannot
+ * monopolize all top-N slots. Then fill leftovers from remaining high scores.
+ */
+function diversifyByGenreIntents(
+  scored: ScoredDayItem[],
+  fieldsOf: (item: DayItem) => ItemFields,
+  genreIntents: string[],
+  topN: number,
+): ScoredDayItem[] {
+  if (genreIntents.length < 2 || scored.length === 0) {
+    return scored.slice(0, topN);
+  }
+
+  const buckets = new Map<string, ScoredDayItem[]>();
+  for (const g of genreIntents) buckets.set(g, []);
+
+  for (const entry of scored) {
+    const primary = primaryMatchedGenre(fieldsOf(entry.item), genreIntents);
+    if (primary && buckets.has(primary)) {
+      buckets.get(primary)!.push(entry);
+    }
+  }
+
+  const picked = new Set<ScoredDayItem>();
+  const out: ScoredDayItem[] = [];
+
+  while (out.length < topN) {
+    let progressed = false;
+    for (const g of genreIntents) {
+      const bucket = buckets.get(g)!;
+      while (bucket.length > 0) {
+        const next = bucket.shift()!;
+        if (picked.has(next)) continue;
+        picked.add(next);
+        out.push(next);
+        progressed = true;
+        break;
+      }
+      if (out.length >= topN) break;
+    }
+    if (!progressed) break;
+  }
+
+  if (out.length < topN) {
+    for (const entry of scored) {
+      if (out.length >= topN) break;
+      if (picked.has(entry)) continue;
+      picked.add(entry);
+      out.push(entry);
+    }
+  }
+
+  return out;
+}
+
 export type ScoredDayItem = {
   item: DayItem;
   score: number;
@@ -691,7 +813,24 @@ export function recommendForTastes(
   });
 
   const strongOnes = scored.filter((s) => s.strong >= STRONG_SIGNAL);
-  const pool = strongOnes.length > 0 ? strongOnes : scored;
+  const pool = (strongOnes.length > 0 ? strongOnes : scored).map(
+    ({ item, score }) => ({ item, score }),
+  );
 
-  return pool.slice(0, limit).map(({ item, score }) => ({ item, score }));
+  const genreIntents = Array.from(signals.genres);
+  if (genreIntents.length >= 2) {
+    // Reuse fields already computed for each item index
+    const fieldsByRef = new Map<DayItem, ItemFields>();
+    for (let i = 0; i < items.length; i++) {
+      fieldsByRef.set(items[i]!, fieldsList[i]!);
+    }
+    return diversifyByGenreIntents(
+      pool,
+      (item) => fieldsByRef.get(item) ?? itemFields(item),
+      genreIntents,
+      limit,
+    );
+  }
+
+  return pool.slice(0, limit);
 }
