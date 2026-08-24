@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { DM_Sans, Fraunces } from 'next/font/google';
 import SiteNav from '@/components/SiteNav';
+import Providers from '@/components/Providers';
+import { isGoogleAuthConfigured } from '@/auth';
 import './globals.css';
 
 const sans = DM_Sans({
@@ -27,8 +29,10 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className={`${sans.variable} ${display.variable} font-sans antialiased`}>
-        <SiteNav />
-        {children}
+        <Providers googleAuthEnabled={isGoogleAuthConfigured}>
+          <SiteNav />
+          {children}
+        </Providers>
       </body>
     </html>
   );

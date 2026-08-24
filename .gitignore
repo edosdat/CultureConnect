@@ -6,3 +6,8 @@
 *.log
 *.tsbuildinfo
 /.next-stable/
+
+# env
+.env
+.env.local
+.env*.local

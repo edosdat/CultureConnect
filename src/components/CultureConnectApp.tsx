@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import type {
   DayItem,
   EventWithDetails,
@@ -8,6 +9,8 @@ import type {
   Lieu,
   ProgrammeWithContext,
 } from '@/lib/types';
+import { recommendForTastes } from '@/lib/reco';
+import { useTastesUi } from './Providers';
 import {
   countItemsByDay,
   genresForSelection,
@@ -75,6 +78,9 @@ export default function CultureConnectApp({
   initialYear,
   initialMonth,
 }: Props) {
+  const { data: session } = useSession();
+  const { openTastes } = useTastesUi();
+  const tastes = session?.user?.tastes?.trim() ?? '';
   const paris = useMemo(() => parisParts(), []);
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
@@ -197,6 +203,11 @@ export default function CultureConnectApp({
     query,
   ]);
 
+  const pourToiItems = useMemo(() => {
+    if (!tastes) return [];
+    return recommendForTastes(listItems, tastes, 10).map((s) => s.item);
+  }, [listItems, tastes]);
+
   const venueOptions = useMemo(() => {
     const byId = new Map<string, Lieu>();
     for (const iso of range.days) {
@@ -226,7 +237,9 @@ export default function CultureConnectApp({
   ]);
 
   const selectedItem =
-    listItems.find((i) => i.key === selectedItemKey) ?? null;
+    listItems.find((i) => i.key === selectedItemKey) ??
+    pourToiItems.find((i) => i.key === selectedItemKey) ??
+    null;
 
   const showDateLabels = range.days.length > 1;
 
@@ -442,6 +455,53 @@ export default function CultureConnectApp({
         </div>
 
         {showMonthPanel && timeScope !== 'date' && monthPanel}
+
+        {session?.user && tastes && pourToiItems.length > 0 && (
+          <section className="space-y-3 rounded-card-lg border border-culture-soft/80 bg-culture-surface/80 p-3 sm:p-4">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-[0.15em] text-culture-terracotta">
+                  Pour toi
+                </p>
+                <h2 className="font-display text-xl text-culture-ink sm:text-2xl">
+                  Suggestions selon tes goûts
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={openTastes}
+                className="text-sm font-medium text-culture-terracotta hover:underline"
+              >
+                Modifier mes goûts
+              </button>
+            </div>
+            <SeanceGrid
+              items={pourToiItems}
+              showDate={showDateLabels}
+              onSelectItem={setSelectedItemKey}
+              onSelectVenue={handleSelectVenue}
+              empty={null}
+            />
+          </section>
+        )}
+
+        {session?.user && !tastes && (
+          <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-5 py-6 text-center sm:px-6">
+            <p className="font-display text-lg text-culture-ink">
+              Dis-nous ce que tu aimes
+            </p>
+            <p className="mt-1 text-sm text-culture-muted">
+              On te proposera des sorties «&nbsp;Pour toi&nbsp;» dans l&apos;agenda.
+            </p>
+            <button
+              type="button"
+              onClick={openTastes}
+              className="mt-4 rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-culture-clay"
+            >
+              Remplir mes goûts
+            </button>
+          </div>
+        )}
 
         <SeanceGrid
           items={listItems}

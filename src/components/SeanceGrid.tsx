@@ -10,7 +10,7 @@ type Props = {
   showDate?: boolean;
   onSelectItem: (key: string) => void;
   onSelectVenue?: (lieuId: string) => void;
-  empty: ReactNode;
+  empty?: ReactNode;
 };
 
 /** Soft-collapse: same event_id on same day → one card +N créneaux. */
