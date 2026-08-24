@@ -536,6 +536,7 @@ export default function CultureConnectApp({
       onSelectDay={handleSelectDay}
       onPrevMonth={goPrevMonth}
       onNextMonth={goNextMonth}
+      embedded
     />
   );
 

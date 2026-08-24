@@ -59,7 +59,7 @@ export default function MonthCalendarDrawer({
   if (!mounted || !shouldRender) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-40" role="presentation">
+    <div className="fixed inset-0 z-40 overflow-x-hidden" role="presentation">
       <button
         type="button"
         tabIndex={-1}
@@ -75,22 +75,24 @@ export default function MonthCalendarDrawer({
         aria-modal="true"
         aria-label={title}
         className={
-          'absolute flex flex-col bg-culture-surface shadow-xl ' +
+          'absolute flex min-w-0 w-full max-w-full flex-col overflow-x-hidden bg-culture-surface shadow-xl ' +
           'inset-x-0 bottom-0 max-h-[70vh] rounded-t-3xl border border-culture-line ' +
-          'md:inset-y-0 md:left-auto md:right-0 md:max-h-none md:w-full md:max-w-md md:rounded-none md:border-y-0 md:border-l md:border-r-0 ' +
+          'md:inset-y-0 md:left-auto md:right-0 md:max-h-none md:max-w-md md:rounded-none md:border-y-0 md:border-l md:border-r-0 ' +
           'transition-transform duration-200 ease-out ' +
           (visible
             ? 'translate-y-0 md:translate-x-0'
             : 'translate-y-full md:translate-y-0 md:translate-x-full')
         }
       >
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-culture-line px-4 py-3">
+        <div className="flex min-w-0 shrink-0 items-center justify-between gap-3 border-b border-culture-line px-3 py-2.5 sm:px-4 sm:py-3">
           <div className="min-w-0">
             <div
               aria-hidden
               className="mx-auto mb-2 h-1 w-10 rounded-full bg-culture-line md:hidden"
             />
-            <p className="font-display text-lg text-culture-ink">{title}</p>
+            <p className="truncate font-display text-base text-culture-ink sm:text-lg">
+              {title}
+            </p>
           </div>
           <button
             type="button"
@@ -100,7 +102,9 @@ export default function MonthCalendarDrawer({
             Fermer
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">{children}</div>
+        <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-2 sm:p-4">
+          {children}
+        </div>
       </div>
     </div>,
     document.body,
