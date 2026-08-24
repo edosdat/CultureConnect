@@ -34,6 +34,7 @@ import SeanceGrid from './SeanceGrid';
 import TimeScopeBar from './TimeScopeBar';
 import SearchOmnibox from './SearchOmnibox';
 import EventDetail from './EventDetail';
+import LoginNudge from './LoginNudge';
 import { itemSearchBlob, matchesSearch } from '@/lib/searchText';
 
 type Props = {
@@ -248,33 +249,27 @@ export default function CultureConnectApp({
     if (!fid) return [];
     const pool = [...listItems, ...pourToiItems];
     const seen = new Set<string>();
-    const out: DayItem[] = [];
+    const out: Extract<DayItem, { kind: 'programme' }>[] = [];
     for (const i of pool) {
-      if (i.key === selectedItem.key) continue;
       if (i.kind !== 'programme') continue;
       if ((i.programme.film_id || '').trim() !== fid) continue;
       if (seen.has(i.key)) continue;
       seen.add(i.key);
       out.push(i);
     }
-    // Prefer one row per venue (earliest time)
-    const byVenue = new Map<string, DayItem>();
-    for (const i of out) {
-      if (i.kind !== 'programme') continue;
-      const vid = i.lieu?.lieu_id || i.programme.lieu_id || i.key;
-      const prev = byVenue.get(vid);
-      if (!prev) {
-        byVenue.set(vid, i);
-        continue;
-      }
-      const t = i.programme.heure_debut || '';
-      const pt =
-        prev.kind === 'programme' ? prev.programme.heure_debut || '' : '';
-      if (t && (!pt || t < pt)) byVenue.set(vid, i);
-    }
-    return Array.from(byVenue.values()).sort((a, b) =>
-      formatLieuAffiche(a.lieu).localeCompare(formatLieuAffiche(b.lieu), 'fr'),
-    );
+    out.sort((a, b) => {
+      const la = formatLieuAffiche(a.lieu);
+      const lb = formatLieuAffiche(b.lieu);
+      const byLieu = la.localeCompare(lb, 'fr');
+      if (byLieu !== 0) return byLieu;
+      const da = a.programme.date || a.dayIso;
+      const db = b.programme.date || b.dayIso;
+      if (da !== db) return da.localeCompare(db);
+      return (a.programme.heure_debut || '').localeCompare(
+        b.programme.heure_debut || '',
+      );
+    });
+    return out;
   }, [selectedItem, listItems, pourToiItems]);
 
   const showDateLabels = range.days.length > 1;
@@ -492,6 +487,8 @@ export default function CultureConnectApp({
 
         {showMonthPanel && timeScope !== 'date' && monthPanel}
 
+        <LoginNudge />
+
         {session?.user && tastes && pourToiItems.length > 0 && (
           <section className="space-y-3 rounded-card-lg border border-culture-soft/80 bg-culture-surface/80 p-3 sm:p-4">
             <div className="flex flex-wrap items-end justify-between gap-2">
@@ -512,7 +509,6 @@ export default function CultureConnectApp({
               </button>
             </div>
             <SeanceGrid
-              collapseFilmsById={Boolean(query.trim())}
               items={pourToiItems}
               showDate={showDateLabels}
               onSelectItem={setSelectedItemKey}
@@ -541,7 +537,6 @@ export default function CultureConnectApp({
         )}
 
         <SeanceGrid
-              collapseFilmsById={Boolean(query.trim())}
           items={listItems}
           showDate={showDateLabels}
           onSelectItem={setSelectedItemKey}

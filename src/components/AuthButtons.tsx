@@ -83,12 +83,18 @@ export default function AuthButtons() {
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => signIn('google', { callbackUrl: '/' })}
-      className="ml-auto shrink-0 rounded-full bg-culture-terracotta px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-culture-clay sm:px-4 sm:text-sm"
-    >
-      Se connecter avec Google
-    </button>
+    <div className="ml-auto flex shrink-0 flex-col items-end gap-0.5">
+      <button
+        type="button"
+        title="Pour des suggestions perso"
+        onClick={() => signIn('google', { callbackUrl: '/' })}
+        className="rounded-full bg-culture-terracotta px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-culture-clay sm:px-4 sm:text-sm"
+      >
+        Se connecter avec Google
+      </button>
+      <span className="hidden text-[10px] leading-none text-culture-muted sm:inline">
+        Pour des suggestions perso
+      </span>
+    </div>
   );
 }
