@@ -86,11 +86,12 @@ export default function AuthButtons() {
     <div className="ml-auto flex shrink-0 flex-col items-end gap-0.5">
       <button
         type="button"
-        title="Pour des suggestions perso"
+        title="Se connecter avec Google"
         onClick={() => signIn('google', { callbackUrl: '/' })}
         className="rounded-full bg-culture-terracotta px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-culture-clay sm:px-4 sm:text-sm"
       >
-        Se connecter avec Google
+        <span className="sm:hidden">Connexion</span>
+        <span className="hidden sm:inline">Se connecter avec Google</span>
       </button>
       <span className="hidden text-[10px] leading-none text-culture-muted sm:inline">
         Pour des suggestions perso
