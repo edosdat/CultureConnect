@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import type {
   DayItem,
@@ -78,11 +78,29 @@ export default function CultureConnectApp({
   const [query, setQuery] = useState('');
   const [showMonthPanel, setShowMonthPanel] = useState(false);
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
+  const monthPanelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const next = defaultTimeScope();
     if (next !== 'weekend') setTimeScope(next);
   }, []);
+
+  // Click outside the month calendar clears the selected day (back to whole month).
+  useEffect(() => {
+    if (timeScope !== 'date' || !selectedDay) return;
+    function onPointerDown(e: PointerEvent) {
+      const root = monthPanelRef.current;
+      if (!root) return;
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (root.contains(target)) return;
+      // Keep day if interacting with event detail / cards is handled by not wrapping those in monthPanelRef
+      setSelectedDay(null);
+    }
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [timeScope, selectedDay]);
+
 
   const range = useMemo(
     () =>
@@ -399,31 +417,27 @@ export default function CultureConnectApp({
     }
   }
 
-  function clearDayIfOutsideMonth(nextYear: number, nextMonth: number) {
-    if (timeScope !== 'date') return;
-    setSelectedDay((prev) => {
-      if (!prev) return null;
-      const [y, m] = prev.split('-').map(Number);
-      if (y === nextYear && m === nextMonth) return prev;
-      return null;
-    });
-    setSelectedItemKey(null);
-  }
-
+  /** Month arrows always switch to Date scope so the list matches the calendar month. */
   function goPrevMonth() {
     const nextYear = month === 1 ? year - 1 : year;
     const nextMonth = month === 1 ? 12 : month - 1;
+    setTimeScope('date');
+    setSelectedDay(null);
+    setSelectedItemKey(null);
     setYear(nextYear);
     setMonth(nextMonth);
-    clearDayIfOutsideMonth(nextYear, nextMonth);
+    setShowMonthPanel(true);
   }
 
   function goNextMonth() {
     const nextYear = month === 12 ? year + 1 : year;
     const nextMonth = month === 12 ? 1 : month + 1;
+    setTimeScope('date');
+    setSelectedDay(null);
+    setSelectedItemKey(null);
     setYear(nextYear);
     setMonth(nextMonth);
-    clearDayIfOutsideMonth(nextYear, nextMonth);
+    setShowMonthPanel(true);
   }
 
   function handleSelectDay(iso: string) {
@@ -466,7 +480,7 @@ export default function CultureConnectApp({
             : contextLabel;
 
   const monthPanel = (
-    <div className="max-w-md">
+    <div className="max-w-md" ref={monthPanelRef}>
       <MonthCalendar
         year={year}
         month={month}

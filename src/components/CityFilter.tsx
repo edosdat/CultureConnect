@@ -70,7 +70,7 @@ export default function CityFilter({
             className="max-w-full min-w-[10rem] flex-1 rounded-full border border-culture-line bg-culture-surface px-3 py-1.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta sm:max-w-xs"
             aria-label="Filtrer par ville"
           >
-            <option value="">Toute l'agglo</option>
+            <option value="">Toute l&apos;agglo</option>
             {communes.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -94,7 +94,7 @@ export default function CityFilter({
             onClick={() => onChange(null)}
             className="text-xs text-culture-terracotta hover:underline"
           >
-            Toute l'agglo
+            Toute l&apos;agglo
           </button>
         )}
       </div>
@@ -104,7 +104,7 @@ export default function CityFilter({
         className="w-full rounded-xl border border-culture-line bg-culture-surface px-3 py-2 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
         aria-label="Filtrer par ville"
       >
-        <option value="">Toute l'agglo</option>
+        <option value="">Toute l&apos;agglo</option>
         {communes.map((c) => (
           <option key={c} value={c}>
             {c}
