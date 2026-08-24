@@ -30,7 +30,9 @@ export default function AuthButtons() {
 
   if (status === 'loading') {
     return (
-      <span className="hidden text-xs text-culture-muted sm:inline">…</span>
+      <span className="inline-flex h-9 w-9 items-center justify-center text-xs text-culture-muted sm:h-auto sm:w-auto">
+        …
+      </span>
     );
   }
 
@@ -38,7 +40,7 @@ export default function AuthButtons() {
     const name = session.user.name?.split(' ')[0] || 'Toi';
     const image = session.user.image;
     return (
-      <div className="ml-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
+      <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
         <button
           type="button"
           onClick={openTastes}
@@ -76,21 +78,34 @@ export default function AuthButtons() {
 
   if (!enabled) {
     return (
-      <p className="ml-auto max-w-[11rem] text-right text-[11px] leading-snug text-culture-muted sm:max-w-none sm:text-xs">
+      <p className="max-w-[6.5rem] text-right text-[10px] leading-snug text-culture-muted sm:max-w-none sm:text-xs">
         Connexion Google bientôt disponible
       </p>
     );
   }
 
   return (
-    <div className="ml-auto flex shrink-0 flex-col items-end gap-0.5">
+    <div className="flex shrink-0 flex-col items-end gap-0.5">
       <button
         type="button"
         title="Se connecter avec Google"
+        aria-label="Se connecter avec Google"
         onClick={() => signIn('google', { callbackUrl: '/' })}
-        className="rounded-full bg-culture-terracotta px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-culture-clay sm:px-4 sm:text-sm"
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-culture-terracotta text-white shadow-sm transition hover:bg-culture-clay sm:h-auto sm:w-auto sm:px-4 sm:py-1.5 sm:text-sm sm:font-semibold"
       >
-        <span className="sm:hidden">Connexion</span>
+        <svg
+          className="h-4 w-4 sm:hidden"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
         <span className="hidden sm:inline">Se connecter avec Google</span>
       </button>
       <span className="hidden text-[10px] leading-none text-culture-muted sm:inline">
