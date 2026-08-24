@@ -3,6 +3,11 @@
 import { useEffect } from 'react';
 import type { DayItem } from '@/lib/types';
 import {
+  calendarPayloadFromDayItem,
+  downloadIcs,
+  googleCalendarUrl,
+} from '@/lib/calendar';
+import {
   formatDateRange,
   formatHeure,
   formatItemPrix,
@@ -33,6 +38,8 @@ export default function EventDetail({ item, onClose, onSelectVenue }: Props) {
   useEscapeClose(Boolean(item), onClose);
 
   if (!item) return null;
+
+  const cal = calendarPayloadFromDayItem(item);
 
   if (item.kind === 'programme') {
     const { programme: p, evenement: ev, lieu } = item;
@@ -183,16 +190,37 @@ export default function EventDetail({ item, onClose, onSelectVenue }: Props) {
               </section>
             )}
 
-            {url && (
-              <a
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-medium text-white hover:bg-culture-clay"
-              >
-                Voir la source
-              </a>
-            )}
+            <div className="flex flex-wrap gap-2">
+              {cal && (
+                <>
+                  <a
+                    href={googleCalendarUrl(cal)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-medium text-white hover:bg-culture-clay"
+                  >
+                    Google Agenda
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => downloadIcs(cal)}
+                    className="inline-flex items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
+                  >
+                    Télécharger (.ics)
+                  </button>
+                </>
+              )}
+              {url && (
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
+                >
+                  Voir la source
+                </a>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -318,16 +346,37 @@ export default function EventDetail({ item, onClose, onSelectVenue }: Props) {
             </section>
           )}
 
-          {event.url_source && (
-            <a
-              href={event.url_source}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-medium text-white hover:bg-culture-clay"
-            >
-              Voir la source
-            </a>
-          )}
+          <div className="flex flex-wrap gap-2">
+            {cal && (
+              <>
+                <a
+                  href={googleCalendarUrl(cal)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-medium text-white hover:bg-culture-clay"
+                >
+                  Google Agenda
+                </a>
+                <button
+                  type="button"
+                  onClick={() => downloadIcs(cal)}
+                  className="inline-flex items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
+                >
+                  Télécharger (.ics)
+                </button>
+              </>
+            )}
+            {event.url_source && (
+              <a
+                href={event.url_source}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
+              >
+                Voir la source
+              </a>
+            )}
+          </div>
         </div>
       </div>
     </div>
