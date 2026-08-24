@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import type { ArtisteWithDates, GenreLegend } from '@/lib/types';
 import { labelGenre, splitUpcomingPast } from '@/lib/artists';
 import { formatDateFr, formatHeure } from '@/lib/labels';
@@ -55,7 +56,21 @@ function DateRow({
   );
 }
 
+
+function useEscapeClose(active: boolean, onClose: () => void) {
+  useEffect(() => {
+    if (!active) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [active, onClose]);
+}
+
 export default function ArtisteDetail({ artiste, legend, onClose }: Props) {
+  useEscapeClose(Boolean(artiste), onClose);
+
   if (!artiste) return null;
 
   const { upcoming, past } = splitUpcomingPast(artiste.dates);
