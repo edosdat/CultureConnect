@@ -26,6 +26,8 @@ type Props = {
   earliestHeure?: string;
   /** Soft-collapse film: short cities summary */
   citiesSummary?: string;
+  /** Tighter card for in-modal suggestions (Aussi ce soir). */
+  compact?: boolean;
 };
 
 function categoryLabelFor(item: DayItem): string {
@@ -64,6 +66,7 @@ export default function SeanceCard({
   salleCount = 0,
   earliestHeure = '',
   citiesSummary = '',
+  compact = false,
 }: Props) {
   const catLabel = categoryLabelFor(item);
   const imageUrl =
@@ -127,12 +130,16 @@ export default function SeanceCard({
     <button
       type="button"
       onClick={() => onSelect(item.key)}
-      className="group flex w-full min-w-0 flex-col overflow-hidden rounded-card border border-culture-line bg-culture-surface text-left shadow-card transition duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md"
+      className={
+        'group flex w-full min-w-0 flex-col overflow-hidden rounded-card border border-culture-line bg-culture-surface text-left shadow-card transition duration-200 ease-out ' +
+        (compact ? 'hover:shadow-md' : 'hover:-translate-y-0.5 hover:shadow-md')
+      }
     >
       {imageUrl ? (
         <div
           className={
-            'relative h-24 w-full overflow-hidden ' + catGradient(catLabel)
+            (compact ? 'relative h-16 w-full overflow-hidden ' : 'relative h-24 w-full overflow-hidden ') +
+            catGradient(catLabel)
           }
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -157,7 +164,8 @@ export default function SeanceCard({
 
       <div
         className={
-          'flex min-w-0 flex-1 flex-col gap-1 p-3.5 sm:p-4 ' +
+          'flex min-w-0 flex-1 flex-col gap-1 ' +
+          (compact ? 'p-2.5 sm:p-3 ' : 'p-3.5 sm:p-4 ') +
           (!imageUrl ? 'border-l-4 border-culture-line' : '')
         }
         style={!imageUrl ? accentStyle : undefined}
@@ -174,7 +182,7 @@ export default function SeanceCard({
             </span>
           )}
         </div>
-        <h3 className="font-display text-lg leading-snug text-culture-ink line-clamp-2">
+        <h3 className={'font-display leading-snug text-culture-ink line-clamp-2 ' + (compact ? 'text-base' : 'text-lg')}>
           {title}
         </h3>
         {!imageUrl && catLabel ? <CategoryPill label={catLabel} /> : null}

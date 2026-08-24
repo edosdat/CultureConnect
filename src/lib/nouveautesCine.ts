@@ -1,0 +1,319 @@
+/**
+ * Wednesday « Nouveautés ciné » pack + « Aussi ce soir » vivant picks.
+ * films.csv has no date_sortie — novelty is inferred from programme dates only.
+ */
+
+import { mainFromCategorie, mainFromGenreSlug, type MainCategoryId } from './categories';
+import {
+  isCinemaPeriodAggregate,
+  isPublishableEvent,
+  isPublishableProgrammeName,
+} from './publishable';
+import { addDaysIso, parisParts } from './timeScope';
+import type { DayItem, ProgrammeWithContext } from './types';
+
+const VIVANT_MAINS: ReadonlySet<MainCategoryId> = new Set([
+  'musique',
+  'theatre_danse',
+  'festival',
+  'enfants_famille',
+]);
+
+const MAX_PACK = 8;
+const MAX_AUSSI = 3;
+
+function isProgrammePublishable(p: ProgrammeWithContext): boolean {
+  if (
+    !isPublishableProgrammeName(p.programme.nom_item, {
+      notes: p.programme.notes,
+      description: p.programme.description_item,
+    })
+  ) {
+    return false;
+  }
+  if (
+    p.evenement &&
+    !isPublishableEvent(p.evenement) &&
+    !isCinemaPeriodAggregate(p.evenement)
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function filmIdOfProgramme(p: ProgrammeWithContext): string {
+  return (p.programme.film_id || '').trim();
+}
+
+function heureOfProgramme(p: ProgrammeWithContext): string {
+  const h = (p.programme.heure_debut || '').trim();
+  return h.length >= 4 ? h.slice(0, 5) : '';
+}
+
+function parisHeureMinute(now = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Paris',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(now);
+  const hour = parts.find((p) => p.type === 'hour')?.value ?? '00';
+  const minute = parts.find((p) => p.type === 'minute')?.value ?? '00';
+  return `${hour}:${minute}`;
+}
+
+function isUpcomingSeance(
+  date: string,
+  heure: string,
+  todayIso: string,
+  nowHeure: string,
+): boolean {
+  if (!date) return false;
+  if (date > todayIso) return true;
+  if (date < todayIso) return false;
+  if (!heure) return true;
+  return heure >= nowHeure;
+}
+
+function toDayItem(p: ProgrammeWithContext): DayItem {
+  return {
+    kind: 'programme',
+    key: `p:${p.programme.programme_id}`,
+    dayIso: p.programme.date,
+    programme: p.programme,
+    evenement: p.evenement,
+    lieu: p.lieu,
+  };
+}
+
+export function filmIdOfItem(item: DayItem): string {
+  if (item.kind !== 'programme') return '';
+  return (item.programme.film_id || '').trim();
+}
+
+export function mainOfDayItem(item: DayItem): MainCategoryId | null {
+  const categorie =
+    item.kind === 'programme'
+      ? item.evenement?.categorie ?? ''
+      : item.evenement.categorie;
+  const genre =
+    item.kind === 'programme'
+      ? item.programme.genre || item.evenement?.genre || ''
+      : item.evenement.genre || '';
+  return mainFromCategorie(categorie) ?? mainFromGenreSlug(genre);
+}
+
+export function isCinemaDayItem(item: DayItem): boolean {
+  if (filmIdOfItem(item)) return true;
+  return mainOfDayItem(item) === 'cinema';
+}
+
+export function isVivantDayItem(item: DayItem): boolean {
+  if (filmIdOfItem(item)) return false;
+  const main = mainOfDayItem(item);
+  return main != null && VIVANT_MAINS.has(main);
+}
+
+function itemHeure(item: DayItem): string {
+  if (item.kind === 'programme') {
+    const h = (item.programme.heure_debut || '').trim();
+    return h.length >= 4 ? h.slice(0, 5) : '';
+  }
+  const h = (item.evenement.heure_debut || '').trim();
+  return h.length >= 4 ? h.slice(0, 5) : '';
+}
+
+function eventKeyOf(item: DayItem): string {
+  if (item.kind === 'programme') {
+    return (
+      item.programme.event_id ||
+      item.programme.programme_id ||
+      item.key
+    );
+  }
+  return item.evenement.event_id || item.key;
+}
+
+function normalizeCommune(c: string | null | undefined): string {
+  return (c || '').trim().toLocaleLowerCase('fr');
+}
+
+type FilmBucket = {
+  filmId: string;
+  rows: ProgrammeWithContext[];
+};
+
+/**
+ * 4–8 densifiable cinema DayItems (all Wednesday séances of selected film_ids).
+ * Empty when nothing qualifies — caller must not render an orphan title.
+ */
+export function nouveautesCine(
+  programme: ProgrammeWithContext[],
+  mercrediIso: string,
+  now = new Date(),
+): DayItem[] {
+  if (!mercrediIso) return [];
+
+  const { iso: todayIso } = parisParts(now);
+  const nowHeure = parisHeureMinute(now);
+  const weekStart = addDaysIso(mercrediIso, -2);
+  const weekEnd = addDaysIso(mercrediIso, 4);
+
+  const byFilm = new Map<string, FilmBucket>();
+  for (const p of programme) {
+    const filmId = filmIdOfProgramme(p);
+    if (!filmId) continue;
+    if (!isProgrammePublishable(p)) continue;
+    const date = (p.programme.date || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
+    let bucket = byFilm.get(filmId);
+    if (!bucket) {
+      bucket = { filmId, rows: [] };
+      byFilm.set(filmId, bucket);
+    }
+    bucket.rows.push(p);
+  }
+
+  type Candidate = {
+    filmId: string;
+    wedRows: ProgrammeWithContext[];
+    salleCount: number;
+    seanceCount: number;
+    earliestHeure: string;
+    tier: 1 | 2;
+  };
+
+  const primary: Candidate[] = [];
+  const fill: Candidate[] = [];
+
+  for (const { filmId, rows } of byFilm.values()) {
+    const sorted = [...rows].sort((a, b) => {
+      const d = a.programme.date.localeCompare(b.programme.date);
+      if (d !== 0) return d;
+      return heureOfProgramme(a).localeCompare(heureOfProgramme(b));
+    });
+    const firstOverallDate = sorted[0]?.programme.date || '';
+    const weekRows = sorted.filter(
+      (p) => p.programme.date >= weekStart && p.programme.date <= weekEnd,
+    );
+    const firstWeekDate = weekRows[0]?.programme.date || '';
+    const wedRows = sorted.filter((p) => p.programme.date === mercrediIso);
+    if (wedRows.length === 0) continue;
+
+    // Novelty proxy without date_sortie: first séance in programme is this Wednesday.
+    if (firstOverallDate !== mercrediIso) continue;
+    if (firstWeekDate && firstWeekDate !== mercrediIso) continue;
+
+    const upcomingWed = wedRows.filter((p) =>
+      isUpcomingSeance(p.programme.date, heureOfProgramme(p), todayIso, nowHeure),
+    );
+    const alreadyStarted = wedRows.some((p) => {
+      const h = heureOfProgramme(p);
+      if (p.programme.date !== todayIso) return false;
+      if (!h) return false;
+      return h < nowHeure;
+    });
+
+    const venues = new Set<string>();
+    let earliestHeure = '';
+    for (const p of wedRows) {
+      const lieuId = p.programme.lieu_id || p.lieu?.lieu_id || '';
+      if (lieuId) venues.add(lieuId);
+      const h = heureOfProgramme(p);
+      if (h && (!earliestHeure || h < earliestHeure)) earliestHeure = h;
+    }
+
+    const candidate: Candidate = {
+      filmId,
+      wedRows,
+      salleCount: venues.size,
+      seanceCount: wedRows.length,
+      earliestHeure,
+      tier: upcomingWed.length > 0 ? 1 : 2,
+    };
+
+    if (upcomingWed.length > 0) {
+      primary.push(candidate);
+    } else if (alreadyStarted) {
+      fill.push(candidate);
+    }
+  }
+
+  const byScore = (a: Candidate, b: Candidate) => {
+    if (b.salleCount !== a.salleCount) return b.salleCount - a.salleCount;
+    if (b.seanceCount !== a.seanceCount) return b.seanceCount - a.seanceCount;
+    const h = (a.earliestHeure || '99:99').localeCompare(
+      b.earliestHeure || '99:99',
+    );
+    if (h !== 0) return h;
+    return a.filmId.localeCompare(b.filmId);
+  };
+  primary.sort(byScore);
+  fill.sort(byScore);
+
+  const picked: Candidate[] = primary.slice(0, MAX_PACK);
+  if (picked.length < 4) {
+    for (const c of fill) {
+      if (picked.length >= MAX_PACK) break;
+      picked.push(c);
+    }
+  }
+
+  const items: DayItem[] = [];
+  for (const c of picked) {
+    for (const p of c.wedRows) {
+      items.push(toDayItem(p));
+    }
+  }
+  return items;
+}
+
+/**
+ * 1–3 vivant items from tonight's Ce soir list.
+ * Same commune if any, else all. Empty → omit the section.
+ */
+export function pickAussiCeSoir(
+  ceSoirItems: DayItem[],
+  openItem: DayItem,
+  limit = MAX_AUSSI,
+): DayItem[] {
+  const openFilmId = filmIdOfItem(openItem);
+  const openKey = openItem.key;
+  const openEventId =
+    openItem.kind === 'programme'
+      ? openItem.programme.event_id || ''
+      : openItem.evenement.event_id || '';
+  const openCommune = normalizeCommune(openItem.lieu?.commune);
+
+  const vivant = ceSoirItems.filter((item) => {
+    if (item.key === openKey) return false;
+    if (openFilmId && filmIdOfItem(item) === openFilmId) return false;
+    if (openEventId && eventKeyOf(item) === openEventId) return false;
+    if (!isVivantDayItem(item)) return false;
+    return true;
+  });
+
+  const sameCommune = openCommune
+    ? vivant.filter((item) => normalizeCommune(item.lieu?.commune) === openCommune)
+    : [];
+  const pool = sameCommune.length > 0 ? sameCommune : vivant;
+
+  const sorted = [...pool].sort((a, b) => {
+    const ha = itemHeure(a) || '99:99';
+    const hb = itemHeure(b) || '99:99';
+    const byHeure = ha.localeCompare(hb);
+    if (byHeure !== 0) return byHeure;
+    return a.key.localeCompare(b.key);
+  });
+
+  const seen = new Set<string>();
+  const out: DayItem[] = [];
+  for (const item of sorted) {
+    const k = eventKeyOf(item);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(item);
+    if (out.length >= limit) break;
+  }
+  return out;
+}

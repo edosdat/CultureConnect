@@ -7,6 +7,7 @@ import {
   downloadIcs,
   googleCalendarUrl,
 } from '@/lib/calendar';
+import SeanceCard from './SeanceCard';
 import {
   formatDateRange,
   formatHeure,
@@ -24,6 +25,9 @@ type Props = {
   onSelectVenue?: (lieuId: string) => void;
   /** All screenings of the same film_id in current scope (incl. selected) */
   relatedItems?: DayItem[];
+  /** 1–3 vivant suggestions for a cinema fiche (same modal). */
+  aussiCeSoirItems?: DayItem[];
+  onSelectItem?: (key: string) => void;
 };
 
 function useEscapeClose(active: boolean, onClose: () => void) {
@@ -118,7 +122,38 @@ function FilmSeancesList({
   );
 }
 
-export default function EventDetail({ item, onClose, onSelectVenue, relatedItems = [] }: Props) {
+function AussiCeSoirSection({
+  items,
+  onSelectItem,
+}: {
+  items: DayItem[];
+  onSelectItem?: (key: string) => void;
+}) {
+  if (items.length === 0 || !onSelectItem) return null;
+  return (
+    <section>
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
+        Aussi ce soir
+      </h3>
+      <ul className="mt-2 space-y-2">
+        {items.map((it) => (
+          <li key={it.key}>
+            <SeanceCard item={it} compact onSelect={onSelectItem} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+export default function EventDetail({
+  item,
+  onClose,
+  onSelectVenue,
+  relatedItems = [],
+  aussiCeSoirItems = [],
+  onSelectItem,
+}: Props) {
   useEscapeClose(Boolean(item), onClose);
 
   if (!item) return null;
@@ -307,6 +342,11 @@ export default function EventDetail({ item, onClose, onSelectVenue, relatedItems
               </section>
             )}
 
+            <AussiCeSoirSection
+              items={aussiCeSoirItems}
+              onSelectItem={onSelectItem}
+            />
+
             <div className="flex flex-wrap gap-2">
               {cal && (
                 <>
@@ -462,6 +502,11 @@ export default function EventDetail({ item, onClose, onSelectVenue, relatedItems
               </p>
             </section>
           )}
+
+          <AussiCeSoirSection
+            items={aussiCeSoirItems}
+            onSelectItem={onSelectItem}
+          />
 
           <div className="flex flex-wrap gap-2">
             {cal && (

@@ -18,6 +18,12 @@ import {
   itemsForDay,
   lieuxForDay,
 } from '@/lib/events';
+import {
+  filmIdOfItem,
+  isCinemaDayItem,
+  nouveautesCine,
+  pickAussiCeSoir,
+} from '@/lib/nouveautesCine';
 import { genreBelongsToMains, mainFromGenreSlug } from '@/lib/categories';
 import { MONTH_NAMES_FR, formatLieuAffiche } from '@/lib/labels';
 import {
@@ -401,11 +407,60 @@ export default function CultureConnectApp({
     return recommendForTastes(listItems, tastes, 10).map((s) => s.item);
   }, [listItems, tastes]);
 
-  /** Cards after film_id / créneau collapse — source of truth for agenda count + pagination. */
-  const densifiedTotal = useMemo(
-    () => densifiedCardCount(listItems),
-    [listItems],
+  const showNouveautesPack =
+    paris.weekday === 3 &&
+    !searchingUi &&
+    (timeScope === 'aujourdhui' ||
+      timeScope === 'soir' ||
+      timeScope === 'semaine');
+
+  const nouveautesItems = useMemo(
+    () => (showNouveautesPack ? nouveautesCine(programme, paris.iso) : []),
+    [showNouveautesPack, programme, paris.iso],
   );
+
+  const packFilmIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const item of nouveautesItems) {
+      const fid = filmIdOfItem(item);
+      if (fid) ids.add(fid);
+    }
+    return ids;
+  }, [nouveautesItems]);
+
+  /** Main grid minus pack film_ids so a novelty is not listed twice. */
+  const gridItems = useMemo(() => {
+    if (packFilmIds.size === 0) return listItems;
+    return listItems.filter((item) => {
+      const fid = filmIdOfItem(item);
+      if (fid && packFilmIds.has(fid)) return false;
+      return true;
+    });
+  }, [listItems, packFilmIds]);
+
+  const ceSoirTonight = useMemo(() => {
+    const items = itemsForDay(
+      programme,
+      events,
+      paris.iso,
+      [],
+      [],
+      [],
+      true,
+    );
+    return items.filter(startsAtOrAfter19);
+  }, [programme, events, paris.iso]);
+
+  /** Cards after film_id / créneau collapse — pack included, not doubled. */
+  const packCardCount = useMemo(
+    () => densifiedCardCount(nouveautesItems),
+    [nouveautesItems],
+  );
+  const gridCardCount = useMemo(
+    () => densifiedCardCount(gridItems),
+    [gridItems],
+  );
+  const densifiedTotal = packCardCount + gridCardCount;
 
   // Reset infinite-scroll window when scope / filters / query change.
   useEffect(() => {
@@ -473,13 +528,20 @@ export default function CultureConnectApp({
   const selectedItem =
     listItems.find((i) => i.key === selectedItemKey) ??
     pourToiItems.find((i) => i.key === selectedItemKey) ??
+    nouveautesItems.find((i) => i.key === selectedItemKey) ??
+    ceSoirTonight.find((i) => i.key === selectedItemKey) ??
     null;
+
+  const aussiCeSoirItems = useMemo(() => {
+    if (!selectedItem || !isCinemaDayItem(selectedItem)) return [];
+    return pickAussiCeSoir(ceSoirTonight, selectedItem, 3);
+  }, [selectedItem, ceSoirTonight]);
 
   const relatedFilmItems = useMemo(() => {
     if (!selectedItem || selectedItem.kind !== 'programme') return [];
     const fid = (selectedItem.programme.film_id || '').trim();
     if (!fid) return [];
-    const pool = [...listItems, ...pourToiItems];
+    const pool = [...listItems, ...pourToiItems, ...nouveautesItems];
     const seen = new Set<string>();
     const out: Extract<DayItem, { kind: 'programme' }>[] = [];
     for (const i of pool) {
@@ -502,7 +564,7 @@ export default function CultureConnectApp({
       );
     });
     return out;
-  }, [selectedItem, listItems, pourToiItems]);
+  }, [selectedItem, listItems, pourToiItems, nouveautesItems]);
 
   const showDateLabels = range.days.length > 1;
 
@@ -584,7 +646,7 @@ export default function CultureConnectApp({
 
   const monthLabel = `${MONTH_NAMES_FR[month - 1]} ${year}`;
   const n = densifiedTotal;
-  const shown = Math.min(visibleCount, n);
+  const shown = packCardCount + Math.min(visibleCount, gridCardCount);
   const countLabel =
     n === 0
       ? `0 ${sortieWord(0)}`
@@ -786,15 +848,30 @@ export default function CultureConnectApp({
           </div>
         )}
 
+        {packCardCount > 0 ? (
+          <section className="space-y-2">
+            <h2 className="text-sm font-medium text-culture-terracotta">
+              Nouveautés ciné
+            </h2>
+            <SeanceGrid
+              items={nouveautesItems}
+              showDate={false}
+              onSelectItem={setSelectedItemKey}
+              onSelectVenue={handleSelectVenue}
+              empty={null}
+            />
+          </section>
+        ) : null}
+
         <SeanceGrid
-          items={listItems}
+          items={gridItems}
           showDate={showDateLabels}
           onSelectItem={setSelectedItemKey}
           onSelectVenue={handleSelectVenue}
           visibleCount={visibleCount}
           onLoadMore={handleLoadMore}
           empty={
-            searchingUi ? (
+            packCardCount > 0 ? null : searchingUi ? (
               <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-6 py-12 text-center">
                 <p className="font-display text-xl text-culture-ink">
                   Aucun résultat pour « {queryTrimmed} »
@@ -861,6 +938,8 @@ export default function CultureConnectApp({
         onClose={() => setSelectedItemKey(null)}
         onSelectVenue={handleSelectVenue}
         relatedItems={relatedFilmItems}
+        aussiCeSoirItems={aussiCeSoirItems}
+        onSelectItem={setSelectedItemKey}
       />
     </div>
   );
