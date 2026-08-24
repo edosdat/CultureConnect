@@ -14,6 +14,7 @@ import { useTastesUi } from './Providers';
 import {
   countItemsByDay,
   genresForSelection,
+  itemsForDateRange,
   itemsForDay,
   lieuxForDay,
 } from '@/lib/events';
@@ -38,7 +39,10 @@ import TimeScopeBar from './TimeScopeBar';
 import SearchOmnibox from './SearchOmnibox';
 import EventDetail from './EventDetail';
 import LoginNudge from './LoginNudge';
-import { itemSearchBlob, matchesSearch } from '@/lib/searchText';
+import {
+  cachedNormalizedBlob,
+  matchesNormalizedHaystack,
+} from '@/lib/searchText';
 
 type Props = {
   events: EventWithDetails[];
@@ -69,6 +73,7 @@ function startsAtOrAfter19(item: DayItem): boolean {
 }
 
 const AGENDA_PAGE_SIZE = 20;
+const SEARCH_DEBOUNCE_MS = 250;
 
 export default function CultureConnectApp({
   events,
@@ -92,6 +97,7 @@ export default function CultureConnectApp({
   const [selectedLieuId, setSelectedLieuId] = useState<string | null>(null);
   const [selectedCommune, setSelectedCommune] = useState<string | null>('Toulouse');
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [showMonthPanel, setShowMonthPanel] = useState(false);
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
   const [visibleCount, setVisibleCount] = useState(AGENDA_PAGE_SIZE);
@@ -100,7 +106,26 @@ export default function CultureConnectApp({
     setTimeScope(defaultTimeScope());
   }, []);
 
-  const searching = query.trim().length > 0;
+  // Input stays instant; filtering/range wait ~250ms. Clearing flushes immediately.
+  useEffect(() => {
+    if (query.trim() === '') {
+      setDebouncedQuery('');
+      return;
+    }
+    const id = window.setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(id);
+  }, [query]);
+
+  function handleQueryChange(next: string) {
+    setQuery(next);
+    if (next.trim() === '') setDebouncedQuery('');
+  }
+
+  const queryTrimmed = query.trim();
+  /** Immediate: chips, empty copy, count line, city chip look. */
+  const searchingUi = queryTrimmed.length > 0;
+  /** Debounced: date range, commune skip, matching. */
+  const searching = debouncedQuery.trim().length > 0;
 
   /** Furthest YYYY-MM-DD in loaded programme + events (for search widen). */
   const dataMaxIso = useMemo(() => {
@@ -118,24 +143,22 @@ export default function CultureConnectApp({
     return max;
   }, [programme, events]);
 
+  const scopeRange = useMemo(
+    () =>
+      resolveScopeRange(timeScope, selectedDay, new Date(), {
+        year,
+        month,
+      }),
+    [timeScope, selectedDay, year, month],
+  );
+
   const range = useMemo(() => {
     // Search: ignore TimeScope for the date range — all upcoming dates.
     if (searching) {
       return upcomingRange(paris.iso, dataMaxIso, 90);
     }
-    return resolveScopeRange(timeScope, selectedDay, new Date(), {
-      year,
-      month,
-    });
-  }, [
-    searching,
-    paris.iso,
-    dataMaxIso,
-    timeScope,
-    selectedDay,
-    year,
-    month,
-  ]);
+    return scopeRange;
+  }, [searching, paris.iso, dataMaxIso, scopeRange]);
 
   const contextLabel = useMemo(
     () => scopeContextLabel(timeScope, range),
@@ -182,6 +205,12 @@ export default function CultureConnectApp({
    * When a commune is selected, pass explicit matching lieu_ids.
    */
   const lieuIdsForFilters = useMemo(() => {
+    // Search: skip default commune (Toulouse) so agglo hits like Lacroix-Falgarde show.
+    // Explicit venue chip still applies.
+    if (searching) {
+      if (selectedLieuId) return [selectedLieuId];
+      return [];
+    }
     if (selectedLieuId) {
       if (!selectedCommune) return [selectedLieuId];
       const lieu = lieuxById.get(selectedLieuId);
@@ -202,7 +231,7 @@ export default function CultureConnectApp({
         : ['__no_match__'];
     }
     return [];
-  }, [selectedLieuId, selectedCommune, lieuxById, communeLieuIds]);
+  }, [searching, selectedLieuId, selectedCommune, lieuxById, communeLieuIds]);
 
   useEffect(() => {
     if (!selectedLieuId || !selectedCommune) return;
@@ -230,9 +259,11 @@ export default function CultureConnectApp({
 
   const availableGenreSlugs = useMemo(() => {
     if (selectedCategories.length === 0) return [];
-    const lieuIds = lieuIdsForFilters;
+    // Don't expand over the 90-day search window — genre chips aren't the search UI.
+    const days = scopeRange.days;
+    const lieuIds = searching ? [] : lieuIdsForFilters;
     const set = new Set<string>();
-    for (const iso of range.days) {
+    for (const iso of days) {
       for (const slug of genresForSelection(
         programme,
         events,
@@ -244,7 +275,14 @@ export default function CultureConnectApp({
       }
     }
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'));
-  }, [programme, events, range.days, selectedCategories, lieuIdsForFilters]);
+  }, [
+    programme,
+    events,
+    scopeRange.days,
+    selectedCategories,
+    lieuIdsForFilters,
+    searching,
+  ]);
 
   useEffect(() => {
     setSelectedGenres((prev) => {
@@ -283,10 +321,40 @@ export default function CultureConnectApp({
     selectedGenres,
   ]);
 
+  // Persist normalized search blobs across keystrokes; reset when data/legend change.
+  const searchHayCache = useMemo(
+    () => new Map<string, string>(),
+    [programme, events, genresLegend],
+  );
+
   const listItems = useMemo(() => {
     const lieuIds = lieuIdsForFilters;
+    let items: DayItem[];
+
+    if (searching) {
+      items = itemsForDateRange(
+        programme,
+        events,
+        range.startIso,
+        range.endIso,
+        selectedCategories,
+        lieuIds,
+        selectedGenres,
+      );
+      const q = debouncedQuery.trim();
+      if (q) {
+        items = items.filter((item) =>
+          matchesNormalizedHaystack(
+            cachedNormalizedBlob(searchHayCache, item, genresLegend),
+            q,
+          ),
+        );
+      }
+      return items;
+    }
+
     const seen = new Set<string>();
-    let items: DayItem[] = [];
+    items = [];
     for (const iso of range.days) {
       for (const item of itemsForDay(
         programme,
@@ -303,28 +371,24 @@ export default function CultureConnectApp({
     }
 
     // Ce soir ≥19h only when not searching (scope ignored for evening filter too).
-    if (timeScope === 'soir' && !searching) {
+    if (timeScope === 'soir') {
       items = items.filter(startsAtOrAfter19);
-    }
-
-    const q = query.trim();
-    if (q) {
-      items = items.filter((item) =>
-        matchesSearch(itemSearchBlob(item, genresLegend), q),
-      );
     }
     return items;
   }, [
     programme,
     events,
+    range.startIso,
+    range.endIso,
     range.days,
     selectedCategories,
     lieuIdsForFilters,
     selectedGenres,
-    query,
+    debouncedQuery,
     genresLegend,
     timeScope,
     searching,
+    searchHayCache,
   ]);
 
   /** Pour toi = reco ranked within the same filtered list (chips + ville + query + scope). */
@@ -359,8 +423,14 @@ export default function CultureConnectApp({
   }, []);
 
   const venueOptions = useMemo(() => {
+    if (searching) {
+      // Don't scan 90 days of lieuxForDay; venue chip still works via selectedLieuId.
+      return Array.from(lieuxById.values()).sort((a, b) =>
+        formatLieuAffiche(a).localeCompare(formatLieuAffiche(b), 'fr'),
+      );
+    }
     const byId = new Map<string, Lieu>();
-    for (const iso of range.days) {
+    for (const iso of scopeRange.days) {
       for (const lieu of lieuxForDay(
         programme,
         events,
@@ -384,9 +454,11 @@ export default function CultureConnectApp({
       formatLieuAffiche(a).localeCompare(formatLieuAffiche(b), 'fr'),
     );
   }, [
+    searching,
+    lieuxById,
     programme,
     events,
-    range.days,
+    scopeRange.days,
     selectedCategories,
     year,
     month,
@@ -439,6 +511,8 @@ export default function CultureConnectApp({
   }
 
   function handleScopeChange(scope: TimeScopeId) {
+    // Search always = all upcoming dates; keep previous chip to restore on clear.
+    if (searchingUi) return;
     setTimeScope(scope);
     setSelectedItemKey(null);
     if (scope === 'date') {
@@ -513,7 +587,7 @@ export default function CultureConnectApp({
       : shown < n
         ? `${shown} sur ${n} ${sortieWord(n)}`
         : `${n} ${sortieWord(n)}`;
-  const rangeLabel = searching ? 'toutes dates' : contextLabel;
+  const rangeLabel = searchingUi ? 'toutes dates' : contextLabel;
   const emptyScopeHint =
     timeScope === 'aujourdhui'
       ? "aujourd'hui"
@@ -561,12 +635,12 @@ export default function CultureConnectApp({
       </header>
 
       <div className="sticky top-0 z-20 -mx-4 mb-3 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:mb-5 sm:px-6">
-        <SearchOmnibox value={query} onChange={setQuery} />
+        <SearchOmnibox value={query} onChange={handleQueryChange} />
       </div>
 
       <div className="space-y-2.5 sm:space-y-4">
         <TimeScopeBar
-          scope={timeScope}
+          scope={searchingUi ? null : timeScope}
           onChange={handleScopeChange}
         />
 
@@ -620,7 +694,7 @@ export default function CultureConnectApp({
                 {countLabel}
               </span>
               {rangeLabel ? ` · ${rangeLabel}` : ''}
-              {query.trim() ? ` · « ${query.trim()} »` : ''}
+              {queryTrimmed ? ` · « ${queryTrimmed} »` : ''}
             </p>
             <div
               className={
@@ -633,6 +707,7 @@ export default function CultureConnectApp({
                 selectedCommune={selectedCommune}
                 onChange={handleCommuneChange}
                 variant="inline"
+                inactive={searchingUi}
               />
               <VenueFilter
                 lieux={venueOptions}
@@ -718,43 +793,62 @@ export default function CultureConnectApp({
           visibleCount={visibleCount}
           onLoadMore={handleLoadMore}
           empty={
-            <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-6 py-12 text-center">
-              <p className="font-display text-xl text-culture-ink">
-                Rien {emptyScopeHint}
-                {selectedCategories.length > 0 ? ' pour cette catégorie' : ''}
-              </p>
-              <p className="mt-2 text-sm text-culture-muted">
-                Essaie une autre période, une autre catégorie, ou élargis la
-                recherche.
-              </p>
-              {timeScope === 'soir' && (
+            searchingUi ? (
+              <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-6 py-12 text-center">
+                <p className="font-display text-xl text-culture-ink">
+                  Aucun résultat pour « {queryTrimmed} »
+                </p>
+                <p className="mt-2 text-sm text-culture-muted">
+                  Rien sur les dates à venir. Essaie un autre mot, ou efface la
+                  recherche.
+                </p>
                 <button
                   type="button"
-                  onClick={() => handleScopeChange('aujourdhui')}
-                  className="mt-5 mr-2 rounded-full border border-culture-terracotta bg-white px-5 py-2.5 text-sm font-semibold text-culture-terracotta shadow-sm transition hover:bg-culture-soft"
-                >
-                  Voir aujourd&apos;hui
-                </button>
-              )}
-              {timeScope !== 'weekend' && (
-                <button
-                  type="button"
-                  onClick={fallbackToWeekend}
+                  onClick={() => handleQueryChange('')}
                   className="mt-5 rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-culture-clay"
                 >
-                  Voir ce week-end
+                  Effacer la recherche
                 </button>
-              )}
-              {timeScope === 'weekend' && selectedCategories.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => handleCategoriesChange([])}
-                  className="mt-5 rounded-full border border-culture-line bg-culture-surface px-5 py-2.5 text-sm font-medium text-culture-ink hover:border-culture-terracotta/50"
-                >
-                  Toutes les catégories
-                </button>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-6 py-12 text-center">
+                <p className="font-display text-xl text-culture-ink">
+                  Rien {emptyScopeHint}
+                  {selectedCategories.length > 0 ? ' pour cette catégorie' : ''}
+                </p>
+                <p className="mt-2 text-sm text-culture-muted">
+                  Essaie une autre période, une autre catégorie, ou élargis la
+                  recherche.
+                </p>
+                {timeScope === 'soir' && (
+                  <button
+                    type="button"
+                    onClick={() => handleScopeChange('aujourdhui')}
+                    className="mt-5 mr-2 rounded-full border border-culture-terracotta bg-white px-5 py-2.5 text-sm font-semibold text-culture-terracotta shadow-sm transition hover:bg-culture-soft"
+                  >
+                    Voir aujourd&apos;hui
+                  </button>
+                )}
+                {timeScope !== 'weekend' && (
+                  <button
+                    type="button"
+                    onClick={fallbackToWeekend}
+                    className="mt-5 rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-culture-clay"
+                  >
+                    Voir ce week-end
+                  </button>
+                )}
+                {timeScope === 'weekend' && selectedCategories.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => handleCategoriesChange([])}
+                    className="mt-5 rounded-full border border-culture-line bg-culture-surface px-5 py-2.5 text-sm font-medium text-culture-ink hover:border-culture-terracotta/50"
+                  >
+                    Toutes les catégories
+                  </button>
+                )}
+              </div>
+            )
           }
         />
       </div>

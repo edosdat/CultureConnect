@@ -8,6 +8,8 @@ type Props = {
   onChange: (commune: string | null) => void;
   /** Compact chip that expands select (home P0) vs stacked block */
   variant?: 'inline' | 'block';
+  /** Visually inactive (search mode: commune filter not applied). */
+  inactive?: boolean;
 };
 
 export default function CityFilter({
@@ -15,6 +17,7 @@ export default function CityFilter({
   selectedCommune,
   onChange,
   variant = 'inline',
+  inactive = false,
 }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -29,12 +32,21 @@ export default function CityFilter({
 
   if (variant === 'inline') {
     return (
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <div
+        className={
+          'flex min-w-0 flex-wrap items-center gap-2' +
+          (inactive ? ' opacity-40' : '')
+        }
+      >
         <button
           type="button"
-          onClick={() => setOpen((v) => !v)}
+          onClick={() => {
+            if (inactive) return;
+            setOpen((v) => !v);
+          }}
           aria-expanded={open}
           aria-controls="cc-city"
+          aria-disabled={inactive}
           className={
             'shrink-0 rounded-full border px-3 py-1.5 text-sm transition ' +
             (selectedCommune || open
@@ -45,7 +57,7 @@ export default function CityFilter({
           {selectedCommune ? selectedLabel : 'Ville'}
           {selectedCommune ? '' : open ? ' ▾' : ' ▸'}
         </button>
-        {selectedCommune && (
+        {selectedCommune && !inactive && (
           <button
             type="button"
             onClick={() => {
@@ -58,7 +70,7 @@ export default function CityFilter({
             ×
           </button>
         )}
-        {open && (
+        {open && !inactive && (
           <select
             id="cc-city"
             value={selectedCommune ?? ''}

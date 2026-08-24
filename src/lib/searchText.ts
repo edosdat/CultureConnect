@@ -6,13 +6,33 @@ export { normalizeForMatch };
 
 /** True if normalized haystack contains full query, or every query token. */
 export function matchesSearch(haystack: string, query: string): boolean {
+  return matchesNormalizedHaystack(normalizeForMatch(haystack), query);
+}
+
+/** Same token matching as matchesSearch; haystack is already normalizeForMatch'd. */
+export function matchesNormalizedHaystack(
+  hayNormalized: string,
+  query: string,
+): boolean {
   const q = normalizeForMatch(query).trim();
   if (!q) return true;
-  const hay = normalizeForMatch(haystack);
-  if (hay.includes(q)) return true;
+  if (hayNormalized.includes(q)) return true;
   const tokens = q.split(/\s+/).filter(Boolean);
   if (tokens.length <= 1) return false;
-  return tokens.every((t) => hay.includes(t));
+  return tokens.every((t) => hayNormalized.includes(t));
+}
+
+/** Cache normalizeForMatch(itemSearchBlob) per item.key across keystrokes. */
+export function cachedNormalizedBlob(
+  cache: Map<string, string>,
+  item: DayItem,
+  genresLegend: GenreLegend[],
+): string {
+  const existing = cache.get(item.key);
+  if (existing !== undefined) return existing;
+  const hay = normalizeForMatch(itemSearchBlob(item, genresLegend));
+  cache.set(item.key, hay);
+  return hay;
 }
 
 function genreLabel(slug: string, legend: GenreLegend[]): string {

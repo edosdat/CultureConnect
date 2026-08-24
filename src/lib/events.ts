@@ -333,6 +333,99 @@ export function itemsForMonth(
   });
 }
 
+/** First YYYY-MM-DD of an event that intersects [rangeStart, rangeEnd], or null. */
+function firstCoveredDayInRange(
+  ev: Evenement,
+  rangeStart: string,
+  rangeEnd: string,
+): string | null {
+  const start = ev.date_debut;
+  const end = ev.date_fin || ev.date_debut;
+  if (!start) return null;
+  if (end < rangeStart || start > rangeEnd) return null;
+  if (start >= rangeStart && start <= rangeEnd) return start;
+  return rangeStart;
+}
+
+/**
+ * One-pass agenda for an inclusive YYYY-MM-DD range (search / multi-day).
+ * Programme rows in range + at most one fallback card per event_id
+ * (first covered day), same idea as itemsForMonth.
+ */
+export function itemsForDateRange(
+  programme: ProgrammeWithContext[],
+  events: EventWithDetails[],
+  startIso: string,
+  endIso: string,
+  categories: string[] = [],
+  lieuIds: string[] = [],
+  genres: string[] = [],
+): DayItem[] {
+  if (!startIso || !endIso || endIso < startIso) return [];
+
+  const programmeItems: DayItem[] = programme
+    .filter((p) => {
+      const d = p.programme.date;
+      if (!d || d < startIso || d > endIso) return false;
+      return isProgrammePublishable(p);
+    })
+    .filter((p) =>
+      matchesFilters(
+        categorieOf(p),
+        lieuIdOf(p),
+        genreOfProgramme(p),
+        categories,
+        lieuIds,
+        genres,
+      ),
+    )
+    .map((p) => ({
+      kind: 'programme' as const,
+      key: `p:${p.programme.programme_id}`,
+      dayIso: p.programme.date,
+      programme: p.programme,
+      evenement: p.evenement,
+      lieu: p.lieu,
+    }));
+
+  const eventIdsWithProgrammeInRange = new Set(
+    programmeItems
+      .map((i) => (i.kind === 'programme' ? i.programme.event_id : ''))
+      .filter(Boolean),
+  );
+
+  const fallbackItems: DayItem[] = [];
+  for (const ev of events) {
+    if (!isPublishableEvent(ev)) continue;
+    if (eventIdsWithProgrammeInRange.has(ev.event_id)) continue;
+    const dayIso = firstCoveredDayInRange(ev, startIso, endIso);
+    if (!dayIso) continue;
+    const lieuId = ev.lieu_id || ev.lieu?.lieu_id || '';
+    if (
+      !matchesFilters(
+        ev.categorie,
+        lieuId,
+        ev.genre || '',
+        categories,
+        lieuIds,
+        genres,
+      )
+    )
+      continue;
+    fallbackItems.push({
+      kind: 'fallback',
+      key: `e:${ev.event_id}:${dayIso}`,
+      dayIso,
+      evenement: ev,
+      lieu: ev.lieu,
+    });
+  }
+
+  return sortDayItems([...programmeItems, ...fallbackItems], {
+    deprioritizeCinema: categories.length === 0,
+  });
+}
+
 /**
  * Calendar badges: programme items that day + fallback only if
  * spanDays <= 7 OR dayIso === date_debut (or first day in month).
