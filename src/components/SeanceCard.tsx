@@ -74,12 +74,8 @@ export default function SeanceCard({
   const title =
     item.kind === 'programme' ? item.programme.nom_item : item.evenement.titre;
 
-  const isFilmMulti = salleCount > 1;
-  const time = isFilmMulti
-    ? earliestHeure
-      ? `dès ${formatHeure(earliestHeure)}`
-      : ''
-    : item.kind === 'programme'
+  const singleTime =
+    item.kind === 'programme'
       ? formatHeure(item.programme.heure_debut) +
         (item.programme.heure_fin
           ? ` – ${formatHeure(item.programme.heure_fin)}`
@@ -96,24 +92,36 @@ export default function SeanceCard({
 
   const lieu = item.lieu;
   const isPeriod = item.kind === 'fallback';
+  const isFilmGroup = salleCount > 0;
   const cssVar = catLabel ? catCssVar(catLabel) : null;
   const accentStyle = cssVar
     ? ({ borderLeftColor: `var(${cssVar})` } as CSSProperties)
     : undefined;
 
-  const softBits: string[] = [];
-  if (salleCount > 1) softBits.push(`${salleCount} salles`);
-  if (extraSlots > 0) {
-    softBits.push(
-      salleCount > 0 ? `+${extraSlots} séances` : `+${extraSlots} créneaux`,
-    );
+  const desHeure = earliestHeure
+    ? formatHeure(earliestHeure)
+    : singleTime
+      ? singleTime.slice(0, 5)
+      : '';
+
+  let metaLine = '';
+  if (isFilmGroup) {
+    if (salleCount > 1) {
+      metaLine = desHeure
+        ? `${salleCount} salles · dès ${desHeure}`
+        : `${salleCount} salles`;
+    } else {
+      metaLine = desHeure ? `dès ${desHeure}` : '';
+    }
+  } else {
+    const softBits: string[] = [];
+    if (extraSlots > 0) softBits.push(`+${extraSlots} créneaux`);
+    metaLine = [singleTime, price, ...softBits].filter(Boolean).join(' · ');
   }
 
-  const venueLabel = isFilmMulti
-    ? citiesSummary || (lieu ? formatLieuAffiche(lieu) : '')
-    : lieu
-      ? formatLieuAffiche(lieu)
-      : '';
+  const showVenueLine = Boolean(lieu) && (!isFilmGroup || salleCount === 1);
+  const showCities =
+    isFilmGroup && salleCount > 1 && Boolean(citiesSummary);
 
   return (
     <button
@@ -170,35 +178,45 @@ export default function SeanceCard({
           {title}
         </h3>
         {!imageUrl && catLabel ? <CategoryPill label={catLabel} /> : null}
-        <p className="text-sm text-culture-ink">
-          {[time, price].filter(Boolean).join(' · ')}
-          {softBits.length > 0 ? ` · ${softBits.join(' · ')}` : ''}
-        </p>
-        {venueLabel && (
+        {metaLine ? (
+          <p className="text-sm text-culture-ink">{metaLine}</p>
+        ) : null}
+        {showCities ? (
+          <p className="text-xs text-culture-muted">{citiesSummary}</p>
+        ) : null}
+        {showVenueLine && lieu && (
           <p className="mt-auto pt-1 text-sm text-culture-muted">
-            {!isFilmMulti && lieu && onSelectVenue ? (
-              <span
-                role="link"
-                tabIndex={0}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelectVenue(lieu.lieu_id);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onSelectVenue(lieu.lieu_id);
-                  }
-                }}
-                className="cursor-pointer hover:text-culture-terracotta hover:underline"
-                title="Filtrer sur ce lieu"
-              >
-                {venueLabel}
-              </span>
-            ) : (
-              <span>{venueLabel}</span>
-            )}
+            <span
+              role={onSelectVenue ? 'link' : undefined}
+              tabIndex={onSelectVenue ? 0 : undefined}
+              onClick={
+                onSelectVenue
+                  ? (e) => {
+                      e.stopPropagation();
+                      onSelectVenue(lieu.lieu_id);
+                    }
+                  : undefined
+              }
+              onKeyDown={
+                onSelectVenue
+                  ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onSelectVenue(lieu.lieu_id);
+                      }
+                    }
+                  : undefined
+              }
+              className={
+                onSelectVenue
+                  ? 'cursor-pointer hover:text-culture-terracotta hover:underline'
+                  : undefined
+              }
+              title={onSelectVenue ? 'Filtrer sur ce lieu' : undefined}
+            >
+              {formatLieuAffiche(lieu)}
+            </span>
           </p>
         )}
       </div>
