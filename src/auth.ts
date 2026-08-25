@@ -1,7 +1,6 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
 import {
-  hasPersistedTasteState,
   readAccountTaste,
   writeAccountTaste,
 } from '@/lib/accountTasteStore';
@@ -75,13 +74,16 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   ],
   session: { strategy: 'jwt' },
   callbacks: {
-    async jwt({ token, trigger, session, user }) {
+    async jwt({ token, trigger, session, user, profile }) {
       // Identity first so tokenUser() keys the store on this sign-in.
-      if (user) {
-        if (typeof user.email === 'string' && user.email) token.email = user.email;
-        // token.sub may stay for NextAuth; it is never a store key.
-        if (typeof user.id === 'string' && user.id) token.sub = user.id;
-      }
+      const profileEmail = (profile as { email?: string } | undefined)?.email;
+      const email =
+        (typeof user?.email === 'string' && user.email) ||
+        (typeof profileEmail === 'string' && profileEmail) ||
+        undefined;
+      if (email) token.email = email;
+      if (user && typeof user.id === 'string' && user.id) token.sub = user.id;
+      // token.sub may stay for NextAuth; it is never a store key.
 
       if (trigger === 'update' && session) {
         const incoming = session as {
@@ -144,16 +146,14 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
     async session({ session, token }) {
       if (session.user) {
         if (typeof token.sub === 'string') session.user.id = token.sub;
-        let state = token.tasteState;
-        if (!hasPersistedTasteState(state)) {
-          const stored = await readAccountTaste({
-            email:
-              typeof token.email === 'string'
-                ? token.email
-                : session.user.email,
-          });
-          if (stored) state = stored;
-        }
+        // Prefer durable store over JWT: JWT may omit tasteState (size)
+        // while Neon has the email row. Guest-empty login skips merge POST.
+        const stored = await readAccountTaste({
+          email:
+            (typeof token.email === 'string' && token.email) ||
+            session.user.email,
+        });
+        const state = stored ?? token.tasteState;
         session.user.tasteState = state;
         session.user.tastes =
           (state && typeof state.tastesText === 'string' && state.tastesText) ||
