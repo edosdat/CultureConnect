@@ -34,9 +34,24 @@ export type AccountTasteUser = {
   email?: string | null;
 };
 
-export function accountTasteKey(user: AccountTasteUser): string | null {
-  const raw = (user.id || user.email || '').trim().toLowerCase();
+function normalizeTasteKey(value?: string | null): string | null {
+  const raw = (value || '').trim().toLowerCase();
   return raw || null;
+}
+
+/** Stable key: Google email (lowercased). Id is only a fallback if email is missing. */
+export function accountTasteKey(user: AccountTasteUser): string | null {
+  return normalizeTasteKey(user.email) || normalizeTasteKey(user.id);
+}
+
+/** Email first, then id if present and different — never logs the values. */
+function accountTasteLookupKeys(user: AccountTasteUser): string[] {
+  const email = normalizeTasteKey(user.email);
+  const id = normalizeTasteKey(user.id);
+  const keys: string[] = [];
+  if (email) keys.push(email);
+  if (id && id !== email) keys.push(id);
+  return keys;
 }
 
 export function hasPersistedTasteState(
@@ -241,12 +256,7 @@ async function writeTastePostgres(
   }
 }
 
-/** Postgres first; else file then cookie whose key matches the signed-in user. */
-export async function readAccountTaste(
-  user: AccountTasteUser,
-): Promise<AccountTasteState | null> {
-  const key = accountTasteKey(user);
-  if (!key) return null;
+async function readTasteByKey(key: string): Promise<AccountTasteState | null> {
   const fromPg = await readTastePostgres(key);
   if (fromPg) return fromPg;
   const fromFile = await readTasteFile(key);
@@ -254,16 +264,30 @@ export async function readAccountTaste(
   return readTasteCookie(key);
 }
 
-/** Postgres (if env) + cookie cache. File optional. Never deletes a row. */
+/** Email key first, then id key if different. Return first hit. Never deletes a row. */
+export async function readAccountTaste(
+  user: AccountTasteUser,
+): Promise<AccountTasteState | null> {
+  const keys = accountTasteLookupKeys(user);
+  for (const key of keys) {
+    const hit = await readTasteByKey(key);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+/** UPSERT email key, and id key if present and different (same state). Never deletes. */
 export async function writeAccountTaste(
   user: AccountTasteUser,
   state: AccountTasteState,
 ): Promise<void> {
-  const key = accountTasteKey(user);
-  if (!key) return;
-  await writeTastePostgres(key, state);
-  await writeTasteFile(key, state);
-  await writeTasteCookie(key, state);
+  const keys = accountTasteLookupKeys(user);
+  if (keys.length === 0) return;
+  for (const key of keys) {
+    await writeTastePostgres(key, state);
+    await writeTasteFile(key, state);
+  }
+  await writeTasteCookie(keys[0], state);
 }
 
 export async function resolveAccountTaste(
