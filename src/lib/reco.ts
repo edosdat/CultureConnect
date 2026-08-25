@@ -929,7 +929,10 @@ function neighborMatch(
 }
 
 function profileHasPrecise(profile: TasteProfile): boolean {
-  return Object.keys(profile.genres).length > 0 || Object.keys(profile.moods).length > 0;
+  return (
+    Object.values(profile.genres).some((w) => w > 0) ||
+    Object.values(profile.moods).some((w) => w > 0)
+  );
 }
 
 function scoreItemFromProfile(
@@ -1024,8 +1027,12 @@ function itemMatchesAnyNeighbor(
   profile: TasteProfile,
 ): boolean {
   if (isCinemaFields(fields)) return false;
-  const keys = [...Object.keys(profile.moods), ...Object.keys(profile.genres)];
-  for (const key of keys) {
+  const keys: Array<[string, number]> = [
+    ...Object.entries(profile.moods),
+    ...Object.entries(profile.genres),
+  ];
+  for (const [key, w] of keys) {
+    if (w <= 0) continue;
     const targets = CINE_VIVANT_NEIGHBORS[key];
     if (targets && neighborMatch(fields, targets)) return true;
   }
@@ -1149,10 +1156,10 @@ export function recommendForProfile(
   if (items.length === 0) return [];
   const profile = state.profile;
   const hasProfile =
-    Object.keys(profile.cats).length > 0 ||
-    Object.keys(profile.genres).length > 0 ||
-    Object.keys(profile.moods).length > 0 ||
-    Object.keys(profile.communes).length > 0;
+    Object.values(profile.cats).some((w) => w > 0) ||
+    Object.values(profile.genres).some((w) => w > 0) ||
+    Object.values(profile.moods).some((w) => w > 0) ||
+    Object.values(profile.communes).some((w) => w > 0);
   const tastes = (state.tastesText || '').trim();
   if (!hasProfile && !tastes) return [];
 
@@ -1212,7 +1219,9 @@ export function recommendForProfile(
     fieldsByRef.set(items[i]!, fieldsList[i]!);
   }
   const fieldsOf = (item: DayItem) => fieldsByRef.get(item) ?? itemFields(item);
-  const genreIntents = Object.keys(profile.genres);
+  const genreIntents = Object.entries(profile.genres)
+    .filter(([, w]) => w > 0)
+    .map(([k]) => k);
 
   return applyVivantQuota(scored, fieldsOf, state, genreIntents, topN);
 }

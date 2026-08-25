@@ -5,10 +5,16 @@ import {
   concatTastesText,
   makeSignal,
   mergeSignalLists,
+  overlayZeroWeights,
+  parseGuestStore,
   parseTasteState,
   rebuildTasteState,
+  unzeroKeysTouchedBySignal,
+  wipeProfileKey,
   type AccountTasteState,
+  type ProfileBucket,
   type Signal,
+  type TasteProfile,
   type TrackPayload,
 } from '@/lib/signals';
 
@@ -27,6 +33,23 @@ function isSignalLike(v: unknown): v is Signal {
     Array.isArray(s.genres) &&
     Array.isArray(s.moods)
   );
+}
+
+function isWipe(
+  v: unknown,
+): v is { bucket: ProfileBucket; key: string } {
+  if (!v || typeof v !== 'object') return false;
+  const o = v as { bucket?: unknown; key?: unknown };
+  return (
+    (o.bucket === 'cats' || o.bucket === 'genres' || o.bucket === 'moods') &&
+    typeof o.key === 'string' &&
+    o.key.trim().length > 0
+  );
+}
+
+function parseIncomingProfile(raw: unknown): TasteProfile | null {
+  if (!raw || typeof raw !== 'object') return null;
+  return parseGuestStore({ events: [], profile: raw }).profile;
 }
 
 function normalizeIncomingSignal(raw: Signal | TrackPayload): Signal {
@@ -60,6 +83,8 @@ function stateFromTokenUser(user: {
         parsed.signalsRecent,
         parsed.tastesText,
         parsed.tastesSetAt,
+        ACCOUNT_CAP,
+        parsed.profile,
       ).profile;
     }
     return parsed;
@@ -90,6 +115,8 @@ export async function POST(req: Request) {
     signals?: unknown;
     merge?: unknown;
     tastesText?: unknown;
+    wipe?: unknown;
+    guestProfile?: unknown;
   };
 
   const current = stateFromTokenUser(session.user);
@@ -100,31 +127,62 @@ export async function POST(req: Request) {
     tastesText && tastesText !== current.tastesText
       ? new Date().toISOString()
       : current.tastesSetAt;
+  const wipe = isWipe(incoming.wipe) ? incoming.wipe : undefined;
+  const guestProfile = parseIncomingProfile(incoming.guestProfile);
 
   let signals = current.signalsRecent;
+  const incomingSignals: Signal[] = [];
 
   if (Array.isArray(incoming.signals)) {
-    const guest = incoming.signals
-      .filter(isSignalLike)
-      .map(normalizeIncomingSignal);
-    signals = mergeSignalLists(signals, guest, ACCOUNT_CAP);
+    incomingSignals.push(
+      ...incoming.signals.filter(isSignalLike).map(normalizeIncomingSignal),
+    );
+    signals = mergeSignalLists(signals, incomingSignals, ACCOUNT_CAP);
   } else if (
     incoming.signal &&
     (isSignalLike(incoming.signal) || isTrackPayload(incoming.signal))
   ) {
-    signals = mergeSignalLists(
-      signals,
-      [normalizeIncomingSignal(incoming.signal as Signal | TrackPayload)],
-      ACCOUNT_CAP,
+    incomingSignals.push(
+      normalizeIncomingSignal(incoming.signal as Signal | TrackPayload),
     );
-  } else if (!extraText) {
+    signals = mergeSignalLists(signals, incomingSignals, ACCOUNT_CAP);
+  } else if (!extraText && !wipe && !guestProfile) {
     return NextResponse.json(
       { error: 'signal ou signals requis' },
       { status: 400 },
     );
   }
 
-  const tasteState = rebuildTasteState(signals, tastesText, tastesSetAt);
+  // Overlay-prev: unzero keys the user is adding back, then keep remaining 0s.
+  let overlayPrev = current.profile;
+  if (incomingSignals.length > 0) {
+    for (const s of incomingSignals) {
+      overlayPrev = unzeroKeysTouchedBySignal(overlayPrev, s);
+    }
+  }
+
+  let tasteState = rebuildTasteState(
+    signals,
+    tastesText,
+    tastesSetAt,
+    ACCOUNT_CAP,
+    overlayPrev,
+  );
+
+  if (wipe) {
+    tasteState = {
+      ...tasteState,
+      profile: wipeProfileKey(tasteState.profile, wipe.bucket, wipe.key),
+    };
+  }
+
+  // Guest wipe wins last on login merge.
+  if (guestProfile) {
+    tasteState = {
+      ...tasteState,
+      profile: overlayZeroWeights(tasteState.profile, guestProfile),
+    };
+  }
 
   const updated = await unstable_update({
     user: {

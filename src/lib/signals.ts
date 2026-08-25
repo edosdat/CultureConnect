@@ -281,6 +281,78 @@ export function mappedCategorie(raw: string | undefined): MainCategoryId | null 
   );
 }
 
+export type ProfileBucket = 'cats' | 'genres' | 'moods';
+
+const PROFILE_BUCKETS: readonly ProfileBucket[] = ['cats', 'genres', 'moods'];
+
+function copyProfile(profile: TasteProfile): TasteProfile {
+  return {
+    cats: { ...profile.cats },
+    genres: { ...profile.genres },
+    moods: { ...profile.moods },
+    communes: { ...profile.communes },
+  };
+}
+
+/** Re-apply keys that were wiped to 0 so recalc/addWeight cannot resurrect them. */
+export function overlayZeroWeights(
+  next: TasteProfile,
+  prev?: TasteProfile | null,
+): TasteProfile {
+  const out = copyProfile(next);
+  if (!prev) return out;
+  for (const bucket of PROFILE_BUCKETS) {
+    for (const [key, weight] of Object.entries(prev[bucket])) {
+      if (weight === 0) out[bucket][key] = 0;
+    }
+  }
+  return out;
+}
+
+export function wipeProfileKey(
+  profile: TasteProfile,
+  bucket: ProfileBucket,
+  key: string,
+): TasteProfile {
+  const k = key.trim();
+  if (!k) return copyProfile(profile);
+  return { ...profile, [bucket]: { ...profile[bucket], [k]: 0 } };
+}
+
+export function unzeroProfileKey(
+  profile: TasteProfile,
+  bucket: ProfileBucket,
+  key: string,
+): TasteProfile {
+  const map = { ...profile[bucket] };
+  delete map[key];
+  return { ...profile, [bucket]: map };
+}
+
+export function unzeroKeysTouchedBySignal(
+  profile: TasteProfile,
+  signal: Signal,
+): TasteProfile {
+  let next = profile;
+  const main = mappedCategorie(signal.categorie);
+  if (main) next = unzeroProfileKey(next, 'cats', main);
+  for (const g of signal.genres) next = unzeroProfileKey(next, 'genres', g);
+  for (const m of signal.moods) next = unzeroProfileKey(next, 'moods', m);
+  return next;
+}
+
+export function profileHasZeroWeights(profile?: TasteProfile | null): boolean {
+  if (!profile) return false;
+  for (const bucket of PROFILE_BUCKETS) {
+    if (Object.values(profile[bucket]).some((w) => w === 0)) return true;
+  }
+  return false;
+}
+
+function hasPositiveWeights(map: Record<string, number>): boolean {
+  return Object.values(map).some((n) => n > 0);
+}
+
 export function applySignalToProfile(profile: TasteProfile, signal: Signal): void {
   const w = signal.weight;
   const main = mappedCategorie(signal.categorie);
@@ -330,12 +402,13 @@ export function rebuildTasteState(
   tastesText?: string,
   tastesSetAt?: string,
   cap = ACCOUNT_CAP,
+  prevProfile?: TasteProfile | null,
 ): AccountTasteState {
   const signalsRecent = signals.slice(-cap);
   const text = (tastesText || '').trim() || undefined;
   return {
     signalsRecent,
-    profile: recalcProfile(signalsRecent, text),
+    profile: overlayZeroWeights(recalcProfile(signalsRecent, text), prevProfile),
     tastesText: text,
     tastesSetAt: text ? tastesSetAt : tastesSetAt,
   };
@@ -584,10 +657,10 @@ export function hasScorableState(state: AccountTasteState | null | undefined): b
   const p = state.profile;
   if ((state.tastesText || '').trim()) return true;
   return (
-    Object.keys(p.cats).length > 0 ||
-    Object.keys(p.genres).length > 0 ||
-    Object.keys(p.moods).length > 0 ||
-    Object.keys(p.communes).length > 0
+    hasPositiveWeights(p.cats) ||
+    hasPositiveWeights(p.genres) ||
+    hasPositiveWeights(p.moods) ||
+    hasPositiveWeights(p.communes)
   );
 }
 

@@ -6,6 +6,7 @@ import type { DayItem, GenreLegend, Lieu } from '@/lib/types';
 import type { AgendaDetailResponse, AgendaListResponse } from '@/lib/slim';
 import { recommendForProfile, recommendForTastes } from '@/lib/reco';
 import { extractMoods, hasScorableState } from '@/lib/signals';
+import { profileChips, reasonLineForState } from '@/lib/pourToi';
 import { useTastesUi } from './Providers';
 import { useSignals } from './SignalsProvider';
 import { densifiedCardCount } from '@/lib/densify';
@@ -122,7 +123,7 @@ export default function CultureConnectApp({
 }: Props) {
   const { data: session } = useSession();
   const { openTastes } = useTastesUi();
-  const { track, trackItem } = useSignals();
+  const { track, trackItem, wipeKey, addPhrase } = useSignals();
   const tasteState = session?.user?.tasteState ?? null;
   const tastes =
     tasteState?.tastesText?.trim() || session?.user?.tastes?.trim() || '';
@@ -136,6 +137,7 @@ export default function CultureConnectApp({
   const [selectedLieuId, setSelectedLieuId] = useState<string | null>(null);
   const [selectedCommune, setSelectedCommune] = useState<string | null>('Toulouse');
   const [query, setQuery] = useState('');
+  const [chipDraft, setChipDraft] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [phraseTags, setPhraseTags] = useState<PhraseTags | null>(null);
   const [showMonthPanel, setShowMonthPanel] = useState(false);
@@ -367,11 +369,32 @@ export default function CultureConnectApp({
   /** Pour toi = profile first (clicks), tastesText last; same filtered listItems. */
   const pourToiItems = useMemo(() => {
     if (tasteState && hasScorableState(tasteState)) {
-      return recommendForProfile(listItems, tasteState, 10).map((s) => s.item);
+      return recommendForProfile(listItems, tasteState, 3).map((s) => s.item);
     }
-    if (tastes) return recommendForTastes(listItems, tastes, 10).map((s) => s.item);
+    if (tastes) return recommendForTastes(listItems, tastes, 3).map((s) => s.item);
     return [];
   }, [listItems, tastes, tasteState]);
+
+  const pourToiKeys = useMemo(
+    () => new Set(pourToiItems.map((item) => item.key)),
+    [pourToiItems],
+  );
+  const pourToiFilmIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const item of pourToiItems) {
+      const fid = filmIdOfItem(item);
+      if (fid) ids.add(fid);
+    }
+    return ids;
+  }, [pourToiItems]);
+  const pourToiChips = useMemo(
+    () => profileChips(tasteState?.profile, 8),
+    [tasteState],
+  );
+  const pourToiReason = useMemo(
+    () => reasonLineForState(tasteState),
+    [tasteState],
+  );
 
   const packFilmIds = useMemo(() => {
     const ids = new Set<string>();
@@ -382,17 +405,29 @@ export default function CultureConnectApp({
     return ids;
   }, [nouveautesItems]);
 
-  /** Main grid minus pack film_ids so a novelty is not listed twice. */
+  /** Main grid minus pack + Pour toi keys/film_ids so nothing is listed twice. */
   const gridItems = useMemo(() => {
-    if (packFilmIds.size === 0) return listItems;
+    if (
+      packFilmIds.size === 0 &&
+      pourToiKeys.size === 0 &&
+      pourToiFilmIds.size === 0
+    ) {
+      return listItems;
+    }
     return listItems.filter((item) => {
+      if (pourToiKeys.has(item.key)) return false;
       const fid = filmIdOfItem(item);
       if (fid && packFilmIds.has(fid)) return false;
+      if (fid && pourToiFilmIds.has(fid)) return false;
       return true;
     });
-  }, [listItems, packFilmIds]);
+  }, [listItems, packFilmIds, pourToiKeys, pourToiFilmIds]);
 
   /** Cards after film_id / créneau collapse — pack included, not doubled. */
+  const pourToiCardCount = useMemo(
+    () => densifiedCardCount(pourToiItems),
+    [pourToiItems],
+  );
   const packCardCount = useMemo(
     () => densifiedCardCount(nouveautesItems),
     [nouveautesItems],
@@ -403,8 +438,8 @@ export default function CultureConnectApp({
   );
   const haveAllItems = listItems.length >= total;
   const densifiedTotal = haveAllItems
-    ? packCardCount + gridCardCount
-    : Math.max(densifiedTotalApi, packCardCount + gridCardCount);
+    ? pourToiCardCount + packCardCount + gridCardCount
+    : Math.max(densifiedTotalApi, pourToiCardCount + packCardCount + gridCardCount);
 
   // Reset infinite-scroll window when scope / filters / query change.
   useEffect(() => {
@@ -615,7 +650,7 @@ export default function CultureConnectApp({
 
   const monthLabel = `${MONTH_NAMES_FR[month - 1]} ${year}`;
   const n = densifiedTotal;
-  const shown = packCardCount + Math.min(visibleCount, gridCardCount);
+  const shown = pourToiCardCount + packCardCount + Math.min(visibleCount, gridCardCount);
   const countLabel =
     n === 0
       ? `0 ${sortieWord(0)}`
@@ -776,22 +811,59 @@ export default function CultureConnectApp({
 
         {session?.user && pourToiItems.length > 0 && (
           <section className="space-y-3 rounded-card-lg border border-culture-soft/80 bg-culture-surface/80 p-3 sm:p-4">
-            <div className="flex flex-wrap items-end justify-between gap-2">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.15em] text-culture-terracotta">
-                  Pour toi
-                </p>
-                <h2 className="font-display text-xl text-culture-ink sm:text-2xl">
-                  Suggestions selon tes goûts
-                </h2>
-              </div>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="font-display text-xl text-culture-ink sm:text-2xl">
+                Pour toi
+              </h2>
               <button
                 type="button"
                 onClick={openTastes}
-                className="text-sm font-medium text-culture-terracotta hover:underline"
+                className="text-xs font-medium text-culture-muted hover:underline"
               >
                 Modifier mes goûts
               </button>
+            </div>
+            <p className="text-sm text-culture-muted">{pourToiReason}</p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {pourToiChips.map((chip) => (
+                <span
+                  key={`${chip.bucket}:${chip.key}`}
+                  className="inline-flex items-center gap-1 rounded-full border border-culture-line bg-culture-cream px-2.5 py-0.5 text-sm text-culture-ink"
+                >
+                  {chip.label}
+                  <button
+                    type="button"
+                    aria-label={`Retirer ${chip.label}`}
+                    onClick={() => wipeKey(chip.bucket, chip.key)}
+                    className="text-culture-muted/70 hover:text-culture-ink"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+              <form
+                className="inline-flex"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const t = chipDraft.trim();
+                  if (!t) return;
+                  addPhrase(t);
+                  setChipDraft('');
+                }}
+              >
+                <label className="inline-flex items-center gap-1 rounded-full border border-culture-line bg-culture-cream px-2 py-0.5">
+                  <span className="text-sm text-culture-muted" aria-hidden>
+                    +
+                  </span>
+                  <input
+                    value={chipDraft}
+                    onChange={(e) => setChipDraft(e.target.value)}
+                    className="w-24 bg-transparent text-sm text-culture-ink outline-none placeholder:text-culture-muted/60"
+                    placeholder="rire…"
+                    aria-label="Ajouter un goût"
+                  />
+                </label>
+              </form>
             </div>
             <SeanceGrid
               items={pourToiItems}

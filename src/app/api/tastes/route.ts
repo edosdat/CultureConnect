@@ -69,6 +69,8 @@ export async function POST(req: Request) {
     signals,
     tastes,
     tastesSetAt,
+    40,
+    current.profile,
   );
 
   const updated = await unstable_update({

@@ -8,9 +8,14 @@ import {
   GUEST_STORAGE_KEY,
   dedupAppend,
   emptyGuestStore,
+  overlayZeroWeights,
   parseGuestStore,
+  profileHasZeroWeights,
   recalcProfile,
+  unzeroKeysTouchedBySignal,
+  wipeProfileKey,
   type GuestSignalsStore,
+  type ProfileBucket,
   type Signal,
 } from '@/lib/signals';
 
@@ -59,13 +64,13 @@ function compactForCookie(store: GuestSignalsStore): string {
     events.shift();
     const next = storeToJson({
       events,
-      profile: recalcProfile(events),
+      profile: overlayZeroWeights(recalcProfile(events), store.profile),
     });
     if (next.length <= COOKIE_BUDGET) return next;
   }
   return storeToJson({
     events: events.slice(-1),
-    profile: recalcProfile(events.slice(-1)),
+    profile: overlayZeroWeights(recalcProfile(events.slice(-1)), store.profile),
   });
 }
 
@@ -75,7 +80,9 @@ export function readGuestStore(): GuestSignalsStore {
     const rawSs = sessionStorage.getItem(GUEST_STORAGE_KEY);
     if (rawSs) {
       const parsed = parseGuestStore(JSON.parse(rawSs));
-      if (parsed.events.length > 0) return parsed;
+      if (parsed.events.length > 0 || profileHasZeroWeights(parsed.profile)) {
+        return parsed;
+      }
     }
   } catch {
     /* ignore */
@@ -84,7 +91,7 @@ export function readGuestStore(): GuestSignalsStore {
     const rawCk = readCookie(GUEST_STORAGE_KEY);
     if (rawCk) {
       const parsed = parseGuestStore(JSON.parse(rawCk));
-      if (parsed.events.length > 0) {
+      if (parsed.events.length > 0 || profileHasZeroWeights(parsed.profile)) {
         try {
           sessionStorage.setItem(GUEST_STORAGE_KEY, storeToJson(parsed));
         } catch {
@@ -103,7 +110,7 @@ export function writeGuestStore(store: GuestSignalsStore): GuestSignalsStore {
   const events = store.events.slice(-GUEST_CAP);
   const next: GuestSignalsStore = {
     events,
-    profile: recalcProfile(events),
+    profile: overlayZeroWeights(recalcProfile(events), store.profile),
   };
   if (!canUseDom()) return next;
   const json = storeToJson(next);
@@ -133,7 +140,25 @@ export function clearGuestStore(): void {
 export function appendGuestSignal(signal: Signal): GuestSignalsStore {
   const current = readGuestStore();
   const events = dedupAppend(current.events, signal, GUEST_CAP);
-  return writeGuestStore({ events, profile: recalcProfile(events) });
+  return writeGuestStore({ events, profile: current.profile });
+}
+
+export function wipeGuestProfileKey(
+  bucket: ProfileBucket,
+  key: string,
+): GuestSignalsStore {
+  const current = readGuestStore();
+  return writeGuestStore({
+    events: current.events,
+    profile: wipeProfileKey(current.profile, bucket, key),
+  });
+}
+
+export function addGuestPhraseSignal(signal: Signal): GuestSignalsStore {
+  const current = readGuestStore();
+  const profile = unzeroKeysTouchedBySignal(current.profile, signal);
+  const events = dedupAppend(current.events, signal, GUEST_CAP);
+  return writeGuestStore({ events, profile });
 }
 
 export const SIGNALS_CHANGED_EVENT = 'cc-signals-changed';
