@@ -1,13 +1,16 @@
 /**
  * Per-account AccountTasteState that survives sign-out.
- * File is best-effort (gitignored; Vercel FS is ephemeral).
- * Durable copy: httpOnly cookie `cc_account_taste` { key, state }.
+ * Durable source of truth: Vercel Postgres `account_tastes` when
+ * POSTGRES_URL / POSTGRES_URL_NON_POOLING is set.
+ * Fallbacks: gitignored file (local/dev) then httpOnly cookie cache.
+ * Sign-out must never delete a row.
  */
 import 'server-only';
 import { createHash } from 'crypto';
 import { mkdir, readFile, writeFile } from 'fs/promises';
 import path from 'path';
 import { cookies } from 'next/headers';
+import { VercelPool } from '@vercel/postgres';
 import {
   hasScorableState,
   parseTasteState,
@@ -55,6 +58,12 @@ function filePathFor(key: string): string {
 
 function cookieSecure(): boolean {
   return Boolean(process.env.VERCEL) || process.env.NODE_ENV === 'production';
+}
+
+function postgresUrl(): string | undefined {
+  const env = process.env;
+  const url = (env['POSTGRES_URL'] || env['POSTGRES_URL_NON_POOLING'] || '').trim();
+  return url || undefined;
 }
 
 type CookiePayload = { key: string; state: AccountTasteState };
@@ -154,24 +163,96 @@ async function writeTasteCookie(key: string, state: AccountTasteState): Promise<
   }
 }
 
-/** File first, else cookie whose key matches the signed-in user. */
+let pool: VercelPool | null = null;
+let tableReady: Promise<void> | null = null;
+
+function getPool(): VercelPool | null {
+  const url = postgresUrl();
+  if (!url) return null;
+  if (!pool) {
+    pool = new VercelPool({ connectionString: url });
+  }
+  return pool;
+}
+
+async function ensureAccountTastesTable(): Promise<VercelPool | null> {
+  const pg = getPool();
+  if (!pg) return null;
+  if (!tableReady) {
+    tableReady = (async () => {
+      await pg.query(`
+        CREATE TABLE IF NOT EXISTS account_tastes (
+          user_key TEXT PRIMARY KEY,
+          state JSONB NOT NULL,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+    })().catch((err: unknown) => {
+      tableReady = null;
+      throw err;
+    });
+  }
+  await tableReady;
+  return pg;
+}
+
+async function readTastePostgres(key: string): Promise<AccountTasteState | null> {
+  try {
+    const pg = await ensureAccountTastesTable();
+    if (!pg) return null;
+    const result = await pg.query(
+      `SELECT state FROM account_tastes WHERE user_key = $1 LIMIT 1`,
+      [key],
+    );
+    const row = result.rows[0] as { state?: unknown } | undefined;
+    if (!row) return null;
+    return parseTasteState(row.state);
+  } catch {
+    return null;
+  }
+}
+
+async function writeTastePostgres(
+  key: string,
+  state: AccountTasteState,
+): Promise<void> {
+  try {
+    const pg = await ensureAccountTastesTable();
+    if (!pg) return;
+    const payload = JSON.stringify(state);
+    await pg.query(
+      `INSERT INTO account_tastes (user_key, state, updated_at)
+       VALUES ($1, $2::jsonb, now())
+       ON CONFLICT (user_key)
+       DO UPDATE SET state = EXCLUDED.state, updated_at = now()`,
+      [key, payload],
+    );
+  } catch {
+    /* skip — cookie/file remain; never throw into login */
+  }
+}
+
+/** Postgres first; else file then cookie whose key matches the signed-in user. */
 export async function readAccountTaste(
   user: AccountTasteUser,
 ): Promise<AccountTasteState | null> {
   const key = accountTasteKey(user);
   if (!key) return null;
+  const fromPg = await readTastePostgres(key);
+  if (fromPg) return fromPg;
   const fromFile = await readTasteFile(key);
   if (fromFile) return fromFile;
   return readTasteCookie(key);
 }
 
-/** Best-effort file (ignore EACCES) + set durable cookie. Never deletes. */
+/** Postgres (if env) + cookie cache. File optional. Never deletes a row. */
 export async function writeAccountTaste(
   user: AccountTasteUser,
   state: AccountTasteState,
 ): Promise<void> {
   const key = accountTasteKey(user);
   if (!key) return;
+  await writeTastePostgres(key, state);
   await writeTasteFile(key, state);
   await writeTasteCookie(key, state);
 }
