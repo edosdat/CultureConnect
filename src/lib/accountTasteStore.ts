@@ -17,6 +17,7 @@ import {
   hasScorableState,
   mergeSignalLists,
   overlayZeroWeights,
+  overlayZeroWeightsExceptIncomingPositives,
   parseTasteState,
   profileHasZeroWeights,
   rebuildTasteState,
@@ -303,6 +304,7 @@ function newerTimestamp(a?: string, b?: string): string | undefined {
   return a || b;
 }
 
+
 /** Additive merge onto the stored email row. Never replace a richer snapshot. */
 function mergeIncomingTaste(
   existing: AccountTasteState | null,
@@ -330,8 +332,9 @@ function mergeIncomingTaste(
     ACCOUNT_CAP,
     existing.profile,
   );
-  // Recalc, then union fused positives, then overlay 0s last so cinema:0 wins.
-  const profile = overlayZeroWeights(
+  // Recalc, then union fused positives, overlay incoming 0s (wipe persists), then existing 0s
+  // except keys incoming is unzeroing (+) so cinema:1 is not re-zeroed.
+  const profile = overlayZeroWeightsExceptIncomingPositives(
     overlayZeroWeights(
       unionPositiveWeights(
         unionPositiveWeights(rebuilt.profile, existing.profile),
@@ -340,6 +343,7 @@ function mergeIncomingTaste(
       incoming.profile,
     ),
     existing.profile,
+    incoming.profile,
   );
 
   return {

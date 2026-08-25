@@ -3,7 +3,7 @@
  * Phrase mapping uses parsePhraseRules (same dico as the search phrase).
  */
 import type { MainCategoryId } from '@/lib/categories';
-import { parsePhraseRules, type PhraseForm } from '@/lib/phraseTags';
+import { normalizePhrase, parsePhraseRules, type PhraseForm } from '@/lib/phraseTags';
 import {
   SIGNAL_WEIGHTS,
   cineFicheCount,
@@ -100,10 +100,22 @@ export function profileChips(
   return out.slice(0, Math.max(0, max));
 }
 
+const CINEMA_EXACT = new Set(['cinema', 'cine', 'ciné', 'cinéma']);
+
 /** Same phrase dico → chip signal. Unknown word → null (no invented chip). */
 export function phraseToTrackPayload(text: string): TrackPayload | null {
   const raw = (text || '').trim();
   if (!raw) return null;
+  const norm = normalizePhrase(raw);
+  if (CINEMA_EXACT.has(norm) || CINEMA_EXACT.has(raw.toLowerCase())) {
+    return {
+      kind: 'chip_cat',
+      categorie: 'cinema',
+      chip: 'cinema',
+      genres: [],
+      moods: [],
+    };
+  }
   const tags = parsePhraseRules(raw);
   const cat =
     tags.form && tags.form !== 'autre' ? FORM_TO_CAT[tags.form] : undefined;

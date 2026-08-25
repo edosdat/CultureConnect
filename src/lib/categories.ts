@@ -65,6 +65,9 @@ export const CATEGORIE_TO_MAIN: Record<string, MainCategoryId> = {
 
   // Cinéma
   cinema: 'cinema',
+  cine: 'cinema',
+  'ciné': 'cinema',
+  'cinéma': 'cinema',
   cinema_plein_air: 'cinema',
   festival_cinema: 'cinema',
   cinematheque: 'cinema',

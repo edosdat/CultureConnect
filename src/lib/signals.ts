@@ -309,6 +309,36 @@ export function overlayZeroWeights(
   return out;
 }
 
+/**
+ * Overlay stored 0s, but skip (and keep/apply) keys incoming is unzeroing (+).
+ * incoming weight > 0 wins; incoming 0 (wipe) and absent keys still lose to existing 0.
+ */
+export function overlayZeroWeightsExceptIncomingPositives(
+  next: TasteProfile,
+  existing?: TasteProfile | null,
+  incoming?: TasteProfile | null,
+): TasteProfile {
+  const out = copyProfile(next);
+  if (incoming) {
+    for (const bucket of PROFILE_BUCKETS) {
+      for (const [key, weight] of Object.entries(incoming[bucket])) {
+        if (weight > 0) {
+          out[bucket][key] = Math.max(out[bucket][key] || 0, weight);
+        }
+      }
+    }
+  }
+  if (!existing) return out;
+  for (const bucket of PROFILE_BUCKETS) {
+    for (const [key, weight] of Object.entries(existing[bucket])) {
+      if (weight !== 0) continue;
+      if ((incoming?.[bucket][key] ?? 0) > 0) continue;
+      out[bucket][key] = 0;
+    }
+  }
+  return out;
+}
+
 /** Keep fused/stored positives that recalc cannot reconstruct (no leftover signals). */
 export function unionPositiveWeights(
   base: TasteProfile,
