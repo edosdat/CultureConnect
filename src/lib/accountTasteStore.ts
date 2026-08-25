@@ -39,19 +39,9 @@ function normalizeTasteKey(value?: string | null): string | null {
   return raw || null;
 }
 
-/** Stable key: Google email (lowercased). Id is only a fallback if email is missing. */
+/** Stable key: session email (lowercased). Never user.id / token.sub / UUID. */
 export function accountTasteKey(user: AccountTasteUser): string | null {
-  return normalizeTasteKey(user.email) || normalizeTasteKey(user.id);
-}
-
-/** Email first, then id if present and different — never logs the values. */
-function accountTasteLookupKeys(user: AccountTasteUser): string[] {
-  const email = normalizeTasteKey(user.email);
-  const id = normalizeTasteKey(user.id);
-  const keys: string[] = [];
-  if (email) keys.push(email);
-  if (id && id !== email) keys.push(id);
-  return keys;
+  return normalizeTasteKey(user.email);
 }
 
 export function hasPersistedTasteState(
@@ -264,30 +254,25 @@ async function readTasteByKey(key: string): Promise<AccountTasteState | null> {
   return readTasteCookie(key);
 }
 
-/** Email key first, then id key if different. Return first hit. Never deletes a row. */
+/** Hydrate on email key only. Never looks up user.id / UUID. */
 export async function readAccountTaste(
   user: AccountTasteUser,
 ): Promise<AccountTasteState | null> {
-  const keys = accountTasteLookupKeys(user);
-  for (const key of keys) {
-    const hit = await readTasteByKey(key);
-    if (hit) return hit;
-  }
-  return null;
+  const key = accountTasteKey(user);
+  if (!key) return null;
+  return readTasteByKey(key);
 }
 
-/** UPSERT email key, and id key if present and different (same state). Never deletes. */
+/** UPSERT the email key only. Never writes user.id / token.sub. */
 export async function writeAccountTaste(
   user: AccountTasteUser,
   state: AccountTasteState,
 ): Promise<void> {
-  const keys = accountTasteLookupKeys(user);
-  if (keys.length === 0) return;
-  for (const key of keys) {
-    await writeTastePostgres(key, state);
-    await writeTasteFile(key, state);
-  }
-  await writeTasteCookie(keys[0], state);
+  const key = accountTasteKey(user);
+  if (!key) return;
+  await writeTastePostgres(key, state);
+  await writeTasteFile(key, state);
+  await writeTasteCookie(key, state);
 }
 
 export async function resolveAccountTaste(

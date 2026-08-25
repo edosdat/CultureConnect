@@ -45,15 +45,12 @@ function tokenUser(
   token: { sub?: string; email?: string | null },
   user?: { id?: string | null; email?: string | null },
 ) {
-  const id =
-    (typeof token.sub === 'string' && token.sub) ||
-    (typeof user?.id === 'string' && user.id) ||
-    undefined;
   const email =
     (typeof token.email === 'string' && token.email) ||
     (typeof user?.email === 'string' && user.email) ||
     undefined;
-  return { id: id || undefined, email: email || undefined };
+  // Email is the only store key. token.sub / user.id stay for NextAuth, never persisted.
+  return { email: email || undefined };
 }
 
 function applyTasteStateToToken(
@@ -82,6 +79,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
       // Identity first so tokenUser() keys the store on this sign-in.
       if (user) {
         if (typeof user.email === 'string' && user.email) token.email = user.email;
+        // token.sub may stay for NextAuth; it is never a store key.
         if (typeof user.id === 'string' && user.id) token.sub = user.id;
       }
 
@@ -149,7 +147,6 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         let state = token.tasteState;
         if (!hasPersistedTasteState(state)) {
           const stored = await readAccountTaste({
-            id: token.sub,
             email:
               typeof token.email === 'string'
                 ? token.email
