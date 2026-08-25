@@ -7,7 +7,7 @@ import { useSignals } from './SignalsProvider';
 
 export default function AuthButtons() {
   const { data: session, status } = useSession();
-  const { openTastes, googleAuthEnabled } = useTastesUi();
+  const { googleAuthEnabled } = useTastesUi();
   const { loginNudgeReady, loginNudgeDismissed, dismissLoginNudge } = useSignals();
   const [providersOk, setProvidersOk] = useState<boolean | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -102,17 +102,6 @@ export default function AuthButtons() {
               <button
                 type="button"
                 role="menuitem"
-                onClick={() => {
-                  setMenuOpen(false);
-                  openTastes();
-                }}
-                className="block w-full px-3 py-2 text-left text-sm font-medium text-culture-ink hover:bg-culture-soft"
-              >
-                Mes goûts
-              </button>
-              <button
-                type="button"
-                role="menuitem"
                 onClick={() => signOut({ callbackUrl: '/' })}
                 className="block w-full px-3 py-2 text-left text-sm font-medium text-culture-muted hover:bg-culture-soft hover:text-culture-ink"
               >
@@ -122,13 +111,6 @@ export default function AuthButtons() {
           ) : null}
         </div>
         <div className="hidden min-w-0 items-center gap-2 sm:flex">
-          <button
-            type="button"
-            onClick={openTastes}
-            className="shrink-0 rounded-full border border-culture-sand bg-white px-3 py-1.5 text-sm font-medium text-culture-ink hover:border-culture-terracotta/50"
-          >
-            Mes goûts
-          </button>
           <div className="flex min-w-0 items-center gap-1.5">
             <span className="flex h-7 w-7 shrink-0 overflow-hidden rounded-full border border-culture-line">
               <AvatarFace />

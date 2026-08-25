@@ -2,23 +2,18 @@
 
 import {
   createContext,
-  useCallback,
   useContext,
   useMemo,
-  useState,
   type ReactNode,
 } from 'react';
 import { SessionProvider } from 'next-auth/react';
-import TastesModal from './TastesModal';
 import SignalsProvider from './SignalsProvider';
 
 type TastesUiValue = {
-  openTastes: () => void;
   googleAuthEnabled: boolean;
 };
 
 const TastesUiContext = createContext<TastesUiValue>({
-  openTastes: () => {},
   googleAuthEnabled: false,
 });
 
@@ -32,22 +27,9 @@ type Props = {
 };
 
 export default function Providers({ children, googleAuthEnabled }: Props) {
-  const [tastesOpen, setTastesOpen] = useState(false);
-  const [forceOpen, setForceOpen] = useState(false);
-
-  const openTastes = useCallback(() => {
-    setForceOpen(true);
-    setTastesOpen(true);
-  }, []);
-
-  const closeTastes = useCallback(() => {
-    setTastesOpen(false);
-    setForceOpen(false);
-  }, []);
-
   const value = useMemo(
-    () => ({ openTastes, googleAuthEnabled }),
-    [openTastes, googleAuthEnabled],
+    () => ({ googleAuthEnabled }),
+    [googleAuthEnabled],
   );
 
   return (
@@ -55,12 +37,6 @@ export default function Providers({ children, googleAuthEnabled }: Props) {
       <SignalsProvider>
         <TastesUiContext.Provider value={value}>
           {children}
-          <TastesModal
-            open={tastesOpen}
-            forceOpen={forceOpen}
-            onRequestOpen={() => setTastesOpen(true)}
-            onClose={closeTastes}
-          />
         </TastesUiContext.Provider>
       </SignalsProvider>
     </SessionProvider>

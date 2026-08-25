@@ -7,7 +7,6 @@ import type { AgendaDetailResponse, AgendaListResponse } from '@/lib/slim';
 import { profileHasChipWeight, recommendForProfile, recommendForTastes } from '@/lib/reco';
 import { extractMoods, profileHasZeroWeights } from '@/lib/signals';
 import { profileChips, reasonLineForState } from '@/lib/pourToi';
-import { useTastesUi } from './Providers';
 import { useSignals } from './SignalsProvider';
 import { densifiedCardCount } from '@/lib/densify';
 import { filmIdOfItem } from '@/lib/nouveautesCine';
@@ -122,7 +121,6 @@ export default function CultureConnectApp({
   initialMonth,
 }: Props) {
   const { data: session } = useSession();
-  const { openTastes } = useTastesUi();
   const { track, trackItem, wipeKey, addPhrase, tasteState } = useSignals();
   const tastes =
     tasteState?.tastesText?.trim() || session?.user?.tastes?.trim() || '';
@@ -818,18 +816,9 @@ export default function CultureConnectApp({
           pourToiChips.length > 0 ||
           Boolean(tasteState && profileHasZeroWeights(tasteState.profile))) && (
           <section className="space-y-3 rounded-card-lg border border-culture-soft/80 bg-culture-surface/80 p-3 sm:p-4">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="font-display text-xl text-culture-ink sm:text-2xl">
-                Ton top 3 du moment
-              </h2>
-              <button
-                type="button"
-                onClick={openTastes}
-                className="text-xs font-medium text-culture-muted hover:underline"
-              >
-                Modifier mes goûts
-              </button>
-            </div>
+            <h2 className="font-display text-xl text-culture-ink sm:text-2xl">
+              Ton top 3 du moment
+            </h2>
             <p className="text-sm text-culture-muted">{pourToiReason}</p>
             <div className="flex flex-wrap items-center gap-1.5">
               {pourToiChips.map((chip) => (
