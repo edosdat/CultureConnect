@@ -407,7 +407,6 @@ function findItemByKey(id: string): DayItem | null {
 
 export function queryAgendaDetail(
   id: string,
-  now = new Date(),
 ): AgendaDetailResponse | null {
   const data = loadCultureData();
   const item = findItemByKey(id);
@@ -441,16 +440,20 @@ export function queryAgendaDetail(
 
   let aussiCeSoir: DayItem[] = [];
   if (isCinemaDayItem(item)) {
-    const paris = parisParts(now);
-    const tonight = itemsForDay(
-      data.programmeWithContext,
-      data.events,
-      paris.iso,
-      [],
-      [],
-      [],
-      true,
-    ).filter(startsAtOrAfter19);
+    const cardDay =
+      item.dayIso ||
+      (item.kind === 'programme' ? item.programme.date : '');
+    const tonight = cardDay
+      ? itemsForDay(
+          data.programmeWithContext,
+          data.events,
+          cardDay,
+          [],
+          [],
+          [],
+          true,
+        ).filter(startsAtOrAfter19)
+      : [];
     aussiCeSoir = pickAussiCeSoir(tonight, item, 3).map(slimDayItem);
   }
 
