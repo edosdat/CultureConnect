@@ -175,6 +175,23 @@ async function writeTasteCookie(key: string, state: AccountTasteState): Promise<
   }
 }
 
+/** Drop the httpOnly taste cookie on sign-out. Never DELETE the Neon row. */
+export async function clearAccountTasteCookie(): Promise<void> {
+  try {
+    const jar = await cookies();
+    jar.set(ACCOUNT_TASTE_COOKIE, '', {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: cookieSecure(),
+      maxAge: 0,
+      expires: new Date(0),
+      path: '/',
+    });
+  } catch {
+    /* cookies() is read-only outside a Route Handler / Server Action */
+  }
+}
+
 let pool: VercelPool | null = null;
 let tableReady: Promise<void> | null = null;
 

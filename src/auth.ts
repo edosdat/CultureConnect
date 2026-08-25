@@ -1,6 +1,7 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
 import {
+  clearAccountTasteCookie,
   readAccountTaste,
   writeAccountTaste,
 } from '@/lib/accountTasteStore';
@@ -163,6 +164,12 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
           (typeof token.tastesSetAt === 'string' ? token.tastesSetAt : undefined);
       }
       return session;
+    },
+  },
+  events: {
+    async signOut() {
+      // Cookie only — Neon account_tastes row must stay.
+      await clearAccountTasteCookie();
     },
   },
 });
