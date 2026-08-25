@@ -86,8 +86,7 @@ function buildAgendaParams(opts: {
     const tagGenres = t?.genres ?? [];
     const merged = [...opts.genres, ...tagGenres];
     if (merged.length) p.set('genres', merged.join(','));
-    if (t?.date_from) p.set('date_from', t.date_from);
-    if (t?.date_to) p.set('date_to', t.date_to);
+    // Scope chips bound the date window — do not send phrase date_from/to.
   } else {
     if (opts.q) p.set('q', opts.q);
     if (opts.genres.length) p.set('genres', opts.genres.join(','));
@@ -157,7 +156,7 @@ export default function CultureConnectApp({
   const listFetchGen = useRef(0);
   const detailFetchGen = useRef(0);
 
-  const isPhraseScope = timeScope === 'soir' || timeScope === 'date';
+  const isPhraseScope = true;
 
   function applyPhraseFromQuery(text: string) {
     const q = text.trim();
@@ -506,12 +505,6 @@ export default function CultureConnectApp({
   }
 
   function handleScopeChange(scope: TimeScopeId) {
-    const nextPhrase = scope === 'soir' || scope === 'date';
-    if (!nextPhrase && query.trim()) {
-      setQuery('');
-      setDebouncedQuery('');
-      setPhraseTags(null);
-    }
     if (scope !== timeScope) {
       track({ kind: 'chip_time', chip: scope, genres: [], moods: [] });
     }
@@ -660,15 +653,13 @@ export default function CultureConnectApp({
         </p>
       </header>
 
-      {isPhraseScope ? (
-        <div className="sticky top-0 z-20 -mx-4 mb-3 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:mb-5 sm:px-6">
-          <SearchOmnibox
-            value={query}
-            onChange={handleQueryChange}
-            placeholder="Décris ta soirée"
-          />
-        </div>
-      ) : null}
+      <div className="sticky top-0 z-20 -mx-4 mb-3 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:mb-5 sm:px-6">
+        <SearchOmnibox
+          value={query}
+          onChange={handleQueryChange}
+          placeholder="Décris ta soirée"
+        />
+      </div>
 
       <div className="space-y-2.5 sm:space-y-4">
         <TimeScopeBar
