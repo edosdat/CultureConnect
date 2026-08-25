@@ -31,6 +31,10 @@ type Props = {
   onAgenda?: () => void;
   onIcs?: () => void;
   onReserve?: () => void;
+  /** Agenda city already selected (incl. Toulouse default). Null = whole agglo. */
+  selectedCommune?: string | null;
+  /** Agenda venue already selected. */
+  selectedLieuId?: string | null;
 };
 
 function useEscapeClose(active: boolean, onClose: () => void) {
@@ -42,6 +46,10 @@ function useEscapeClose(active: boolean, onClose: () => void) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [active, onClose]);
+}
+
+function normalizeCommune(c: string | null | undefined): string {
+  return (c || '').trim().toLocaleLowerCase('fr');
 }
 
 function reserveUrlForVenueGroup(items: DayItem[]): string {
@@ -64,6 +72,7 @@ function reserveUrlForVenueGroup(items: DayItem[]): string {
 type VenueGroup = {
   label: string;
   lieuId: string | null;
+  commune: string;
   rows: { key: string; date: string; heure: string }[];
   reserveUrl: string;
 };
@@ -76,9 +85,10 @@ function groupSeancesByVenue(items: DayItem[]): VenueGroup[] {
     if (rel.kind !== 'programme') continue;
     const label = formatLieuAffiche(rel.lieu) || rel.lieu?.commune || 'Lieu';
     const lieuId = rel.lieu?.lieu_id || rel.programme.lieu_id || null;
+    const commune = rel.lieu?.commune || '';
     const key = lieuId || `label:${label}`;
     if (!map.has(key)) {
-      map.set(key, { label, lieuId, rows: [], reserveUrl: '' });
+      map.set(key, { label, lieuId, commune, rows: [], reserveUrl: '' });
       seancesByKey.set(key, []);
       order.push(key);
     }
@@ -107,17 +117,38 @@ function groupSeancesByVenue(items: DayItem[]): VenueGroup[] {
     .sort((a, b) => a.label.localeCompare(b.label, 'fr'));
 }
 
+function filterVenueGroups(
+  groups: VenueGroup[],
+  selectedCommune?: string | null,
+  selectedLieuId?: string | null,
+): VenueGroup[] {
+  if (groups.length === 0) return groups;
+  let filtered = groups;
+  if (selectedLieuId) {
+    filtered = groups.filter((g) => g.lieuId === selectedLieuId);
+  } else if (selectedCommune) {
+    const target = normalizeCommune(selectedCommune);
+    filtered = groups.filter((g) => normalizeCommune(g.commune) === target);
+  }
+  return filtered.length > 0 ? filtered : groups;
+}
+
 function FilmSeancesList({
   items,
   onSelectVenue,
   onReserve,
+  selectedCommune,
+  selectedLieuId,
 }: {
   items: DayItem[];
   onSelectVenue?: (lieuId: string) => void;
   onReserve?: () => void;
+  selectedCommune?: string | null;
+  selectedLieuId?: string | null;
 }) {
-  const groups = groupSeancesByVenue(items);
-  if (groups.length === 0) return null;
+  const allGroups = groupSeancesByVenue(items);
+  if (allGroups.length === 0) return null;
+  const groups = filterVenueGroups(allGroups, selectedCommune, selectedLieuId);
   return (
     <ul className="mt-2 space-y-3 text-sm text-culture-ink">
       {groups.map((g) => (
@@ -261,6 +292,8 @@ export default function EventDetail({
   onAgenda,
   onIcs,
   onReserve,
+  selectedCommune,
+  selectedLieuId,
 }: Props) {
   useEscapeClose(Boolean(item), onClose);
 
@@ -384,6 +417,8 @@ export default function EventDetail({
                       : undefined
                   }
                   onReserve={onReserve}
+                  selectedCommune={selectedCommune}
+                  selectedLieuId={selectedLieuId}
                 />
               </section>
             )}

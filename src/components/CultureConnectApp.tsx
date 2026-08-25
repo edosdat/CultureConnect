@@ -994,6 +994,8 @@ export default function CultureConnectApp({
         onAgenda={() => selectedItem && trackItem(selectedItem, 'agenda_add')}
         onIcs={() => selectedItem && trackItem(selectedItem, 'ics')}
         onReserve={() => selectedItem && trackItem(selectedItem, 'reserve')}
+        selectedCommune={selectedCommune}
+        selectedLieuId={selectedLieuId}
       />
     </div>
   );
