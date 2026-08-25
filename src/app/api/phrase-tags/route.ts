@@ -76,7 +76,7 @@ async function phraseTagsFromAi(
   }
 }
 
-export async function parsePhraseWithAi(
+async function parsePhraseWithAi(
   phrase: string,
   now = new Date(),
 ): Promise<PhraseTags> {
