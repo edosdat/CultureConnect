@@ -20,6 +20,7 @@ import {
   parseTasteState,
   profileHasZeroWeights,
   rebuildTasteState,
+  unionPositiveWeights,
   type AccountTasteState,
 } from '@/lib/signals';
 
@@ -269,9 +270,15 @@ function mergeIncomingTaste(
     ACCOUNT_CAP,
     existing.profile,
   );
-  // Rebuilt-from-signals is source of truth for positives; overlay 0 last.
+  // Recalc, then union fused positives, then overlay 0s last so cinema:0 wins.
   const profile = overlayZeroWeights(
-    overlayZeroWeights(rebuilt.profile, incoming.profile),
+    overlayZeroWeights(
+      unionPositiveWeights(
+        unionPositiveWeights(rebuilt.profile, existing.profile),
+        incoming.profile,
+      ),
+      incoming.profile,
+    ),
     existing.profile,
   );
 
@@ -321,14 +328,21 @@ export async function readAccountTaste(
   if (!key) return null;
   const stored = await readTasteByKey(key);
   if (!stored) return null;
-  // Recalc from signals, then overlay stored 0s last so a wiped chip stays gone.
-  return rebuildTasteState(
+  // Recalc, union stored fused positives (e.g. musique:3), overlay 0s last.
+  const rebuilt = rebuildTasteState(
     stored.signalsRecent,
     stored.tastesText,
     stored.tastesSetAt,
     ACCOUNT_CAP,
     stored.profile,
   );
+  return {
+    ...rebuilt,
+    profile: overlayZeroWeights(
+      unionPositiveWeights(rebuilt.profile, stored.profile),
+      stored.profile,
+    ),
+  };
 }
 
 /** Additive UPSERT on the email key only. Never writes user.id / token.sub. */

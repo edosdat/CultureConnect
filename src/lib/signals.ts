@@ -309,6 +309,23 @@ export function overlayZeroWeights(
   return out;
 }
 
+/** Keep fused/stored positives that recalc cannot reconstruct (no leftover signals). */
+export function unionPositiveWeights(
+  base: TasteProfile,
+  extra?: TasteProfile | null,
+): TasteProfile {
+  const out = copyProfile(base);
+  if (!extra) return out;
+  for (const bucket of PROFILE_BUCKETS) {
+    for (const [key, weight] of Object.entries(extra[bucket])) {
+      if (!(weight > 0)) continue;
+      if (out[bucket][key] === 0) continue;
+      out[bucket][key] = Math.max(out[bucket][key] || 0, weight);
+    }
+  }
+  return out;
+}
+
 export function wipeProfileKey(
   profile: TasteProfile,
   bucket: ProfileBucket,
