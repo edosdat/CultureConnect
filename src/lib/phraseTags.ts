@@ -494,6 +494,10 @@ function extractGenres(norm: string, words: string[]): string[] {
     const g = GENRE_WORDS[w];
     if (g) found.push(g);
     if (RIGOLO_ALSO_HUMOUR.has(w)) found.push('humour');
+    if (w === 'animation' || w === 'animations') {
+      found.push('animation');
+      found.push('animation_jeune_public');
+    }
   }
   return unique(found);
 }

@@ -242,10 +242,16 @@ function slugMatchesHay(query: string, hay: string[]): boolean {
   return false;
 }
 
+const ANIMATION_SLUGS = new Set(['animation', 'animation_jeune_public']);
 function genresOverlap(query: string[], item: DayItem): boolean {
   if (query.length === 0) return true;
-  const hay = genresHaystack(item);
-  return query.some((q) => slugMatchesHay(q, hay));
+  const hay = genresHaystack(item).map((h) => h.trim().toLowerCase());
+  const animQ = query.some((q) => ANIMATION_SLUGS.has(q));
+  const other = query.filter((q) => !ANIMATION_SLUGS.has(q));
+  if (animQ && hay.some((h) => ANIMATION_SLUGS.has(h))) return true;
+  if (other.length) return other.some((q) => slugMatchesHay(q, hay));
+  if (animQ) return false;
+  return true;
 }
 
 function moodsOverlap(query: string[], item: DayItem): boolean {
