@@ -1,5 +1,7 @@
 'use client';
 
+const PHRASE_LABEL = 'Qu’est-ce qui te ferait vibrer ?';
+
 type Props = {
   value: string;
   onChange: (value: string) => void;
@@ -9,12 +11,12 @@ type Props = {
 export default function SearchOmnibox({
   value,
   onChange,
-  placeholder = 'Titre, artiste, lieu, genre…',
+  placeholder = PHRASE_LABEL,
 }: Props) {
   return (
     <div className="relative w-full">
       <label htmlFor="cc-search" className="sr-only">
-        Rechercher
+        {placeholder}
       </label>
       <span
         aria-hidden
@@ -29,6 +31,7 @@ export default function SearchOmnibox({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        aria-label={placeholder}
         autoComplete="off"
         className="h-10 w-full rounded-full border border-culture-line bg-culture-surface py-0 pl-9 pr-10 text-base text-culture-ink sm:text-sm shadow-sm placeholder:text-culture-muted/70 focus:border-culture-terracotta focus:outline-none focus:ring-2 focus:ring-culture-terracotta/30 [&::-webkit-search-cancel-button]:appearance-none"
       />

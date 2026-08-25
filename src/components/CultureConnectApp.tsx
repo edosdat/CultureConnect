@@ -672,7 +672,7 @@ export default function CultureConnectApp({
         <SearchOmnibox
           value={query}
           onChange={handleQueryChange}
-          placeholder="Décris ta soirée"
+          placeholder="Qu’est-ce qui te ferait vibrer ?"
         />
       </div>
 
