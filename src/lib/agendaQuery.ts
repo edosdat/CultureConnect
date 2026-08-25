@@ -29,6 +29,7 @@ import {
 } from './phraseTags';
 import {
   detailDayItem,
+  relatedSeanceDayItem,
   slimDayItem,
   slimLieu,
   type AgendaDetailResponse,
@@ -747,7 +748,7 @@ export function queryAgendaDetail(
             b.programme.heure_debut || '',
           );
         })
-        .map(slimDayItem);
+        .map(relatedSeanceDayItem);
     }
   }
 

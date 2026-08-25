@@ -94,6 +94,34 @@ export function slimDayItem(item: DayItem): DayItem {
   };
 }
 
+/**
+ * Film-fiche related seances: first-paint slim + the 3 reserve URL fields
+ * FilmSeancesList reads (no pitch / description / nested blobs).
+ */
+export function relatedSeanceDayItem(item: DayItem): DayItem {
+  const slim = slimDayItem(item);
+  if (slim.kind === 'programme' && item.kind === 'programme') {
+    return {
+      ...slim,
+      programme: {
+        ...slim.programme,
+        url: item.programme.url || '',
+        billetterie_url: item.programme.billetterie_url || '',
+      },
+      lieu: slim.lieu
+        ? { ...slim.lieu, site_web: item.lieu?.site_web || '' }
+        : slim.lieu,
+    };
+  }
+  if (slim.lieu) {
+    return {
+      ...slim,
+      lieu: { ...slim.lieu, site_web: item.lieu?.site_web || '' },
+    };
+  }
+  return slim;
+}
+
 /** Fiche: keep copy / URLs / adresse; still drop nested programme[] and long blobs. */
 export function detailDayItem(item: DayItem): DayItem {
   if (item.kind === 'programme') {
