@@ -37,6 +37,7 @@ import {
   readGuestStore,
   wipeGuestProfileKey,
 } from '@/lib/signalsStore';
+import { notifyTasteCookieOnce } from './TasteCookieNotice';
 
 type SignalsValue = {
   track: (payload: TrackPayload) => void;
@@ -171,6 +172,7 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
         tastes: data.tastes ?? data.tasteState.tastesText ?? '',
         tastesSetAt: data.tastesSetAt ?? data.tasteState.tastesSetAt,
       });
+      notifyTasteCookieOnce();
     },
     [update],
   );
@@ -188,6 +190,7 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
       const next = appendGuestSignal(signal);
       setGuestStore(next);
       notifySignalsChanged();
+      notifyTasteCookieOnce();
     },
     [applyAccountTaste, session?.user, status],
   );
@@ -226,6 +229,7 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
       const next = wipeGuestProfileKey(bucket, key);
       setGuestStore(next);
       notifySignalsChanged();
+      notifyTasteCookieOnce();
     },
     [applyAccountTaste, session?.user, status, update],
   );
@@ -244,6 +248,7 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
       const next = addGuestPhraseSignal(makeSignal(payload));
       setGuestStore(next);
       notifySignalsChanged();
+      notifyTasteCookieOnce();
     },
     [applyAccountTaste, session?.user, status],
   );

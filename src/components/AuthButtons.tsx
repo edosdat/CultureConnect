@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useTastesUi } from './Providers';
 import { useSignals } from './SignalsProvider';
+import { clearGuestStore, notifySignalsChanged } from '@/lib/signalsStore';
 
 export default function AuthButtons() {
   const { data: session, status } = useSession();
@@ -11,8 +12,34 @@ export default function AuthButtons() {
   const { loginNudgeReady, loginNudgeDismissed, dismissLoginNudge } = useSignals();
   const [providersOk, setProvidersOk] = useState<boolean | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const showRemember = loginNudgeReady && !loginNudgeDismissed;
+
+  async function handleDeleteAccount() {
+    if (deleting) return;
+    if (
+      !window.confirm(
+        'Supprimer ton compte et tes goûts enregistrés ? Cette action est définitive.',
+      )
+    ) {
+      return;
+    }
+    setDeleting(true);
+    setMenuOpen(false);
+    try {
+      const res = await fetch('/api/account-tastes', { method: 'DELETE' });
+      if (!res.ok) {
+        setDeleting(false);
+        return;
+      }
+      clearGuestStore();
+      notifySignalsChanged();
+      await signOut({ callbackUrl: '/' });
+    } catch {
+      setDeleting(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -82,52 +109,48 @@ export default function AuthButtons() {
     }
 
     return (
-      <>
-        <div className="relative sm:hidden" ref={menuRef}>
-          <button
-            type="button"
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-haspopup="menu"
-            aria-expanded={menuOpen}
-            aria-label="Menu compte"
-            className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-culture-line bg-white"
-          >
+      <div className="relative" ref={menuRef}>
+        <button
+          type="button"
+          onClick={() => setMenuOpen((v) => !v)}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          aria-label="Menu compte"
+          className="flex min-w-0 items-center gap-1.5 rounded-full"
+        >
+          <span className="flex h-9 w-9 shrink-0 overflow-hidden rounded-full border border-culture-line bg-white sm:h-7 sm:w-7">
             <AvatarFace />
-          </button>
-          {menuOpen ? (
-            <div
-              role="menu"
-              className="absolute right-0 top-full z-20 mt-1 min-w-[10.5rem] overflow-hidden rounded-xl border border-culture-sand bg-white py-1 shadow-lg"
-            >
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => signOut({ callbackUrl: '/' })}
-                className="block w-full px-3 py-2 text-left text-sm font-medium text-culture-muted hover:bg-culture-soft hover:text-culture-ink"
-              >
-                Déconnexion
-              </button>
-            </div>
-          ) : null}
-        </div>
-        <div className="hidden min-w-0 items-center gap-2 sm:flex">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <span className="flex h-7 w-7 shrink-0 overflow-hidden rounded-full border border-culture-line">
-              <AvatarFace />
-            </span>
-            <span className="max-w-[7rem] truncate text-sm text-culture-ink">
-              {name}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => signOut({ callbackUrl: '/' })}
-            className="shrink-0 rounded-full border border-culture-sand bg-white px-3 py-1.5 text-sm font-medium text-culture-muted hover:text-culture-ink"
+          </span>
+          <span className="hidden max-w-[7rem] truncate text-sm text-culture-ink sm:inline">
+            {name}
+          </span>
+        </button>
+        {menuOpen ? (
+          <div
+            role="menu"
+            className="absolute right-0 top-full z-20 mt-1 min-w-[10.5rem] overflow-hidden rounded-xl border border-culture-sand bg-white py-1 shadow-lg"
           >
-            Déconnexion
-          </button>
-        </div>
-      </>
+            <button
+              type="button"
+              role="menuitem"
+              disabled={deleting}
+              onClick={() => signOut({ callbackUrl: '/' })}
+              className="block w-full px-3 py-2 text-left text-sm font-medium text-culture-muted hover:bg-culture-soft hover:text-culture-ink disabled:opacity-50"
+            >
+              Déconnexion
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              disabled={deleting}
+              onClick={() => void handleDeleteAccount()}
+              className="block w-full px-3 py-2 text-left text-sm font-medium text-culture-muted hover:bg-culture-soft hover:text-culture-ink disabled:opacity-50"
+            >
+              Supprimer mon compte
+            </button>
+          </div>
+        ) : null}
+      </div>
     );
   }
 

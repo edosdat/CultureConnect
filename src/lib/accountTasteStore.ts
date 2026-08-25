@@ -7,7 +7,7 @@
  */
 import 'server-only';
 import { createHash } from 'crypto';
-import { mkdir, readFile, writeFile } from 'fs/promises';
+import { mkdir, readFile, unlink, writeFile } from 'fs/promises';
 import path from 'path';
 import { cookies } from 'next/headers';
 import { VercelPool } from '@vercel/postgres';
@@ -374,6 +374,24 @@ export async function writeAccountTaste(
   await writeTastePostgres(key, merged);
   await writeTasteFile(key, merged);
   await writeTasteCookie(key, merged);
+}
+
+
+/** ONLY this path deletes a row. Sign-out must never call this. Email key only. */
+export async function deleteAccountTaste(email: string): Promise<void> {
+  const key = normalizeTasteKey(email);
+  if (!key) return;
+
+  const pg = await ensureAccountTastesTable();
+  if (pg) {
+    await pg.query(`DELETE FROM account_tastes WHERE user_key = $1`, [key]);
+  }
+  try {
+    await unlink(filePathFor(key));
+  } catch {
+    /* missing file is fine */
+  }
+  await clearAccountTasteCookie();
 }
 
 export async function resolveAccountTaste(

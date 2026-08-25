@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { DM_Sans, Fraunces } from 'next/font/google';
 import SiteNav from '@/components/SiteNav';
 import Providers from '@/components/Providers';
+import SiteFooter from '@/components/SiteFooter';
 import { isGoogleAuthConfigured } from '@/auth';
 import './globals.css';
 
@@ -34,6 +35,7 @@ export default function RootLayout({
         <Providers googleAuthEnabled={isGoogleAuthConfigured()}>
           <SiteNav />
           {children}
+          <SiteFooter />
         </Providers>
       </body>
     </html>
