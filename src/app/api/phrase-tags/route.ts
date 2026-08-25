@@ -34,6 +34,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
 
+  console.info('[phrase-tags]', { hasKey: Boolean(process.env['OPENAI_API_KEY']) });
+
   let phrase = '';
   try {
     const body = (await req.json()) as { phrase?: unknown };

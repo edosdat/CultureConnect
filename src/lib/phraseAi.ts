@@ -11,20 +11,20 @@ import {
 } from './phraseTags';
 
 function aiEnv(): { url: string; key: string; model: string } | null {
-  const openai = process.env.OPENAI_API_KEY;
+  const openai = process.env['OPENAI_API_KEY'];
   if (openai) {
     return {
       url: 'https://api.openai.com/v1/chat/completions',
       key: openai,
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      model: process.env['OPENAI_MODEL'] || 'gpt-4o-mini',
     };
   }
-  const xai = process.env.XAI_API_KEY;
+  const xai = process.env['XAI_API_KEY'];
   if (xai) {
     return {
       url: 'https://api.x.ai/v1/chat/completions',
       key: xai,
-      model: process.env.XAI_MODEL || 'grok-2-latest',
+      model: process.env['XAI_MODEL'] || 'grok-2-latest',
     };
   }
   return null;
