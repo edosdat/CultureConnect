@@ -44,14 +44,33 @@ function useEscapeClose(active: boolean, onClose: () => void) {
   }, [active, onClose]);
 }
 
+function reserveUrlForVenueGroup(items: DayItem[]): string {
+  let ticketPage = '';
+  let siteWeb = '';
+  for (const rel of items) {
+    if (rel.kind !== 'programme') continue;
+    const bille =
+      (rel.programme.billetterie_url || '').trim() ||
+      (rel.evenement?.billetterie_url || '').trim();
+    if (bille) return bille;
+    const page = (rel.programme.url || '').trim();
+    if (!ticketPage && page && looksLikeTicket(page)) ticketPage = page;
+    const site = (rel.lieu?.site_web || '').trim();
+    if (!siteWeb && site) siteWeb = site;
+  }
+  return ticketPage || siteWeb;
+}
+
 type VenueGroup = {
   label: string;
   lieuId: string | null;
   rows: { key: string; date: string; heure: string }[];
+  reserveUrl: string;
 };
 
 function groupSeancesByVenue(items: DayItem[]): VenueGroup[] {
   const map = new Map<string, VenueGroup>();
+  const seancesByKey = new Map<string, DayItem[]>();
   const order: string[] = [];
   for (const rel of items) {
     if (rel.kind !== 'programme') continue;
@@ -59,9 +78,11 @@ function groupSeancesByVenue(items: DayItem[]): VenueGroup[] {
     const lieuId = rel.lieu?.lieu_id || rel.programme.lieu_id || null;
     const key = lieuId || `label:${label}`;
     if (!map.has(key)) {
-      map.set(key, { label, lieuId, rows: [] });
+      map.set(key, { label, lieuId, rows: [], reserveUrl: '' });
+      seancesByKey.set(key, []);
       order.push(key);
     }
+    seancesByKey.get(key)!.push(rel);
     const heure =
       formatHeure(rel.programme.heure_debut) +
       (rel.programme.heure_fin
@@ -73,12 +94,13 @@ function groupSeancesByVenue(items: DayItem[]): VenueGroup[] {
       heure,
     });
   }
-  for (const g of map.values()) {
+  for (const [key, g] of map) {
     g.rows.sort((a, b) => {
       const d = a.date.localeCompare(b.date);
       if (d !== 0) return d;
       return a.heure.localeCompare(b.heure);
     });
+    g.reserveUrl = reserveUrlForVenueGroup(seancesByKey.get(key) || []);
   }
   return order
     .map((k) => map.get(k)!)
@@ -88,9 +110,11 @@ function groupSeancesByVenue(items: DayItem[]): VenueGroup[] {
 function FilmSeancesList({
   items,
   onSelectVenue,
+  onReserve,
 }: {
   items: DayItem[];
   onSelectVenue?: (lieuId: string) => void;
+  onReserve?: () => void;
 }) {
   const groups = groupSeancesByVenue(items);
   if (groups.length === 0) return null;
@@ -98,19 +122,32 @@ function FilmSeancesList({
     <ul className="mt-2 space-y-3 text-sm text-culture-ink">
       {groups.map((g) => (
         <li key={g.lieuId || g.label}>
-          <p className="font-medium">
-            {g.lieuId && onSelectVenue ? (
-              <button
-                type="button"
-                onClick={() => onSelectVenue(g.lieuId!)}
-                className="text-left text-culture-terracotta hover:underline"
+          <div className="flex items-start justify-between gap-2">
+            <p className="min-w-0 font-medium">
+              {g.lieuId && onSelectVenue ? (
+                <button
+                  type="button"
+                  onClick={() => onSelectVenue(g.lieuId!)}
+                  className="text-left text-culture-terracotta hover:underline"
+                >
+                  {g.label}
+                </button>
+              ) : (
+                g.label
+              )}
+            </p>
+            {g.reserveUrl ? (
+              <a
+                href={g.reserveUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => onReserve?.()}
+                className="inline-flex shrink-0 items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-medium text-white hover:bg-culture-clay"
               >
-                {g.label}
-              </button>
-            ) : (
-              g.label
-            )}
-          </p>
+                Réserver
+              </a>
+            ) : null}
+          </div>
           <ul className="mt-1 space-y-0.5 text-culture-muted">
             {g.rows.map((row) => (
               <li key={row.key} className="flex flex-wrap gap-x-2">
@@ -346,6 +383,7 @@ export default function EventDetail({
                         }
                       : undefined
                   }
+                  onReserve={onReserve}
                 />
               </section>
             )}
@@ -429,7 +467,7 @@ export default function EventDetail({
             />
 
             <div className="flex flex-wrap gap-2">
-              {reserveUrlOf(item) && (
+              {!hasFilmSeances && reserveUrlOf(item) && (
                 <a
                   href={reserveUrlOf(item)}
                   target="_blank"
