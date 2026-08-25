@@ -533,6 +533,11 @@ export function hasPhraseSignal(tags: PhraseTags): boolean {
   );
 }
 
+/** No form/moods/genres/themes/entities after rules+AI → title-search the raw phrase. */
+export function phraseUsesTitleQ(tags: PhraseTags | null | undefined): boolean {
+  return !tags || !hasPhraseSignal(tags);
+}
+
 /** Étage 1 — dates, entités, form, thèmes, moods, genres. Dates seules ≠ signal. */
 export function parsePhraseRules(phrase: string, now = new Date()): PhraseTags {
   const raw = (phrase || '').trim();

@@ -31,6 +31,7 @@ import LoginNudge from './LoginNudge';
 import {
   hasPhraseSignal,
   parsePhraseRules,
+  phraseUsesTitleQ,
   type PhraseTags,
 } from '@/lib/phraseTags';
 
@@ -79,7 +80,9 @@ function buildAgendaParams(opts: {
   const p = new URLSearchParams();
   p.set('scope', opts.scope);
   if (opts.commune) p.set('commune', opts.commune);
-  if (opts.phraseMode) {
+  const usePhraseTags =
+    Boolean(opts.phraseMode) && !phraseUsesTitleQ(opts.phraseTags);
+  if (usePhraseTags) {
     const t = opts.phraseTags;
     if (t?.form) p.set('form', t.form);
     p.set('moods', (t?.moods ?? []).join(','));
