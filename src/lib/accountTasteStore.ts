@@ -63,7 +63,8 @@ function cookieSecure(): boolean {
 function postgresUrl(): string | undefined {
   const env = process.env;
   const url = (env['POSTGRES_URL'] || env['POSTGRES_URL_NON_POOLING'] || '').trim();
-  return url || undefined;
+  if (!url || url === 'undefined') return undefined;
+  return url;
 }
 
 type CookiePayload = { key: string; state: AccountTasteState };
@@ -206,7 +207,15 @@ async function readTastePostgres(key: string): Promise<AccountTasteState | null>
     );
     const row = result.rows[0] as { state?: unknown } | undefined;
     if (!row) return null;
-    return parseTasteState(row.state);
+    const raw = row.state;
+    if (typeof raw === 'string') {
+      try {
+        return parseTasteState(JSON.parse(raw));
+      } catch {
+        return null;
+      }
+    }
+    return parseTasteState(raw);
   } catch {
     return null;
   }
