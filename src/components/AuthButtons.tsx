@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useTastesUi } from './Providers';
 import { useSignals } from './SignalsProvider';
@@ -10,6 +10,8 @@ export default function AuthButtons() {
   const { openTastes, googleAuthEnabled } = useTastesUi();
   const { loginNudgeReady, loginNudgeDismissed, dismissLoginNudge } = useSignals();
   const [providersOk, setProvidersOk] = useState<boolean | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const showRemember = loginNudgeReady && !loginNudgeDismissed;
 
   useEffect(() => {
@@ -28,6 +30,24 @@ export default function AuthButtons() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onPointerDown(e: PointerEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setMenuOpen(false);
+    }
+    document.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
   const enabled =
     providersOk === true || (providersOk === null && googleAuthEnabled);
 
@@ -42,40 +62,90 @@ export default function AuthButtons() {
   if (session?.user) {
     const name = session.user.name?.split(' ')[0] || 'Toi';
     const image = session.user.image;
+    const initial = name.slice(0, 1).toUpperCase();
+    function AvatarFace() {
+      if (image) {
+        return (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={image}
+            alt=""
+            className="h-full w-full rounded-full object-cover"
+          />
+        );
+      }
+      return (
+        <span className="flex h-full w-full items-center justify-center rounded-full bg-culture-terracotta/15 text-xs font-semibold text-culture-terracotta">
+          {initial}
+        </span>
+      );
+    }
+
     return (
-      <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
-        <button
-          type="button"
-          onClick={openTastes}
-          className="shrink-0 rounded-full border border-culture-sand bg-white px-2.5 py-1.5 text-xs font-medium text-culture-ink hover:border-culture-terracotta/50 sm:px-3 sm:text-sm"
-        >
-          Mes goûts
-        </button>
-        <div className="flex min-w-0 items-center gap-1.5">
-          {image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={image}
-              alt=""
-              className="h-7 w-7 shrink-0 rounded-full border border-culture-line object-cover"
-            />
-          ) : (
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-culture-terracotta/15 text-xs font-semibold text-culture-terracotta">
-              {name.slice(0, 1).toUpperCase()}
-            </span>
-          )}
-          <span className="hidden max-w-[7rem] truncate text-sm text-culture-ink sm:inline">
-            {name}
-          </span>
+      <>
+        <div className="relative sm:hidden" ref={menuRef}>
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            aria-label="Menu compte"
+            className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-culture-line bg-white"
+          >
+            <AvatarFace />
+          </button>
+          {menuOpen ? (
+            <div
+              role="menu"
+              className="absolute right-0 top-full z-20 mt-1 min-w-[10.5rem] overflow-hidden rounded-xl border border-culture-sand bg-white py-1 shadow-lg"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false);
+                  openTastes();
+                }}
+                className="block w-full px-3 py-2 text-left text-sm font-medium text-culture-ink hover:bg-culture-soft"
+              >
+                Mes goûts
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => signOut({ callbackUrl: '/' })}
+                className="block w-full px-3 py-2 text-left text-sm font-medium text-culture-muted hover:bg-culture-soft hover:text-culture-ink"
+              >
+                Déconnexion
+              </button>
+            </div>
+          ) : null}
         </div>
-        <button
-          type="button"
-          onClick={() => signOut({ callbackUrl: '/' })}
-          className="shrink-0 rounded-full border border-culture-sand bg-white px-2.5 py-1.5 text-xs font-medium text-culture-muted hover:text-culture-ink sm:px-3 sm:text-sm"
-        >
-          Déconnexion
-        </button>
-      </div>
+        <div className="hidden min-w-0 items-center gap-2 sm:flex">
+          <button
+            type="button"
+            onClick={openTastes}
+            className="shrink-0 rounded-full border border-culture-sand bg-white px-3 py-1.5 text-sm font-medium text-culture-ink hover:border-culture-terracotta/50"
+          >
+            Mes goûts
+          </button>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className="flex h-7 w-7 shrink-0 overflow-hidden rounded-full border border-culture-line">
+              <AvatarFace />
+            </span>
+            <span className="max-w-[7rem] truncate text-sm text-culture-ink">
+              {name}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => signOut({ callbackUrl: '/' })}
+            className="shrink-0 rounded-full border border-culture-sand bg-white px-3 py-1.5 text-sm font-medium text-culture-muted hover:text-culture-ink"
+          >
+            Déconnexion
+          </button>
+        </div>
+      </>
     );
   }
 
