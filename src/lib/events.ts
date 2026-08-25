@@ -11,6 +11,7 @@ import {
   isPublishableEvent,
   isPublishableProgrammeName,
 } from './publishable';
+import { densifiedCardCount } from './densify';
 
 /** @deprecated Prefer MAIN_CATEGORIES — kept for callers that still list raw CSV values. */
 export function getCategories(events: Evenement[]): string[] {
@@ -444,9 +445,9 @@ export function itemsForDateRange(
 }
 
 /**
- * Calendar badges: programme items that day + fallback only if
- * spanDays <= 7 OR dayIso === date_debut (or first day in month).
- * Long expos don't put +1 on every day.
+ * Calendar badges: same total as « X sorties » if you click that day
+ * (grouped cards, same commune/cat/genre/publication filters).
+ * Same list as scope=date on that day (grouped cards).
  */
 export function countItemsByDay(
   programme: ProgrammeWithContext[],
@@ -459,76 +460,20 @@ export function countItemsByDay(
 ): Map<string, number> {
   const counts = new Map<string, number>();
   const daysInMonth = new Date(year, month, 0).getDate();
-  const monthStart = `${year}-${String(month).padStart(2, '0')}-01`;
-  const monthEnd = `${year}-${String(month).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
-
-  // Programme counts per day
-  for (const p of programme) {
-    const d = p.programme.date;
-    if (!d || d < monthStart || d > monthEnd) continue;
-    if (!isProgrammePublishable(p)) continue;
-    if (
-      !matchesFilters(
-        categorieOf(p),
-        lieuIdOf(p),
-        genreOfProgramme(p),
-        categories,
-        lieuIds,
-        genres,
-      )
-    )
-      continue;
-    counts.set(d, (counts.get(d) ?? 0) + 1);
+  for (let d = 1; d <= daysInMonth; d++) {
+    const iso = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const items = itemsForDay(
+      programme,
+      events,
+      iso,
+      categories,
+      lieuIds,
+      genres,
+      false,
+    );
+    const n = densifiedCardCount(items);
+    if (n > 0) counts.set(iso, n);
   }
-
-  // Event ids with programme on a given day (for fallback exclusion that day)
-  const programmeEventIdsByDay = new Map<string, Set<string>>();
-  for (const p of programme) {
-    const d = p.programme.date;
-    if (!d || d < monthStart || d > monthEnd) continue;
-    if (!isProgrammePublishable(p)) continue;
-    if (!p.programme.event_id) continue;
-    let set = programmeEventIdsByDay.get(d);
-    if (!set) {
-      set = new Set();
-      programmeEventIdsByDay.set(d, set);
-    }
-    set.add(p.programme.event_id);
-  }
-
-  for (const ev of events) {
-    if (!isPublishableEvent(ev)) continue;
-    const lieuId = ev.lieu_id || ev.lieu?.lieu_id || '';
-    if (
-      !matchesFilters(
-        ev.categorie,
-        lieuId,
-        ev.genre || '',
-        categories,
-        lieuIds,
-        genres,
-      )
-    )
-      continue;
-
-    const span = eventSpanDays(ev);
-    const firstInMonth = firstCoveredDayInMonth(ev, year, month);
-    if (!firstInMonth) continue;
-
-    for (let d = 1; d <= daysInMonth; d++) {
-      const iso = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      if (!eventOccursOnDay(ev, iso)) continue;
-      if (programmeEventIdsByDay.get(iso)?.has(ev.event_id)) continue;
-
-      // Count fallback only if short span OR this is date_debut / first day in month
-      const isAnchor =
-        iso === ev.date_debut || iso === firstInMonth;
-      if (span > 7 && !isAnchor) continue;
-
-      counts.set(iso, (counts.get(iso) ?? 0) + 1);
-    }
-  }
-
   return counts;
 }
 
