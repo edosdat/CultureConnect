@@ -135,17 +135,24 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
       });
       if (cancelled) return;
       if (!data?.tasteState) {
+        // Merge failed — keep guest as filet; retry once the account hydrates.
         mergedRef.current = false;
         return;
       }
-      clearGuestStore();
-      setGuestStore(emptyGuestStore());
-      notifySignalsChanged();
       await update({
         tasteState: data.tasteState,
         tastes: data.tastes ?? data.tasteState.tastesText ?? '',
         tastesSetAt: data.tastesSetAt ?? data.tasteState.tastesSetAt,
       });
+      // Only drop guest when the account profile is scorable (Safari / first
+      // login: JWT may still be empty — keep guest so « Ton top 3 » stays).
+      if (hasScorableState(data.tasteState)) {
+        clearGuestStore();
+        setGuestStore(emptyGuestStore());
+        notifySignalsChanged();
+      } else {
+        mergedRef.current = false;
+      }
     })();
     return () => {
       cancelled = true;
@@ -257,12 +264,9 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
         : null;
     if (status === 'authenticated') {
       const account = session?.user?.tasteState ?? null;
-      // Empty JWT (clicks landed in guestStore while status was loading)
-      // must not hide Pour toi until F5 — fall back to guest events/zeros.
-      if (
-        hasScorableState(account) ||
-        profileHasZeroWeights(account?.profile)
-      ) {
+      // Account not scorable (empty JWT / first login): keep guest events
+      // or zeros as fallback so « Ton top 3 du moment » does not vanish.
+      if (hasScorableState(account)) {
         return account;
       }
       return fromGuest ?? account;

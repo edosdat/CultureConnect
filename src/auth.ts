@@ -41,11 +41,19 @@ export function isGoogleAuthConfigured(): boolean {
   return Boolean(googleClientId() && googleClientSecret());
 }
 
-function tokenUser(token: { sub?: string; email?: string | null }) {
-  return {
-    id: typeof token.sub === 'string' ? token.sub : undefined,
-    email: typeof token.email === 'string' ? token.email : undefined,
-  };
+function tokenUser(
+  token: { sub?: string; email?: string | null },
+  user?: { id?: string | null; email?: string | null },
+) {
+  const id =
+    (typeof token.sub === 'string' && token.sub) ||
+    (typeof user?.id === 'string' && user.id) ||
+    undefined;
+  const email =
+    (typeof token.email === 'string' && token.email) ||
+    (typeof user?.email === 'string' && user.email) ||
+    undefined;
+  return { id: id || undefined, email: email || undefined };
 }
 
 function applyTasteStateToToken(
@@ -71,6 +79,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   session: { strategy: 'jwt' },
   callbacks: {
     async jwt({ token, trigger, session, user }) {
+      // Identity first so tokenUser() keys the store on this sign-in.
       if (user) {
         if (typeof user.email === 'string' && user.email) token.email = user.email;
         if (typeof user.id === 'string' && user.id) token.sub = user.id;
@@ -127,7 +136,8 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
       const parsed = parseTasteState(token.tasteState);
       const needHydrate = Boolean(user) || !hasScorableState(parsed);
       if (needHydrate) {
-        const stored = await readAccountTaste(tokenUser(token));
+        // token.email / token.sub already set from user above.
+        const stored = await readAccountTaste(tokenUser(token, user));
         if (stored) applyTasteStateToToken(token, stored);
       }
 
