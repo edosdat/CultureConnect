@@ -52,21 +52,93 @@ function normalizeCommune(c: string | null | undefined): string {
   return (c || '').trim().toLocaleLowerCase('fr');
 }
 
-function reserveUrlForVenueGroup(items: DayItem[]): string {
+const NOWEB_THEATER_CODES = new Set(['W3161', 'P0235', 'P2235']);
+
+/** mvtx /noweb or known noweb theaters. Not Pathé/Kinepolis 403. Not Utopia home. */
+function isSoldOutUrl(url: string): boolean {
+  const raw = (url || '').trim();
+  if (!raw) return false;
+  if (raw.toLowerCase().includes('/noweb')) return true;
+  try {
+    const parsed = new URL(raw);
+    if (parsed.hostname.toLowerCase() !== 'relay.mvtx.us') return false;
+    if (parsed.pathname.toLowerCase().includes('noweb')) return true;
+    const theater = (parsed.searchParams.get('code_theater') || '').toUpperCase();
+    return NOWEB_THEATER_CODES.has(theater);
+  } catch {
+    return false;
+  }
+}
+
+type ReservePick = { url: string; soldOut: boolean };
+
+function reservePickForVenueGroup(items: DayItem[]): ReservePick {
   let ticketPage = '';
   let siteWeb = '';
+  let soldOut = false;
   for (const rel of items) {
     if (rel.kind !== 'programme') continue;
     const bille =
       (rel.programme.billetterie_url || '').trim() ||
       (rel.evenement?.billetterie_url || '').trim();
-    if (bille) return bille;
+    if (bille) {
+      if (isSoldOutUrl(bille)) {
+        soldOut = true;
+        continue;
+      }
+      return { url: bille, soldOut: false };
+    }
     const page = (rel.programme.url || '').trim();
-    if (!ticketPage && page && looksLikeTicket(page)) ticketPage = page;
+    if (page && isSoldOutUrl(page)) soldOut = true;
+    else if (!ticketPage && page && looksLikeTicket(page)) ticketPage = page;
     const site = (rel.lieu?.site_web || '').trim();
-    if (!siteWeb && site) siteWeb = site;
+    if (!siteWeb && site && !isSoldOutUrl(site)) siteWeb = site;
   }
-  return ticketPage || siteWeb;
+  if (ticketPage) return { url: ticketPage, soldOut: false };
+  if (soldOut) return { url: '', soldOut: true };
+  return { url: siteWeb, soldOut: false };
+}
+
+function ReserveControl({
+  url,
+  soldOut,
+  onReserve,
+  shrink = false,
+}: {
+  url: string;
+  soldOut: boolean;
+  onReserve?: () => void;
+  shrink?: boolean;
+}) {
+  const width = shrink ? ' shrink-0' : '';
+  if (soldOut) {
+    return (
+      <span
+        aria-disabled="true"
+        className={
+          'pointer-events-none inline-flex cursor-default items-center rounded-full border border-culture-line bg-culture-cream px-4 py-2 text-sm font-medium text-culture-muted' +
+          width
+        }
+      >
+        Sold out
+      </span>
+    );
+  }
+  if (!url) return null;
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={() => onReserve?.()}
+      className={
+        'inline-flex items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-medium text-white hover:bg-culture-clay' +
+        width
+      }
+    >
+      Réserver
+    </a>
+  );
 }
 
 type VenueGroup = {
@@ -75,6 +147,7 @@ type VenueGroup = {
   commune: string;
   rows: { key: string; date: string; heure: string }[];
   reserveUrl: string;
+  soldOut: boolean;
 };
 
 function groupSeancesByVenue(items: DayItem[]): VenueGroup[] {
@@ -88,7 +161,7 @@ function groupSeancesByVenue(items: DayItem[]): VenueGroup[] {
     const commune = rel.lieu?.commune || '';
     const key = lieuId || `label:${label}`;
     if (!map.has(key)) {
-      map.set(key, { label, lieuId, commune, rows: [], reserveUrl: '' });
+      map.set(key, { label, lieuId, commune, rows: [], reserveUrl: '', soldOut: false });
       seancesByKey.set(key, []);
       order.push(key);
     }
@@ -110,7 +183,9 @@ function groupSeancesByVenue(items: DayItem[]): VenueGroup[] {
       if (d !== 0) return d;
       return a.heure.localeCompare(b.heure);
     });
-    g.reserveUrl = reserveUrlForVenueGroup(seancesByKey.get(key) || []);
+    const pick = reservePickForVenueGroup(seancesByKey.get(key) || []);
+    g.reserveUrl = pick.url;
+    g.soldOut = pick.soldOut;
   }
   return order
     .map((k) => map.get(k)!)
@@ -167,17 +242,12 @@ function FilmSeancesList({
                 g.label
               )}
             </p>
-            {g.reserveUrl ? (
-              <a
-                href={g.reserveUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => onReserve?.()}
-                className="inline-flex shrink-0 items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-medium text-white hover:bg-culture-clay"
-              >
-                Réserver
-              </a>
-            ) : null}
+            <ReserveControl
+              url={g.reserveUrl}
+              soldOut={g.soldOut}
+              onReserve={onReserve}
+              shrink
+            />
           </div>
           <ul className="mt-1 space-y-0.5 text-culture-muted">
             {g.rows.map((row) => (
@@ -218,6 +288,7 @@ function AussiCeSoirSection({
 }
 
 function looksLikeTicket(url: string): boolean {
+  if (isSoldOutUrl(url)) return false;
   const u = url.toLowerCase();
   return /billet|reserv|booking|ticket|fnacspectacles|shotgun|eventbrite|dice\.fm|placeminute|billetreduc/.test(
     u,
@@ -243,11 +314,23 @@ function rawUrls(item: DayItem): { bille: string; page: string } {
   };
 }
 
-function reserveUrlOf(item: DayItem): string {
+function reservePickOf(item: DayItem): ReservePick {
   const { bille, page } = rawUrls(item);
-  if (bille) return bille;
-  if (page && looksLikeTicket(page)) return page;
-  return '';
+  if (bille) {
+    if (isSoldOutUrl(bille)) return { url: '', soldOut: true };
+    return { url: bille, soldOut: false };
+  }
+  if (page && isSoldOutUrl(page)) return { url: '', soldOut: true };
+  if (page && looksLikeTicket(page)) return { url: page, soldOut: false };
+  return { url: '', soldOut: false };
+}
+
+function reserveUrlOf(item: DayItem): string {
+  return reservePickOf(item).url;
+}
+
+function reserveSoldOut(item: DayItem): boolean {
+  return reservePickOf(item).soldOut;
 }
 
 function sourceUrlOf(item: DayItem): string {
@@ -502,16 +585,12 @@ export default function EventDetail({
             />
 
             <div className="flex flex-wrap gap-2">
-              {!hasFilmSeances && reserveUrlOf(item) && (
-                <a
-                  href={reserveUrlOf(item)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => onReserve?.()}
-                  className="inline-flex items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-medium text-white hover:bg-culture-clay"
-                >
-                  Réserver
-                </a>
+              {!hasFilmSeances && (
+                <ReserveControl
+                  url={reserveUrlOf(item)}
+                  soldOut={reserveSoldOut(item)}
+                  onReserve={onReserve}
+                />
               )}
               {cal && (
                 <>
@@ -683,17 +762,11 @@ export default function EventDetail({
           />
 
           <div className="flex flex-wrap gap-2">
-            {reserveUrlOf(item) && (
-              <a
-                href={reserveUrlOf(item)}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => onReserve?.()}
-                className="inline-flex items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-medium text-white hover:bg-culture-clay"
-              >
-                Réserver
-              </a>
-            )}
+            <ReserveControl
+              url={reserveUrlOf(item)}
+              soldOut={reserveSoldOut(item)}
+              onReserve={onReserve}
+            />
             {cal && (
               <>
                 <a
