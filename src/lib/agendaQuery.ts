@@ -181,15 +181,17 @@ function evenementOf(item: DayItem): Evenement | null {
 function formOfItem(item: DayItem): string {
   const p = programmeOf(item);
   const ev = evenementOf(item);
-  const raw = (p?.form || ev?.form || '').toString().trim().toLowerCase();
-  if (raw) return raw;
   const cat = ev?.categorie || '';
   const main = mainFromCategorie(cat);
+  // Category main wins over stored form so phrase « musique »/« concert »
+  // matches the Musique chip (e.g. Aurore musicale: form=danse, cat=musique).
   if (main === 'cinema') return 'cine';
   if (main === 'theatre_danse') return 'theatre';
   if (main === 'musique') return 'concert';
   if (main === 'festival') return 'festival';
   if (main === 'enfants_famille') return 'enfants';
+  const raw = (p?.form || ev?.form || '').toString().trim().toLowerCase();
+  if (raw) return raw;
   const c = cat.trim().toLowerCase();
   if (c.includes('cinema') || c.includes('cine')) return 'cine';
   if (c.includes('theatre') || c.includes('humour') || c.includes('danse'))
