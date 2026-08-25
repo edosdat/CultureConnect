@@ -1,5 +1,5 @@
-/** Category pastilles / gradients via CSS vars (--cc-cat-*) in globals.css.
- *  Avoid nested Tailwind opacity modifiers on culture-cat colors (often near-white).
+/** Category pastilles / barre via CSS vars (--cc-cat-*) in globals.css.
+ *  One hue per cat. Unknown labels use --cc-cat-autre.
  */
 
 const CAT_KEY: Record<string, string> = {
@@ -11,20 +11,21 @@ const CAT_KEY: Record<string, string> = {
   'Enfants / familles': 'famille',
 };
 
-/** Solid pastille: white text on category color (AA). */
+function catKey(label: string): string {
+  return CAT_KEY[label] ?? 'autre';
+}
+
+/** Solid pastille: white text on category color. */
 export function catBg(label: string): string {
-  const key = CAT_KEY[label];
-  return key ? `cc-cat-bg-${key}` : 'bg-culture-muted';
+  return `cc-cat-bg-${catKey(label)}`;
 }
 
 /** Compact banner / accent gradient from CSS vars. */
 export function catGradient(label: string): string {
-  const key = CAT_KEY[label];
-  return key ? `cc-cat-grad-${key}` : 'cc-cat-grad-muted';
+  return `cc-cat-grad-${catKey(label)}`;
 }
 
 /** CSS custom property name for inline styles (e.g. left accent bar). */
-export function catCssVar(label: string): string | null {
-  const key = CAT_KEY[label];
-  return key ? `--cc-cat-${key}` : null;
+export function catCssVar(label: string): string {
+  return `--cc-cat-${catKey(label)}`;
 }

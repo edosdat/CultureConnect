@@ -96,10 +96,8 @@ export default function SeanceCard({
   const lieu = item.lieu;
   const isPeriod = item.kind === 'fallback';
   const isFilmGroup = salleCount > 0;
-  const cssVar = catLabel ? catCssVar(catLabel) : null;
-  const accentStyle = cssVar
-    ? ({ borderLeftColor: `var(${cssVar})` } as CSSProperties)
-    : undefined;
+  const cssVar = catCssVar(catLabel);
+  const accentStyle = { borderLeftColor: `var(${cssVar})` } as CSSProperties;
 
   const desHeure = earliestHeure
     ? formatHeure(earliestHeure)
@@ -131,9 +129,10 @@ export default function SeanceCard({
       type="button"
       onClick={() => onSelect(item.key)}
       className={
-        'group flex w-full min-w-0 flex-col overflow-hidden rounded-card border border-culture-line bg-culture-surface text-left shadow-card transition duration-200 ease-out ' +
+        'group flex w-full min-w-0 flex-col overflow-hidden rounded-card border border-culture-line border-l-4 bg-culture-surface text-left shadow-card transition duration-200 ease-out ' +
         (compact ? 'hover:shadow-md' : 'hover:-translate-y-0.5 hover:shadow-md')
       }
+      style={accentStyle}
     >
       {imageUrl ? (
         <div
@@ -165,10 +164,8 @@ export default function SeanceCard({
       <div
         className={
           'flex min-w-0 flex-1 flex-col gap-1 ' +
-          (compact ? 'p-2.5 sm:p-3 ' : 'p-3.5 sm:p-4 ') +
-          (!imageUrl ? 'border-l-4 border-culture-line' : '')
+          (compact ? 'p-2.5 sm:p-3 ' : 'p-3.5 sm:p-4 ')
         }
-        style={!imageUrl ? accentStyle : undefined}
       >
         <div className="flex flex-wrap items-start justify-between gap-2">
           {showDate && (

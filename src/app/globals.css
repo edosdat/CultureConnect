@@ -14,13 +14,14 @@
   --cc-soft: #f6d5c8;
   --cc-sand: #f3e8da;
 
-  /* Category tokens (AA white-on-solid) */
-  --cc-cat-musique: #e85d3b;
-  --cc-cat-theatre: #7c3a6e;
+  /* Category tokens — one hue per cat (barre + pastille) */
+  --cc-cat-musique: #7c3a6e;
+  --cc-cat-theatre: #1e3a5f;
   --cc-cat-festival: #d97706;
-  --cc-cat-cinema: #3730a3;
+  --cc-cat-cinema: #e85d3b;
   --cc-cat-expo: #5f7a5a;
   --cc-cat-famille: #0f766e;
+  --cc-cat-autre: #78716c;
 }
 
 html {
@@ -53,6 +54,7 @@ body {
   .cc-cat-bg-cinema { background-color: var(--cc-cat-cinema); }
   .cc-cat-bg-expo { background-color: var(--cc-cat-expo); }
   .cc-cat-bg-famille { background-color: var(--cc-cat-famille); }
+  .cc-cat-bg-autre { background-color: var(--cc-cat-autre); }
 
   .cc-cat-grad-musique {
     background-image: linear-gradient(
@@ -94,6 +96,13 @@ body {
       135deg,
       color-mix(in srgb, var(--cc-cat-famille) 92%, white),
       color-mix(in srgb, var(--cc-cat-famille) 55%, var(--cc-sand))
+    );
+  }
+  .cc-cat-grad-autre {
+    background-image: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--cc-cat-autre) 92%, white),
+      color-mix(in srgb, var(--cc-cat-autre) 55%, var(--cc-sand))
     );
   }
   .cc-cat-grad-muted {
