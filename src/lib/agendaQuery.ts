@@ -1,6 +1,6 @@
 import 'server-only';
 
-import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
+import type { Artiste, DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 import { loadCultureData } from './data';
 import { mainFromCategorie } from './categories';
 import { densifiedCardCount } from './densify';
@@ -692,6 +692,32 @@ function findItemByKey(id: string): DayItem | null {
   return null;
 }
 
+function withCredits(item: DayItem, artistes: Artiste[]): DayItem {
+  const byId = new Map(artistes.map((a) => [a.artiste_id, a.nom]));
+  const names: string[] = [];
+  const seen = new Set<string>();
+  const add = (raw: string) => {
+    const trimmed = raw.trim();
+    if (!trimmed) return;
+    const k = trimmed.toLocaleLowerCase('fr');
+    if (seen.has(k)) return;
+    seen.add(k);
+    names.push(trimmed);
+  };
+  if (item.kind === 'programme') {
+    for (const id of (item.programme.artiste_id || '').split(/[|,;]/)) {
+      const nom = byId.get(id.trim());
+      if (nom) add(nom);
+    }
+  }
+  const ev = item.evenement;
+  if (ev?.casting) {
+    for (const part of ev.casting.split(/[,;|/]/)) add(part);
+  }
+  if (!ev || names.length === 0) return item;
+  return { ...item, evenement: { ...ev, casting: names.join(', ') } };
+}
+
 export function queryAgendaDetail(
   id: string,
 ): AgendaDetailResponse | null {
@@ -745,7 +771,7 @@ export function queryAgendaDetail(
   }
 
   return {
-    item: detailDayItem(item),
+    item: detailDayItem(withCredits(item, data.artistes)),
     relatedItems,
     aussiCeSoir,
   };

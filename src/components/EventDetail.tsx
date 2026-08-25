@@ -149,14 +149,69 @@ function AussiCeSoirSection({
   );
 }
 
-function reserveUrlOf(item: DayItem): string {
+function looksLikeTicket(url: string): boolean {
+  const u = url.toLowerCase();
+  return /billet|reserv|booking|ticket|fnacspectacles|shotgun|eventbrite|dice\.fm|placeminute|billetreduc/.test(
+    u,
+  );
+}
+
+function rawUrls(item: DayItem): { bille: string; page: string } {
   if (item.kind === 'programme') {
+    return {
+      bille: (
+        (item.programme.billetterie_url || '').trim() ||
+        (item.evenement?.billetterie_url || '').trim()
+      ),
+      page: (
+        (item.programme.url || '').trim() ||
+        (item.evenement?.url_source || '').trim()
+      ),
+    };
+  }
+  return {
+    bille: (item.evenement.billetterie_url || '').trim(),
+    page: (item.evenement.url_source || '').trim(),
+  };
+}
+
+function reserveUrlOf(item: DayItem): string {
+  const { bille, page } = rawUrls(item);
+  if (bille) return bille;
+  if (page && looksLikeTicket(page)) return page;
+  return '';
+}
+
+function sourceUrlOf(item: DayItem): string {
+  const { page } = rawUrls(item);
+  const reserve = reserveUrlOf(item);
+  if (!page || page === reserve) return '';
+  return page;
+}
+
+function pitchOf(item: DayItem): string {
+  if (item.kind === 'programme') {
+    const ev = item.evenement;
     return (
-      (item.programme.billetterie_url || '').trim() ||
-      (item.evenement?.billetterie_url || '').trim()
+      (ev?.description_longue || '').trim() ||
+      (item.programme.description_item || '').trim() ||
+      (ev?.description_courte || '').trim()
     );
   }
-  return (item.evenement.billetterie_url || '').trim();
+  return (
+    (item.evenement.description_longue || '').trim() ||
+    (item.evenement.description_courte || '').trim()
+  );
+}
+
+function creditNamesOf(item: DayItem): string[] {
+  const ev = item.evenement;
+  const raw = (ev?.casting || '').trim();
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 export default function EventDetail({
@@ -182,7 +237,6 @@ export default function EventDetail({
       formatHeure(p.heure_debut) +
       (p.heure_fin ? ` – ${formatHeure(p.heure_fin)}` : '');
     const categorie = ev?.categorie ?? '';
-    const url = p.url || ev?.url_source || '';
     const hasFilmSeances = relatedItems.length > 0;
 
     return (
@@ -217,7 +271,12 @@ export default function EventDetail({
               >
                 {p.nom_item}
               </h2>
-              {ev?.titre && (
+              {creditNamesOf(item).length > 0 && (
+                <p className="mt-1 text-sm text-culture-ink break-words">
+                  {creditNamesOf(item).join(' · ')}
+                </p>
+              )}
+              {ev?.titre && ev.titre !== p.nom_item && (
                 <p className="mt-1 text-sm text-culture-muted break-words">{ev.titre}</p>
               )}
             </div>
@@ -341,11 +400,17 @@ export default function EventDetail({
                     {formatDateRange(ev.date_debut, ev.date_fin)}
                   </p>
                 )}
-                {ev.description_courte && (
-                  <p className="mt-2 text-culture-ink leading-relaxed break-words">
-                    {ev.description_courte}
-                  </p>
-                )}
+              </section>
+            )}
+
+            {pitchOf(item) && (
+              <section>
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
+                  Description
+                </h3>
+                <p className="mt-2 whitespace-pre-wrap text-culture-ink leading-relaxed break-words">
+                  {pitchOf(item)}
+                </p>
               </section>
             )}
 
@@ -364,6 +429,17 @@ export default function EventDetail({
             />
 
             <div className="flex flex-wrap gap-2">
+              {reserveUrlOf(item) && (
+                <a
+                  href={reserveUrlOf(item)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => onReserve?.()}
+                  className="inline-flex items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-medium text-white hover:bg-culture-clay"
+                >
+                  Réserver
+                </a>
+              )}
               {cal && (
                 <>
                   <a
@@ -371,7 +447,7 @@ export default function EventDetail({
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => onAgenda?.()}
-                    className="inline-flex items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-medium text-white hover:bg-culture-clay"
+                    className="inline-flex items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
                   >
                     Google Agenda
                   </a>
@@ -387,20 +463,9 @@ export default function EventDetail({
                   </button>
                 </>
               )}
-              {reserveUrlOf(item) && (
+              {sourceUrlOf(item) && (
                 <a
-                  href={reserveUrlOf(item)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => onReserve?.()}
-                  className="inline-flex items-center rounded-full border border-culture-terracotta bg-white px-4 py-2 text-sm font-medium text-culture-terracotta hover:bg-culture-soft"
-                >
-                  Réserver
-                </a>
-              )}
-              {url && (
-                <a
-                  href={url}
+                  href={sourceUrlOf(item)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
@@ -444,6 +509,11 @@ export default function EventDetail({
             >
               {event.titre}
             </h2>
+            {creditNamesOf(item).length > 0 && (
+              <p className="mt-1 text-sm text-culture-ink break-words">
+                {creditNamesOf(item).join(' · ')}
+              </p>
+            )}
             <p className="mt-1 text-xs uppercase tracking-wide text-culture-muted">
               Sur la période (pas de séance datée ce jour)
             </p>
@@ -523,13 +593,13 @@ export default function EventDetail({
             </section>
           )}
 
-          {event.description_courte && (
+          {pitchOf(item) && (
             <section>
               <h3 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
                 Description
               </h3>
-              <p className="mt-1 text-culture-ink leading-relaxed break-words">
-                {event.description_courte}
+              <p className="mt-1 whitespace-pre-wrap text-culture-ink leading-relaxed break-words">
+                {pitchOf(item)}
               </p>
             </section>
           )}
@@ -540,6 +610,17 @@ export default function EventDetail({
           />
 
           <div className="flex flex-wrap gap-2">
+            {reserveUrlOf(item) && (
+              <a
+                href={reserveUrlOf(item)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => onReserve?.()}
+                className="inline-flex items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-medium text-white hover:bg-culture-clay"
+              >
+                Réserver
+              </a>
+            )}
             {cal && (
               <>
                 <a
@@ -547,7 +628,7 @@ export default function EventDetail({
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => onAgenda?.()}
-                  className="inline-flex items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-medium text-white hover:bg-culture-clay"
+                  className="inline-flex items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
                 >
                   Google Agenda
                 </a>
@@ -563,20 +644,9 @@ export default function EventDetail({
                 </button>
               </>
             )}
-            {reserveUrlOf(item) && (
+            {sourceUrlOf(item) && (
               <a
-                href={reserveUrlOf(item)}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => onReserve?.()}
-                className="inline-flex items-center rounded-full border border-culture-terracotta bg-white px-4 py-2 text-sm font-medium text-culture-terracotta hover:bg-culture-soft"
-                >
-                Réserver
-                </a>
-              )}
-            {event.url_source && (
-              <a
-                href={event.url_source}
+                href={sourceUrlOf(item)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
