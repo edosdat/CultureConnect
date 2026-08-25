@@ -225,25 +225,68 @@ async function ensureAccountTastesTable(): Promise<VercelPool | null> {
   return pg;
 }
 
-async function readTastePostgres(key: string): Promise<AccountTasteState | null> {
+const RETENTION_MONTHS = 24;
+
+function activityTimestamps(
+  state: AccountTasteState,
+  updatedAt?: string,
+): number[] {
+  const out: number[] = [];
+  const push = (raw?: string | Date | null) => {
+    if (!raw) return;
+    const t = raw instanceof Date ? raw.getTime() : Date.parse(String(raw));
+    if (Number.isFinite(t)) out.push(t);
+  };
+  push(updatedAt);
+  push(state.tastesSetAt);
+  for (const s of state.signalsRecent) push(s.ts);
+  return out;
+}
+
+function isPastRetention(
+  state: AccountTasteState,
+  updatedAt?: string,
+): boolean {
+  const times = activityTimestamps(state, updatedAt);
+  if (times.length === 0) return false;
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - RETENTION_MONTHS);
+  return Math.max(...times) < cutoff.getTime();
+}
+
+type StoredTasteRow = { state: AccountTasteState; updatedAt?: string };
+
+async function readTastePostgres(key: string): Promise<StoredTasteRow | null> {
   try {
     const pg = await ensureAccountTastesTable();
     if (!pg) return null;
     const result = await pg.query(
-      `SELECT state FROM account_tastes WHERE user_key = $1 LIMIT 1`,
+      `SELECT state, updated_at FROM account_tastes WHERE user_key = $1 LIMIT 1`,
       [key],
     );
-    const row = result.rows[0] as { state?: unknown } | undefined;
+    const row = result.rows[0] as
+      | { state?: unknown; updated_at?: Date | string }
+      | undefined;
     if (!row) return null;
     const raw = row.state;
+    let parsed: AccountTasteState | null = null;
     if (typeof raw === 'string') {
       try {
-        return parseTasteState(JSON.parse(raw));
+        parsed = parseTasteState(JSON.parse(raw));
       } catch {
-        return null;
+        parsed = null;
       }
+    } else {
+      parsed = parseTasteState(raw);
     }
-    return parseTasteState(raw);
+    if (!parsed) return null;
+    const updatedAt =
+      row.updated_at instanceof Date
+        ? row.updated_at.toISOString()
+        : row.updated_at
+          ? String(row.updated_at)
+          : undefined;
+    return { state: parsed, updatedAt };
   } catch {
     return null;
   }
@@ -315,7 +358,7 @@ async function writeTastePostgres(
     const pg = await ensureAccountTastesTable();
     if (!pg) return;
     const existing = await readTastePostgres(key);
-    const merged = mergeIncomingTaste(existing, state);
+    const merged = mergeIncomingTaste(existing?.state ?? null, state);
     const payload = JSON.stringify(merged);
     await pg.query(
       `INSERT INTO account_tastes (user_key, state, updated_at)
@@ -331,10 +374,13 @@ async function writeTastePostgres(
 
 async function readTasteByKey(key: string): Promise<AccountTasteState | null> {
   const fromPg = await readTastePostgres(key);
-  if (fromPg) return fromPg;
-  const fromFile = await readTasteFile(key);
-  if (fromFile) return fromFile;
-  return readTasteCookie(key);
+  const stored = fromPg?.state ?? (await readTasteFile(key)) ?? (await readTasteCookie(key));
+  if (!stored) return null;
+  if (isPastRetention(stored, fromPg?.updatedAt)) {
+    await deleteAccountTaste(key);
+    return null;
+  }
+  return stored;
 }
 
 /** Hydrate on email key only. Never looks up user.id / UUID. */

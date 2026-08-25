@@ -26,6 +26,7 @@ export default function ConfidentialitePage() {
           <span className="font-medium">Quoi.</span> Ton e-mail Google, et tes
           goûts (chips / phrases) pour les suggestions.
         </p>
+        <p>On affiche ton prénom et ta photo, on ne les met pas en base.</p>
         <p>
           <span className="font-medium">Pourquoi.</span> Personnaliser les
           recommandations «&nbsp;Pour toi&nbsp;».
@@ -33,6 +34,14 @@ export default function ConfidentialitePage() {
         <p>
           <span className="font-medium">Où.</span> Vercel (hébergement), Neon
           (base), Google (connexion).
+        </p>
+        <p>
+          <span className="font-medium">Qui voit tes données.</span> Vercel
+          (site), Neon à Paris (goûts), Google (connexion). Google et le CDN
+          Vercel peuvent être hors UE. Si ta phrase ne correspond à aucun mot
+          du dico, on envoie ce texte seul à OpenAI (États-Unis) pour la
+          taguer. Le dico passe d’abord. Pas l’email, pas tes chips, pas tes
+          clics.
         </p>
         <p>
           <span className="font-medium">Tes droits.</span> Accès, rectification,

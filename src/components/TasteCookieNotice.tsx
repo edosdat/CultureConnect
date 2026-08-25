@@ -50,7 +50,7 @@ export default function TasteCookieNotice() {
 
   return (
     <p>
-      On enregistre tes goûts dans un cookie pour «&nbsp;Pour toi&nbsp;».{' '}
+      On retient tes goûts 14 jours sur cet appareil.{' '}
       <Link
         href="/confidentialite"
         className="underline-offset-2 hover:text-culture-ink hover:underline"
