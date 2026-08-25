@@ -18,7 +18,6 @@ import {
 import {
   cinemaActionShare,
   cineFicheCount,
-  extractMoods,
   hasActionSignals,
   lastOpenCardDayIso,
   profileMaxWeight,
@@ -902,6 +901,8 @@ const VIVANT_QUOTA_CATS: ReadonlySet<MainCategoryId> = new Set([
 const W_PROFILE_GENRE = 15;
 const W_PROFILE_MOOD_NEIGHBOR = 12;
 const W_PROFILE_CAT = 8;
+/** Live cat chip (weight > 0) — above voisin so matching items can enter top 3. */
+const W_LIVE_CAT = 16;
 const W_PROFILE_COMBO = 4;
 const W_PROFILE_COMMUNE = 3;
 const W_PROFILE_SAME_EVENING = 2;
@@ -915,10 +916,6 @@ function isVivantQuotaFields(fields: ItemFields): boolean {
   return fields.mainCats.some((c) => VIVANT_QUOTA_CATS.has(c));
 }
 
-function itemMoods(fields: ItemFields): string[] {
-  return extractMoods(fields.titre, fields.blob, fields.genreSlugs.join(' '));
-}
-
 function neighborMatch(
   fields: ItemFields,
   targets: string[],
@@ -928,11 +925,37 @@ function neighborMatch(
   return false;
 }
 
-function profileHasPrecise(profile: TasteProfile): boolean {
-  return (
-    Object.values(profile.genres).some((w) => w > 0) ||
-    Object.values(profile.moods).some((w) => w > 0)
-  );
+function liveCatKeys(profile: TasteProfile): string[] {
+  return Object.entries(profile.cats)
+    .filter(([, w]) => w > 0)
+    .map(([k]) => k);
+}
+
+function itemMatchesLiveCat(
+  fields: ItemFields,
+  liveCats: ReadonlySet<string>,
+): boolean {
+  return fields.mainCats.some((c) => liveCats.has(c));
+}
+
+/** Pool can satisfy an explicit cat chip without counting blocked guinguettes. */
+function poolSatisfiesLiveCat(
+  fieldsList: ItemFields[],
+  liveCats: ReadonlySet<string>,
+  allowGuinguette: boolean,
+): boolean {
+  if (liveCats.size === 0) return false;
+  return fieldsList.some((f) => {
+    if (!itemMatchesLiveCat(f, liveCats)) return false;
+    if (
+      f.genreSlugs.includes(GUINGUETTE_GENRE) &&
+      !allowGuinguette &&
+      !f.mainCats.some((c) => c !== 'musique' && liveCats.has(c))
+    ) {
+      return false;
+    }
+    return true;
+  });
 }
 
 function scoreItemFromProfile(
@@ -942,6 +965,7 @@ function scoreItemFromProfile(
   lastDayIso: string | undefined,
   textScore: number,
   textCoeff: number,
+  skipNeighbors: boolean,
 ): number {
   const profile = state.profile;
   const pmax = profileMaxWeight(profile);
@@ -957,11 +981,9 @@ function scoreItemFromProfile(
   }
   score += bestGenre;
 
-  const moods = itemMoods(fields);
-  const hitMood = moods.some((m) => (profile.moods[m] ?? 0) > 0);
   const vivant = !isCinemaFields(fields);
 
-  if (vivant) {
+  if (vivant && !skipNeighbors) {
     let bestNeighbor = 0;
     const keys: Array<[string, number]> = [
       ...Object.entries(profile.moods),
@@ -987,7 +1009,6 @@ function scoreItemFromProfile(
     (profile.moods['comedie'] ?? 0) > 0 ||
     (profile.moods['humour'] ?? 0) > 0;
 
-  const precise = profileHasPrecise(profile);
   let hitCat = false;
   let bestCatW = 0;
   for (const c of fields.mainCats) {
@@ -998,11 +1019,12 @@ function scoreItemFromProfile(
     if (w > bestCatW) bestCatW = w;
   }
   if (hitCat) {
-    const overlap = hitGenre || hitMood;
+    // Live cat chip: always score (not gated by cine genres/moods) so
+    // matching pool items can enter top 3 on rank, not a reserved slot.
+    score += W_LIVE_CAT;
+    score += W_PROFILE_CAT * (bestCatW / pmax);
     if (hitGenre) {
       score += W_PROFILE_COMBO;
-    } else if (!precise || overlap) {
-      score += W_PROFILE_CAT * (bestCatW / pmax);
     }
   }
 
@@ -1040,6 +1062,8 @@ function itemMatchesAnyNeighbor(
 }
 
 function shouldApplyVivantQuota(state: AccountTasteState): boolean {
+  // Explicit live cat chip → no voisin quota (animation → enfants).
+  if (liveCatKeys(state.profile).length > 0) return false;
   const share = cinemaActionShare(state.signalsRecent);
   const fiches = cineFicheCount(state.signalsRecent);
   return share >= 0.5 || fiches >= 2;
@@ -1189,6 +1213,14 @@ export function recommendForProfile(
     (profile.moods['humour'] ?? 0) > 0 ||
     (profile.genres[GUINGUETTE_GENRE] ?? 0) > 0;
 
+  const liveCats = new Set(liveCatKeys(profile));
+  // Neighbors only when no explicit live cat chip the pool can satisfy.
+  const skipNeighbors = poolSatisfiesLiveCat(
+    fieldsList,
+    liveCats,
+    allowGuinguette,
+  );
+
   const scored: ScoredDayItem[] = [];
   for (let i = 0; i < items.length; i++) {
     const fields = fieldsList[i]!;
@@ -1211,6 +1243,7 @@ export function recommendForProfile(
       lastDayIso,
       textScore,
       tastes ? textCoeff : 0,
+      skipNeighbors,
     );
     if (score > 0) scored.push({ item, score });
   }
