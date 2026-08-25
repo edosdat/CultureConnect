@@ -1144,8 +1144,19 @@ function applyVivantQuota(
   return out;
 }
 
+/** Chip buckets (cats / genres / moods) with any weight > 0. */
+export function profileHasChipWeight(profile?: TasteProfile | null): boolean {
+  if (!profile) return false;
+  return (
+    Object.values(profile.cats).some((w) => w > 0) ||
+    Object.values(profile.genres).some((w) => w > 0) ||
+    Object.values(profile.moods).some((w) => w > 0)
+  );
+}
+
 /**
- * Score DayItems from the click profile first; tastesText is last-resort.
+ * Score DayItems from the click profile first; tastesText only boosts
+ * when chip weights exist. All-zero / wiped profile → [] (no tastesText refill).
  * Pool is the already-filtered listItems (same chips / search / scope).
  */
 export function recommendForProfile(
@@ -1155,13 +1166,8 @@ export function recommendForProfile(
 ): ScoredDayItem[] {
   if (items.length === 0) return [];
   const profile = state.profile;
-  const hasProfile =
-    Object.values(profile.cats).some((w) => w > 0) ||
-    Object.values(profile.genres).some((w) => w > 0) ||
-    Object.values(profile.moods).some((w) => w > 0) ||
-    Object.values(profile.communes).some((w) => w > 0);
   const tastes = (state.tastesText || '').trim();
-  if (!hasProfile && !tastes) return [];
+  if (!profileHasChipWeight(profile)) return [];
 
   const fieldsList = items.map(itemFields);
   const lastDayIso = lastOpenCardDayIso(state.signalsRecent);

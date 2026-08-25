@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import type { DayItem, GenreLegend, Lieu } from '@/lib/types';
 import type { AgendaDetailResponse, AgendaListResponse } from '@/lib/slim';
-import { recommendForProfile, recommendForTastes } from '@/lib/reco';
-import { extractMoods, hasScorableState, profileHasZeroWeights } from '@/lib/signals';
+import { profileHasChipWeight, recommendForProfile, recommendForTastes } from '@/lib/reco';
+import { extractMoods, profileHasZeroWeights } from '@/lib/signals';
 import { profileChips, reasonLineForState } from '@/lib/pourToi';
 import { useTastesUi } from './Providers';
 import { useSignals } from './SignalsProvider';
@@ -365,9 +365,10 @@ export default function CultureConnectApp({
     });
   }, [availableGenreSlugs, selectedCategories, genresLegend]);
 
-  /** Pour toi = profile first (clicks), tastesText last; same filtered listItems. */
+  /** Pour toi = profile first (clicks). Wipe (all chip weights 0) → 0 cards, no tastesText fill. */
   const pourToiItems = useMemo(() => {
-    if (tasteState && hasScorableState(tasteState)) {
+    if (tasteState) {
+      if (!profileHasChipWeight(tasteState.profile)) return [];
       return recommendForProfile(listItems, tasteState, 3).map((s) => s.item);
     }
     if (tastes) return recommendForTastes(listItems, tastes, 3).map((s) => s.item);
@@ -703,7 +704,7 @@ export default function CultureConnectApp({
           Agenda
         </h1>
         <p className="mt-2 hidden max-w-2xl text-sm text-culture-muted sm:block sm:text-base">
-          Qu&apos;est-ce qu&apos;on fait ce soir ou ce week-end à Toulouse&nbsp;?
+          Qu&apos;est-ce qu&apos;on fait ce soir ou ce week-end dans la région toulousaine&nbsp;?
         </p>
       </header>
 
