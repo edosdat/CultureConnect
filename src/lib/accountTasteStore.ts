@@ -12,9 +12,14 @@ import path from 'path';
 import { cookies } from 'next/headers';
 import { VercelPool } from '@vercel/postgres';
 import {
+  ACCOUNT_CAP,
+  concatTastesText,
   hasScorableState,
+  mergeSignalLists,
+  overlayZeroWeights,
   parseTasteState,
   profileHasZeroWeights,
+  rebuildTasteState,
   type AccountTasteState,
 } from '@/lib/signals';
 
@@ -226,6 +231,58 @@ async function readTastePostgres(key: string): Promise<AccountTasteState | null>
   }
 }
 
+function newerTimestamp(a?: string, b?: string): string | undefined {
+  const ta = a ? Date.parse(a) : Number.NaN;
+  const tb = b ? Date.parse(b) : Number.NaN;
+  const aOk = Number.isFinite(ta);
+  const bOk = Number.isFinite(tb);
+  if (aOk && bOk) return ta >= tb ? a : b;
+  if (bOk) return b;
+  if (aOk) return a;
+  return a || b;
+}
+
+/** Additive merge onto the stored email row. Never replace a richer snapshot. */
+function mergeIncomingTaste(
+  existing: AccountTasteState | null,
+  incoming: AccountTasteState,
+): AccountTasteState {
+  if (!existing) return incoming;
+
+  const signalsRecent = mergeSignalLists(
+    existing.signalsRecent,
+    incoming.signalsRecent,
+    ACCOUNT_CAP,
+  );
+  const tastesText = concatTastesText(existing.tastesText, incoming.tastesText);
+  const existingText = (existing.tastesText || '').trim() || undefined;
+  const mergedText = (tastesText || '').trim() || undefined;
+  const tastesSetAt =
+    mergedText !== existingText
+      ? newerTimestamp(existing.tastesSetAt, incoming.tastesSetAt)
+      : existing.tastesSetAt;
+
+  const rebuilt = rebuildTasteState(
+    signalsRecent,
+    tastesText,
+    tastesSetAt,
+    ACCOUNT_CAP,
+    existing.profile,
+  );
+  // Rebuilt-from-signals is source of truth for positives; overlay 0 last.
+  const profile = overlayZeroWeights(
+    overlayZeroWeights(rebuilt.profile, incoming.profile),
+    existing.profile,
+  );
+
+  return {
+    signalsRecent: rebuilt.signalsRecent,
+    profile,
+    tastesText,
+    tastesSetAt,
+  };
+}
+
 async function writeTastePostgres(
   key: string,
   state: AccountTasteState,
@@ -233,7 +290,9 @@ async function writeTastePostgres(
   try {
     const pg = await ensureAccountTastesTable();
     if (!pg) return;
-    const payload = JSON.stringify(state);
+    const existing = await readTastePostgres(key);
+    const merged = mergeIncomingTaste(existing, state);
+    const payload = JSON.stringify(merged);
     await pg.query(
       `INSERT INTO account_tastes (user_key, state, updated_at)
        VALUES ($1, $2::jsonb, now())
@@ -263,16 +322,18 @@ export async function readAccountTaste(
   return readTasteByKey(key);
 }
 
-/** UPSERT the email key only. Never writes user.id / token.sub. */
+/** Additive UPSERT on the email key only. Never writes user.id / token.sub. */
 export async function writeAccountTaste(
   user: AccountTasteUser,
   state: AccountTasteState,
 ): Promise<void> {
   const key = accountTasteKey(user);
   if (!key) return;
-  await writeTastePostgres(key, state);
-  await writeTasteFile(key, state);
-  await writeTasteCookie(key, state);
+  const existing = await readTasteByKey(key);
+  const merged = mergeIncomingTaste(existing, state);
+  await writeTastePostgres(key, merged);
+  await writeTasteFile(key, merged);
+  await writeTasteCookie(key, merged);
 }
 
 export async function resolveAccountTaste(
