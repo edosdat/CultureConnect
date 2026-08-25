@@ -59,6 +59,7 @@ function normalizeCommune(c: string | null | undefined): string {
 
 const AGENDA_PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 250;
+const PHRASE_FETCH_MS = 80;
 
 function buildAgendaParams(opts: {
   scope: TimeScopeId;
@@ -156,76 +157,86 @@ export default function CultureConnectApp({
   const listFetchGen = useRef(0);
   const detailFetchGen = useRef(0);
 
-  // Input stays instant; filtering/range wait ~250ms. Clearing flushes immediately.
+  const isPhraseScope = timeScope === 'soir' || timeScope === 'date';
+
+  function applyPhraseFromQuery(text: string) {
+    const q = text.trim();
+    if (!q) {
+      setPhraseTags(null);
+      return;
+    }
+    const rules = parsePhraseRules(q);
+    setPhraseTags(hasPhraseSignal(rules) ? rules : null);
+  }
+
+  // Title search: debounce 250ms. Phrase rules apply on the same keystroke.
   useEffect(() => {
+    if (isPhraseScope) return;
     if (query.trim() === '') {
       setDebouncedQuery('');
       return;
     }
     const id = window.setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS);
     return () => window.clearTimeout(id);
-  }, [query]);
+  }, [query, isPhraseScope]);
 
   useEffect(() => {
     const q = debouncedQuery.trim();
-    if (!q) return;
+    if (!q || isPhraseScope) return;
     track({
       kind: 'search',
       query: q,
       moods: extractMoods(q),
       genres: [],
     });
-  }, [debouncedQuery]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [debouncedQuery, isPhraseScope]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const isPhraseScope = timeScope === 'soir' || timeScope === 'date';
-
+  // AI only when rules yield nothing. Do not refetch on rules.
   useEffect(() => {
-    if (!isPhraseScope) {
-      setPhraseTags(null);
-      return;
-    }
-    const q = debouncedQuery.trim();
-    if (!q) {
-      setPhraseTags(null);
-      return;
-    }
+    if (!isPhraseScope) return;
+    const q = query.trim();
+    if (!q) return;
     const rules = parsePhraseRules(q);
-    if (hasPhraseSignal(rules)) {
-      setPhraseTags(rules);
-      return;
-    }
-    setPhraseTags(rules);
+    if (hasPhraseSignal(rules)) return;
     let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch('/api/phrase-tags', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phrase: q }),
-        });
-        if (!res.ok) throw new Error('phrase-tags');
-        const data = (await res.json()) as PhraseTags;
-        if (!cancelled) setPhraseTags(data);
-      } catch {
-        if (!cancelled) {
-          setPhraseTags({
-            moods: [],
-            genres: [],
-            source: 'ai',
-            date_from: rules.date_from,
-            date_to: rules.date_to,
+    const id = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const res = await fetch('/api/phrase-tags', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phrase: q }),
           });
+          if (!res.ok) throw new Error('phrase-tags');
+          const data = (await res.json()) as PhraseTags;
+          if (!cancelled) setPhraseTags(data);
+        } catch {
+          if (!cancelled) {
+            setPhraseTags({
+              moods: [],
+              genres: [],
+              source: 'ai',
+              date_from: rules.date_from,
+              date_to: rules.date_to,
+            });
+          }
         }
-      }
-    })();
+      })();
+    }, SEARCH_DEBOUNCE_MS);
     return () => {
       cancelled = true;
+      window.clearTimeout(id);
     };
-  }, [debouncedQuery, isPhraseScope]);
+  }, [query, isPhraseScope]);
 
   function handleQueryChange(next: string) {
     setQuery(next);
-    if (next.trim() === '') setDebouncedQuery('');
+    if (next.trim() === '') {
+      setDebouncedQuery('');
+      setPhraseTags(null);
+      return;
+    }
+    if (isPhraseScope) applyPhraseFromQuery(next);
   }
 
   const queryTrimmed = query.trim();
@@ -271,41 +282,48 @@ export default function CultureConnectApp({
       skipListFetch.current = false;
       return;
     }
+    // Phrase typed but tags not ready (AI path): do not refetch the raw list.
+    if (isPhraseScope && query.trim() && !phraseTags) return;
     const gen = ++listFetchGen.current;
-    const params = buildAgendaParams({
-      scope: timeScope,
-      commune: selectedCommune,
-      q: debouncedQuery.trim(),
-      cats: selectedCategories,
-      genres: selectedGenres,
-      lieuId: selectedLieuId,
-      selectedDate: selectedDay,
-      year,
-      month,
-      includeCounts: showMonthPanel,
-      phraseMode: isPhraseScope && debouncedQuery.trim().length > 0,
-      phraseTags,
-    });
+    const delay = isPhraseScope && query.trim() ? PHRASE_FETCH_MS : 0;
     let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`/api/agenda?${params.toString()}`);
-        if (!res.ok) return;
-        const data = (await res.json()) as AgendaListResponse;
-        if (cancelled || gen !== listFetchGen.current) return;
-        applyList(data);
-      } catch {
-        /* keep previous window */
-      }
-    })();
+    const id = window.setTimeout(() => {
+      const params = buildAgendaParams({
+        scope: timeScope,
+        commune: selectedCommune,
+        q: isPhraseScope ? query.trim() : debouncedQuery.trim(),
+        cats: selectedCategories,
+        genres: selectedGenres,
+        lieuId: selectedLieuId,
+        selectedDate: selectedDay,
+        year,
+        month,
+        includeCounts: showMonthPanel,
+        phraseMode: isPhraseScope && query.trim().length > 0,
+        phraseTags,
+      });
+      void (async () => {
+        try {
+          const res = await fetch(`/api/agenda?${params.toString()}`);
+          if (!res.ok) return;
+          const data = (await res.json()) as AgendaListResponse;
+          if (cancelled || gen !== listFetchGen.current) return;
+          applyList(data);
+        } catch {
+          /* keep previous window */
+        }
+      })();
+    }, delay);
     return () => {
       cancelled = true;
+      window.clearTimeout(id);
     };
   }, [
     timeScope,
     selectedDay,
     year,
     month,
+    query,
     debouncedQuery,
     selectedCommune,
     selectedLieuId,
@@ -396,7 +414,7 @@ export default function CultureConnectApp({
     const params = buildAgendaParams({
       scope: timeScope,
       commune: selectedCommune,
-      q: debouncedQuery.trim(),
+      q: isPhraseScope ? query.trim() : debouncedQuery.trim(),
       cats: selectedCategories,
       genres: selectedGenres,
       lieuId: selectedLieuId,
@@ -405,7 +423,7 @@ export default function CultureConnectApp({
       month,
       offset: listItems.length,
       includeCounts: showMonthPanel,
-      phraseMode: isPhraseScope && debouncedQuery.trim().length > 0,
+      phraseMode: isPhraseScope && query.trim().length > 0,
       phraseTags,
     });
     void fetch(`/api/agenda?${params.toString()}`)
@@ -420,6 +438,7 @@ export default function CultureConnectApp({
     total,
     timeScope,
     selectedCommune,
+    query,
     debouncedQuery,
     selectedCategories,
     selectedGenres,
@@ -487,8 +506,12 @@ export default function CultureConnectApp({
   }
 
   function handleScopeChange(scope: TimeScopeId) {
-    // Search always = all upcoming dates; keep previous chip to restore on clear.
-    if (searchingUi) return;
+    const nextPhrase = scope === 'soir' || scope === 'date';
+    if (!nextPhrase && query.trim()) {
+      setQuery('');
+      setDebouncedQuery('');
+      setPhraseTags(null);
+    }
     if (scope !== timeScope) {
       track({ kind: 'chip_time', chip: scope, genres: [], moods: [] });
     }
@@ -637,19 +660,19 @@ export default function CultureConnectApp({
         </p>
       </header>
 
-      <div className="sticky top-0 z-20 -mx-4 mb-3 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:mb-5 sm:px-6">
-        <SearchOmnibox
-          value={query}
-          onChange={handleQueryChange}
-          placeholder={
-            isPhraseScope ? 'Décris ta soirée' : 'Titre, artiste, lieu, genre…'
-          }
-        />
-      </div>
+      {isPhraseScope ? (
+        <div className="sticky top-0 z-20 -mx-4 mb-3 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:mb-5 sm:px-6">
+          <SearchOmnibox
+            value={query}
+            onChange={handleQueryChange}
+            placeholder="Décris ta soirée"
+          />
+        </div>
+      ) : null}
 
       <div className="space-y-2.5 sm:space-y-4">
         <TimeScopeBar
-          scope={searchingUi ? null : timeScope}
+          scope={timeScope}
           onChange={handleScopeChange}
         />
 
