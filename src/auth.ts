@@ -1,5 +1,15 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
+import {
+  hasPersistedTasteState,
+  readAccountTaste,
+  writeAccountTaste,
+} from '@/lib/accountTasteStore';
+import {
+  hasScorableState,
+  parseTasteState,
+  type AccountTasteState,
+} from '@/lib/signals';
 
 /**
  * Read Google OAuth credentials at runtime.
@@ -31,6 +41,23 @@ export function isGoogleAuthConfigured(): boolean {
   return Boolean(googleClientId() && googleClientSecret());
 }
 
+function tokenUser(token: { sub?: string; email?: string | null }) {
+  return {
+    id: typeof token.sub === 'string' ? token.sub : undefined,
+    email: typeof token.email === 'string' ? token.email : undefined,
+  };
+}
+
+function applyTasteStateToToken(
+  token: { tastes?: string; tastesSetAt?: string; tasteState?: AccountTasteState },
+  state: AccountTasteState,
+) {
+  token.tasteState = state;
+  token.tastes =
+    typeof state.tastesText === 'string' ? state.tastesText : token.tastes;
+  token.tastesSetAt = state.tastesSetAt ?? token.tastesSetAt;
+}
+
 export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   trustHost: true,
   // Always register Google; credentials resolved when the module loads on the server
@@ -43,16 +70,21 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   ],
   session: { strategy: 'jwt' },
   callbacks: {
-    async jwt({ token, trigger, session }) {
+    async jwt({ token, trigger, session, user }) {
+      if (user) {
+        if (typeof user.email === 'string' && user.email) token.email = user.email;
+        if (typeof user.id === 'string' && user.id) token.sub = user.id;
+      }
+
       if (trigger === 'update' && session) {
         const incoming = session as {
           tastes?: string;
           tastesSetAt?: string;
-          tasteState?: import('@/lib/signals').AccountTasteState;
+          tasteState?: AccountTasteState;
           user?: {
             tastes?: string;
             tastesSetAt?: string;
-            tasteState?: import('@/lib/signals').AccountTasteState;
+            tasteState?: AccountTasteState;
           };
         };
         const tasteState = incoming.tasteState ?? incoming.user?.tasteState;
@@ -85,12 +117,36 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
             };
           }
         }
+        const toStore = parseTasteState(token.tasteState);
+        if (toStore) {
+          await writeAccountTaste(tokenUser(token), toStore);
+        }
+        return token;
       }
+
+      const parsed = parseTasteState(token.tasteState);
+      const needHydrate = Boolean(user) || !hasScorableState(parsed);
+      if (needHydrate) {
+        const stored = await readAccountTaste(tokenUser(token));
+        if (stored) applyTasteStateToToken(token, stored);
+      }
+
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        const state = token.tasteState;
+        if (typeof token.sub === 'string') session.user.id = token.sub;
+        let state = token.tasteState;
+        if (!hasPersistedTasteState(state)) {
+          const stored = await readAccountTaste({
+            id: token.sub,
+            email:
+              typeof token.email === 'string'
+                ? token.email
+                : session.user.email,
+          });
+          if (stored) state = stored;
+        }
         session.user.tasteState = state;
         session.user.tastes =
           (state && typeof state.tastesText === 'string' && state.tastesText) ||

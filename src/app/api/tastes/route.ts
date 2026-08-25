@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { auth, unstable_update } from '@/auth';
 import {
+  hasPersistedTasteState,
+  readAccountTaste,
+  writeAccountTaste,
+} from '@/lib/accountTasteStore';
+import {
   concatTastesText,
   extractMoods,
   makeSignal,
@@ -45,13 +50,18 @@ export async function POST(req: Request) {
     );
   }
 
-  const current =
+  const userRef = { id: session.user.id, email: session.user.email };
+  const jwtState =
     parseTasteState(session.user.tasteState) ??
     rebuildTasteState(
       [],
       session.user.tastes,
       session.user.tastesSetAt,
     );
+  const stored = await readAccountTaste(userRef);
+  const current = hasPersistedTasteState(jwtState)
+    ? jwtState
+    : (stored ?? jwtState);
 
   const tastes = concatTastesText(current.tastesText, incoming) ?? incoming;
   const tastesSetAt =
@@ -72,6 +82,8 @@ export async function POST(req: Request) {
     40,
     current.profile,
   );
+
+  await writeAccountTaste(userRef, tasteState);
 
   const updated = await unstable_update({
     user: {

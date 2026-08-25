@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { auth, unstable_update } from '@/auth';
 import {
+  hasPersistedTasteState,
+  readAccountTaste,
+  writeAccountTaste,
+} from '@/lib/accountTasteStore';
+import {
   ACCOUNT_CAP,
   concatTastesText,
   makeSignal,
@@ -119,7 +124,16 @@ export async function POST(req: Request) {
     guestProfile?: unknown;
   };
 
-  const current = stateFromTokenUser(session.user);
+  const userRef = { id: session.user.id, email: session.user.email };
+  const jwtState = stateFromTokenUser(session.user);
+  const stored = await readAccountTaste(userRef);
+  // Login merge: 1) account store 2) guest additive 3) overlay 0 last.
+  const current =
+    incoming.merge === true
+      ? (stored ?? jwtState)
+      : hasPersistedTasteState(jwtState)
+        ? jwtState
+        : (stored ?? jwtState);
   const extraText =
     typeof incoming.tastesText === 'string' ? incoming.tastesText : undefined;
   const tastesText = concatTastesText(current.tastesText, extraText);
@@ -183,6 +197,8 @@ export async function POST(req: Request) {
       profile: overlayZeroWeights(tasteState.profile, guestProfile),
     };
   }
+
+  await writeAccountTaste(userRef, tasteState);
 
   const updated = await unstable_update({
     user: {

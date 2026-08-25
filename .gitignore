@@ -11,3 +11,7 @@
 .env
 .env.local
 .env*.local
+
+# per-user account tastes (local best-effort; Vercel uses cookie)
+.data/
+.data/account-tastes/
