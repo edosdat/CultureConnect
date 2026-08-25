@@ -905,7 +905,7 @@ export default function CultureConnectApp({
           visibleCount={visibleCount}
           onLoadMore={handleLoadMore}
           empty={
-            packCardCount > 0 ? null : phraseMode ? (
+            packCardCount > 0 || pourToiItems.length > 0 ? null : phraseMode ? (
               <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-6 py-12 text-center">
                 <p className="font-display text-xl text-culture-ink">
                   Aucun résultat
