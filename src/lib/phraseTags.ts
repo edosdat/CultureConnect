@@ -19,6 +19,8 @@ export type PhraseTags = {
   form?: PhraseForm;
   moods: PhraseMood[];
   genres: string[];
+  themes: string[];
+  entities: string[];
   date_from?: string;
   date_to?: string;
   source: 'rules' | 'ai';
@@ -160,7 +162,10 @@ const FORM_WORDS: Record<string, PhraseForm> = {
 };
 
 const MOOD_PHRASES: Array<{ phrase: string; mood: PhraseMood }> = [
+  { phrase: 'one man', mood: 'rigolo' },
+  { phrase: 'one woman', mood: 'rigolo' },
   { phrase: 'stand up', mood: 'rigolo' },
+  { phrase: 'feel good', mood: 'tendre' },
   { phrase: 'entre potes', mood: 'sortie' },
 ];
 
@@ -170,6 +175,7 @@ const MOOD_WORDS: Record<string, PhraseMood> = {
   rigolade: 'rigolo',
   mdr: 'rigolo',
   lol: 'rigolo',
+  ptdr: 'rigolo',
   drole: 'rigolo',
   marrant: 'rigolo',
   marrante: 'rigolo',
@@ -177,20 +183,24 @@ const MOOD_WORDS: Record<string, PhraseMood> = {
   comique: 'rigolo',
   comedie: 'rigolo',
   standup: 'rigolo',
+  sketch: 'rigolo',
   intense: 'intense',
   violent: 'intense',
   tension: 'intense',
   thriller: 'intense',
   horreur: 'intense',
+  epouvante: 'intense',
   metal: 'intense',
   techno: 'intense',
   sombre: 'intense',
+  dark: 'intense',
   tendre: 'tendre',
   doux: 'tendre',
   douce: 'tendre',
   romantique: 'tendre',
   calme: 'tendre',
   intimiste: 'tendre',
+  feelgood: 'tendre',
   cerveau: 'cerveau',
   intellect: 'cerveau',
   intellectuel: 'cerveau',
@@ -204,14 +214,6 @@ const MOOD_WORDS: Record<string, PhraseMood> = {
 
 /** Comedy tokens also feed genre humour (rire → rigolo + humour). */
 const RIGOLO_ALSO_HUMOUR = new Set([
-  'rire',
-  'rigolo',
-  'rigolade',
-  'mdr',
-  'lol',
-  'drole',
-  'marrant',
-  'marrante',
   'humour',
   'comique',
   'comedie',
@@ -244,6 +246,86 @@ const GENRE_WORDS: Record<string, string> = {
   opera: 'classique_lyrique',
   lyrique: 'classique_lyrique',
 };
+
+export const THEME_SLUGS = [
+  'feminisme',
+  'histoire',
+  'politique',
+  'guerre',
+  'ecologie',
+  'science',
+  'amour',
+  'famille',
+  'colonial',
+  'immigration',
+  'lgbt',
+  'religion',
+  'sport',
+  'mer',
+  'voyage',
+] as const;
+
+const THEME_WORDS: Record<string, string> = {
+  feminisme: 'feminisme',
+  feministe: 'feminisme',
+  feministes: 'feminisme',
+  histoire: 'histoire',
+  historique: 'histoire',
+  historiques: 'histoire',
+  politique: 'politique',
+  politiques: 'politique',
+  guerre: 'guerre',
+  guerres: 'guerre',
+  conflit: 'guerre',
+  ecologie: 'ecologie',
+  climat: 'ecologie',
+  ecologique: 'ecologie',
+  science: 'science',
+  sciences: 'science',
+  scientifique: 'science',
+  amour: 'amour',
+  amours: 'amour',
+  famille: 'famille',
+  familial: 'famille',
+  colonial: 'colonial',
+  colonialisme: 'colonial',
+  decolonial: 'colonial',
+  immigration: 'immigration',
+  exil: 'immigration',
+  migrant: 'immigration',
+  migrants: 'immigration',
+  lgbt: 'lgbt',
+  queer: 'lgbt',
+  gay: 'lgbt',
+  lesbienne: 'lgbt',
+  religion: 'religion',
+  religieux: 'religion',
+  foi: 'religion',
+  sport: 'sport',
+  football: 'sport',
+  rugby: 'sport',
+  mer: 'mer',
+  ocean: 'mer',
+  marin: 'mer',
+  voyage: 'voyage',
+  voyages: 'voyage',
+};
+
+/** Longest first. Canon is what we store in entities[]. */
+const ENTITY_PHRASES: Array<{ phrase: string; canon: string }> = [
+  { phrase: 'general de gaulle', canon: 'de gaulle' },
+  { phrase: 'charles de gaulle', canon: 'de gaulle' },
+  { phrase: 'alice zeniter', canon: 'zeniter' },
+  { phrase: 'fabien olicard', canon: 'olicard' },
+  { phrase: 'les clotildes', canon: 'clotildes' },
+  { phrase: 'chela bom', canon: 'chelabom' },
+  { phrase: 'de gaulle', canon: 'de gaulle' },
+  { phrase: 'degaulle', canon: 'de gaulle' },
+  { phrase: 'zeniter', canon: 'zeniter' },
+  { phrase: 'olicard', canon: 'olicard' },
+  { phrase: 'clotildes', canon: 'clotildes' },
+  { phrase: 'chelabom', canon: 'chelabom' },
+];
 
 const MONTHS: Record<string, number> = {
   janvier: 1,
@@ -413,15 +495,38 @@ function extractGenres(norm: string, words: string[]): string[] {
   return unique(found);
 }
 
+function extractThemes(words: string[]): string[] {
+  const found: string[] = [];
+  for (const w of words) {
+    const t = THEME_WORDS[w];
+    if (t) found.push(t);
+  }
+  return unique(found);
+}
+
+function extractEntities(norm: string): string[] {
+  const found: string[] = [];
+  for (const { phrase, canon } of ENTITY_PHRASES) {
+    if (hasPhrase(norm, phrase)) found.push(canon);
+  }
+  return unique(found);
+}
+
 export function emptyPhraseTags(source: 'rules' | 'ai' = 'rules'): PhraseTags {
-  return { moods: [], genres: [], source };
+  return { moods: [], genres: [], themes: [], entities: [], source };
 }
 
 export function hasPhraseSignal(tags: PhraseTags): boolean {
-  return Boolean(tags.form || tags.moods.length > 0 || tags.genres.length > 0);
+  return Boolean(
+    tags.form ||
+      tags.moods.length > 0 ||
+      tags.genres.length > 0 ||
+      (tags.themes && tags.themes.length > 0) ||
+      (tags.entities && tags.entities.length > 0),
+  );
 }
 
-/** Étage 1 — règles (dates, form, moods, genres). Dates seules ne skip pas l'IA. */
+/** Étage 1 — dates, entités, form, thèmes, moods, genres. Dates seules ≠ signal. */
 export function parsePhraseRules(phrase: string, now = new Date()): PhraseTags {
   const raw = (phrase || '').trim();
   if (!raw) return emptyPhraseTags('rules');
@@ -430,20 +535,42 @@ export function parsePhraseRules(phrase: string, now = new Date()): PhraseTags {
   const words = allTokens.filter((t) => !STOPWORDS.has(t));
 
   const dates = extractDates(norm, now);
+  const entities = extractEntities(norm);
   const forms = extractForms(norm, words);
   const form = resolveForm(forms);
+  const themes = extractThemes(words);
   const moods = extractMoods(norm, words);
   const genres = extractGenres(norm, words);
 
   const out: PhraseTags = {
     moods,
     genres,
+    themes,
+    entities,
     source: 'rules',
   };
   if (form) out.form = form;
   if (dates.date_from) out.date_from = dates.date_from;
   if (dates.date_to) out.date_to = dates.date_to;
   return out;
+}
+
+export function themeAliases(slug: string): string[] {
+  const s = slug.trim().toLowerCase();
+  const out = [s];
+  for (const [alias, canon] of Object.entries(THEME_WORDS)) {
+    if (canon === s) out.push(alias);
+  }
+  return unique(out);
+}
+
+export function entityAliases(canon: string): string[] {
+  const c = normalizePhrase(canon);
+  const out = [c];
+  for (const { phrase, canon: can } of ENTITY_PHRASES) {
+    if (can === c || normalizePhrase(can) === c) out.push(phrase);
+  }
+  return unique(out);
 }
 
 export function parsePhrase(phrase: string, now = new Date()): PhraseTags {
@@ -529,11 +656,41 @@ export function sanitizeAiTags(
   const form = asForm(o.form);
   const moods = asMoods(o.moods);
   const genres = asGenres(o.genres);
+  const themes = asThemes(o.themes);
+  const entities = asEntities(o.entities);
   const date_from = asDate(o.date_from) ?? dates?.date_from;
   const date_to = asDate(o.date_to) ?? dates?.date_to;
-  const out: PhraseTags = { moods, genres, source: 'ai' };
+  const out: PhraseTags = { moods, genres, themes, entities, source: 'ai' };
   if (form) out.form = form;
   if (date_from) out.date_from = date_from;
   if (date_to) out.date_to = date_to;
   return out;
+}
+
+function asThemes(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  const allowed = new Set<string>(THEME_SLUGS);
+  const out: string[] = [];
+  for (const x of v) {
+    if (typeof x !== 'string') continue;
+    const s = normalizePhrase(x);
+    if (allowed.has(s)) out.push(s);
+    else if (THEME_WORDS[s]) out.push(THEME_WORDS[s]);
+  }
+  return unique(out);
+}
+
+function asEntities(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  const out: string[] = [];
+  for (const x of v) {
+    if (typeof x !== 'string') continue;
+    const s = normalizePhrase(x);
+    if (!s || s.length > 40) continue;
+    const known = ENTITY_PHRASES.find(
+      (e) => e.phrase === s || e.canon === s,
+    );
+    out.push(known ? known.canon : s);
+  }
+  return unique(out).slice(0, 3);
 }

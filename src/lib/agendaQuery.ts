@@ -23,6 +23,11 @@ import {
   normalizeForMatch,
 } from './searchText';
 import {
+  entityAliases,
+  normalizePhrase,
+  themeAliases,
+} from './phraseTags';
+import {
   detailDayItem,
   slimDayItem,
   slimLieu,
@@ -56,6 +61,8 @@ export type AgendaQueryInput = {
   form?: string | null;
   moods?: string[];
   tagGenres?: string[];
+  themes?: string[];
+  entities?: string[];
   date_from?: string | null;
   date_to?: string | null;
 };
@@ -252,12 +259,77 @@ function formMatches(query: string, item: DayItem): boolean {
   return formOfItem(item) === q;
 }
 
+function itemThemeHay(item: DayItem): string {
+  const p = programmeOf(item);
+  const ev = evenementOf(item);
+  const parts: string[] = [];
+  if (p) {
+    parts.push(
+      p.nom_item,
+      p.notes,
+      p.description_item || '',
+      p.genre,
+      p.genres_mood || '',
+    );
+  }
+  if (ev) {
+    parts.push(
+      ev.titre,
+      ev.description_courte || '',
+      ev.description_longue || '',
+      ev.casting || '',
+      ev.tags || '',
+      ev.genre,
+      ev.genres_mood || '',
+      ev.categorie,
+    );
+  }
+  return normalizePhrase(parts.filter(Boolean).join(' '));
+}
+
+function themesOverlap(query: string[], item: DayItem): boolean {
+  if (query.length === 0) return true;
+  const hay = itemThemeHay(item);
+  const hidden = [
+    ...splitTagField(programmeOf(item)?.genres_mood),
+    ...splitTagField(evenementOf(item)?.genres_mood),
+    ...splitTagField(evenementOf(item)?.tags),
+    ...splitTagField(programmeOf(item)?.genre),
+    ...splitTagField(evenementOf(item)?.genre),
+  ];
+  return query.some((slug) => {
+    const aliases = themeAliases(slug);
+    if (aliases.some((a) => hidden.includes(a))) return true;
+    return aliases.some((a) => {
+      if (!a) return false;
+      const re = new RegExp(`(?:^|\\s)${a.replace(/\\s+/g, '\\s+')}(?:\\s|$)`);
+      return re.test(hay);
+    });
+  });
+}
+
+function entitiesOverlap(query: string[], item: DayItem): boolean {
+  if (query.length === 0) return true;
+  const hay = itemThemeHay(item);
+  return query.some((canon) =>
+    entityAliases(canon).some((alias) => {
+      if (!alias) return false;
+      const re = new RegExp(
+        `(?:^|\\s)${alias.replace(/\\s+/g, '\\s+')}(?:\\s|$)`,
+      );
+      return re.test(hay);
+    }),
+  );
+}
+
 export function itemMatchesPhraseTags(
   item: DayItem,
   query: {
     form?: string | null;
     moods?: string[];
     tagGenres?: string[];
+    themes?: string[];
+    entities?: string[];
     date_from?: string | null;
     date_to?: string | null;
   },
@@ -265,13 +337,18 @@ export function itemMatchesPhraseTags(
   const form = (query.form || '').trim();
   const moods = (query.moods || []).map((m) => m.trim().toLowerCase()).filter(Boolean);
   const genres = (query.tagGenres || []).map((g) => g.trim().toLowerCase()).filter(Boolean);
+  const themes = (query.themes || []).map((g) => g.trim().toLowerCase()).filter(Boolean);
+  const entities = (query.entities || []).map((g) => g.trim().toLowerCase()).filter(Boolean);
   const from = (query.date_from || '').trim();
   const to = (query.date_to || '').trim();
   const hasForm = Boolean(form);
   const hasMoods = moods.length > 0;
   const hasGenres = genres.length > 0;
+  const hasThemes = themes.length > 0;
+  const hasEntities = entities.length > 0;
   const hasDates = Boolean(from || to);
-  if (!hasForm && !hasMoods && !hasGenres && !hasDates) return true;
+  if (!hasForm && !hasMoods && !hasGenres && !hasThemes && !hasEntities && !hasDates)
+    return true;
 
   if (hasDates) {
     const d = (item.dayIso || '').trim();
@@ -279,14 +356,16 @@ export function itemMatchesPhraseTags(
     if (to && d && d > to) return false;
   }
   if (hasForm && !formMatches(form, item)) return false;
+  if (hasThemes && !themesOverlap(themes, item)) return false;
+  if (hasEntities && !entitiesOverlap(entities, item)) return false;
 
-  const moodOnly = hasMoods && !hasForm && !hasGenres;
+  const moodOnly = hasMoods && !hasForm && !hasGenres && !hasThemes && !hasEntities;
   if (moodOnly) {
     if (isEmptyMoodRow(item)) return false;
     return moodsOverlap(moods, item);
   }
 
-  const moodAndGenre = hasMoods && hasGenres;
+  const moodAndGenre = hasMoods && hasGenres && !hasThemes && !hasEntities;
   if (moodAndGenre) {
     if (moodsOverlap(moods, item)) return true;
     return isEmptyMoodRow(item) && genresOverlap(genres, item);
@@ -302,6 +381,8 @@ function hasPhraseFilters(input: AgendaQueryInput): boolean {
     (input.form && input.form.trim()) ||
       (input.moods && input.moods.length > 0) ||
       (input.tagGenres && input.tagGenres.length > 0) ||
+      (input.themes && input.themes.length > 0) ||
+      (input.entities && input.entities.length > 0) ||
       (input.date_from && input.date_from.trim()) ||
       (input.date_to && input.date_to.trim()),
   );
@@ -319,9 +400,24 @@ function listForRange(
     year: input.year,
     month: input.month,
   });
-  const range = searching
+  const phraseFrom = (input.date_from || '').trim();
+  const phraseTo = (input.date_to || '').trim();
+  let range = searching
     ? upcomingRange(paris.iso, dataMaxIso(), 90)
     : scopeRange;
+  if (!searching && (phraseFrom || phraseTo)) {
+    const start =
+      phraseFrom && phraseFrom > range.startIso ? phraseFrom : range.startIso;
+    const end = phraseTo && phraseTo < range.endIso ? phraseTo : range.endIso;
+    if (start > end) {
+      return { items: [], searching: false, rangeDays: [] };
+    }
+    range = {
+      startIso: start,
+      endIso: end,
+      days: range.days.filter((d) => d >= start && d <= end),
+    };
+  }
   const lieuIds = resolveLieuIds(input.commune, input.lieuId, searching);
 
   let items: DayItem[];
@@ -378,6 +474,8 @@ function listForRange(
         form: input.form,
         moods: input.moods,
         tagGenres: input.tagGenres,
+        themes: input.themes,
+        entities: input.entities,
         date_from: input.date_from,
         date_to: input.date_to,
       }),

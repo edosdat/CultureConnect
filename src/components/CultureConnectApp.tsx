@@ -86,7 +86,12 @@ function buildAgendaParams(opts: {
     const tagGenres = t?.genres ?? [];
     const merged = [...opts.genres, ...tagGenres];
     if (merged.length) p.set('genres', merged.join(','));
-    // Scope chips bound the date window — do not send phrase date_from/to.
+    const themes = t?.themes ?? [];
+    if (themes.length) p.set('themes', themes.join(','));
+    const entities = t?.entities ?? [];
+    if (entities.length) p.set('entities', entities.join(','));
+    if (t?.date_from) p.set('date_from', t.date_from);
+    if (t?.date_to) p.set('date_to', t.date_to);
   } else {
     if (opts.q) p.set('q', opts.q);
     if (opts.genres.length) p.set('genres', opts.genres.join(','));
@@ -214,6 +219,8 @@ export default function CultureConnectApp({
             setPhraseTags({
               moods: [],
               genres: [],
+              themes: [],
+              entities: [],
               source: 'ai',
               date_from: rules.date_from,
               date_to: rules.date_to,
@@ -257,6 +264,14 @@ export default function CultureConnectApp({
   const contextLabel = useMemo(
     () => scopeContextLabel(timeScope, scopeRange),
     [timeScope, scopeRange],
+  );
+
+  const phraseDateClash = Boolean(
+    phraseMode &&
+      (phraseTags?.date_from || phraseTags?.date_to) &&
+      ((phraseTags?.date_from &&
+        phraseTags.date_from > scopeRange.endIso) ||
+        (phraseTags?.date_to && phraseTags.date_to < scopeRange.startIso)),
   );
 
   function applyList(data: AgendaListResponse, append = false) {
@@ -817,7 +832,9 @@ export default function CultureConnectApp({
                   Aucun résultat
                 </p>
                 <p className="mt-2 text-sm text-culture-muted">
-                  Essaie une autre phrase, ou efface le champ.
+                  {phraseDateClash
+                    ? 'Rien sur cette période — élargis les dates.'
+                    : 'Essaie une autre phrase, ou efface le champ.'}
                 </p>
                 <button
                   type="button"

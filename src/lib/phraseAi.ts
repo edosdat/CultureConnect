@@ -43,6 +43,8 @@ async function phraseTagsFromAi(
     'form: cine|theatre|concert|festival|enfants|autre ou null',
     'moods ⊆ rigolo,intense,tendre,cerveau,sortie',
     'genres: slugs courts (funk,humour,piano,techno,jazz_blues,rock_metal_punk,hiphop_rap,classique_lyrique…) max 4',
+    'themes ⊆ feminisme,histoire,politique,guerre,ecologie,science,amour,famille,colonial,immigration,lgbt,religion,sport,mer,voyage',
+    'entities: canon minuscule sans accents, max 3 (ex. "de gaulle","zeniter")',
     'date_from/date_to: YYYY-MM-DD ou null',
     '« philosophique mais léger » → moods ["cerveau","tendre"], léger ≠ rigolo.',
   ].join(' ');

@@ -32,10 +32,14 @@ export async function GET(req: Request) {
   const hasPhrase =
     url.searchParams.has('form') ||
     url.searchParams.has('moods') ||
+    url.searchParams.has('themes') ||
+    url.searchParams.has('entities') ||
     url.searchParams.has('date_from') ||
     url.searchParams.has('date_to');
   const form = url.searchParams.get('form');
   const moods = parseCsvParam(url.searchParams.get('moods'));
+  const themes = parseCsvParam(url.searchParams.get('themes'));
+  const entities = parseCsvParam(url.searchParams.get('entities'));
   const date_from = url.searchParams.get('date_from');
   const date_to = url.searchParams.get('date_to');
   const rawGenres = parseCsvParam(url.searchParams.get('genres'));
@@ -57,6 +61,8 @@ export async function GET(req: Request) {
     form: form,
     moods,
     tagGenres: hasPhrase ? rawGenres : [],
+    themes,
+    entities,
     date_from,
     date_to,
   });
