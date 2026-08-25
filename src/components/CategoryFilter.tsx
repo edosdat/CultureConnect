@@ -12,6 +12,16 @@ type Props = {
   variant?: 'chips' | 'list';
 };
 
+/** Same --cc-cat-* hex as card bar / pastille. */
+const CHIP_VAR: Record<MainCategoryId, string> = {
+  musique: '--cc-cat-musique',
+  theatre_danse: '--cc-cat-theatre',
+  festival: '--cc-cat-festival',
+  cinema: '--cc-cat-cinema',
+  expo_patrimoine: '--cc-cat-expo',
+  enfants_famille: '--cc-cat-famille',
+};
+
 export default function CategoryFilter({
   selected,
   onChange,
@@ -38,18 +48,21 @@ export default function CategoryFilter({
         >
           {MAIN_CATEGORIES.map(({ id, label }) => {
             const active = selected.includes(id);
+            const tint = `var(${CHIP_VAR[id]})`;
             return (
               <button
                 key={id}
                 type="button"
                 onClick={() => toggle(id)}
                 aria-pressed={active}
-                className={
-                  'shrink-0 rounded-full border px-3 py-1.5 text-sm transition ' +
-                  (active
-                    ? 'border-culture-terracotta bg-culture-soft text-culture-clay shadow-sm'
-                    : 'border-culture-line bg-culture-surface text-culture-ink hover:border-culture-terracotta/50')
-                }
+                className="shrink-0 rounded-full px-3 py-1.5 text-sm transition"
+                style={{
+                  borderWidth: 1.5,
+                  borderStyle: 'solid',
+                  borderColor: tint,
+                  backgroundColor: active ? tint : 'var(--cc-surface)',
+                  color: active ? '#fff' : 'var(--cc-ink)',
+                }}
               >
                 {label}
               </button>
