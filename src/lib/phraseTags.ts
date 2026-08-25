@@ -567,6 +567,8 @@ export function themeAliases(slug: string): string[] {
 export function entityAliases(canon: string): string[] {
   const c = normalizePhrase(canon);
   const out = [c];
+  if (c.includes(' ')) out.push(c.replace(/ /g, '_'));
+  if (c.includes('_')) out.push(c.replace(/_/g, ' '));
   for (const { phrase, canon: can } of ENTITY_PHRASES) {
     if (can === c || normalizePhrase(can) === c) out.push(phrase);
   }

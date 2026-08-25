@@ -70,6 +70,8 @@ export function loadEvenements(): Evenement[] {
     mood_source: r.mood_source ?? '',
     mood_confiance: r.mood_confiance ?? '',
     genres_mood: r.genres_mood ?? '',
+    themes: r.themes ?? '',
+    entities: r.entities ?? '',
   }));
 }
 
@@ -106,6 +108,8 @@ export function loadProgramme(): ProgrammeItem[] {
     mood_source: r.mood_source ?? '',
     mood_confiance: r.mood_confiance ?? '',
     genres_mood: r.genres_mood ?? '',
+    themes: r.themes ?? '',
+    entities: r.entities ?? '',
   }));
 }
 

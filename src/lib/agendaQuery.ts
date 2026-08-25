@@ -270,6 +270,8 @@ function itemThemeHay(item: DayItem): string {
       p.description_item || '',
       p.genre,
       p.genres_mood || '',
+      p.themes || '',
+      p.entities || '',
     );
   }
   if (ev) {
@@ -281,6 +283,8 @@ function itemThemeHay(item: DayItem): string {
       ev.tags || '',
       ev.genre,
       ev.genres_mood || '',
+      ev.themes || '',
+      ev.entities || '',
       ev.categorie,
     );
   }
@@ -296,6 +300,10 @@ function themesOverlap(query: string[], item: DayItem): boolean {
     ...splitTagField(evenementOf(item)?.tags),
     ...splitTagField(programmeOf(item)?.genre),
     ...splitTagField(evenementOf(item)?.genre),
+    ...splitTagField(programmeOf(item)?.themes),
+    ...splitTagField(evenementOf(item)?.themes),
+    ...splitTagField(programmeOf(item)?.entities),
+    ...splitTagField(evenementOf(item)?.entities),
   ];
   return query.some((slug) => {
     const aliases = themeAliases(slug);

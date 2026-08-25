@@ -48,6 +48,8 @@ export type Evenement = {
   mood_source?: string;
   mood_confiance?: string;
   genres_mood?: string;
+  themes?: string;
+  entities?: string;
 };
 
 export type ProgrammeItem = {
@@ -80,6 +82,8 @@ export type ProgrammeItem = {
   mood_source?: string;
   mood_confiance?: string;
   genres_mood?: string;
+  themes?: string;
+  entities?: string;
 };
 
 /** Row from data/films.csv — film regroupé multi-salles. */
