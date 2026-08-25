@@ -518,7 +518,12 @@ export default function CultureConnectApp({
       pourToiItems.find((i) => i.key === selectedItemKey) ??
       nouveautesItems.find((i) => i.key === selectedItemKey) ??
       null;
-    if (slim) setDetailItem(slim);
+    if (slim) {
+      setDetailItem(slim);
+      // Track immediately from the slim card already on screen so a
+      // cancelled / slow detail fetch cannot skip the signal (no F5).
+      trackItem(slim, 'open_card');
+    }
     const gen = ++detailFetchGen.current;
     let cancelled = false;
     (async () => {
@@ -532,9 +537,9 @@ export default function CultureConnectApp({
         setDetailItem(data.item);
         setRelatedFilmItems(data.relatedItems ?? []);
         setAussiCeSoirItems(data.aussiCeSoir ?? []);
-        trackItem(data.item, 'open_card');
+        if (!slim) trackItem(data.item, 'open_card');
       } catch {
-        if (slim) trackItem(slim, 'open_card');
+        /* slim already shown + tracked; keep fiche as-is */
       }
     })();
     return () => {
@@ -814,7 +819,7 @@ export default function CultureConnectApp({
           <section className="space-y-3 rounded-card-lg border border-culture-soft/80 bg-culture-surface/80 p-3 sm:p-4">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="font-display text-xl text-culture-ink sm:text-2xl">
-                Pour toi
+                Ton top 3 du moment
               </h2>
               <button
                 type="button"

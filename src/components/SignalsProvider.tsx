@@ -251,13 +251,23 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const tasteState = useMemo<AccountTasteState | null>(() => {
+    const fromGuest =
+      guestStore.events.length > 0 || profileHasZeroWeights(guestStore.profile)
+        ? { signalsRecent: guestStore.events, profile: guestStore.profile }
+        : null;
     if (status === 'authenticated') {
-      return session?.user?.tasteState ?? null;
+      const account = session?.user?.tasteState ?? null;
+      // Empty JWT (clicks landed in guestStore while status was loading)
+      // must not hide Pour toi until F5 — fall back to guest events/zeros.
+      if (
+        hasScorableState(account) ||
+        profileHasZeroWeights(account?.profile)
+      ) {
+        return account;
+      }
+      return fromGuest ?? account;
     }
-    if (guestStore.events.length > 0 || profileHasZeroWeights(guestStore.profile)) {
-      return { signalsRecent: guestStore.events, profile: guestStore.profile };
-    }
-    return null;
+    return fromGuest;
   }, [status, session?.user?.tasteState, guestStore]);
   const loginNudgeReady =
     status !== 'authenticated' && shouldPromptLogin(guestStore.events);
