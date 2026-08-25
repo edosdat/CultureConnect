@@ -319,7 +319,16 @@ export async function readAccountTaste(
 ): Promise<AccountTasteState | null> {
   const key = accountTasteKey(user);
   if (!key) return null;
-  return readTasteByKey(key);
+  const stored = await readTasteByKey(key);
+  if (!stored) return null;
+  // Recalc from signals, then overlay stored 0s last so a wiped chip stays gone.
+  return rebuildTasteState(
+    stored.signalsRecent,
+    stored.tastesText,
+    stored.tastesSetAt,
+    ACCOUNT_CAP,
+    stored.profile,
+  );
 }
 
 /** Additive UPSERT on the email key only. Never writes user.id / token.sub. */
