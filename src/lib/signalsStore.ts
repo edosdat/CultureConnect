@@ -139,8 +139,9 @@ export function clearGuestStore(): void {
 
 export function appendGuestSignal(signal: Signal): GuestSignalsStore {
   const current = readGuestStore();
+  const profile = unzeroKeysTouchedBySignal(current.profile, signal);
   const events = dedupAppend(current.events, signal, GUEST_CAP);
-  return writeGuestStore({ events, profile: current.profile });
+  return writeGuestStore({ events, profile });
 }
 
 export function wipeGuestProfileKey(
@@ -155,10 +156,7 @@ export function wipeGuestProfileKey(
 }
 
 export function addGuestPhraseSignal(signal: Signal): GuestSignalsStore {
-  const current = readGuestStore();
-  const profile = unzeroKeysTouchedBySignal(current.profile, signal);
-  const events = dedupAppend(current.events, signal, GUEST_CAP);
-  return writeGuestStore({ events, profile });
+  return appendGuestSignal(signal);
 }
 
 export const SIGNALS_CHANGED_EVENT = 'cc-signals-changed';

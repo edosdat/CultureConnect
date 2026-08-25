@@ -250,7 +250,15 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
     setDismissed(true);
   }, []);
 
-  const tasteState = session?.user?.tasteState ?? null;
+  const tasteState = useMemo<AccountTasteState | null>(() => {
+    if (status === 'authenticated') {
+      return session?.user?.tasteState ?? null;
+    }
+    if (guestStore.events.length > 0 || profileHasZeroWeights(guestStore.profile)) {
+      return { signalsRecent: guestStore.events, profile: guestStore.profile };
+    }
+    return null;
+  }, [status, session?.user?.tasteState, guestStore]);
   const loginNudgeReady =
     status !== 'authenticated' && shouldPromptLogin(guestStore.events);
 

@@ -334,7 +334,8 @@ export function unzeroKeysTouchedBySignal(
   signal: Signal,
 ): TasteProfile {
   let next = profile;
-  const main = mappedCategorie(signal.categorie);
+  const main =
+    mappedCategorie(signal.categorie) ?? mappedCategorie(signal.chip);
   if (main) next = unzeroProfileKey(next, 'cats', main);
   for (const g of signal.genres) next = unzeroProfileKey(next, 'genres', g);
   for (const m of signal.moods) next = unzeroProfileKey(next, 'moods', m);

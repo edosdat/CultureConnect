@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import type { DayItem, GenreLegend, Lieu } from '@/lib/types';
 import type { AgendaDetailResponse, AgendaListResponse } from '@/lib/slim';
 import { recommendForProfile, recommendForTastes } from '@/lib/reco';
-import { extractMoods, hasScorableState } from '@/lib/signals';
+import { extractMoods, hasScorableState, profileHasZeroWeights } from '@/lib/signals';
 import { profileChips, reasonLineForState } from '@/lib/pourToi';
 import { useTastesUi } from './Providers';
 import { useSignals } from './SignalsProvider';
@@ -123,8 +123,7 @@ export default function CultureConnectApp({
 }: Props) {
   const { data: session } = useSession();
   const { openTastes } = useTastesUi();
-  const { track, trackItem, wipeKey, addPhrase } = useSignals();
-  const tasteState = session?.user?.tasteState ?? null;
+  const { track, trackItem, wipeKey, addPhrase, tasteState } = useSignals();
   const tastes =
     tasteState?.tastesText?.trim() || session?.user?.tastes?.trim() || '';
   const [year, setYear] = useState(initialYear);
@@ -809,7 +808,9 @@ export default function CultureConnectApp({
           {monthCalendar}
         </MonthCalendarDrawer>
 
-        {session?.user && pourToiItems.length > 0 && (
+        {(pourToiItems.length > 0 ||
+          pourToiChips.length > 0 ||
+          Boolean(tasteState && profileHasZeroWeights(tasteState.profile))) && (
           <section className="space-y-3 rounded-card-lg border border-culture-soft/80 bg-culture-surface/80 p-3 sm:p-4">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="font-display text-xl text-culture-ink sm:text-2xl">
