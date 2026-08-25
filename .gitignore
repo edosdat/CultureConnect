@@ -15,3 +15,6 @@
 # per-user account tastes (local best-effort; Vercel uses cookie)
 .data/
 .data/account-tastes/
+
+# Vercel CLI (projectId/orgId — do not publish)
+.vercel/
