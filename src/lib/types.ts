@@ -42,6 +42,12 @@ export type Evenement = {
   source_extrait?: string;
   /** agenda | masque — masque = hors liste */
   publication?: string;
+  /** Hidden mood tags (never shown on cards). */
+  form?: string;
+  moods?: string;
+  mood_source?: string;
+  mood_confiance?: string;
+  genres_mood?: string;
 };
 
 export type ProgrammeItem = {
@@ -68,6 +74,12 @@ export type ProgrammeItem = {
   duree_min?: string;
   public_cible?: string;
   scraped_at?: string;
+  /** Hidden mood tags (never shown on cards). */
+  form?: string;
+  moods?: string;
+  mood_source?: string;
+  mood_confiance?: string;
+  genres_mood?: string;
 };
 
 /** Row from data/films.csv — film regroupé multi-salles. */

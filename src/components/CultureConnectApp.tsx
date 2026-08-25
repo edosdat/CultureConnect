@@ -28,6 +28,11 @@ import TimeScopeBar from './TimeScopeBar';
 import SearchOmnibox from './SearchOmnibox';
 import EventDetail from './EventDetail';
 import LoginNudge from './LoginNudge';
+import {
+  hasPhraseSignal,
+  parsePhraseRules,
+  type PhraseTags,
+} from '@/lib/phraseTags';
 
 type Props = {
   initialScope: TimeScopeId;
@@ -67,13 +72,26 @@ function buildAgendaParams(opts: {
   month: number;
   offset?: number;
   includeCounts?: boolean;
+  phraseTags?: PhraseTags | null;
+  phraseMode?: boolean;
 }): URLSearchParams {
   const p = new URLSearchParams();
   p.set('scope', opts.scope);
   if (opts.commune) p.set('commune', opts.commune);
-  if (opts.q) p.set('q', opts.q);
+  if (opts.phraseMode) {
+    const t = opts.phraseTags;
+    if (t?.form) p.set('form', t.form);
+    p.set('moods', (t?.moods ?? []).join(','));
+    const tagGenres = t?.genres ?? [];
+    const merged = [...opts.genres, ...tagGenres];
+    if (merged.length) p.set('genres', merged.join(','));
+    if (t?.date_from) p.set('date_from', t.date_from);
+    if (t?.date_to) p.set('date_to', t.date_to);
+  } else {
+    if (opts.q) p.set('q', opts.q);
+    if (opts.genres.length) p.set('genres', opts.genres.join(','));
+  }
   if (opts.cats.length) p.set('cat', opts.cats.join(','));
-  if (opts.genres.length) p.set('genres', opts.genres.join(','));
   if (opts.lieuId) p.set('lieu', opts.lieuId);
   if (opts.selectedDate) p.set('date', opts.selectedDate);
   p.set('year', String(opts.year));
@@ -114,6 +132,7 @@ export default function CultureConnectApp({
   const [selectedCommune, setSelectedCommune] = useState<string | null>('Toulouse');
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [phraseTags, setPhraseTags] = useState<PhraseTags | null>(null);
   const [showMonthPanel, setShowMonthPanel] = useState(false);
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
   const [visibleCount, setVisibleCount] = useState(AGENDA_PAGE_SIZE);
@@ -158,16 +177,63 @@ export default function CultureConnectApp({
     });
   }, [debouncedQuery]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const isPhraseScope = timeScope === 'soir' || timeScope === 'date';
+
+  useEffect(() => {
+    if (!isPhraseScope) {
+      setPhraseTags(null);
+      return;
+    }
+    const q = debouncedQuery.trim();
+    if (!q) {
+      setPhraseTags(null);
+      return;
+    }
+    const rules = parsePhraseRules(q);
+    if (hasPhraseSignal(rules)) {
+      setPhraseTags(rules);
+      return;
+    }
+    setPhraseTags(rules);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/phrase-tags', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phrase: q }),
+        });
+        if (!res.ok) throw new Error('phrase-tags');
+        const data = (await res.json()) as PhraseTags;
+        if (!cancelled) setPhraseTags(data);
+      } catch {
+        if (!cancelled) {
+          setPhraseTags({
+            moods: [],
+            genres: [],
+            source: 'ai',
+            date_from: rules.date_from,
+            date_to: rules.date_to,
+          });
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedQuery, isPhraseScope]);
+
   function handleQueryChange(next: string) {
     setQuery(next);
     if (next.trim() === '') setDebouncedQuery('');
   }
 
   const queryTrimmed = query.trim();
-  /** Immediate: chips, empty copy, count line, city chip look. */
-  const searchingUi = queryTrimmed.length > 0;
+  const phraseMode = isPhraseScope && queryTrimmed.length > 0;
+  /** Immediate: chips, empty copy, count line, city chip look. Title search only. */
+  const searchingUi = !isPhraseScope && queryTrimmed.length > 0;
   /** Debounced: date range, commune skip, matching. */
-  const searching = debouncedQuery.trim().length > 0;
+  const searching = !isPhraseScope && debouncedQuery.trim().length > 0;
 
   const scopeRange = useMemo(
     () =>
@@ -217,6 +283,8 @@ export default function CultureConnectApp({
       year,
       month,
       includeCounts: showMonthPanel,
+      phraseMode: isPhraseScope && debouncedQuery.trim().length > 0,
+      phraseTags,
     });
     let cancelled = false;
     (async () => {
@@ -244,6 +312,8 @@ export default function CultureConnectApp({
     selectedCategories,
     selectedGenres,
     showMonthPanel,
+    phraseTags,
+    isPhraseScope,
   ]);
 
   useEffect(() => {
@@ -335,6 +405,8 @@ export default function CultureConnectApp({
       month,
       offset: listItems.length,
       includeCounts: showMonthPanel,
+      phraseMode: isPhraseScope && debouncedQuery.trim().length > 0,
+      phraseTags,
     });
     void fetch(`/api/agenda?${params.toString()}`)
       .then((res) => (res.ok ? res.json() : null))
@@ -356,6 +428,8 @@ export default function CultureConnectApp({
     year,
     month,
     showMonthPanel,
+    phraseTags,
+    isPhraseScope,
   ]);
 
   const selectedItem =
@@ -564,7 +638,13 @@ export default function CultureConnectApp({
       </header>
 
       <div className="sticky top-0 z-20 -mx-4 mb-3 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:mb-5 sm:px-6">
-        <SearchOmnibox value={query} onChange={handleQueryChange} />
+        <SearchOmnibox
+          value={query}
+          onChange={handleQueryChange}
+          placeholder={
+            isPhraseScope ? 'Décris ta soirée' : 'Titre, artiste, lieu, genre…'
+          }
+        />
       </div>
 
       <div className="space-y-2.5 sm:space-y-4">
@@ -717,7 +797,23 @@ export default function CultureConnectApp({
           visibleCount={visibleCount}
           onLoadMore={handleLoadMore}
           empty={
-            packCardCount > 0 ? null : searchingUi ? (
+            packCardCount > 0 ? null : phraseMode ? (
+              <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-6 py-12 text-center">
+                <p className="font-display text-xl text-culture-ink">
+                  Aucun résultat
+                </p>
+                <p className="mt-2 text-sm text-culture-muted">
+                  Essaie une autre phrase, ou efface le champ.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => handleQueryChange('')}
+                  className="mt-5 rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-culture-clay"
+                >
+                  Effacer
+                </button>
+              </div>
+            ) : searchingUi ? (
               <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-6 py-12 text-center">
                 <p className="font-display text-xl text-culture-ink">
                   Aucun résultat pour « {queryTrimmed} »

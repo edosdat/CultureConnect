@@ -1,7 +1,8 @@
 import 'server-only';
 
-import type { DayItem, Lieu } from './types';
+import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 import { loadCultureData } from './data';
+import { mainFromCategorie } from './categories';
 import { densifiedCardCount } from './densify';
 import {
   countItemsByDay,
@@ -51,6 +52,12 @@ export type AgendaQueryInput = {
   limit?: number;
   offset?: number;
   includeCounts?: boolean;
+  /** Phrase tags — AND with scope/commune. Do not title-search q when set. */
+  form?: string | null;
+  moods?: string[];
+  tagGenres?: string[];
+  date_from?: string | null;
+  date_to?: string | null;
 };
 
 export type { AgendaListResponse, AgendaDetailResponse } from './slim';
@@ -139,13 +146,175 @@ function dataMaxIso(): string {
   return max;
 }
 
+
+function splitTagField(raw: string | string[] | undefined | null): string[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw.map((s) => s.trim().toLowerCase()).filter(Boolean);
+  }
+  return raw
+    .split(/[|,]/)
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function tagTokens(slug: string): string[] {
+  return slug.toLowerCase().split(/[|_]+/).filter(Boolean);
+}
+
+function programmeOf(item: DayItem): ProgrammeItem | null {
+  return item.kind === 'programme' ? item.programme : null;
+}
+
+function evenementOf(item: DayItem): Evenement | null {
+  return item.evenement ?? null;
+}
+
+function formOfItem(item: DayItem): string {
+  const p = programmeOf(item);
+  const ev = evenementOf(item);
+  const raw = (p?.form || ev?.form || '').toString().trim().toLowerCase();
+  if (raw) return raw;
+  const cat = ev?.categorie || '';
+  const main = mainFromCategorie(cat);
+  if (main === 'cinema') return 'cine';
+  if (main === 'theatre_danse') return 'theatre';
+  if (main === 'musique') return 'concert';
+  if (main === 'festival') return 'festival';
+  if (main === 'enfants_famille') return 'enfants';
+  const c = cat.trim().toLowerCase();
+  if (c.includes('cinema') || c.includes('cine')) return 'cine';
+  if (c.includes('theatre') || c.includes('humour') || c.includes('danse'))
+    return 'theatre';
+  if (c.includes('concert') || c.includes('musique') || c.includes('guinguette'))
+    return 'concert';
+  if (c.includes('festival')) return 'festival';
+  if (c.includes('enfant') || c.includes('famille')) return 'enfants';
+  return '';
+}
+
+function moodsOfItem(item: DayItem): string[] {
+  const p = programmeOf(item);
+  const ev = evenementOf(item);
+  const fromP = splitTagField(p?.moods);
+  if (fromP.length) return fromP;
+  return splitTagField(ev?.moods);
+}
+
+function moodSourceOfItem(item: DayItem): string {
+  const p = programmeOf(item);
+  const ev = evenementOf(item);
+  return (p?.mood_source || ev?.mood_source || '').toString().trim().toLowerCase();
+}
+
+function isEmptyMoodRow(item: DayItem): boolean {
+  if (moodsOfItem(item).length === 0) return true;
+  return moodSourceOfItem(item) === 'vide';
+}
+
+function genresHaystack(item: DayItem): string[] {
+  const p = programmeOf(item);
+  const ev = evenementOf(item);
+  const hay: string[] = [];
+  hay.push(...splitTagField(p?.genres_mood));
+  hay.push(...splitTagField(ev?.genres_mood));
+  const catGenre = ((p?.genre || ev?.genre || '') as string).trim().toLowerCase();
+  if (catGenre) hay.push(catGenre);
+  return hay;
+}
+
+function slugMatchesHay(query: string, hay: string[]): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return false;
+  for (const h of hay) {
+    if (h === q) return true;
+    const tokens = tagTokens(h);
+    if (tokens.includes(q)) return true;
+  }
+  return false;
+}
+
+function genresOverlap(query: string[], item: DayItem): boolean {
+  if (query.length === 0) return true;
+  const hay = genresHaystack(item);
+  return query.some((q) => slugMatchesHay(q, hay));
+}
+
+function moodsOverlap(query: string[], item: DayItem): boolean {
+  if (query.length === 0) return true;
+  const have = new Set(moodsOfItem(item));
+  return query.some((m) => have.has(m.toLowerCase()));
+}
+
+function formMatches(query: string, item: DayItem): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return formOfItem(item) === q;
+}
+
+export function itemMatchesPhraseTags(
+  item: DayItem,
+  query: {
+    form?: string | null;
+    moods?: string[];
+    tagGenres?: string[];
+    date_from?: string | null;
+    date_to?: string | null;
+  },
+): boolean {
+  const form = (query.form || '').trim();
+  const moods = (query.moods || []).map((m) => m.trim().toLowerCase()).filter(Boolean);
+  const genres = (query.tagGenres || []).map((g) => g.trim().toLowerCase()).filter(Boolean);
+  const from = (query.date_from || '').trim();
+  const to = (query.date_to || '').trim();
+  const hasForm = Boolean(form);
+  const hasMoods = moods.length > 0;
+  const hasGenres = genres.length > 0;
+  const hasDates = Boolean(from || to);
+  if (!hasForm && !hasMoods && !hasGenres && !hasDates) return true;
+
+  if (hasDates) {
+    const d = (item.dayIso || '').trim();
+    if (from && d && d < from) return false;
+    if (to && d && d > to) return false;
+  }
+  if (hasForm && !formMatches(form, item)) return false;
+
+  const moodOnly = hasMoods && !hasForm && !hasGenres;
+  if (moodOnly) {
+    if (isEmptyMoodRow(item)) return false;
+    return moodsOverlap(moods, item);
+  }
+
+  const moodAndGenre = hasMoods && hasGenres;
+  if (moodAndGenre) {
+    if (moodsOverlap(moods, item)) return true;
+    return isEmptyMoodRow(item) && genresOverlap(genres, item);
+  }
+
+  if (hasMoods && !moodsOverlap(moods, item)) return false;
+  if (hasGenres && !genresOverlap(genres, item)) return false;
+  return true;
+}
+
+function hasPhraseFilters(input: AgendaQueryInput): boolean {
+  return Boolean(
+    (input.form && input.form.trim()) ||
+      (input.moods && input.moods.length > 0) ||
+      (input.tagGenres && input.tagGenres.length > 0) ||
+      (input.date_from && input.date_from.trim()) ||
+      (input.date_to && input.date_to.trim()),
+  );
+}
+
 function listForRange(
   input: AgendaQueryInput,
   now: Date,
 ): { items: DayItem[]; searching: boolean; rangeDays: string[] } {
   const data = loadCultureData();
   const paris = parisParts(now);
-  const searching = input.q.trim().length > 0;
+  const phrase = hasPhraseFilters(input);
+  const searching = !phrase && input.q.trim().length > 0;
   const scopeRange = resolveScopeRange(input.scope, input.selectedDate, now, {
     year: input.year,
     month: input.month,
@@ -201,6 +370,18 @@ function listForRange(
     if (input.scope === 'soir') {
       items = items.filter(startsAtOrAfter19);
     }
+  }
+
+  if (phrase) {
+    items = items.filter((item) =>
+      itemMatchesPhraseTags(item, {
+        form: input.form,
+        moods: input.moods,
+        tagGenres: input.tagGenres,
+        date_from: input.date_from,
+        date_to: input.date_to,
+      }),
+    );
   }
 
   return { items, searching, rangeDays: range.days };

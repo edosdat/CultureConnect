@@ -29,12 +29,24 @@ export async function GET(req: Request) {
   const limitRaw = url.searchParams.get('limit');
   const limit = limitRaw != null ? Number(limitRaw) : undefined;
 
+  const hasPhrase =
+    url.searchParams.has('form') ||
+    url.searchParams.has('moods') ||
+    url.searchParams.has('date_from') ||
+    url.searchParams.has('date_to');
+  const form = url.searchParams.get('form');
+  const moods = parseCsvParam(url.searchParams.get('moods'));
+  const date_from = url.searchParams.get('date_from');
+  const date_to = url.searchParams.get('date_to');
+  const rawGenres = parseCsvParam(url.searchParams.get('genres'));
+  // Phrase mode: genres = tag slugs (funk, humour…), skip exact chip filter.
+  // Title q is ignored when phrase params are present (tag-to-tag).
   const result = queryAgenda({
     scope: parseTimeScope(url.searchParams.get('scope')),
     commune: url.searchParams.get('commune'),
-    q: url.searchParams.get('q') || '',
+    q: hasPhrase ? '' : url.searchParams.get('q') || '',
     cats: parseCsvParam(url.searchParams.get('cat')),
-    genres: parseCsvParam(url.searchParams.get('genres')),
+    genres: hasPhrase ? [] : rawGenres,
     lieuId: url.searchParams.get('lieu'),
     selectedDate: url.searchParams.get('date'),
     year,
@@ -42,6 +54,11 @@ export async function GET(req: Request) {
     limit: Number.isFinite(limit) ? limit : undefined,
     offset,
     includeCounts: url.searchParams.get('counts') === '1',
+    form: form,
+    moods,
+    tagGenres: hasPhrase ? rawGenres : [],
+    date_from,
+    date_to,
   });
 
   return NextResponse.json(result);

@@ -65,6 +65,11 @@ export function loadEvenements(): Evenement[] {
     scraped_at: r.scraped_at ?? '',
     source_extrait: r.source_extrait ?? '',
     publication: r.publication ?? '',
+    form: r.form ?? '',
+    moods: r.moods ?? '',
+    mood_source: r.mood_source ?? '',
+    mood_confiance: r.mood_confiance ?? '',
+    genres_mood: r.genres_mood ?? '',
   }));
 }
 
@@ -96,6 +101,11 @@ export function loadProgramme(): ProgrammeItem[] {
     duree_min: r.duree_min ?? '',
     public_cible: r.public_cible ?? '',
     scraped_at: r.scraped_at ?? '',
+    form: r.form ?? '',
+    moods: r.moods ?? '',
+    mood_source: r.mood_source ?? '',
+    mood_confiance: r.mood_confiance ?? '',
+    genres_mood: r.genres_mood ?? '',
   }));
 }
 
