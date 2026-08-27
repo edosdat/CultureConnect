@@ -587,13 +587,12 @@ export function queryAgenda(
   const { items, searching, rangeDays } = listForRange(input, now);
 
   const showNouveautes =
-    paris.weekday === 3 &&
     !searching &&
     (input.scope === 'aujourdhui' ||
       input.scope === 'soir' ||
       input.scope === 'semaine');
   const nouveautes = showNouveautes
-    ? nouveautesCine(data.programmeWithContext, paris.iso, now)
+    ? nouveautesCine(data.programmeWithContext, now)
     : [];
 
   const total = items.length;

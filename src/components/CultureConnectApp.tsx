@@ -877,7 +877,7 @@ export default function CultureConnectApp({
         {packCardCount > 0 ? (
           <section className="space-y-2">
             <h2 className="text-sm font-medium text-culture-terracotta">
-              Nouveautés ciné
+              Sorties cette semaine
             </h2>
             <SeanceGrid
               items={nouveautesItems}
