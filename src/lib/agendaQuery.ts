@@ -150,26 +150,6 @@ export function startsAtOrAfter19(item: DayItem): boolean {
   return Boolean(h) && h >= '19:00';
 }
 
-/** Reco aujourdhui/semaine: still upcoming in Paris. Missing clock stays. */
-function isStillUpcomingSeance(item: DayItem, now: Date): boolean {
-  const paris = parisParts(now);
-  const date = (item.dayIso || '').trim();
-  if (date > paris.iso) return true;
-  if (date !== paris.iso) return false;
-  const h = itemHeureDebut(item);
-  if (!h) return true;
-  const nowHHMM =
-    clockHHMM(
-      new Intl.DateTimeFormat('en-GB', {
-        timeZone: 'Europe/Paris',
-        hour: '2-digit',
-        minute: '2-digit',
-        hourCycle: 'h23',
-      }).format(now),
-    ) || `${String(paris.hour).padStart(2, '0')}:00`;
-  return h >= nowHHMM;
-}
-
 function filmIdOfDayItem(item: DayItem): string {
   if (item.kind !== 'programme') return '';
   return (item.programme.film_id || '').trim();
@@ -822,18 +802,14 @@ export function queryAgenda(
   const densifiedTotal = densifiedCardCount(items);
 
   if (input.recoUpcoming) {
-    const pool =
-      input.scope === 'aujourdhui' || input.scope === 'semaine'
-        ? items.filter((item) => isStillUpcomingSeance(item, now))
-        : items;
     const profile = input.recoProfile ?? null;
     const preferred =
       profile && profileHasChipWeight(profile)
-        ? recommendForProfile(pool, { signalsRecent: [], profile }, 3).map(
+        ? recommendForProfile(items, { signalsRecent: [], profile }, 3).map(
             (s) => s.item,
           )
-        : pickSoonestPerSlot(pool);
-    const picked = mergeSlotPicks(preferred, pickSoonestPerSlot(pool));
+        : pickSoonestPerSlot(items);
+    const picked = mergeSlotPicks(preferred, pickSoonestPerSlot(items));
     return {
       scope: input.scope,
       commune: input.commune,
