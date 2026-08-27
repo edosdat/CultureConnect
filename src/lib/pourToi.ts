@@ -103,7 +103,12 @@ export function profileChips(
   push('moods', profile.moods);
   push('genres', profile.genres);
   push('themes', profile.themes);
-  out.sort((a, b) => b.weight - a.weight || a.label.localeCompare(b.label, 'fr'));
+  const bucketOrder: ProfileBucket[] = ['cats', 'moods', 'genres', 'themes'];
+  out.sort((a, b) => {
+    const bi = bucketOrder.indexOf(a.bucket) - bucketOrder.indexOf(b.bucket);
+    if (bi !== 0) return bi;
+    return b.pct - a.pct || a.label.localeCompare(b.label, 'fr');
+  });
   return out.slice(0, Math.max(0, max));
 }
 

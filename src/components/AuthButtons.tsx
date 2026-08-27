@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useTastesUi } from './Providers';
 import { useSignals } from './SignalsProvider';
-import { clearGuestStore, notifySignalsChanged } from '@/lib/signalsStore';
 
 export default function AuthButtons() {
   const { data: session, status } = useSession();
@@ -12,34 +11,8 @@ export default function AuthButtons() {
   const { loginNudgeReady, loginNudgeDismissed, dismissLoginNudge } = useSignals();
   const [providersOk, setProvidersOk] = useState<boolean | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const showRemember = loginNudgeReady && !loginNudgeDismissed;
-
-  async function handleDeleteAccount() {
-    if (deleting) return;
-    if (
-      !window.confirm(
-        'Supprimer ton compte et tes goûts enregistrés ? Cette action est définitive.',
-      )
-    ) {
-      return;
-    }
-    setDeleting(true);
-    setMenuOpen(false);
-    try {
-      const res = await fetch('/api/account-tastes', { method: 'DELETE' });
-      if (!res.ok) {
-        setDeleting(false);
-        return;
-      }
-      clearGuestStore();
-      notifySignalsChanged();
-      await signOut({ callbackUrl: '/' });
-    } catch {
-      setDeleting(false);
-    }
-  }
 
   useEffect(() => {
     let cancelled = false;
@@ -128,37 +101,26 @@ export default function AuthButtons() {
         {menuOpen ? (
           <div
             role="menu"
-            className="absolute right-0 top-full z-20 mt-1 min-w-[10.5rem] overflow-hidden rounded-xl border border-culture-sand bg-white py-1 shadow-lg"
+            className="absolute right-0 top-full z-20 mt-1 min-w-[10.5rem] overflow-hidden rounded-xl border-[1.5px] border-culture-line bg-culture-cream py-1 shadow-lg"
           >
             <button
               type="button"
               role="menuitem"
-              disabled={deleting}
               onClick={() => {
                 setMenuOpen(false);
                 openTastes();
               }}
-              className="block w-full px-3 py-2 text-left text-sm font-medium text-culture-muted hover:bg-culture-soft hover:text-culture-ink disabled:opacity-50"
+              className="block w-full px-3 py-2 text-left text-sm font-medium text-culture-ink hover:bg-white"
             >
               Mes goûts
             </button>
             <button
               type="button"
               role="menuitem"
-              disabled={deleting}
               onClick={() => signOut({ callbackUrl: '/' })}
-              className="block w-full px-3 py-2 text-left text-sm font-medium text-culture-muted hover:bg-culture-soft hover:text-culture-ink disabled:opacity-50"
+              className="block w-full px-3 py-2 text-left text-sm font-medium text-culture-ink hover:bg-white"
             >
               Déconnexion
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              disabled={deleting}
-              onClick={() => void handleDeleteAccount()}
-              className="block w-full px-3 py-2 text-left text-sm font-medium text-culture-muted hover:bg-culture-soft hover:text-culture-ink disabled:opacity-50"
-            >
-              Supprimer mon compte
             </button>
           </div>
         ) : null}
