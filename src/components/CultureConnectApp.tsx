@@ -301,6 +301,8 @@ export default function CultureConnectApp({
     let cancelled = false;
     const params = new URLSearchParams();
     params.set('reco', '1');
+    params.set('scope', timeScope);
+    if (selectedDay) params.set('date', selectedDay);
     if (selectedCommune) params.set('commune', selectedCommune);
     params.set('year', String(year));
     params.set('month', String(month));
@@ -318,7 +320,7 @@ export default function CultureConnectApp({
     return () => {
       cancelled = true;
     };
-  }, [selectedCommune, year, month]);
+  }, [selectedCommune, year, month, timeScope, selectedDay]);
 
 
   useEffect(() => {
@@ -393,29 +395,14 @@ export default function CultureConnectApp({
     });
   }, [availableGenreSlugs, selectedCategories, genresLegend]);
 
-  /** Pour toi = upcoming 14-day pool, never the chip-scoped listItems. */
+  /** Pour toi = 1+1+1 from reco pool (date window, never cat chips). */
   const pourToiItems = useMemo(() => {
     if (tasteState) {
       if (!profileHasChipWeight(tasteState.profile)) return [];
-      return recommendForProfile(recoPoolItems, tasteState, 3, selectedCategories).map((s) => s.item);
+      return recommendForProfile(recoPoolItems, tasteState, 3).map((s) => s.item);
     }
     if (tastes) {
       const scored = recommendForTastes(recoPoolItems, tastes, 12);
-      const catSlots = selectedCategories
-        .map((c) =>
-          c === 'cinema' ? 'cine' : c === 'theatre_danse' ? 'theatre' : c === 'musique' ? 'concert' : '',
-        )
-        .filter(Boolean);
-      if (catSlots.length) {
-        return scored
-          .filter((e) => {
-            const slot = slotFormOfItem(e.item);
-            return slot && catSlots.includes(slot) && e.score > 0;
-          })
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 3)
-          .map((s) => s.item);
-      }
       const best = new Map();
       for (const entry of scored) {
         const slot = slotFormOfItem(entry.item);
@@ -428,7 +415,7 @@ export default function CultureConnectApp({
         .filter(Boolean);
     }
     return [];
-  }, [recoPoolItems, tastes, tasteState, selectedCategories]);
+  }, [recoPoolItems, tastes, tasteState]);
 
   const pourToiKeys = useMemo(
     () => new Set(pourToiItems.map((item) => item.key)),

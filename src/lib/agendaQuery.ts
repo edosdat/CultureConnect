@@ -64,7 +64,7 @@ export type AgendaQueryInput = {
   entities?: string[];
   date_from?: string | null;
   date_to?: string | null;
-  /** Upcoming 90-day pool for Ton top 3 (independent of time/cat chips). */
+  /** Top 3 pool: date scope window, never cat chips. tous = 90 days. */
   recoUpcoming?: boolean;
 };
 
@@ -408,7 +408,7 @@ function listForRange(
   });
   const phraseFrom = reco ? '' : (input.date_from || '').trim();
   const phraseTo = reco ? '' : (input.date_to || '').trim();
-  let range = reco || searching || input.scope === 'tous'
+  let range = searching || input.scope === 'tous'
     ? upcomingRange(paris.iso, dataMaxIso(), 90)
     : scopeRange;
   if (!searching && (phraseFrom || phraseTo)) {
@@ -486,7 +486,7 @@ function listForRange(
         items.push(item);
       }
     }
-    if (!reco && input.scope === 'soir') {
+    if (input.scope === 'soir') {
       items = items.filter(startsAtOrAfter19);
     }
   }
