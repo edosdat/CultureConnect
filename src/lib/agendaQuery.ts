@@ -561,9 +561,11 @@ function listForRange(
   });
   const phraseFrom = reco ? '' : (input.date_from || '').trim();
   const phraseTo = reco ? '' : (input.date_to || '').trim();
-  let range = searching || input.scope === 'tous'
-    ? upcomingRange(paris.iso, dataMaxIso(), 90)
-    : scopeRange;
+  let range = searching
+    ? upcomingRange(paris.iso, dataMaxIso(), 4000)
+    : input.scope === 'tous'
+      ? upcomingRange(paris.iso, dataMaxIso(), 90)
+      : scopeRange;
   if (!searching && (phraseFrom || phraseTo)) {
     const start =
       phraseFrom && phraseFrom > range.startIso ? phraseFrom : range.startIso;
