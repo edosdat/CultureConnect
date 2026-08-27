@@ -6,7 +6,7 @@ import type { DayItem, GenreLegend, Lieu } from '@/lib/types';
 import type { AgendaDetailResponse, AgendaListResponse } from '@/lib/slim';
 import { profileHasChipWeight, recommendForProfile, recommendForTastes } from '@/lib/reco';
 import { extractMoods, profileHasZeroWeights } from '@/lib/signals';
-import { profileChips, reasonLineForState } from '@/lib/pourToi';
+import { reasonLineForState } from '@/lib/pourToi';
 import { useSignals } from './SignalsProvider';
 import { densifiedCardCount } from '@/lib/densify';
 import { filmIdOfItem } from '@/lib/nouveautesCine';
@@ -124,7 +124,7 @@ export default function CultureConnectApp({
   initialMonth,
 }: Props) {
   const { data: session } = useSession();
-  const { track, trackItem, wipeKey, addPhrase, tasteState } = useSignals();
+  const { track, trackItem, tasteState } = useSignals();
   const tastes =
     tasteState?.tastesText?.trim() || session?.user?.tastes?.trim() || '';
   const [year, setYear] = useState(initialYear);
@@ -137,7 +137,6 @@ export default function CultureConnectApp({
   const [selectedLieuId, setSelectedLieuId] = useState<string | null>(null);
   const [selectedCommune, setSelectedCommune] = useState<string | null>('Toulouse');
   const [query, setQuery] = useState('');
-  const [chipDraft, setChipDraft] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [phraseTags, setPhraseTags] = useState<PhraseTags | null>(null);
   const [showMonthPanel, setShowMonthPanel] = useState(false);
@@ -388,10 +387,6 @@ export default function CultureConnectApp({
     }
     return ids;
   }, [pourToiItems]);
-  const pourToiChips = useMemo(
-    () => profileChips(tasteState?.profile, 8),
-    [tasteState],
-  );
   const pourToiReason = useMemo(
     () => reasonLineForState(tasteState),
     [tasteState],
@@ -816,54 +811,12 @@ export default function CultureConnectApp({
         </MonthCalendarDrawer>
 
         {(pourToiItems.length > 0 ||
-          pourToiChips.length > 0 ||
           Boolean(tasteState && profileHasZeroWeights(tasteState.profile))) && (
           <section className="space-y-3 rounded-card-lg border border-culture-soft/80 bg-culture-surface/80 p-3 sm:p-4">
             <h2 className="font-display text-xl text-culture-ink sm:text-2xl">
               Ton top 3 du moment
             </h2>
             <p className="text-sm text-culture-muted">{pourToiReason}</p>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {pourToiChips.map((chip) => (
-                <span
-                  key={`${chip.bucket}:${chip.key}`}
-                  className="inline-flex items-center gap-1 rounded-full border border-culture-line bg-culture-cream px-2.5 py-0.5 text-sm text-culture-ink"
-                >
-                  {chip.label}
-                  <button
-                    type="button"
-                    aria-label={`Retirer ${chip.label}`}
-                    onClick={() => wipeKey(chip.bucket, chip.key)}
-                    className="text-culture-muted/70 hover:text-culture-ink"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-              <form
-                className="inline-flex"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const t = chipDraft.trim();
-                  if (!t) return;
-                  addPhrase(t);
-                  setChipDraft('');
-                }}
-              >
-                <label className="inline-flex items-center gap-1 rounded-full border border-culture-line bg-culture-cream px-2 py-0.5">
-                  <span className="text-sm text-culture-muted" aria-hidden>
-                    +
-                  </span>
-                  <input
-                    value={chipDraft}
-                    onChange={(e) => setChipDraft(e.target.value)}
-                    className="w-24 bg-transparent text-sm text-culture-ink outline-none placeholder:text-culture-muted/60"
-                    placeholder="rire…"
-                    aria-label="Ajouter un goût"
-                  />
-                </label>
-              </form>
-            </div>
             <SeanceGrid
               items={pourToiItems}
               showDate={showDateLabels}

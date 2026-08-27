@@ -8,7 +8,7 @@ import { clearGuestStore, notifySignalsChanged } from '@/lib/signalsStore';
 
 export default function AuthButtons() {
   const { data: session, status } = useSession();
-  const { googleAuthEnabled } = useTastesUi();
+  const { googleAuthEnabled, openTastes } = useTastesUi();
   const { loginNudgeReady, loginNudgeDismissed, dismissLoginNudge } = useSignals();
   const [providersOk, setProvidersOk] = useState<boolean | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -130,6 +130,18 @@ export default function AuthButtons() {
             role="menu"
             className="absolute right-0 top-full z-20 mt-1 min-w-[10.5rem] overflow-hidden rounded-xl border border-culture-sand bg-white py-1 shadow-lg"
           >
+            <button
+              type="button"
+              role="menuitem"
+              disabled={deleting}
+              onClick={() => {
+                setMenuOpen(false);
+                openTastes();
+              }}
+              className="block w-full px-3 py-2 text-left text-sm font-medium text-culture-muted hover:bg-culture-soft hover:text-culture-ink disabled:opacity-50"
+            >
+              Mes goûts
+            </button>
             <button
               type="button"
               role="menuitem"
