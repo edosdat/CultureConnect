@@ -16,8 +16,6 @@ const display = Fraunces({
   variable: '--font-display',
 });
 
-export const dynamic = 'force-dynamic';
-
 export const metadata: Metadata = {
   title: 'CultureConnect — Agenda culturel Toulouse',
   description:

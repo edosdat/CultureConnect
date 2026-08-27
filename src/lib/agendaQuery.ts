@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { unstable_cache } from 'next/cache';
 import type { Artiste, DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 import { loadCultureData } from './data';
 import { catsAllowCinemaPack, formFromCategorieAndForm } from './categories';
@@ -803,7 +804,7 @@ export function queryAgenda(
   };
 }
 
-export function loadHomeWindow(now = new Date()): AgendaListResponse {
+function computeHomeWindow(now = new Date()): AgendaListResponse {
   const scope = bootTimeScope();
   return queryAgenda(
     {
@@ -820,6 +821,18 @@ export function loadHomeWindow(now = new Date()): AgendaListResponse {
     },
     now,
   );
+}
+
+/** Home boot: cached 5 min, keyed by Paris calendar day. */
+export async function loadHomeWindow(
+  now = new Date(),
+): Promise<AgendaListResponse> {
+  const day = parisParts(now).iso;
+  return unstable_cache(
+    async () => computeHomeWindow(new Date()),
+    ['home-window', day],
+    { revalidate: 300 },
+  )();
 }
 
 function findItemByKey(id: string): DayItem | null {

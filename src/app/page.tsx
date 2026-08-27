@@ -1,8 +1,10 @@
 import CultureConnectApp from '@/components/CultureConnectApp';
 import { loadHomeWindow } from '@/lib/agendaQuery';
 
-export default function HomePage() {
-  const boot = loadHomeWindow();
+export const revalidate = 300;
+
+export default async function HomePage() {
+  const boot = await loadHomeWindow();
 
   return (
     <main>
