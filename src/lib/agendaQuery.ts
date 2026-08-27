@@ -594,6 +594,7 @@ export function queryAgenda(
 
   const showNouveautes =
     !searching &&
+    !hasPhraseFilters(input) &&
     (input.scope === 'aujourdhui' ||
       input.scope === 'soir' ||
       input.scope === 'semaine');

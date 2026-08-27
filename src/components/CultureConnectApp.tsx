@@ -832,7 +832,7 @@ export default function CultureConnectApp({
           </section>
         )}
 
-        {packCardCount > 0 ? (
+        {packCardCount > 0 && !phraseMode ? (
           <section className="space-y-2">
             <h2 className="text-sm font-medium text-culture-terracotta">
               Sorties cette semaine
