@@ -101,7 +101,7 @@ function buildAgendaParams(opts: {
   }
   if (opts.cats.length) p.set('cat', opts.cats.join(','));
   if (opts.lieuId) p.set('lieu', opts.lieuId);
-  if (opts.selectedDate) p.set('date', opts.selectedDate);
+  if (opts.selectedDate && opts.scope !== 'tous') p.set('date', opts.selectedDate);
   p.set('year', String(opts.year));
   p.set('month', String(opts.month));
   if (opts.offset) p.set('offset', String(opts.offset));
@@ -128,7 +128,7 @@ export default function CultureConnectApp({
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
   const [timeScope, setTimeScope] = useState<TimeScopeId>(initialScope);
-  const [selectedDay, setSelectedDay] = useState<string | null>(initialParisIso);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -600,6 +600,7 @@ export default function CultureConnectApp({
     setTimeScope(scope);
     setSelectedItemKey(null);
     if (scope === 'tous') {
+      setSelectedDay(null);
       setShowMonthPanel(false);
       return;
     }
