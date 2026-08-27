@@ -76,24 +76,26 @@ export function daysBetween(startIso: string, endIso: string): string[] {
   while (cur <= endIso) {
     out.push(cur);
     cur = addDaysIso(cur, 1);
-    // Allow up to ~3 months (search “all upcoming” is capped at +90 days).
-    if (out.length > 100) break;
+    // Safety valve only: catalogue can span many months (do not clip at ~100 days).
+    if (out.length > 800) break;
   }
   return out;
 }
 
 /**
- * Today → max date present in loaded data, capped at +capDays (default 90).
- * Used when the search query is non-empty so users can find a band/film without knowing the date.
+ * Today → max date present in loaded data (date >= today).
+ * No day cap unless the caller passes a positive capDays (omitted / null / 0 = uncapped).
  */
 export function upcomingRange(
   todayIso: string,
   dataMaxIso: string,
-  capDays = 90,
+  capDays?: number | null,
 ): DateRange {
-  const capIso = addDaysIso(todayIso, capDays);
   let end = dataMaxIso && dataMaxIso >= todayIso ? dataMaxIso : todayIso;
-  if (end > capIso) end = capIso;
+  if (capDays && capDays > 0) {
+    const capIso = addDaysIso(todayIso, capDays);
+    if (end > capIso) end = capIso;
+  }
   if (end < todayIso) end = todayIso;
   return {
     startIso: todayIso,
@@ -183,7 +185,8 @@ export function resolveScopeRange(
 ): DateRange {
   const { iso, weekday } = parisParts(now);
   if (scope === 'tous') {
-    return upcomingRange(iso, addDaysIso(iso, 90), 90);
+    // Wide fallback; listForRange uses dataMaxIso for tous / search.
+    return upcomingRange(iso, addDaysIso(iso, 800));
   }
   // Aujourd'hui + Ce soir share today; Ce soir also filters heure >= 19:00 in the app.
   if (scope === 'aujourdhui' || scope === 'soir') {
