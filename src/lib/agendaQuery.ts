@@ -40,7 +40,7 @@ import {
   upcomingRange,
   type TimeScopeId,
 } from './timeScope';
-import { profileHasChipWeight, recommendForProfile } from './reco';
+import { pickSoonestPerSlot, profileHasChipWeight, recommendForProfile } from './reco';
 import type { TasteEntry, TasteProfile } from './signals';
 
 export const AGENDA_PAGE_MAX = 50;
@@ -744,7 +744,7 @@ export function queryAgenda(
         ? recommendForProfile(items, { signalsRecent: [], profile }, 3).map(
             (s) => s.item,
           )
-        : [];
+        : pickSoonestPerSlot(items);
     return {
       scope: input.scope,
       commune: input.commune,

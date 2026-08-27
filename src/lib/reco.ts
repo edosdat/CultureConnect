@@ -1348,6 +1348,25 @@ function pickBestPerSlot(scored: ScoredDayItem[]): ScoredDayItem[] {
   return out;
 }
 
+/** Guest / no profile: soonest cine + theatre + concert. No overlap required. */
+export function pickSoonestPerSlot(items: DayItem[]): DayItem[] {
+  const best = new Map<RecoSlotForm, DayItem>();
+  for (const item of items) {
+    const slot = slotFormOfItem(item);
+    if (!slot) continue;
+    const prev = best.get(slot);
+    if (!prev || item.dayIso.localeCompare(prev.dayIso) < 0) {
+      best.set(slot, item);
+    }
+  }
+  const out: DayItem[] = [];
+  for (const slot of SLOT_ORDER) {
+    const hit = best.get(slot);
+    if (hit) out.push(hit);
+  }
+  return out;
+}
+
 /**
  * Top 3 = 1 cine + 1 theatre + 1 concert. Cat chips never filter this.
  * Shared overlap only (moods ∪ genres ∪ themes). Empty slot if 0 overlap.

@@ -294,14 +294,21 @@ export default function CultureConnectApp({
   }
 
   useEffect(() => {
-    if (!tasteState || !profileHasChipWeight(tasteState.profile)) {
+    const wiped =
+      Boolean(
+        tasteState &&
+          profileHasZeroWeights(tasteState.profile) &&
+          !profileHasChipWeight(tasteState.profile),
+      );
+    if (wiped) {
       setRecoPoolItems([]);
       return;
     }
     let cancelled = false;
     const params = new URLSearchParams();
     params.set('reco', '1');
-    const profile = tasteState.profile;
+    const profile = tasteState?.profile;
+    const sendProfile = profile && profileHasChipWeight(profile);
     void (async () => {
       try {
         const res = await fetch(`/api/agenda?${params.toString()}`, {
@@ -313,11 +320,13 @@ export default function CultureConnectApp({
             commune: selectedCommune,
             year,
             month,
-            profile: {
-              moods: profile.moods,
-              genres: profile.genres,
-              themes: profile.themes,
-            },
+            profile: sendProfile
+              ? {
+                  moods: profile.moods,
+                  genres: profile.genres,
+                  themes: profile.themes,
+                }
+              : undefined,
           }),
         });
         if (!res.ok) return;
@@ -406,9 +415,15 @@ export default function CultureConnectApp({
     });
   }, [availableGenreSlugs, selectedCategories, genresLegend]);
 
-  /** Server already picked 1+1+1 for the date window. */
+  /** Server picked 1+1+1 (profile or anonymous). Wipe à 0 = vide. */
   const pourToiItems = useMemo(() => {
-    if (!tasteState || !profileHasChipWeight(tasteState.profile)) return [];
+    if (
+      tasteState &&
+      profileHasZeroWeights(tasteState.profile) &&
+      !profileHasChipWeight(tasteState.profile)
+    ) {
+      return [];
+    }
     return recoPoolItems;
   }, [recoPoolItems, tasteState]);
 
