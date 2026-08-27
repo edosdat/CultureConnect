@@ -1,8 +1,9 @@
 /**
  * « Sorties cette semaine » pack + « Aussi ce soir » vivant picks.
  * films.csv has no date_sortie — novelty is inferred from programme dates only.
- * A film qualifies when its first séance (overall) falls in the current Paris
- * calendar week (Mon–Sun) and it still has an upcoming séance this week.
+ * A film qualifies when its first BDD séance is the Wednesday of the current
+ * Paris week and it still has an upcoming séance. No date_sortie. Sunday
+ * repertory one-shots do not qualify.
  */
 
 import { mainFromCategorie, mainFromGenreSlug, type MainCategoryId } from './categories';
@@ -146,9 +147,9 @@ type FilmBucket = {
 };
 
 /**
- * 2–16 cinema DayItems, one per film_id (representative = first upcoming séance
- * this Paris calendar week). Empty when fewer than 2 films qualify — caller
- * must not render an orphan title.
+ * 2–16 cinema DayItems, one per film_id (representative = first upcoming séance).
+ * First BDD séance must be this week's Wednesday. Sort: more salles, then more
+ * séances. Empty when fewer than 2 films qualify — no orphan title.
  */
 export function nouveautesCine(
   programme: ProgrammeWithContext[],
@@ -160,6 +161,7 @@ export function nouveautesCine(
   const daysFromMon = weekday === 0 ? 6 : weekday - 1;
   const weekStart = addDaysIso(todayIso, -daysFromMon);
   const weekEnd = addDaysIso(weekStart, 6);
+  const wednesdayIso = addDaysIso(weekStart, 2);
 
   const byFilm = new Map<string, FilmBucket>();
   for (const p of programme) {
@@ -179,9 +181,8 @@ export function nouveautesCine(
   type Candidate = {
     filmId: string;
     representative: ProgrammeWithContext;
-    firstOverallDate: string;
-    firstOverallHeure: string;
     salleCount: number;
+    seanceCount: number;
   };
 
   const candidates: Candidate[] = [];
@@ -195,45 +196,40 @@ export function nouveautesCine(
     const firstOverall = sorted[0];
     if (!firstOverall) continue;
     const firstOverallDate = firstOverall.programme.date;
-    if (firstOverallDate < weekStart || firstOverallDate > weekEnd) continue;
+    if (firstOverallDate !== wednesdayIso) continue;
 
-    const firstUpcomingThisWeek = sorted.find(
-      (p) =>
-        p.programme.date >= weekStart &&
-        p.programme.date <= weekEnd &&
-        isUpcomingSeance(
-          p.programme.date,
-          heureOfProgramme(p),
-          todayIso,
-          nowHeure,
-        ),
+    const firstUpcoming = sorted.find((p) =>
+      isUpcomingSeance(
+        p.programme.date,
+        heureOfProgramme(p),
+        todayIso,
+        nowHeure,
+      ),
     );
-    if (!firstUpcomingThisWeek) continue;
+    if (!firstUpcoming) continue;
 
+    const weekRows = sorted.filter(
+      (p) => p.programme.date >= weekStart && p.programme.date <= weekEnd,
+    );
     const venues = new Set<string>();
-    for (const p of sorted) {
-      if (p.programme.date < weekStart || p.programme.date > weekEnd) continue;
+    for (const p of weekRows) {
       const lieuId = p.programme.lieu_id || p.lieu?.lieu_id || '';
       if (lieuId) venues.add(lieuId);
     }
 
     candidates.push({
       filmId,
-      representative: firstUpcomingThisWeek,
-      firstOverallDate,
-      firstOverallHeure: heureOfProgramme(firstOverall),
+      representative: firstUpcoming,
       salleCount: venues.size,
+      seanceCount: weekRows.length,
     });
   }
 
   if (candidates.length < 2) return [];
 
   candidates.sort((a, b) => {
-    const byDate = b.firstOverallDate.localeCompare(a.firstOverallDate);
-    if (byDate !== 0) return byDate;
-    const byHeure = b.firstOverallHeure.localeCompare(a.firstOverallHeure);
-    if (byHeure !== 0) return byHeure;
     if (b.salleCount !== a.salleCount) return b.salleCount - a.salleCount;
+    if (b.seanceCount !== a.seanceCount) return b.seanceCount - a.seanceCount;
     return a.filmId.localeCompare(b.filmId);
   });
 
