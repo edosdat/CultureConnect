@@ -7,10 +7,13 @@ import { normalizePhrase, parsePhraseRules, type PhraseForm } from '@/lib/phrase
 import {
   SIGNAL_WEIGHTS,
   cineFicheCount,
+  entryPct,
+  entryWeight,
   mappedCategorie,
   type AccountTasteState,
   type ProfileBucket,
   type Signal,
+  type TasteEntry,
   type TasteProfile,
   type TrackPayload,
 } from '@/lib/signals';
@@ -64,6 +67,7 @@ export type ProfileChip = {
   key: string;
   label: string;
   weight: number;
+  pct: number;
 };
 
 function humanizeKey(key: string): string {
@@ -82,20 +86,23 @@ export function profileChips(
 ): ProfileChip[] {
   if (!profile) return [];
   const out: ProfileChip[] = [];
-  const push = (bucket: ProfileBucket, map: Record<string, number>) => {
-    for (const [key, weight] of Object.entries(map)) {
+  const push = (bucket: ProfileBucket, map?: Record<string, TasteEntry>) => {
+    for (const [key, entry] of Object.entries(map ?? {})) {
+      const weight = entryWeight(entry);
       if (weight <= 0 || !key) continue;
       out.push({
         bucket,
         key,
         label: labelProfileChip(bucket, key),
         weight,
+        pct: entryPct(entry),
       });
     }
   };
   push('cats', profile.cats);
   push('moods', profile.moods);
   push('genres', profile.genres);
+  push('themes', profile.themes);
   out.sort((a, b) => b.weight - a.weight || a.label.localeCompare(b.label, 'fr'));
   return out.slice(0, Math.max(0, max));
 }

@@ -18,9 +18,10 @@ import {
 import {
   cinemaActionShare,
   cineFicheCount,
+  entryPct,
+  entryWeight,
   hasActionSignals,
   lastOpenCardDayIso,
-  profileMaxWeight,
   userMentionedGuinguette,
   type AccountTasteState,
   type TasteProfile,
@@ -927,7 +928,7 @@ function neighborMatch(
 
 function liveCatKeys(profile: TasteProfile): string[] {
   return Object.entries(profile.cats)
-    .filter(([, w]) => w > 0)
+    .filter(([, e]) => entryWeight(e) > 0)
     .map(([k]) => k);
 }
 
@@ -968,16 +969,18 @@ function scoreItemFromProfile(
   skipNeighbors: boolean,
 ): number {
   const profile = state.profile;
-  const pmax = profileMaxWeight(profile);
   let score = 0;
 
   let hitGenre = false;
   let bestGenre = 0;
   for (const g of fields.genreSlugs) {
-    const w = profile.genres[g];
+    const w = entryWeight(profile.genres[g]);
     if (!w) continue;
     hitGenre = true;
-    bestGenre = Math.max(bestGenre, W_PROFILE_GENRE * (w / pmax));
+    bestGenre = Math.max(
+      bestGenre,
+      W_PROFILE_GENRE * (entryPct(profile.genres[g]) / 100),
+    );
   }
   score += bestGenre;
 
@@ -985,18 +988,19 @@ function scoreItemFromProfile(
 
   if (vivant && !skipNeighbors) {
     let bestNeighbor = 0;
-    const keys: Array<[string, number]> = [
+    const keys = [
       ...Object.entries(profile.moods),
       ...Object.entries(profile.genres),
     ];
-    for (const [key, w] of keys) {
+    for (const [key, entry] of keys) {
+      const w = entryWeight(entry);
       const targets = CINE_VIVANT_NEIGHBORS[key];
       if (!targets || w <= 0) continue;
       if (!neighborMatch(fields, targets)) continue;
       const light = key === 'fiction' ? FICTION_NEIGHBOR_LIGHT : 1;
       bestNeighbor = Math.max(
         bestNeighbor,
-        W_PROFILE_MOOD_NEIGHBOR * (w / pmax) * light,
+        W_PROFILE_MOOD_NEIGHBOR * (entryPct(entry) / 100) * light,
       );
     }
     score += bestNeighbor;
@@ -1006,23 +1010,24 @@ function scoreItemFromProfile(
   const allowGuinguetteCat =
     !isGuinguette ||
     userMentionedGuinguette(state) ||
-    (profile.moods['comedie'] ?? 0) > 0 ||
-    (profile.moods['humour'] ?? 0) > 0;
+    entryWeight(profile.moods['comedie']) > 0 ||
+    entryWeight(profile.moods['humour']) > 0;
 
   let hitCat = false;
-  let bestCatW = 0;
+  let bestCatNorm = 0;
   for (const c of fields.mainCats) {
-    const w = profile.cats[c];
+    const w = entryWeight(profile.cats[c]);
     if (!w) continue;
     if (isGuinguette && c === 'musique' && !allowGuinguetteCat) continue;
     hitCat = true;
-    if (w > bestCatW) bestCatW = w;
+    const norm = entryPct(profile.cats[c]) / 100;
+    if (norm > bestCatNorm) bestCatNorm = norm;
   }
   if (hitCat) {
     // Live cat chip: always score (not gated by cine genres/moods) so
     // matching pool items can enter top 3 on rank, not a reserved slot.
     score += W_LIVE_CAT;
-    score += W_PROFILE_CAT * (bestCatW / pmax);
+    score += W_PROFILE_CAT * bestCatNorm;
     if (hitGenre) {
       score += W_PROFILE_COMBO;
     }
@@ -1049,12 +1054,12 @@ function itemMatchesAnyNeighbor(
   profile: TasteProfile,
 ): boolean {
   if (isCinemaFields(fields)) return false;
-  const keys: Array<[string, number]> = [
+  const keys = [
     ...Object.entries(profile.moods),
     ...Object.entries(profile.genres),
   ];
-  for (const [key, w] of keys) {
-    if (w <= 0) continue;
+  for (const [key, entry] of keys) {
+    if (entryWeight(entry) <= 0) continue;
     const targets = CINE_VIVANT_NEIGHBORS[key];
     if (targets && neighborMatch(fields, targets)) return true;
   }
@@ -1172,9 +1177,10 @@ function applyVivantQuota(
 export function profileHasChipWeight(profile?: TasteProfile | null): boolean {
   if (!profile) return false;
   return (
-    Object.values(profile.cats).some((w) => w > 0) ||
-    Object.values(profile.genres).some((w) => w > 0) ||
-    Object.values(profile.moods).some((w) => w > 0)
+    Object.values(profile.cats).some((e) => entryWeight(e) > 0) ||
+    Object.values(profile.genres).some((e) => entryWeight(e) > 0) ||
+    Object.values(profile.moods).some((e) => entryWeight(e) > 0) ||
+    Object.values(profile.themes ?? {}).some((e) => entryWeight(e) > 0)
   );
 }
 
@@ -1209,9 +1215,9 @@ export function recommendForProfile(
     : false;
   const allowGuinguette =
     userMentionedGuinguette(state) ||
-    (profile.moods['comedie'] ?? 0) > 0 ||
-    (profile.moods['humour'] ?? 0) > 0 ||
-    (profile.genres[GUINGUETTE_GENRE] ?? 0) > 0;
+    entryWeight(profile.moods['comedie']) > 0 ||
+    entryWeight(profile.moods['humour']) > 0 ||
+    entryWeight(profile.genres[GUINGUETTE_GENRE]) > 0;
 
   const liveCats = new Set(liveCatKeys(profile));
   // Neighbors only when no explicit live cat chip the pool can satisfy.
@@ -1259,7 +1265,7 @@ export function recommendForProfile(
   }
   const fieldsOf = (item: DayItem) => fieldsByRef.get(item) ?? itemFields(item);
   const genreIntents = Object.entries(profile.genres)
-    .filter(([, w]) => w > 0)
+    .filter(([, e]) => entryWeight(e) > 0)
     .map(([k]) => k);
 
   return applyVivantQuota(scored, fieldsOf, state, genreIntents, topN);

@@ -13,6 +13,7 @@ import { cookies } from 'next/headers';
 import { VercelPool } from '@vercel/postgres';
 import {
   ACCOUNT_CAP,
+  coerceProfile,
   concatTastesText,
   hasScorableState,
   mergeSignalLists,
@@ -21,6 +22,7 @@ import {
   parseTasteState,
   profileHasZeroWeights,
   rebuildTasteState,
+  recomputeProfilePcts,
   unionPositiveWeights,
   type AccountTasteState,
 } from '@/lib/signals';
@@ -310,7 +312,14 @@ function mergeIncomingTaste(
   existing: AccountTasteState | null,
   incoming: AccountTasteState,
 ): AccountTasteState {
-  if (!existing) return incoming;
+  const incomingProfile = coerceProfile(incoming.profile);
+  if (!existing) {
+    return {
+      ...incoming,
+      profile: recomputeProfilePcts(incomingProfile),
+    };
+  }
+  const existingProfile = coerceProfile(existing.profile);
 
   const signalsRecent = mergeSignalLists(
     existing.signalsRecent,
@@ -330,20 +339,22 @@ function mergeIncomingTaste(
     tastesText,
     tastesSetAt,
     ACCOUNT_CAP,
-    existing.profile,
+    existingProfile,
   );
   // Recalc, then union fused positives, overlay incoming 0s (wipe persists), then existing 0s
   // except keys incoming is unzeroing (+) so cinema:1 is not re-zeroed.
-  const profile = overlayZeroWeightsExceptIncomingPositives(
-    overlayZeroWeights(
-      unionPositiveWeights(
-        unionPositiveWeights(rebuilt.profile, existing.profile),
-        incoming.profile,
+  const profile = recomputeProfilePcts(
+    overlayZeroWeightsExceptIncomingPositives(
+      overlayZeroWeights(
+        unionPositiveWeights(
+          unionPositiveWeights(rebuilt.profile, existingProfile),
+          incomingProfile,
+        ),
+        incomingProfile,
       ),
-      incoming.profile,
+      existingProfile,
+      incomingProfile,
     ),
-    existing.profile,
-    incoming.profile,
   );
 
   return {

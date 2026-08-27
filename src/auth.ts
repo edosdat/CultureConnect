@@ -6,6 +6,7 @@ import {
   writeAccountTaste,
 } from '@/lib/accountTasteStore';
 import {
+  emptyProfile,
   hasScorableState,
   parseTasteState,
   type AccountTasteState,
@@ -121,7 +122,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
             const prev = token.tasteState;
             token.tasteState = {
               signalsRecent: prev?.signalsRecent ?? [],
-              profile: prev?.profile ?? { cats: {}, genres: {}, moods: {}, communes: {} },
+              profile: prev?.profile ?? emptyProfile(),
               tastesText: tastes,
               tastesSetAt: token.tastesSetAt,
             };

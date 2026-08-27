@@ -7,11 +7,11 @@ import {
 } from '@/lib/accountTasteStore';
 import {
   ACCOUNT_CAP,
+  coerceProfile,
   concatTastesText,
   makeSignal,
   mergeSignalLists,
   overlayZeroWeights,
-  parseGuestStore,
   parseTasteState,
   rebuildTasteState,
   unzeroKeysTouchedBySignal,
@@ -46,7 +46,7 @@ function isWipe(
   if (!v || typeof v !== 'object') return false;
   const o = v as { bucket?: unknown; key?: unknown };
   return (
-    (o.bucket === 'cats' || o.bucket === 'genres' || o.bucket === 'moods') &&
+    (o.bucket === 'cats' || o.bucket === 'genres' || o.bucket === 'moods' || o.bucket === 'themes') &&
     typeof o.key === 'string' &&
     o.key.trim().length > 0
   );
@@ -54,7 +54,7 @@ function isWipe(
 
 function parseIncomingProfile(raw: unknown): TasteProfile | null {
   if (!raw || typeof raw !== 'object') return null;
-  return parseGuestStore({ events: [], profile: raw }).profile;
+  return coerceProfile(raw);
 }
 
 function normalizeIncomingSignal(raw: Signal | TrackPayload): Signal {

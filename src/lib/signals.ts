@@ -39,10 +39,13 @@ export type Signal = {
   dayIso?: string;
 };
 
+export type TasteEntry = { weight: number; pct: number };
+
 export type TasteProfile = {
-  cats: Record<string, number>;
-  genres: Record<string, number>;
-  moods: Record<string, number>;
+  cats: Record<string, TasteEntry>;
+  moods: Record<string, TasteEntry>;
+  genres: Record<string, TasteEntry>;
+  themes: Record<string, TasteEntry>;
   communes: Record<string, number>;
 };
 
@@ -125,7 +128,95 @@ export type TrackPayload = {
 };
 
 export function emptyProfile(): TasteProfile {
-  return { cats: {}, genres: {}, moods: {}, communes: {} };
+  return { cats: {}, moods: {}, genres: {}, themes: {}, communes: {} };
+}
+
+export function entryWeight(v: number | TasteEntry | undefined): number {
+  if (v == null) return 0;
+  if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+  if (typeof v.weight === "number" && Number.isFinite(v.weight)) return v.weight;
+  return 0;
+}
+
+export function entryPct(v: number | TasteEntry | undefined): number {
+  if (v == null) return 0;
+  if (typeof v === "number") return 0;
+  if (typeof v.pct === "number" && Number.isFinite(v.pct)) return v.pct;
+  return 0;
+}
+
+export function coerceEntry(v: unknown): TasteEntry {
+  if (typeof v === "number" && Number.isFinite(v)) {
+    return { weight: v, pct: 0 };
+  }
+  if (v && typeof v === "object") {
+    const o = v as { weight?: unknown; pct?: unknown };
+    const weight =
+      typeof o.weight === "number" && Number.isFinite(o.weight) ? o.weight : 0;
+    const pct = typeof o.pct === "number" && Number.isFinite(o.pct) ? o.pct : 0;
+    return { weight, pct };
+  }
+  return { weight: 0, pct: 0 };
+}
+
+export function recomputeBucketPcts(
+  bucket: Record<string, TasteEntry>,
+): Record<string, TasteEntry> {
+  let sum = 0;
+  for (const entry of Object.values(bucket)) {
+    if (entry.weight > 0) sum += entry.weight;
+  }
+  for (const key of Object.keys(bucket)) {
+    const entry = bucket[key]!;
+    bucket[key] =
+      entry.weight === 0 || sum <= 0
+        ? { weight: entry.weight, pct: 0 }
+        : { weight: entry.weight, pct: Math.round((100 * entry.weight) / sum) };
+  }
+  return bucket;
+}
+
+function recordNums(v: unknown): Record<string, number> {
+  if (!v || typeof v !== "object") return {};
+  const out: Record<string, number> = {};
+  for (const [k, n] of Object.entries(v as Record<string, unknown>)) {
+    if (typeof n === "number" && Number.isFinite(n)) out[k] = n;
+  }
+  return out;
+}
+
+function recordEntries(v: unknown): Record<string, TasteEntry> {
+  if (!v || typeof v !== "object") return {};
+  const out: Record<string, TasteEntry> = {};
+  for (const [k, raw] of Object.entries(v as Record<string, unknown>)) {
+    if (!k) continue;
+    if (typeof raw === "number" && Number.isFinite(raw)) {
+      out[k] = { weight: raw, pct: 0 };
+    } else if (raw && typeof raw === "object") {
+      out[k] = coerceEntry(raw);
+    }
+  }
+  return recomputeBucketPcts(out);
+}
+
+export function coerceProfile(raw: unknown): TasteProfile {
+  if (!raw || typeof raw !== "object") return emptyProfile();
+  const o = raw as Partial<TasteProfile>;
+  return {
+    cats: recordEntries(o.cats),
+    moods: recordEntries(o.moods),
+    genres: recordEntries(o.genres),
+    themes: recordEntries(o.themes),
+    communes: recordNums(o.communes),
+  };
+}
+
+export function recomputeProfilePcts(profile: TasteProfile): TasteProfile {
+  recomputeBucketPcts(profile.cats);
+  recomputeBucketPcts(profile.moods);
+  recomputeBucketPcts(profile.genres);
+  recomputeBucketPcts(profile.themes);
+  return profile;
 }
 
 export function emptyTasteState(): AccountTasteState {
@@ -260,7 +351,15 @@ export function mergeSignalLists(
   return out;
 }
 
-function addWeight(map: Record<string, number>, key: string, w: number) {
+export function addWeight(map: Record<string, TasteEntry>, key: string, w: number) {
+  const k = key.trim();
+  if (!k || !w) return;
+  const cur = coerceEntry(map[k]);
+  map[k] = { weight: cur.weight + w, pct: 0 };
+  recomputeBucketPcts(map);
+}
+
+function addCommuneWeight(map: Record<string, number>, key: string, w: number) {
   const k = key.trim();
   if (!k || !w) return;
   map[k] = (map[k] ?? 0) + w;
@@ -281,15 +380,16 @@ export function mappedCategorie(raw: string | undefined): MainCategoryId | null 
   );
 }
 
-export type ProfileBucket = 'cats' | 'genres' | 'moods';
+export type ProfileBucket = 'cats' | 'moods' | 'genres' | 'themes';
 
-const PROFILE_BUCKETS: readonly ProfileBucket[] = ['cats', 'genres', 'moods'];
+const PROFILE_BUCKETS: readonly ProfileBucket[] = ['cats', 'moods', 'genres', 'themes'];
 
 function copyProfile(profile: TasteProfile): TasteProfile {
   return {
     cats: { ...profile.cats },
-    genres: { ...profile.genres },
     moods: { ...profile.moods },
+    genres: { ...profile.genres },
+    themes: { ...(profile.themes ?? {}) },
     communes: { ...profile.communes },
   };
 }
@@ -299,14 +399,15 @@ export function overlayZeroWeights(
   next: TasteProfile,
   prev?: TasteProfile | null,
 ): TasteProfile {
-  const out = copyProfile(next);
-  if (!prev) return out;
+  const out = copyProfile(coerceProfile(next));
+  if (!prev) return recomputeProfilePcts(out);
+  const prevC = coerceProfile(prev);
   for (const bucket of PROFILE_BUCKETS) {
-    for (const [key, weight] of Object.entries(prev[bucket])) {
-      if (weight === 0) out[bucket][key] = 0;
+    for (const [key, entry] of Object.entries(prevC[bucket])) {
+      if (entry.weight === 0) out[bucket][key] = { weight: 0, pct: 0 };
     }
   }
-  return out;
+  return recomputeProfilePcts(out);
 }
 
 /**
@@ -318,25 +419,30 @@ export function overlayZeroWeightsExceptIncomingPositives(
   existing?: TasteProfile | null,
   incoming?: TasteProfile | null,
 ): TasteProfile {
-  const out = copyProfile(next);
-  if (incoming) {
+  const out = copyProfile(coerceProfile(next));
+  const incomingC = incoming ? coerceProfile(incoming) : null;
+  const existingC = existing ? coerceProfile(existing) : null;
+  if (incomingC) {
     for (const bucket of PROFILE_BUCKETS) {
-      for (const [key, weight] of Object.entries(incoming[bucket])) {
-        if (weight > 0) {
-          out[bucket][key] = Math.max(out[bucket][key] || 0, weight);
+      for (const [key, entry] of Object.entries(incomingC[bucket])) {
+        if (entry.weight > 0) {
+          out[bucket][key] = {
+            weight: Math.max(entryWeight(out[bucket][key]), entry.weight),
+            pct: 0,
+          };
         }
       }
     }
   }
-  if (!existing) return out;
+  if (!existingC) return recomputeProfilePcts(out);
   for (const bucket of PROFILE_BUCKETS) {
-    for (const [key, weight] of Object.entries(existing[bucket])) {
-      if (weight !== 0) continue;
-      if ((incoming?.[bucket][key] ?? 0) > 0) continue;
-      out[bucket][key] = 0;
+    for (const [key, entry] of Object.entries(existingC[bucket])) {
+      if (entry.weight !== 0) continue;
+      if (entryWeight(incomingC?.[bucket][key]) > 0) continue;
+      out[bucket][key] = { weight: 0, pct: 0 };
     }
   }
-  return out;
+  return recomputeProfilePcts(out);
 }
 
 /** Keep fused/stored positives that recalc cannot reconstruct (no leftover signals). */
@@ -344,13 +450,17 @@ export function unionPositiveWeights(
   base: TasteProfile,
   extra?: TasteProfile | null,
 ): TasteProfile {
-  const out = copyProfile(base);
+  const out = copyProfile(coerceProfile(base));
   if (!extra) return out;
+  const extraC = coerceProfile(extra);
   for (const bucket of PROFILE_BUCKETS) {
-    for (const [key, weight] of Object.entries(extra[bucket])) {
-      if (!(weight > 0)) continue;
-      if (out[bucket][key] === 0) continue;
-      out[bucket][key] = Math.max(out[bucket][key] || 0, weight);
+    for (const [key, entry] of Object.entries(extraC[bucket])) {
+      if (!(entry.weight > 0)) continue;
+      if (entryWeight(out[bucket][key]) === 0 && out[bucket][key]) continue;
+      out[bucket][key] = {
+        weight: Math.max(entryWeight(out[bucket][key]), entry.weight),
+        pct: 0,
+      };
     }
   }
   return out;
@@ -362,8 +472,11 @@ export function wipeProfileKey(
   key: string,
 ): TasteProfile {
   const k = key.trim();
-  if (!k) return copyProfile(profile);
-  return { ...profile, [bucket]: { ...profile[bucket], [k]: 0 } };
+  const base = coerceProfile(profile);
+  if (!k) return copyProfile(base);
+  const map = { ...base[bucket], [k]: { weight: 0, pct: 0 } };
+  recomputeBucketPcts(map);
+  return { ...base, [bucket]: map };
 }
 
 export function unzeroProfileKey(
@@ -371,9 +484,11 @@ export function unzeroProfileKey(
   bucket: ProfileBucket,
   key: string,
 ): TasteProfile {
-  const map = { ...profile[bucket] };
+  const base = coerceProfile(profile);
+  const map = { ...base[bucket] };
   delete map[key];
-  return { ...profile, [bucket]: map };
+  recomputeBucketPcts(map);
+  return { ...base, [bucket]: map };
 }
 
 export function unzeroKeysTouchedBySignal(
@@ -391,10 +506,15 @@ export function unzeroKeysTouchedBySignal(
 
 export function profileHasZeroWeights(profile?: TasteProfile | null): boolean {
   if (!profile) return false;
+  const p = coerceProfile(profile);
   for (const bucket of PROFILE_BUCKETS) {
-    if (Object.values(profile[bucket]).some((w) => w === 0)) return true;
+    if (Object.values(p[bucket]).some((e) => e.weight === 0)) return true;
   }
   return false;
+}
+
+function hasPositiveEntryWeights(map: Record<string, TasteEntry>): boolean {
+  return Object.values(map).some((e) => entryWeight(e) > 0);
 }
 
 function hasPositiveWeights(map: Record<string, number>): boolean {
@@ -407,7 +527,7 @@ export function applySignalToProfile(profile: TasteProfile, signal: Signal): voi
   if (main) addWeight(profile.cats, main, w);
   for (const g of signal.genres) addWeight(profile.genres, g, w);
   for (const m of signal.moods) addWeight(profile.moods, m, w);
-  if (signal.commune) addWeight(profile.communes, signal.commune.trim(), w);
+  if (signal.commune) addCommuneWeight(profile.communes, signal.commune.trim(), w);
 }
 
 export function concatTastesText(
@@ -454,9 +574,12 @@ export function rebuildTasteState(
 ): AccountTasteState {
   const signalsRecent = signals.slice(-cap);
   const text = (tastesText || '').trim() || undefined;
+  const prev = prevProfile ? coerceProfile(prevProfile) : null;
   return {
     signalsRecent,
-    profile: overlayZeroWeights(recalcProfile(signalsRecent, text), prevProfile),
+    profile: recomputeProfilePcts(
+      overlayZeroWeights(recalcProfile(signalsRecent, text), prev),
+    ),
     tastesText: text,
     tastesSetAt: text ? tastesSetAt : tastesSetAt,
   };
@@ -470,12 +593,7 @@ export function parseTasteState(raw: unknown): AccountTasteState | null {
     : [];
   const profile =
     o.profile && typeof o.profile === 'object'
-      ? {
-          cats: recordNums(o.profile.cats),
-          genres: recordNums(o.profile.genres),
-          moods: recordNums(o.profile.moods),
-          communes: recordNums(o.profile.communes),
-        }
+      ? coerceProfile(o.profile)
       : recalcProfile(signals, o.tastesText);
   return {
     signalsRecent: signals.slice(-ACCOUNT_CAP),
@@ -483,15 +601,6 @@ export function parseTasteState(raw: unknown): AccountTasteState | null {
     tastesText: typeof o.tastesText === 'string' ? o.tastesText : undefined,
     tastesSetAt: typeof o.tastesSetAt === 'string' ? o.tastesSetAt : undefined,
   };
-}
-
-function recordNums(v: unknown): Record<string, number> {
-  if (!v || typeof v !== 'object') return {};
-  const out: Record<string, number> = {};
-  for (const [k, n] of Object.entries(v as Record<string, unknown>)) {
-    if (typeof n === 'number' && Number.isFinite(n)) out[k] = n;
-  }
-  return out;
 }
 
 function isSignal(v: unknown): v is Signal {
@@ -516,12 +625,7 @@ export function parseGuestStore(raw: unknown): GuestSignalsStore {
     events: capped,
     profile:
       o.profile && typeof o.profile === 'object'
-        ? {
-            cats: recordNums(o.profile.cats),
-            genres: recordNums(o.profile.genres),
-            moods: recordNums(o.profile.moods),
-            communes: recordNums(o.profile.communes),
-          }
+        ? coerceProfile(o.profile)
         : recalcProfile(capped),
   };
 }
@@ -705,18 +809,20 @@ export function hasScorableState(state: AccountTasteState | null | undefined): b
   const p = state.profile;
   if ((state.tastesText || '').trim()) return true;
   return (
-    hasPositiveWeights(p.cats) ||
-    hasPositiveWeights(p.genres) ||
-    hasPositiveWeights(p.moods) ||
+    hasPositiveEntryWeights(p.cats) ||
+    hasPositiveEntryWeights(p.moods) ||
+    hasPositiveEntryWeights(p.genres) ||
+    hasPositiveEntryWeights(p.themes) ||
     hasPositiveWeights(p.communes)
   );
 }
 
 export function profileMaxWeight(profile: TasteProfile): number {
   const all = [
-    ...Object.values(profile.cats),
-    ...Object.values(profile.genres),
-    ...Object.values(profile.moods),
+    ...Object.values(profile.cats).map(entryWeight),
+    ...Object.values(profile.moods).map(entryWeight),
+    ...Object.values(profile.genres).map(entryWeight),
+    ...Object.values(profile.themes ?? {}).map(entryWeight),
     ...Object.values(profile.communes),
   ];
   let max = 1;
