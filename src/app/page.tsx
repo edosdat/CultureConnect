@@ -22,6 +22,7 @@ export default async function HomePage() {
         initialYear={2026}
         initialMonth={8}
         initialNouveauFilmIds={boot.nouveauFilmIds ?? []}
+        initialRecoByScope={boot.recoByScope}
       />
     </main>
   );

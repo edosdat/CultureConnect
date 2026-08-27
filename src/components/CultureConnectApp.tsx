@@ -48,6 +48,8 @@ type Props = {
   initialYear: number;
   initialMonth: number;
   initialNouveauFilmIds?: string[];
+  /** Guest 1+1+1 per date chip, computed in loadHomeWindow. */
+  initialRecoByScope?: Partial<Record<TimeScopeId, DayItem[]>>;
 };
 
 function evenementWord(n: number): string {
@@ -58,17 +60,45 @@ function normalizeCommune(c: string | null | undefined): string {
   return (c || '').trim().toLocaleLowerCase('fr');
 }
 
-/** Reco pool keyed by window so a date-chip swap never paints another scope. */
+type RecoKind = 'guest' | 'profile' | 'wiped';
+
+const RECO_BOOT_SCOPES = ['tous', 'soir', 'aujourdhui', 'semaine'] as const;
+
+/** Reco cards are keyed by window so Ce soir never paints boot/tous cards. */
 function recoPoolKey(
   scope: TimeScopeId,
   day: string | null,
   commune: string | null,
-  kind: 'guest' | 'profile',
+  kind: RecoKind,
 ): string {
   return `${scope}|${day ?? ''}|${normalizeCommune(commune)}|${kind}`;
 }
 
-const RECO_PREFETCH_SCOPES = ['tous', 'soir', 'aujourdhui', 'semaine'] as const;
+/** Date only changes reco for a calendar day or today chips. */
+function recoKeyDay(
+  scope: TimeScopeId,
+  selectedDay: string | null,
+  parisIso: string,
+): string | null {
+  if (scope === 'date') return selectedDay;
+  if (scope === 'soir' || scope === 'aujourdhui') return selectedDay ?? parisIso;
+  return null;
+}
+
+function hydrateRecoCache(
+  byScope: Partial<Record<TimeScopeId, DayItem[]>> | undefined,
+  parisIso: string,
+  commune: string | null,
+): Record<string, DayItem[]> {
+  const out: Record<string, DayItem[]> = {};
+  if (!byScope) return out;
+  for (const [scope, items] of Object.entries(byScope)) {
+    if (!items) continue;
+    const day = recoKeyDay(scope as TimeScopeId, null, parisIso);
+    out[recoPoolKey(scope as TimeScopeId, day, commune, 'guest')] = items;
+  }
+  return out;
+}
 
 const AGENDA_PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 250;
@@ -135,6 +165,7 @@ export default function CultureConnectApp({
   initialYear,
   initialMonth,
   initialNouveauFilmIds = [],
+  initialRecoByScope,
 }: Props) {
   const { track, trackItem, tasteState } = useSignals();
   const [year, setYear] = useState(initialYear);
@@ -155,7 +186,7 @@ export default function CultureConnectApp({
 
   const [listItems, setListItems] = useState<DayItem[]>(initialItems);
   const [recoPoolByKey, setRecoPoolByKey] = useState<Record<string, DayItem[]>>(
-    {},
+    () => hydrateRecoCache(initialRecoByScope, initialParisIso, 'Toulouse'),
   );
   const [nouveautesItems, setNouveautesItems] =
     useState<DayItem[]>(initialNouveautes);
@@ -178,6 +209,8 @@ export default function CultureConnectApp({
   const listFetchGen = useRef(0);
   const recoFetchGen = useRef(0);
   const recoWipedRef = useRef(false);
+  const recoPoolByKeyRef = useRef(recoPoolByKey);
+  recoPoolByKeyRef.current = recoPoolByKey;
   const listLoadingRef = useRef(false);
   const detailFetchGen = useRef(0);
 
@@ -316,72 +349,29 @@ export default function CultureConnectApp({
       !profileHasChipWeight(tasteState.profile),
   );
   recoWipedRef.current = recoWiped;
-  const recoKind: 'guest' | 'profile' =
-    !recoWiped && tasteState && profileHasChipWeight(tasteState.profile)
+  const recoKind: RecoKind = recoWiped
+    ? 'wiped'
+    : tasteState && profileHasChipWeight(tasteState.profile)
       ? 'profile'
       : 'guest';
+  const currentRecoDay = recoKeyDay(timeScope, selectedDay, initialParisIso);
   const currentRecoKey = recoPoolKey(
     timeScope,
-    selectedDay,
+    currentRecoDay,
     selectedCommune,
     recoKind,
   );
 
-  // Guest reco for date chips (same commune). Client POSTs after mount — not TTFB.
-  useEffect(() => {
-    let cancelled = false;
-    const commune = selectedCommune;
-    const [isoY, isoM] = initialParisIso.split('-').map(Number);
-    const chipYear = isoY || year;
-    const chipMonth = isoM || month;
-    const jobs = RECO_PREFETCH_SCOPES.map((scope) => {
-      const chip = scope === 'soir' || scope === 'aujourdhui';
-      return {
-        scope,
-        date: chip ? initialParisIso : null,
-        year: chip ? chipYear : year,
-        month: chip ? chipMonth : month,
-      };
-    });
-    void Promise.all(
-      jobs.map(async (job) => {
-        const key = recoPoolKey(job.scope, job.date, commune, 'guest');
-        try {
-          const params = new URLSearchParams();
-          params.set('reco', '1');
-          const res = await fetch(`/api/agenda?${params.toString()}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              scope: job.scope,
-              date: job.date,
-              commune,
-              year: job.year,
-              month: job.month,
-            }),
-          });
-          if (!res.ok) return;
-          const data = (await res.json()) as AgendaListResponse;
-          if (cancelled || recoWipedRef.current) return;
-          setRecoPoolByKey((prev) => {
-            if (prev[key] !== undefined) return prev;
-            return { ...prev, [key]: data.items ?? [] };
-          });
-        } catch {
-          /* leave key empty */
-        }
-      }),
-    );
-    return () => {
-      cancelled = true;
-    };
-    // boot only — guest pools for Ce soir / Aujourd'hui / uncheck / semaine
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   useEffect(() => {
     if (recoWiped) {
       setRecoPoolByKey({});
+      return;
+    }
+    // Guest/demo: boot cache is already the filtered pool. No extra document fetch.
+    if (
+      recoKind === 'guest' &&
+      recoPoolByKeyRef.current[currentRecoKey] !== undefined
+    ) {
       return;
     }
     const key = currentRecoKey;
@@ -398,7 +388,7 @@ export default function CultureConnectApp({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             scope: timeScope,
-            date: selectedDay,
+            date: currentRecoDay,
             commune: selectedCommune,
             year,
             month,
@@ -432,11 +422,66 @@ export default function CultureConnectApp({
     month,
     timeScope,
     selectedDay,
+    currentRecoDay,
     tasteState,
     recoWiped,
     recoKind,
     currentRecoKey,
   ]);
+
+  // After mount, a taste profile refetches boot scopes (same POST reco=1). Guest stays on boot.
+  useEffect(() => {
+    if (recoKind !== 'profile') return;
+    let cancelled = false;
+    const commune = selectedCommune;
+    const profile = tasteState?.profile;
+    if (!profile) return;
+    const jobs = RECO_BOOT_SCOPES.map((scope) => {
+      const day = recoKeyDay(scope, null, initialParisIso);
+      return {
+        scope,
+        day,
+        key: recoPoolKey(scope, day, commune, 'profile'),
+      };
+    }).filter((job) => recoPoolByKeyRef.current[job.key] === undefined);
+    if (jobs.length === 0) return;
+    void Promise.all(
+      jobs.map(async (job) => {
+        try {
+          const params = new URLSearchParams();
+          params.set('reco', '1');
+          const res = await fetch(`/api/agenda?${params.toString()}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              scope: job.scope,
+              date: job.day,
+              commune,
+              year,
+              month,
+              profile: {
+                moods: profile.moods,
+                genres: profile.genres,
+                themes: profile.themes,
+              },
+            }),
+          });
+          if (!res.ok) return;
+          const data = (await res.json()) as AgendaListResponse;
+          if (cancelled || recoWipedRef.current) return;
+          setRecoPoolByKey((prev) => ({
+            ...prev,
+            [job.key]: data.items ?? [],
+          }));
+        } catch {
+          /* leave key empty */
+        }
+      }),
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [recoKind, selectedCommune, tasteState, year, month, initialParisIso]);
 
 
   useEffect(() => {
@@ -511,11 +556,31 @@ export default function CultureConnectApp({
     });
   }, [availableGenreSlugs, selectedCategories, genresLegend]);
 
-  /** Server picked 1+1+1 for THIS window only. Missing cache → empty (no stale). */
+  /** Pour toi for scope S is only the payload fetched for S. Missing → empty. */
   const pourToiItems = useMemo(() => {
     if (recoWiped) return [];
-    return recoPoolByKey[currentRecoKey] ?? [];
-  }, [recoPoolByKey, currentRecoKey, recoWiped]);
+    const exact = recoPoolByKey[currentRecoKey];
+    if (exact !== undefined) return exact;
+    // Same-scope guest fallback while a profile POST is in flight (never another scope).
+    if (recoKind === 'profile') {
+      const guestKey = recoPoolKey(
+        timeScope,
+        currentRecoDay,
+        selectedCommune,
+        'guest',
+      );
+      return recoPoolByKey[guestKey] ?? [];
+    }
+    return [];
+  }, [
+    recoPoolByKey,
+    currentRecoKey,
+    recoWiped,
+    recoKind,
+    timeScope,
+    currentRecoDay,
+    selectedCommune,
+  ]);
 
   const pourToiKeys = useMemo(
     () => new Set(pourToiItems.map((item) => item.key)),
@@ -995,6 +1060,7 @@ export default function CultureConnectApp({
               onSelectVenue={handleSelectVenue}
               empty={null}
               nouveauFilmIds={nouveauFilmIdSet}
+              fixedSlots
             />
           </section>
         )}

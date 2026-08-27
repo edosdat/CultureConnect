@@ -885,9 +885,38 @@ export function queryAgenda(
   };
 }
 
-function computeHomeWindow(now = new Date()): AgendaListResponse {
-  const scope = bootTimeScope();
+const RECO_BOOT_SCOPES = ['tous', 'soir', 'aujourdhui', 'semaine'] as const;
+
+export type RecoBootScope = (typeof RECO_BOOT_SCOPES)[number];
+
+export type RecoByScope = Record<RecoBootScope, DayItem[]>;
+
+export type HomeWindow = AgendaListResponse & {
+  recoByScope: RecoByScope;
+};
+
+function guestRecoForScope(scope: RecoBootScope, now: Date): DayItem[] {
   return queryAgenda(
+    {
+      scope,
+      commune: 'Toulouse',
+      q: '',
+      cats: [],
+      genres: [],
+      lieuId: null,
+      selectedDate: null,
+      year: 2026,
+      month: 8,
+      recoUpcoming: true,
+      recoProfile: null,
+    },
+    now,
+  ).items;
+}
+
+function computeHomeWindow(now = new Date()): HomeWindow {
+  const scope = bootTimeScope();
+  const boot = queryAgenda(
     {
       scope,
       commune: 'Toulouse',
@@ -902,12 +931,16 @@ function computeHomeWindow(now = new Date()): AgendaListResponse {
     },
     now,
   );
+  const recoByScope = Object.fromEntries(
+    RECO_BOOT_SCOPES.map((s) => [s, guestRecoForScope(s, now)]),
+  ) as RecoByScope;
+  return { ...boot, recoByScope };
 }
 
-/** Home boot: cached 5 min, keyed by Paris calendar day. */
+/** Home boot: cached 5 min, keyed by Paris calendar day. Guest reco per scope rides along. */
 export async function loadHomeWindow(
   now = new Date(),
-): Promise<AgendaListResponse> {
+): Promise<HomeWindow> {
   const day = parisParts(now).iso;
   return unstable_cache(
     async () => computeHomeWindow(new Date()),
