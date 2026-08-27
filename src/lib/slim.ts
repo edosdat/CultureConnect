@@ -240,6 +240,8 @@ export type AgendaListResponse = {
   weekday: number;
   genresLegend: GenreLegend[];
   nouveauFilmIds?: string[];
+  date_from?: string;
+  date_to?: string;
 };
 
 export type AgendaDetailResponse = {

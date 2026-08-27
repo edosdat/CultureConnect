@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import {
   parseCsvParam,
+  parseRecoProfile,
   parseTimeScope,
   queryAgenda,
   queryAgendaDetail,
@@ -67,7 +68,52 @@ export async function GET(req: Request) {
     date_from,
     date_to,
     recoUpcoming,
+    recoProfile: null,
   });
 
   return NextResponse.json(result);
 }
+
+export async function POST(req: Request) {
+  const url = new URL(req.url);
+  const recoUpcoming = url.searchParams.get('reco') === '1';
+  let body: {
+    scope?: unknown;
+    commune?: unknown;
+    date?: unknown;
+    year?: unknown;
+    month?: unknown;
+    profile?: unknown;
+  } = {};
+  try {
+    body = (await req.json()) as typeof body;
+  } catch {
+    body = {};
+  }
+  const yearRaw = Number(body.year ?? url.searchParams.get('year') ?? '2026');
+  const monthRaw = Number(body.month ?? url.searchParams.get('month') ?? '8');
+  const year = Number.isFinite(yearRaw) && yearRaw >= 2000 ? yearRaw : 2026;
+  const month =
+    Number.isFinite(monthRaw) && monthRaw >= 1 && monthRaw <= 12 ? monthRaw : 8;
+  const result = queryAgenda({
+    scope: parseTimeScope(
+      typeof body.scope === 'string' ? body.scope : url.searchParams.get('scope'),
+    ),
+    commune:
+      typeof body.commune === 'string'
+        ? body.commune
+        : url.searchParams.get('commune'),
+    q: '',
+    cats: [],
+    genres: [],
+    lieuId: null,
+    selectedDate:
+      typeof body.date === 'string' ? body.date : url.searchParams.get('date'),
+    year,
+    month,
+    recoUpcoming,
+    recoProfile: parseRecoProfile(body.profile),
+  });
+  return NextResponse.json(result);
+}
+

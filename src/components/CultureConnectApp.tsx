@@ -1,10 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSession } from 'next-auth/react';
 import type { DayItem, GenreLegend, Lieu } from '@/lib/types';
 import type { AgendaDetailResponse, AgendaListResponse } from '@/lib/slim';
-import { profileHasChipWeight, recommendForProfile, recommendForTastes, slotFormOfItem } from '@/lib/reco';
+import { profileHasChipWeight } from '@/lib/reco';
 import { extractMoods, profileHasZeroWeights } from '@/lib/signals';
 import { useSignals } from './SignalsProvider';
 import { densifiedCardCount } from '@/lib/densify';
@@ -125,10 +124,7 @@ export default function CultureConnectApp({
   initialMonth,
   initialNouveauFilmIds = [],
 }: Props) {
-  const { data: session } = useSession();
   const { track, trackItem, tasteState } = useSignals();
-  const tastes =
-    tasteState?.tastesText?.trim() || session?.user?.tastes?.trim() || '';
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
   const [timeScope, setTimeScope] = useState<TimeScopeId>(initialScope);
@@ -298,17 +294,32 @@ export default function CultureConnectApp({
   }
 
   useEffect(() => {
+    if (!tasteState || !profileHasChipWeight(tasteState.profile)) {
+      setRecoPoolItems([]);
+      return;
+    }
     let cancelled = false;
     const params = new URLSearchParams();
     params.set('reco', '1');
-    params.set('scope', timeScope);
-    if (selectedDay) params.set('date', selectedDay);
-    if (selectedCommune) params.set('commune', selectedCommune);
-    params.set('year', String(year));
-    params.set('month', String(month));
+    const profile = tasteState.profile;
     void (async () => {
       try {
-        const res = await fetch(`/api/agenda?${params.toString()}`);
+        const res = await fetch(`/api/agenda?${params.toString()}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scope: timeScope,
+            date: selectedDay,
+            commune: selectedCommune,
+            year,
+            month,
+            profile: {
+              moods: profile.moods,
+              genres: profile.genres,
+              themes: profile.themes,
+            },
+          }),
+        });
         if (!res.ok) return;
         const data = (await res.json()) as AgendaListResponse;
         if (cancelled) return;
@@ -320,7 +331,7 @@ export default function CultureConnectApp({
     return () => {
       cancelled = true;
     };
-  }, [selectedCommune, year, month, timeScope, selectedDay]);
+  }, [selectedCommune, year, month, timeScope, selectedDay, tasteState]);
 
 
   useEffect(() => {
@@ -395,27 +406,11 @@ export default function CultureConnectApp({
     });
   }, [availableGenreSlugs, selectedCategories, genresLegend]);
 
-  /** Pour toi = 1+1+1 from reco pool (date window, never cat chips). */
+  /** Server already picked 1+1+1 for the date window. */
   const pourToiItems = useMemo(() => {
-    if (tasteState) {
-      if (!profileHasChipWeight(tasteState.profile)) return [];
-      return recommendForProfile(recoPoolItems, tasteState, 3).map((s) => s.item);
-    }
-    if (tastes) {
-      const scored = recommendForTastes(recoPoolItems, tastes, 12);
-      const best = new Map();
-      for (const entry of scored) {
-        const slot = slotFormOfItem(entry.item);
-        if (!slot || entry.score <= 0) continue;
-        const prev = best.get(slot);
-        if (!prev || entry.score > prev.score) best.set(slot, entry);
-      }
-      return ['cine', 'theatre', 'concert']
-        .map((slot) => best.get(slot)?.item)
-        .filter(Boolean);
-    }
-    return [];
-  }, [recoPoolItems, tastes, tasteState]);
+    if (!tasteState || !profileHasChipWeight(tasteState.profile)) return [];
+    return recoPoolItems;
+  }, [recoPoolItems, tasteState]);
 
   const pourToiKeys = useMemo(
     () => new Set(pourToiItems.map((item) => item.key)),

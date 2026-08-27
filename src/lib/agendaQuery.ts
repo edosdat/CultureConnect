@@ -40,6 +40,8 @@ import {
   upcomingRange,
   type TimeScopeId,
 } from './timeScope';
+import { profileHasChipWeight, recommendForProfile } from './reco';
+import type { TasteEntry, TasteProfile } from './signals';
 
 export const AGENDA_PAGE_MAX = 50;
 
@@ -64,11 +66,59 @@ export type AgendaQueryInput = {
   entities?: string[];
   date_from?: string | null;
   date_to?: string | null;
-  /** Top 3 pool: date scope window, never cat chips. tous = 90 days. */
+  /** Top 3: date scope window, never cat chips. tous = 90 days. */
   recoUpcoming?: boolean;
+  /** Moods/genres/themes only. Never email / signals / cats. */
+  recoProfile?: TasteProfile | null;
 };
 
 export type { AgendaListResponse, AgendaDetailResponse } from './slim';
+
+function parseTasteBucket(raw: unknown): Record<string, TasteEntry> {
+  if (!raw || typeof raw !== 'object') return {};
+  const out: Record<string, TasteEntry> = {};
+  for (const [key, val] of Object.entries(raw as Record<string, unknown>)) {
+    if (!key || !val || typeof val !== 'object') continue;
+    const e = val as { weight?: unknown; pct?: unknown };
+    const weight = Number(e.weight);
+    const pct = Number(e.pct);
+    if (!Number.isFinite(weight) && !Number.isFinite(pct)) continue;
+    out[key] = {
+      weight: Number.isFinite(weight) ? weight : 0,
+      pct: Number.isFinite(pct) ? pct : 0,
+    };
+  }
+  return out;
+}
+
+/** Compact profile for reco POST: moods / genres / themes only. */
+export function parseRecoProfile(raw: unknown): TasteProfile | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as { moods?: unknown; genres?: unknown; themes?: unknown };
+  const profile: TasteProfile = {
+    cats: {},
+    moods: parseTasteBucket(o.moods),
+    genres: parseTasteBucket(o.genres),
+    themes: parseTasteBucket(o.themes),
+    communes: {},
+  };
+  return profileHasChipWeight(profile) ? profile : null;
+}
+
+function emptyRecoExtras(): Pick<
+  AgendaListResponse,
+  'nouveautes' | 'communes' | 'venues' | 'genreSlugs' | 'genresLegend' | 'nouveauFilmIds'
+> {
+  return {
+    nouveautes: [],
+    communes: [],
+    venues: [],
+    genreSlugs: [],
+    genresLegend: [],
+    nouveauFilmIds: [],
+  };
+}
+
 
 function normalizeCommune(c: string | null | undefined): string {
   return (c || '').trim().toLocaleLowerCase('fr');
@@ -687,23 +737,41 @@ export function queryAgenda(
   const total = items.length;
   const densifiedTotal = densifiedCardCount(items);
 
+  if (input.recoUpcoming) {
+    const profile = input.recoProfile ?? null;
+    const picked =
+      profile && profileHasChipWeight(profile)
+        ? recommendForProfile(items, { signalsRecent: [], profile }, 3).map(
+            (s) => s.item,
+          )
+        : [];
+    return {
+      scope: input.scope,
+      commune: input.commune,
+      items: picked.map(slimDayItem),
+      total: picked.length,
+      densifiedTotal: densifiedCardCount(picked),
+      ...emptyRecoExtras(),
+      parisIso: paris.iso,
+      weekday: paris.weekday,
+      date_from: rangeDays[0],
+      date_to: rangeDays[rangeDays.length - 1],
+    };
+  }
+
   const shortWindow =
-    Boolean(input.recoUpcoming) ||
-    (!searching &&
-      (input.scope === 'aujourdhui' ||
-        input.scope === 'soir' ||
-        (input.scope === 'date' && Boolean(input.selectedDate)) ||
-        input.scope === 'weekend' ||
-        input.scope === 'semaine'));
+    !searching &&
+    (input.scope === 'aujourdhui' ||
+      input.scope === 'soir' ||
+      (input.scope === 'date' && Boolean(input.selectedDate)) ||
+      input.scope === 'weekend' ||
+      input.scope === 'semaine');
   const offset = Math.max(0, input.offset ?? 0);
   const requested = input.limit ?? (shortWindow ? items.length : AGENDA_PAGE_MAX);
   const cap = shortWindow
     ? Math.min(Math.max(requested, 0), 800)
     : Math.min(Math.max(requested, 0), AGENDA_PAGE_MAX);
-  const recoItems = input.recoUpcoming ? balanceRecoPool(items, cap) : items;
-  const page = recoItems
-    .slice(offset, offset + cap)
-    .map(input.recoUpcoming ? withRecoTags : slimDayItem);
+  const page = items.slice(offset, offset + cap).map(slimDayItem);
 
   let counts: Record<string, number> | undefined;
   if (input.includeCounts) {
