@@ -162,6 +162,7 @@ export default function CultureConnectApp({
 
   const skipListFetch = useRef(true);
   const listFetchGen = useRef(0);
+  const listLoadingRef = useRef(false);
   const detailFetchGen = useRef(0);
 
   const isPhraseScope = true;
@@ -508,6 +509,8 @@ export default function CultureConnectApp({
   const handleLoadMore = useCallback(() => {
     setVisibleCount((c) => c + AGENDA_PAGE_SIZE);
     if (listItems.length >= total) return;
+    if (listLoadingRef.current) return;
+    listLoadingRef.current = true;
     const gen = ++listFetchGen.current;
     const params = buildAgendaParams({
       scope: timeScope,
@@ -530,7 +533,10 @@ export default function CultureConnectApp({
         if (!data || gen !== listFetchGen.current) return;
         applyList(data, true);
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => {
+        if (gen === listFetchGen.current) listLoadingRef.current = false;
+      });
   }, [
     listItems.length,
     total,

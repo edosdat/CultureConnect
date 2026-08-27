@@ -121,20 +121,11 @@ export default function SeanceGrid({
       </ul>
 
       {hasMore ? (
-        <div className="flex flex-col items-center gap-3 pt-1">
-          <div
-            ref={sentinelRef}
-            className="h-px w-full"
-            aria-hidden
-          />
-          <button
-            type="button"
-            onClick={() => onLoadMore?.()}
-            className="rounded-full border border-culture-line bg-culture-surface px-5 py-2.5 text-sm font-medium text-culture-ink shadow-sm hover:border-culture-terracotta/50"
-          >
-            Voir plus
-          </button>
-        </div>
+        <div
+          ref={sentinelRef}
+          className="h-10 w-full"
+          aria-hidden
+        />
       ) : null}
     </div>
   );
