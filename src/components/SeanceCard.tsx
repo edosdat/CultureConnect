@@ -11,7 +11,7 @@ import {
   labelCategorie,
 } from '@/lib/labels';
 import { MAIN_CATEGORY_LABELS, mainFromCategorie, mainFromGenreSlug } from '@/lib/categories';
-import { catBg, catCssVar, catGradient } from '@/lib/categoryColor';
+import { catCssVar, catGradient } from '@/lib/categoryColor';
 
 type Props = {
   item: DayItem;
@@ -57,12 +57,15 @@ function categoryLabelFor(item: DayItem): string {
 }
 
 function CategoryPill({ label }: { label: string }) {
+  const cssVar = catCssVar(label);
   return (
     <span
-      className={
-        'inline-flex w-fit rounded-full px-2.5 py-0.5 text-[11px] font-medium text-white shadow-sm ' +
-        catBg(label)
-      }
+      className="inline-flex w-fit rounded-full border px-2.5 py-0.5 text-[11px] font-semibold"
+      style={{
+        backgroundColor: `color-mix(in srgb, var(${cssVar}) 18%, #fffcf8)`,
+        borderColor: `color-mix(in srgb, var(${cssVar}) 42%, #e7e0d8)`,
+        color: '#1c1917',
+      }}
     >
       {label}
     </span>
