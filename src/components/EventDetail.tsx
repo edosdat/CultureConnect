@@ -18,6 +18,12 @@ import {
   labelCategorie,
   labelTypeItem,
 } from '@/lib/labels';
+import {
+  hideSeancesBeforeToday,
+  isNotBeforeToday,
+  parisParts,
+  seanceDateIso,
+} from '@/lib/timeScope';
 
 type Props = {
   item: DayItem | null;
@@ -154,8 +160,10 @@ function groupSeancesByVenue(items: DayItem[]): VenueGroup[] {
   const map = new Map<string, VenueGroup>();
   const seancesByKey = new Map<string, DayItem[]>();
   const order: string[] = [];
+  const todayIso = parisParts().iso;
   for (const rel of items) {
     if (rel.kind !== 'programme') continue;
+    if (!isNotBeforeToday(seanceDateIso(rel), todayIso)) continue;
     const label = formatLieuAffiche(rel.lieu) || rel.lieu?.commune || 'Lieu';
     const lieuId = rel.lieu?.lieu_id || rel.programme.lieu_id || null;
     const commune = rel.lieu?.commune || '';
@@ -390,7 +398,11 @@ export default function EventDetail({
       formatHeure(p.heure_debut) +
       (p.heure_fin ? ` – ${formatHeure(p.heure_fin)}` : '');
     const categorie = ev?.categorie ?? '';
-    const hasFilmSeances = relatedItems.length > 0;
+    const upcomingRelated = hideSeancesBeforeToday(
+      relatedItems,
+      parisParts().iso,
+    );
+    const hasFilmSeances = upcomingRelated.length > 0;
 
     return (
       <div
@@ -490,7 +502,7 @@ export default function EventDetail({
                   Séances
                 </h3>
                 <FilmSeancesList
-                  items={relatedItems}
+                  items={upcomingRelated}
                   onSelectVenue={
                     onSelectVenue
                       ? (lieuId) => {

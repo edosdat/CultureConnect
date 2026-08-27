@@ -146,6 +146,29 @@ export function daysInMonth(year: number, month: number): string[] {
   return out;
 }
 
+/** Seance calendar date (programme.date, else dayIso). */
+export function seanceDateIso(item: {
+  dayIso?: string;
+  programme?: { date?: string };
+}): string {
+  const fromProg = (item.programme?.date || '').trim();
+  if (fromProg) return fromProg;
+  return (item.dayIso || '').trim();
+}
+
+/** True when date >= todayIso (Paris YYYY-MM-DD). Missing date is hidden. */
+export function isNotBeforeToday(dateIso: string, todayIso: string): boolean {
+  const d = (dateIso || '').trim();
+  return Boolean(d) && d >= todayIso;
+}
+
+/** Display filter: drop seances whose date is strictly before today (Paris). */
+export function hideSeancesBeforeToday<
+  T extends { dayIso?: string; programme?: { date?: string } },
+>(items: T[], todayIso: string): T[] {
+  return items.filter((item) => isNotBeforeToday(seanceDateIso(item), todayIso));
+}
+
 export function resolveScopeRange(
   scope: TimeScopeId,
   selectedDateIso: string | null,
@@ -173,7 +196,12 @@ export function resolveScopeRange(
     };
   }
   if (calendarMonth) {
-    const days = daysInMonth(calendarMonth.year, calendarMonth.month);
+    const days = daysInMonth(calendarMonth.year, calendarMonth.month).filter(
+      (d) => d >= iso,
+    );
+    if (days.length === 0) {
+      return { startIso: iso, endIso: iso, days: [] };
+    }
     return {
       startIso: days[0]!,
       endIso: days[days.length - 1]!,

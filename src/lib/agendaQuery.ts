@@ -34,6 +34,7 @@ import {
 } from './slim';
 import {
   defaultTimeScope,
+  hideSeancesBeforeToday,
   parisParts,
   resolveScopeRange,
   upcomingRange,
@@ -433,6 +434,12 @@ function listForRange(
     };
   }
   const lieuIds = resolveLieuIds(input.commune, input.lieuId, searching);
+  if (!searching) {
+    range = {
+      ...range,
+      days: range.days.filter((d) => d >= paris.iso),
+    };
+  }
 
   let items: DayItem[];
   if (searching) {
@@ -505,6 +512,7 @@ function listForRange(
     );
   }
 
+  items = hideSeancesBeforeToday(items, paris.iso);
   return { items, searching, rangeDays: range.days };
 }
 
@@ -598,9 +606,10 @@ export function queryAgenda(
     (input.scope === 'aujourdhui' ||
       input.scope === 'soir' ||
       input.scope === 'semaine');
-  const nouveautes = showNouveautes
-    ? nouveautesCine(data.programmeWithContext, now)
-    : [];
+  const nouveautes = hideSeancesBeforeToday(
+    showNouveautes ? nouveautesCine(data.programmeWithContext, now) : [],
+    paris.iso,
+  );
 
   const total = items.length;
   const densifiedTotal = densifiedCardCount(items);
@@ -764,6 +773,10 @@ export function queryAgendaDetail(
           );
         })
         .map(relatedSeanceDayItem);
+      relatedItems = hideSeancesBeforeToday(
+        relatedItems,
+        parisParts().iso,
+      );
     }
   }
 
