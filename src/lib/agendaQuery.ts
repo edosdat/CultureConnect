@@ -834,13 +834,12 @@ export function queryAgenda(
   if (input.recoUpcoming) {
     // aujourdhui/semaine: skip started séances. tous must not — that glued
     // boot top 3 onto today's soonest trio.
-    const windowPool =
-      input.scope === 'aujourdhui' || input.scope === 'semaine'
-        ? items.filter((item) => isStillUpcomingSeance(item, now))
-        : items;
+    // Slots use séance day+time ≥ now Paris, never event.date_debut (saison 02/07).
+    const upcoming = items.filter((item) => isStillUpcomingSeance(item, now));
+    const windowPool = upcoming;
     const pool =
       input.scope === 'tous'
-        ? items.filter((item) => (item.dayIso || '').trim() > paris.iso)
+        ? upcoming.filter((item) => (item.dayIso || '').trim() > paris.iso)
         : windowPool;
     const profile = input.recoProfile ?? null;
     const preferred =
@@ -856,9 +855,7 @@ export function queryAgenda(
         ? mergeSlotPicks(fromPool, pickSoonestPerSlot(windowPool))
         : fromPool;
     // Reco never surfaces a seance before today Paris (26/08 and earlier).
-    const picked = pickedRaw.filter(
-      (item) => (item.dayIso || '').trim() >= paris.iso,
-    );
+    const picked = pickedRaw.filter((item) => isStillUpcomingSeance(item, now));
     return {
       scope: input.scope,
       commune: input.commune,

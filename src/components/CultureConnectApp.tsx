@@ -319,6 +319,7 @@ export default function CultureConnectApp({
   const tasteStateRef = useRef(tasteState);
   tasteStateRef.current = tasteState;
   const recoKindRef = useRef<RecoKind>('guest');
+  const recoPostedWithChipsRef = useRef<Set<string>>(new Set());
   const listLoadingRef = useRef(false);
   const detailFetchGen = useRef(0);
   const [listSlowWhere, setListSlowWhere] = useState<
@@ -489,11 +490,12 @@ export default function CultureConnectApp({
       !profileHasChipWeight(tasteState.profile),
   );
   recoWipedRef.current = recoWiped;
+  // Session known → profile immediately (never pending→guest). Loading → pending (skeleton / perso cache).
   const recoKind: RecoKind = recoWiped
     ? 'wiped'
-    : tasteState && profileHasChipWeight(tasteState.profile)
+    : sessionStatus === 'authenticated'
       ? 'profile'
-      : sessionStatus === 'authenticated' || sessionStatus === 'loading'
+      : sessionStatus === 'loading'
         ? 'pending'
         : 'guest';
   recoKindRef.current = recoKind;
@@ -504,9 +506,16 @@ export default function CultureConnectApp({
     selectedCommune,
     recoKind,
   );
+  const profileRecoKey = recoPoolKey(
+    timeScope,
+    currentRecoDay,
+    selectedCommune,
+    'profile',
+  );
+  const visibleRecoKey = recoKind === 'guest' ? currentRecoKey : profileRecoKey;
   const recoReady =
     !recoWiped &&
-    Object.prototype.hasOwnProperty.call(recoPoolByKey, currentRecoKey);
+    Object.prototype.hasOwnProperty.call(recoPoolByKey, visibleRecoKey);
 
   useEffect(() => {
     if (recoWiped) {
@@ -515,8 +524,29 @@ export default function CultureConnectApp({
       return;
     }
     if (recoKind === 'pending') return;
-    // Guest boot cache / profile prefetch / session cache: never POST a filled key.
-    if (recoPoolByKeyRef.current[currentRecoKey] !== undefined) {
+    const profile = tasteStateRef.current?.profile;
+    const sendProfile =
+      recoKind === 'profile' && Boolean(profile && profileHasChipWeight(profile));
+    // Guest: skip if this guest key is filled. Profile: skip only a filled |profile
+    // that already came from a perso POST (never keep guest / anonymous fill).
+    const existing = recoPoolByKeyRef.current[currentRecoKey];
+    if (recoKind === 'guest' && existing !== undefined) return;
+    if (
+      recoKind === 'profile' &&
+      existing !== undefined &&
+      currentRecoKey.endsWith('|profile') &&
+      sendProfile &&
+      recoPostedWithChipsRef.current.has(currentRecoKey)
+    ) {
+      return;
+    }
+    if (
+      recoKind === 'profile' &&
+      existing !== undefined &&
+      !sendProfile &&
+      currentRecoKey.endsWith('|profile')
+    ) {
+      // Personal cache already on screen. Wait for chips to overwrite.
       return;
     }
     const key = currentRecoKey;
@@ -524,8 +554,6 @@ export default function CultureConnectApp({
     const gen = ++recoFetchGen.current;
     const params = new URLSearchParams();
     params.set('reco', '1');
-    const profile = tasteStateRef.current?.profile;
-    const sendProfile = recoKind === 'profile';
     void (async () => {
       try {
         const res = await fetch(`/api/agenda?${params.toString()}`, {
@@ -556,6 +584,7 @@ export default function CultureConnectApp({
             [key]: data.items ?? [],
           };
           if (key.endsWith('|profile') && recoKindRef.current === 'profile') {
+            if (sendProfile) recoPostedWithChipsRef.current.add(key);
             writeProfileRecoCache(initialParisIso, selectedCommune, next);
           }
           return next;
@@ -578,6 +607,7 @@ export default function CultureConnectApp({
     recoKind,
     currentRecoKey,
     initialParisIso,
+    tasteState,
   ]);
 
   // After mount, a taste profile prefetches boot scopes (same POST reco=1). Guest stays on boot.
@@ -751,11 +781,11 @@ export default function CultureConnectApp({
     });
   }, [availableGenreSlugs, selectedCategories, genresLegend]);
 
-  /** Pour toi: exact currentRecoKey only. Missing profile/pending → [] (skeleton). */
+  /** Signed-in / loading: |profile or [] (skeleton). Never the guest trio. */
   const pourToiItems = useMemo(() => {
     if (recoWiped) return [];
-    return recoPoolByKey[currentRecoKey] ?? [];
-  }, [recoPoolByKey, currentRecoKey, recoWiped]);
+    return recoPoolByKey[visibleRecoKey] ?? [];
+  }, [recoPoolByKey, visibleRecoKey, recoWiped]);
 
   const pourToiKeys = useMemo(
     () => new Set(pourToiItems.map((item) => item.key)),
