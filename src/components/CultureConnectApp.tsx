@@ -25,6 +25,7 @@ import SeanceGrid from './SeanceGrid';
 import Top3Skeleton from './Top3Skeleton';
 import TimeScopeBar from './TimeScopeBar';
 import SearchOmnibox from './SearchOmnibox';
+import ListWaitDots from './ListWaitDots';
 import EventDetail from './EventDetail';
 import LoginNudge from './LoginNudge';
 import {
@@ -320,6 +321,28 @@ export default function CultureConnectApp({
   const recoKindRef = useRef<RecoKind>('guest');
   const listLoadingRef = useRef(false);
   const detailFetchGen = useRef(0);
+  const [listFetchSlow, setListFetchSlow] = useState(false);
+  const listSlowTimerRef = useRef<number | null>(null);
+
+  function startListSlowWatch(gen: number) {
+    if (gen !== listFetchGen.current) return;
+    if (listSlowTimerRef.current != null) {
+      window.clearTimeout(listSlowTimerRef.current);
+    }
+    setListFetchSlow(false);
+    listSlowTimerRef.current = window.setTimeout(() => {
+      if (gen === listFetchGen.current) setListFetchSlow(true);
+    }, 1000);
+  }
+
+  function stopListSlowWatch(gen: number) {
+    if (gen !== listFetchGen.current) return;
+    if (listSlowTimerRef.current != null) {
+      window.clearTimeout(listSlowTimerRef.current);
+      listSlowTimerRef.current = null;
+    }
+    setListFetchSlow(false);
+  }
 
   const isPhraseScope = true;
 
@@ -658,6 +681,7 @@ export default function CultureConnectApp({
     const delay = isPhraseScope && query.trim() ? PHRASE_FETCH_MS : 0;
     let cancelled = false;
     const id = window.setTimeout(() => {
+      if (cancelled || gen !== listFetchGen.current) return;
       const params = buildAgendaParams({
         scope: timeScope,
         commune: selectedCommune,
@@ -673,6 +697,7 @@ export default function CultureConnectApp({
         phraseMode: isPhraseScope && query.trim().length > 0,
         phraseTags,
       });
+      startListSlowWatch(gen);
       void (async () => {
         try {
           const res = await fetch(`/api/agenda?${params.toString()}`);
@@ -682,12 +707,15 @@ export default function CultureConnectApp({
           applyList(data);
         } catch {
           /* keep previous window */
+        } finally {
+          stopListSlowWatch(gen);
         }
       })();
     }, delay);
     return () => {
       cancelled = true;
       window.clearTimeout(id);
+      stopListSlowWatch(gen);
     };
   }, [
     timeScope,
@@ -811,6 +839,7 @@ export default function CultureConnectApp({
     if (listLoadingRef.current) return;
     listLoadingRef.current = true;
     const gen = ++listFetchGen.current;
+    startListSlowWatch(gen);
     const params = buildAgendaParams({
       scope: timeScope,
       commune: selectedCommune,
@@ -835,6 +864,7 @@ export default function CultureConnectApp({
       .catch(() => undefined)
       .finally(() => {
         if (gen === listFetchGen.current) listLoadingRef.current = false;
+        stopListSlowWatch(gen);
       });
   }, [
     listItems.length,
@@ -1202,6 +1232,15 @@ export default function CultureConnectApp({
             {showMonthPanel ? '' : ` (${monthLabel})`}
           </button>
         </div>
+
+        {listFetchSlow ? (
+          <div
+            className="pointer-events-none flex justify-center"
+            style={{ marginTop: 8 }}
+          >
+            <ListWaitDots />
+          </div>
+        ) : null}
 
         <MonthCalendarDrawer
           open={showMonthPanel}
