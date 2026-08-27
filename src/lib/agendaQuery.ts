@@ -2,7 +2,7 @@ import 'server-only';
 
 import type { Artiste, DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 import { loadCultureData } from './data';
-import { mainFromCategorie } from './categories';
+import { catsAllowCinemaPack, mainFromCategorie } from './categories';
 import { densifiedCardCount } from './densify';
 import {
   countItemsByDay,
@@ -603,6 +603,7 @@ export function queryAgenda(
   const showNouveautes =
     !searching &&
     !hasPhraseFilters(input) &&
+    catsAllowCinemaPack(input.cats) &&
     (input.scope === 'aujourdhui' ||
       input.scope === 'soir' ||
       input.scope === 'semaine');

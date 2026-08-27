@@ -176,6 +176,11 @@ export function mainsForItem(
   return [];
 }
 
+/** Pack « Sorties cette semaine » is cinema-only: hide if any other cat is on. */
+export function catsAllowCinemaPack(cats: readonly string[]): boolean {
+  return cats.every((c) => c === 'cinema');
+}
+
 /** True if item matches at least one selected main (empty selection = all). */
 export function matchesMainCategories(
   categorie: string,

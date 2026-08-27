@@ -10,7 +10,7 @@ import { reasonLineForState } from '@/lib/pourToi';
 import { useSignals } from './SignalsProvider';
 import { densifiedCardCount } from '@/lib/densify';
 import { filmIdOfItem } from '@/lib/nouveautesCine';
-import { genreBelongsToMains, mainFromGenreSlug } from '@/lib/categories';
+import { catsAllowCinemaPack, genreBelongsToMains, mainFromGenreSlug } from '@/lib/categories';
 import { MONTH_NAMES_FR } from '@/lib/labels';
 import {
   resolveScopeRange,
@@ -432,14 +432,20 @@ export default function CultureConnectApp({
     () => densifiedCardCount(nouveautesItems),
     [nouveautesItems],
   );
+  const showCinemaPack =
+    packCardCount > 0 &&
+    !phraseMode &&
+    !searchingUi &&
+    catsAllowCinemaPack(selectedCategories);
+  const visiblePackCount = showCinemaPack ? packCardCount : 0;
   const gridCardCount = useMemo(
     () => densifiedCardCount(gridItems),
     [gridItems],
   );
   const haveAllItems = listItems.length >= total;
   const densifiedTotal = haveAllItems
-    ? pourToiCardCount + packCardCount + gridCardCount
-    : Math.max(densifiedTotalApi, pourToiCardCount + packCardCount + gridCardCount);
+    ? pourToiCardCount + visiblePackCount + gridCardCount
+    : Math.max(densifiedTotalApi, pourToiCardCount + visiblePackCount + gridCardCount);
 
   // Reset infinite-scroll window when scope / filters / query change.
   useEffect(() => {
@@ -655,7 +661,7 @@ export default function CultureConnectApp({
 
   const monthLabel = `${MONTH_NAMES_FR[month - 1]} ${year}`;
   const n = densifiedTotal;
-  const shown = pourToiCardCount + packCardCount + Math.min(visibleCount, gridCardCount);
+  const shown = pourToiCardCount + visiblePackCount + Math.min(visibleCount, gridCardCount);
   const countLabel =
     n === 0
       ? `0 ${evenementWord(0)}`
@@ -832,7 +838,7 @@ export default function CultureConnectApp({
           </section>
         )}
 
-        {packCardCount > 0 && !phraseMode ? (
+        {showCinemaPack ? (
           <section className="space-y-2">
             <h2 className="text-sm font-medium text-culture-terracotta">
               Sorties cette semaine
@@ -857,7 +863,7 @@ export default function CultureConnectApp({
           onLoadMore={handleLoadMore}
           nouveauFilmIds={nouveauFilmIdSet}
           empty={
-            packCardCount > 0 || pourToiItems.length > 0 ? null : phraseMode ? (
+            showCinemaPack || pourToiItems.length > 0 ? null : phraseMode ? (
               <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-6 py-12 text-center">
                 <p className="font-display text-xl text-culture-ink">
                   Aucun résultat
