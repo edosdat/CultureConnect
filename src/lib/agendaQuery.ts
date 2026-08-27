@@ -58,6 +58,8 @@ export type AgendaQueryInput = {
   limit?: number;
   offset?: number;
   includeCounts?: boolean;
+  /** SSR / first paint only: venues + legend + communes. */
+  includeListMeta?: boolean;
   /** Phrase tags — AND with scope/commune. Do not title-search q when set. */
   form?: string | null;
   moods?: string[];
@@ -759,18 +761,9 @@ export function queryAgenda(
     };
   }
 
-  const shortWindow =
-    !searching &&
-    (input.scope === 'aujourdhui' ||
-      input.scope === 'soir' ||
-      (input.scope === 'date' && Boolean(input.selectedDate)) ||
-      input.scope === 'weekend' ||
-      input.scope === 'semaine');
   const offset = Math.max(0, input.offset ?? 0);
-  const requested = input.limit ?? (shortWindow ? items.length : AGENDA_PAGE_MAX);
-  const cap = shortWindow
-    ? Math.min(Math.max(requested, 0), 800)
-    : Math.min(Math.max(requested, 0), AGENDA_PAGE_MAX);
+  const requested = input.limit ?? AGENDA_PAGE_MAX;
+  const cap = Math.min(Math.max(requested, 0), AGENDA_PAGE_MAX);
   const page = items.slice(offset, offset + cap).map(slimDayItem);
 
   let counts: Record<string, number> | undefined;
@@ -797,13 +790,15 @@ export function queryAgenda(
     total,
     densifiedTotal,
     nouveautes: nouveautes.map(slimDayItem),
-    communes: collectCommunes(lieuxByIdFromData().values()),
-    venues: venuesForQuery(input, searching, now),
+    communes: input.includeListMeta
+      ? collectCommunes(lieuxByIdFromData().values())
+      : [],
+    venues: input.includeListMeta ? venuesForQuery(input, searching, now) : [],
     genreSlugs: genreSlugsForQuery(input, searching, now),
     counts,
     parisIso: paris.iso,
     weekday: paris.weekday,
-    genresLegend: data.genresLegend,
+    genresLegend: input.includeListMeta ? data.genresLegend : [],
     nouveauFilmIds: Array.from(nouveauFilmIds(data.programmeWithContext, now)),
   };
 }
@@ -821,6 +816,7 @@ export function loadHomeWindow(now = new Date()): AgendaListResponse {
       selectedDate: null,
       year: 2026,
       month: 8,
+      includeListMeta: true,
     },
     now,
   );

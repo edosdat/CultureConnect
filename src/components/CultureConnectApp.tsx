@@ -279,7 +279,7 @@ export default function CultureConnectApp({
       setNouveautesItems(data.nouveautes ?? []);
       setTotal(data.total);
       setDensifiedTotalApi(data.densifiedTotal);
-      setVenueOptions(data.venues ?? []);
+      if (data.venues && data.venues.length) setVenueOptions(data.venues);
       setAvailableGenreSlugs(data.genreSlugs ?? []);
     } else {
       setTotal(data.total);
