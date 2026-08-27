@@ -1288,18 +1288,13 @@ export default function CultureConnectApp({
             Ton top 3 du moment
           </h2>
           {sessionStatus === 'unauthenticated' ? (
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-culture-muted">
-                C’est le top du moment, le même pour tous.
-              </p>
-              <button
-                type="button"
-                onClick={() => signIn('google', { callbackUrl: '/' })}
-                className="shrink-0 rounded-full bg-culture-terracotta px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-culture-clay"
-              >
-                Connecte-toi pour tes suggestions
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => signIn('google', { callbackUrl: '/' })}
+              className="block text-left text-[14px] font-medium text-culture-terracotta hover:underline"
+            >
+              Connecte-toi pour tes suggestions
+            </button>
           ) : null}
           {!recoReady && !recoWiped ? (
             <Top3Skeleton />
