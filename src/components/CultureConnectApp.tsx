@@ -615,8 +615,25 @@ export default function CultureConnectApp({
     setTimeScope(scope);
     setSelectedItemKey(null);
     if (scope === 'tous') {
+      listFetchGen.current += 1;
       setSelectedDay(null);
       setShowMonthPanel(false);
+      setYear(initialYear);
+      setMonth(initialMonth);
+      setVisibleCount(AGENDA_PAGE_SIZE);
+      const reuseBoot =
+        selectedCommune === 'Toulouse' &&
+        selectedCategories.length === 0 &&
+        selectedGenres.length === 0 &&
+        !selectedLieuId &&
+        !query.trim();
+      if (reuseBoot) {
+        setListItems(initialItems);
+        setNouveautesItems(initialNouveautes);
+        setTotal(initialTotal);
+        setDensifiedTotalApi(initialDensifiedTotal);
+        skipListFetch.current = true;
+      }
       return;
     }
     if (scope === 'date') {
