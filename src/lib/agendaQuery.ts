@@ -33,7 +33,7 @@ import {
   type AgendaListResponse,
 } from './slim';
 import {
-  defaultTimeScope,
+  bootTimeScope,
   hideSeancesBeforeToday,
   parisParts,
   resolveScopeRange,
@@ -64,7 +64,7 @@ export type AgendaQueryInput = {
   entities?: string[];
   date_from?: string | null;
   date_to?: string | null;
-  /** Upcoming 14-day pool for Ton top 3 (independent of time/cat chips). */
+  /** Upcoming 90-day pool for Ton top 3 (independent of time/cat chips). */
   recoUpcoming?: boolean;
 };
 
@@ -408,11 +408,9 @@ function listForRange(
   });
   const phraseFrom = reco ? '' : (input.date_from || '').trim();
   const phraseTo = reco ? '' : (input.date_to || '').trim();
-  let range = reco
-    ? upcomingRange(paris.iso, dataMaxIso(), 14)
-    : searching
-      ? upcomingRange(paris.iso, dataMaxIso(), 90)
-      : scopeRange;
+  let range = reco || searching || input.scope === 'tous'
+    ? upcomingRange(paris.iso, dataMaxIso(), 90)
+    : scopeRange;
   if (!searching && (phraseFrom || phraseTo)) {
     const start =
       phraseFrom && phraseFrom > range.startIso ? phraseFrom : range.startIso;
@@ -466,6 +464,7 @@ function listForRange(
   } else {
     const excludeLong =
       reco ||
+      input.scope === 'tous' ||
       input.scope === 'aujourdhui' ||
       input.scope === 'soir' ||
       input.scope === 'weekend' ||
@@ -639,7 +638,8 @@ export function queryAgenda(
     !searching &&
     !hasPhraseFilters(input) &&
     catsAllowCinemaPack(input.cats) &&
-    (input.scope === 'aujourdhui' ||
+    (input.scope === 'tous' ||
+      input.scope === 'aujourdhui' ||
       input.scope === 'soir' ||
       input.scope === 'semaine');
   const nouveautes = hideSeancesBeforeToday(
@@ -703,8 +703,7 @@ export function queryAgenda(
 }
 
 export function loadHomeWindow(now = new Date()): AgendaListResponse {
-  const scope = defaultTimeScope(now);
-  const paris = parisParts(now);
+  const scope = bootTimeScope();
   return queryAgenda(
     {
       scope,
@@ -713,7 +712,7 @@ export function loadHomeWindow(now = new Date()): AgendaListResponse {
       cats: [],
       genres: [],
       lieuId: null,
-      selectedDate: paris.iso,
+      selectedDate: null,
       year: 2026,
       month: 8,
     },
@@ -847,6 +846,7 @@ export function queryAgendaDetail(
 
 export function parseTimeScope(raw: string | null): TimeScopeId {
   if (
+    raw === 'tous' ||
     raw === 'aujourdhui' ||
     raw === 'soir' ||
     raw === 'weekend' ||
@@ -855,7 +855,7 @@ export function parseTimeScope(raw: string | null): TimeScopeId {
   ) {
     return raw;
   }
-  return defaultTimeScope();
+  return 'tous';
 }
 
 export function parseCsvParam(raw: string | null): string[] {

@@ -2,7 +2,7 @@
  * Time-scope helpers for CultureConnect home (Europe/Paris local dates).
  */
 
-export type TimeScopeId = 'aujourdhui' | 'soir' | 'weekend' | 'semaine' | 'date';
+export type TimeScopeId = 'tous' | 'aujourdhui' | 'soir' | 'weekend' | 'semaine' | 'date';
 
 export type DateRange = {
   startIso: string;
@@ -53,9 +53,14 @@ export function parisParts(now = new Date()): {
   return { year, month, day, hour, weekday, iso };
 }
 
-export function defaultTimeScope(now = new Date()): TimeScopeId {
-  const { hour } = parisParts(now);
-  return hour >= 17 ? 'soir' : 'aujourdhui';
+/** Boot / empty parse: no date chip, pool = tout à venir. */
+export function bootTimeScope(): TimeScopeId {
+  return 'tous';
+}
+
+/** Hour-based Aujourd'hui / Ce soir default is gone. */
+export function defaultTimeScope(): TimeScopeId {
+  return 'tous';
 }
 
 export function addDaysIso(iso: string, delta: number): string {
@@ -177,6 +182,9 @@ export function resolveScopeRange(
   calendarMonth?: { year: number; month: number },
 ): DateRange {
   const { iso, weekday } = parisParts(now);
+  if (scope === 'tous') {
+    return upcomingRange(iso, addDaysIso(iso, 90), 90);
+  }
   // Aujourd'hui + Ce soir share today; Ce soir also filters heure >= 19:00 in the app.
   if (scope === 'aujourdhui' || scope === 'soir') {
     return { startIso: iso, endIso: iso, days: [iso] };
@@ -236,6 +244,7 @@ export function scopeContextLabel(
   scope: TimeScopeId,
   range: DateRange,
 ): string {
+  if (scope === 'tous') return 'à venir';
   if (scope === 'aujourdhui') return "aujourd'hui";
   if (scope === 'soir') return 'ce soir';
   if (scope === 'semaine') {

@@ -6,34 +6,29 @@ import {
 } from '@/lib/timeScope';
 
 type Props = {
-  /** null = no chip pressed (search mode: all upcoming dates). */
+  /** `tous` / null = no chip pressed (tout à venir). */
   scope: TimeScopeId | null;
   onChange: (scope: TimeScopeId) => void;
 };
 
 export default function TimeScopeBar({ scope, onChange }: Props) {
-  const inactive = scope == null;
+  const none = scope == null || scope === 'tous';
   return (
     <div className="space-y-2">
       <div className="relative">
         <div
           role="group"
           aria-label="Période"
-          aria-disabled={inactive}
-          className={
-            'flex snap-x snap-proximity gap-1.5 overflow-x-auto scroll-px-3 pe-4 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden' +
-            (inactive ? ' opacity-40' : '')
-          }
+          className="flex snap-x snap-proximity gap-1.5 overflow-x-auto scroll-px-3 pe-4 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {TIME_SCOPE_CHIPS.map(({ id, label }) => {
-            const active = !inactive && scope === id;
+            const active = !none && scope === id;
             return (
               <button
                 key={id}
                 type="button"
                 onClick={() => {
-                  if (inactive) return;
-                  onChange(id);
+                  onChange(active ? 'tous' : id);
                 }}
                 aria-pressed={active}
                 className={

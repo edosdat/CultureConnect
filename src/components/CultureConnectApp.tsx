@@ -603,11 +603,15 @@ export default function CultureConnectApp({
   }
 
   function handleScopeChange(scope: TimeScopeId) {
-    if (scope !== timeScope) {
+    if (scope !== timeScope && scope !== 'tous') {
       track({ kind: 'chip_time', chip: scope, genres: [], moods: [] });
     }
     setTimeScope(scope);
     setSelectedItemKey(null);
+    if (scope === 'tous') {
+      setShowMonthPanel(false);
+      return;
+    }
     if (scope === 'date') {
       const day = selectedDay || initialParisIso;
       setSelectedDay(day);
@@ -707,17 +711,19 @@ export default function CultureConnectApp({
         : `${n} ${evenementWord(n)}`;
   const rangeLabel = searchingUi ? 'toutes dates' : contextLabel;
   const emptyScopeHint =
-    timeScope === 'aujourdhui'
-      ? "aujourd'hui"
-      : timeScope === 'soir'
-        ? 'ce soir'
-        : timeScope === 'weekend'
-          ? 'ce week-end'
-          : timeScope === 'semaine'
-            ? 'cette semaine'
-            : selectedDay
-              ? `le ${contextLabel}`
-              : contextLabel;
+    timeScope === 'tous'
+      ? 'à venir'
+      : timeScope === 'aujourdhui'
+        ? "aujourd'hui"
+        : timeScope === 'soir'
+          ? 'ce soir'
+          : timeScope === 'weekend'
+            ? 'ce week-end'
+            : timeScope === 'semaine'
+              ? 'cette semaine'
+              : selectedDay
+                ? `le ${contextLabel}`
+                : contextLabel;
 
   const monthCalendar = (
     <MonthCalendar
