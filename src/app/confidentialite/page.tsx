@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import DeleteAccountButton from './DeleteAccountButton';
 
 export const metadata: Metadata = {
   title: 'Confidentialité — CultureConnect',
@@ -45,8 +46,8 @@ export default function ConfidentialitePage() {
         </p>
         <p>
           <span className="font-medium">Tes droits.</span> Accès, rectification,
-          opposition, suppression (menu compte → Supprimer mon compte). Contact
-          :{' '}
+          opposition, suppression (bouton «&nbsp;Supprimer mon compte&nbsp;»
+          sur cette page). Contact :{' '}
           <a
             href="mailto:edosdat@gmail.com"
             className="text-culture-terracotta underline-offset-2 hover:underline"
@@ -59,10 +60,12 @@ export default function ConfidentialitePage() {
           Base légale : intérêt légitime à proposer «&nbsp;Pour toi&nbsp;», et
           ton action quand tu indiques tes goûts. Conservation 24 mois après
           la dernière activité, puis suppression. Cookie visiteur : 14 jours.
-          Compte connecté : tu peux tout effacer via «&nbsp;Supprimer mon
-          compte&nbsp;».
+          Compte connecté : tu peux tout effacer via le bouton
+          «&nbsp;Supprimer mon compte&nbsp;» ci-dessous.
         </p>
       </div>
+
+      <DeleteAccountButton />
 
       <p className="mt-8 text-sm text-culture-muted">
         <Link
