@@ -21,6 +21,8 @@ type Props = {
   /** After densify: show at most this many cards (infinite scroll). */
   visibleCount?: number;
   onLoadMore?: () => void;
+  /** Server still has pages beyond the items already in memory. */
+  hasMoreRemote?: boolean;
   nouveauFilmIds?: ReadonlySet<string>;
 };
 
@@ -34,13 +36,16 @@ export default function SeanceGrid({
   empty,
   visibleCount,
   onLoadMore,
+  hasMoreRemote = false,
   nouveauFilmIds,
 }: Props) {
   const rows = useMemo(() => densify(items), [items]);
   const limited =
     visibleCount != null ? rows.slice(0, Math.max(0, visibleCount)) : rows;
   const hasMore =
-    visibleCount != null && onLoadMore != null && limited.length < rows.length;
+    visibleCount != null &&
+    onLoadMore != null &&
+    (limited.length < rows.length || hasMoreRemote);
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const onLoadMoreRef = useRef(onLoadMore);
@@ -75,7 +80,7 @@ export default function SeanceGrid({
       io.disconnect();
       if (timer) clearTimeout(timer);
     };
-  }, [hasMore, visibleCount, limited.length]);
+  }, [hasMore, visibleCount, limited.length, hasMoreRemote]);
 
   if (items.length === 0) {
     return <div className="py-10">{empty}</div>;

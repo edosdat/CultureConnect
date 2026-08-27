@@ -927,6 +927,7 @@ export default function CultureConnectApp({
           onSelectVenue={handleSelectVenue}
           visibleCount={visibleCount}
           onLoadMore={handleLoadMore}
+          hasMoreRemote={listItems.length < total}
           nouveauFilmIds={nouveauFilmIdSet}
           empty={
             showCinemaPack || pourToiItems.length > 0 ? null : phraseMode ? (
