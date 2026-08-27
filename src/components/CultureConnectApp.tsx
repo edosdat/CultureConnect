@@ -58,6 +58,18 @@ function normalizeCommune(c: string | null | undefined): string {
   return (c || '').trim().toLocaleLowerCase('fr');
 }
 
+/** Reco pool keyed by window so a date-chip swap never paints another scope. */
+function recoPoolKey(
+  scope: TimeScopeId,
+  day: string | null,
+  commune: string | null,
+  kind: 'guest' | 'profile',
+): string {
+  return `${scope}|${day ?? ''}|${normalizeCommune(commune)}|${kind}`;
+}
+
+const RECO_PREFETCH_SCOPES = ['tous', 'soir', 'aujourdhui', 'semaine'] as const;
+
 const AGENDA_PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 250;
 const PHRASE_FETCH_MS = 80;
@@ -142,7 +154,9 @@ export default function CultureConnectApp({
   const [visibleCount, setVisibleCount] = useState(AGENDA_PAGE_SIZE);
 
   const [listItems, setListItems] = useState<DayItem[]>(initialItems);
-  const [recoPoolItems, setRecoPoolItems] = useState<DayItem[]>([]);
+  const [recoPoolByKey, setRecoPoolByKey] = useState<Record<string, DayItem[]>>(
+    {},
+  );
   const [nouveautesItems, setNouveautesItems] =
     useState<DayItem[]>(initialNouveautes);
   const [nouveauFilmIdSet, setNouveauFilmIdSet] = useState<Set<string>>(
@@ -162,6 +176,8 @@ export default function CultureConnectApp({
 
   const skipListFetch = useRef(true);
   const listFetchGen = useRef(0);
+  const recoFetchGen = useRef(0);
+  const recoWipedRef = useRef(false);
   const listLoadingRef = useRef(false);
   const detailFetchGen = useRef(0);
 
@@ -294,22 +310,87 @@ export default function CultureConnectApp({
     }
   }
 
+  const recoWiped = Boolean(
+    tasteState &&
+      profileHasZeroWeights(tasteState.profile) &&
+      !profileHasChipWeight(tasteState.profile),
+  );
+  recoWipedRef.current = recoWiped;
+  const recoKind: 'guest' | 'profile' =
+    !recoWiped && tasteState && profileHasChipWeight(tasteState.profile)
+      ? 'profile'
+      : 'guest';
+  const currentRecoKey = recoPoolKey(
+    timeScope,
+    selectedDay,
+    selectedCommune,
+    recoKind,
+  );
+
+  // Guest reco for date chips (same commune). Client POSTs after mount — not TTFB.
   useEffect(() => {
-    const wiped =
-      Boolean(
-        tasteState &&
-          profileHasZeroWeights(tasteState.profile) &&
-          !profileHasChipWeight(tasteState.profile),
-      );
-    if (wiped) {
-      setRecoPoolItems([]);
+    let cancelled = false;
+    const commune = selectedCommune;
+    const [isoY, isoM] = initialParisIso.split('-').map(Number);
+    const chipYear = isoY || year;
+    const chipMonth = isoM || month;
+    const jobs = RECO_PREFETCH_SCOPES.map((scope) => {
+      const chip = scope === 'soir' || scope === 'aujourdhui';
+      return {
+        scope,
+        date: chip ? initialParisIso : null,
+        year: chip ? chipYear : year,
+        month: chip ? chipMonth : month,
+      };
+    });
+    void Promise.all(
+      jobs.map(async (job) => {
+        const key = recoPoolKey(job.scope, job.date, commune, 'guest');
+        try {
+          const params = new URLSearchParams();
+          params.set('reco', '1');
+          const res = await fetch(`/api/agenda?${params.toString()}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              scope: job.scope,
+              date: job.date,
+              commune,
+              year: job.year,
+              month: job.month,
+            }),
+          });
+          if (!res.ok) return;
+          const data = (await res.json()) as AgendaListResponse;
+          if (cancelled || recoWipedRef.current) return;
+          setRecoPoolByKey((prev) => {
+            if (prev[key] !== undefined) return prev;
+            return { ...prev, [key]: data.items ?? [] };
+          });
+        } catch {
+          /* leave key empty */
+        }
+      }),
+    );
+    return () => {
+      cancelled = true;
+    };
+    // boot only — guest pools for Ce soir / Aujourd'hui / uncheck / semaine
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (recoWiped) {
+      setRecoPoolByKey({});
       return;
     }
+    const key = currentRecoKey;
     let cancelled = false;
+    const gen = ++recoFetchGen.current;
     const params = new URLSearchParams();
     params.set('reco', '1');
     const profile = tasteState?.profile;
-    const sendProfile = profile && profileHasChipWeight(profile);
+    const sendProfile = recoKind === 'profile';
     void (async () => {
       try {
         const res = await fetch(`/api/agenda?${params.toString()}`, {
@@ -321,7 +402,7 @@ export default function CultureConnectApp({
             commune: selectedCommune,
             year,
             month,
-            profile: sendProfile
+            profile: sendProfile && profile
               ? {
                   moods: profile.moods,
                   genres: profile.genres,
@@ -332,16 +413,30 @@ export default function CultureConnectApp({
         });
         if (!res.ok) return;
         const data = (await res.json()) as AgendaListResponse;
-        if (cancelled) return;
-        setRecoPoolItems(data.items ?? []);
+        if (cancelled || gen !== recoFetchGen.current) return;
+        if (recoWipedRef.current) return;
+        setRecoPoolByKey((prev) => ({
+          ...prev,
+          [key]: data.items ?? [],
+        }));
       } catch {
-        /* keep previous reco pool */
+        /* do not paint another scope's pool */
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [selectedCommune, year, month, timeScope, selectedDay, tasteState]);
+  }, [
+    selectedCommune,
+    year,
+    month,
+    timeScope,
+    selectedDay,
+    tasteState,
+    recoWiped,
+    recoKind,
+    currentRecoKey,
+  ]);
 
 
   useEffect(() => {
@@ -416,17 +511,11 @@ export default function CultureConnectApp({
     });
   }, [availableGenreSlugs, selectedCategories, genresLegend]);
 
-  /** Server picked 1+1+1 (profile or anonymous). Wipe à 0 = vide. */
+  /** Server picked 1+1+1 for THIS window only. Missing cache → empty (no stale). */
   const pourToiItems = useMemo(() => {
-    if (
-      tasteState &&
-      profileHasZeroWeights(tasteState.profile) &&
-      !profileHasChipWeight(tasteState.profile)
-    ) {
-      return [];
-    }
-    return recoPoolItems;
-  }, [recoPoolItems, tasteState]);
+    if (recoWiped) return [];
+    return recoPoolByKey[currentRecoKey] ?? [];
+  }, [recoPoolByKey, currentRecoKey, recoWiped]);
 
   const pourToiKeys = useMemo(
     () => new Set(pourToiItems.map((item) => item.key)),
