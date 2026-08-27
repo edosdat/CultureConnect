@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import type { DayItem, GenreLegend, Lieu } from '@/lib/types';
 import type { AgendaDetailResponse, AgendaListResponse } from '@/lib/slim';
-import { profileHasChipWeight, recommendForProfile, recommendForTastes } from '@/lib/reco';
+import { profileHasChipWeight, recommendForProfile, recommendForTastes, slotFormOfItem } from '@/lib/reco';
 import { extractMoods, profileHasZeroWeights } from '@/lib/signals';
 import { reasonLineForState } from '@/lib/pourToi';
 import { useSignals } from './SignalsProvider';
@@ -147,6 +147,7 @@ export default function CultureConnectApp({
   const [visibleCount, setVisibleCount] = useState(AGENDA_PAGE_SIZE);
 
   const [listItems, setListItems] = useState<DayItem[]>(initialItems);
+  const [recoPoolItems, setRecoPoolItems] = useState<DayItem[]>([]);
   const [nouveautesItems, setNouveautesItems] =
     useState<DayItem[]>(initialNouveautes);
   const [nouveauFilmIdSet, setNouveauFilmIdSet] = useState<Set<string>>(
@@ -298,6 +299,30 @@ export default function CultureConnectApp({
   }
 
   useEffect(() => {
+    let cancelled = false;
+    const params = new URLSearchParams();
+    params.set('reco', '1');
+    if (selectedCommune) params.set('commune', selectedCommune);
+    params.set('year', String(year));
+    params.set('month', String(month));
+    void (async () => {
+      try {
+        const res = await fetch(`/api/agenda?${params.toString()}`);
+        if (!res.ok) return;
+        const data = (await res.json()) as AgendaListResponse;
+        if (cancelled) return;
+        setRecoPoolItems(data.items ?? []);
+      } catch {
+        /* keep previous reco pool */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCommune, year, month]);
+
+
+  useEffect(() => {
     if (skipListFetch.current) {
       skipListFetch.current = false;
       return;
@@ -369,15 +394,27 @@ export default function CultureConnectApp({
     });
   }, [availableGenreSlugs, selectedCategories, genresLegend]);
 
-  /** Pour toi = profile first (clicks). Wipe (all chip weights 0) → 0 cards, no tastesText fill. */
+  /** Pour toi = upcoming 14-day pool, never the chip-scoped listItems. */
   const pourToiItems = useMemo(() => {
     if (tasteState) {
       if (!profileHasChipWeight(tasteState.profile)) return [];
-      return recommendForProfile(listItems, tasteState, 3).map((s) => s.item);
+      return recommendForProfile(recoPoolItems, tasteState, 3).map((s) => s.item);
     }
-    if (tastes) return recommendForTastes(listItems, tastes, 3).map((s) => s.item);
+    if (tastes) {
+      const scored = recommendForTastes(recoPoolItems, tastes, 12);
+      const best = new Map();
+      for (const entry of scored) {
+        const slot = slotFormOfItem(entry.item);
+        if (!slot || entry.score <= 0) continue;
+        const prev = best.get(slot);
+        if (!prev || entry.score > prev.score) best.set(slot, entry);
+      }
+      return ['cine', 'theatre', 'concert']
+        .map((slot) => best.get(slot)?.item)
+        .filter(Boolean);
+    }
     return [];
-  }, [listItems, tastes, tasteState]);
+  }, [recoPoolItems, tastes, tasteState]);
 
   const pourToiKeys = useMemo(
     () => new Set(pourToiItems.map((item) => item.key)),
@@ -826,7 +863,6 @@ export default function CultureConnectApp({
             <h2 className="font-display text-xl text-culture-ink sm:text-2xl">
               Ton top 3 du moment
             </h2>
-            <p className="text-sm text-culture-muted">{pourToiReason}</p>
             <SeanceGrid
               items={pourToiItems}
               showDate={showDateLabels}

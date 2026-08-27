@@ -2,7 +2,7 @@ import 'server-only';
 
 import type { Artiste, DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 import { loadCultureData } from './data';
-import { catsAllowCinemaPack, mainFromCategorie } from './categories';
+import { catsAllowCinemaPack, formFromCategorieAndForm } from './categories';
 import { densifiedCardCount } from './densify';
 import {
   countItemsByDay,
@@ -64,6 +64,8 @@ export type AgendaQueryInput = {
   entities?: string[];
   date_from?: string | null;
   date_to?: string | null;
+  /** Upcoming 14-day pool for Ton top 3 (independent of time/cat chips). */
+  recoUpcoming?: boolean;
 };
 
 export type { AgendaListResponse, AgendaDetailResponse } from './slim';
@@ -180,25 +182,9 @@ function formOfItem(item: DayItem): string {
   const p = programmeOf(item);
   const ev = evenementOf(item);
   const cat = ev?.categorie || '';
-  const main = mainFromCategorie(cat);
   // Category main wins over stored form so phrase « musique »/« concert »
   // matches the Musique chip (e.g. Aurore musicale: form=danse, cat=musique).
-  if (main === 'cinema') return 'cine';
-  if (main === 'theatre_danse') return 'theatre';
-  if (main === 'musique') return 'concert';
-  if (main === 'festival') return 'festival';
-  if (main === 'enfants_famille') return 'enfants';
-  const raw = (p?.form || ev?.form || '').toString().trim().toLowerCase();
-  if (raw) return raw;
-  const c = cat.trim().toLowerCase();
-  if (c.includes('cinema') || c.includes('cine')) return 'cine';
-  if (c.includes('theatre') || c.includes('humour') || c.includes('danse'))
-    return 'theatre';
-  if (c.includes('concert') || c.includes('musique') || c.includes('guinguette'))
-    return 'concert';
-  if (c.includes('festival')) return 'festival';
-  if (c.includes('enfant') || c.includes('famille')) return 'enfants';
-  return '';
+  return formFromCategorieAndForm(cat, p?.form || ev?.form);
 }
 
 function moodsOfItem(item: DayItem): string[] {
@@ -409,17 +395,24 @@ function listForRange(
 ): { items: DayItem[]; searching: boolean; rangeDays: string[] } {
   const data = loadCultureData();
   const paris = parisParts(now);
-  const phrase = hasPhraseFilters(input);
-  const searching = !phrase && input.q.trim().length > 0;
+  const reco = Boolean(input.recoUpcoming);
+  const phrase = !reco && hasPhraseFilters(input);
+  const qText = reco ? '' : input.q;
+  const cats = reco ? [] : input.cats;
+  const genres = reco ? [] : input.genres;
+  const lieuId = reco ? null : input.lieuId;
+  const searching = !phrase && qText.trim().length > 0;
   const scopeRange = resolveScopeRange(input.scope, input.selectedDate, now, {
     year: input.year,
     month: input.month,
   });
-  const phraseFrom = (input.date_from || '').trim();
-  const phraseTo = (input.date_to || '').trim();
-  let range = searching
-    ? upcomingRange(paris.iso, dataMaxIso(), 90)
-    : scopeRange;
+  const phraseFrom = reco ? '' : (input.date_from || '').trim();
+  const phraseTo = reco ? '' : (input.date_to || '').trim();
+  let range = reco
+    ? upcomingRange(paris.iso, dataMaxIso(), 14)
+    : searching
+      ? upcomingRange(paris.iso, dataMaxIso(), 90)
+      : scopeRange;
   if (!searching && (phraseFrom || phraseTo)) {
     const start =
       phraseFrom && phraseFrom > range.startIso ? phraseFrom : range.startIso;
@@ -433,7 +426,7 @@ function listForRange(
       days: range.days.filter((d) => d >= start && d <= end),
     };
   }
-  const lieuIds = resolveLieuIds(input.commune, input.lieuId, searching);
+  const lieuIds = resolveLieuIds(input.commune, lieuId, searching);
   if (!searching) {
     range = {
       ...range,
@@ -448,11 +441,11 @@ function listForRange(
       data.events,
       range.startIso,
       range.endIso,
-      input.cats,
+      cats,
       lieuIds,
-      input.genres,
+      genres,
     );
-    const q = input.q.trim();
+    const q = qText.trim();
     if (q) {
       const artisteNameById = new Map(
         data.artistes.map((a) => [a.artiste_id, a.nom]),
@@ -472,6 +465,7 @@ function listForRange(
     }
   } else {
     const excludeLong =
+      reco ||
       input.scope === 'aujourdhui' ||
       input.scope === 'soir' ||
       input.scope === 'weekend' ||
@@ -483,9 +477,9 @@ function listForRange(
         data.programmeWithContext,
         data.events,
         iso,
-        input.cats,
+        cats,
         lieuIds,
-        input.genres,
+        genres,
         excludeLong,
       )) {
         if (seen.has(item.key)) continue;
@@ -493,7 +487,7 @@ function listForRange(
         items.push(item);
       }
     }
-    if (input.scope === 'soir') {
+    if (!reco && input.scope === 'soir') {
       items = items.filter(startsAtOrAfter19);
     }
   }
@@ -588,6 +582,46 @@ function genreSlugsForQuery(
   return Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'));
 }
 
+
+function withRecoTags(item: DayItem): DayItem {
+  const slim = slimDayItem(item);
+  const evSrc = item.evenement;
+  if (slim.kind === 'programme' && item.kind === 'programme') {
+    return {
+      ...slim,
+      programme: {
+        ...slim.programme,
+        form: item.programme.form || '',
+        moods: item.programme.moods || '',
+        genres_mood: item.programme.genres_mood || '',
+        themes: item.programme.themes || '',
+      },
+      evenement: slim.evenement
+        ? {
+            ...slim.evenement,
+            form: evSrc?.form || '',
+            moods: evSrc?.moods || '',
+            genres_mood: evSrc?.genres_mood || '',
+            themes: evSrc?.themes || '',
+          }
+        : slim.evenement,
+    };
+  }
+  if (slim.kind === 'fallback') {
+    return {
+      ...slim,
+      evenement: {
+        ...slim.evenement,
+        form: evSrc?.form || '',
+        moods: evSrc?.moods || '',
+        genres_mood: evSrc?.genres_mood || '',
+        themes: evSrc?.themes || '',
+      },
+    };
+  }
+  return slim;
+}
+
 /**
  * Short-window list: default scope + commune, slim cards.
  * Search / multi-day pages are capped at ~50.
@@ -601,6 +635,7 @@ export function queryAgenda(
   const { items, searching, rangeDays } = listForRange(input, now);
 
   const showNouveautes =
+    !input.recoUpcoming &&
     !searching &&
     !hasPhraseFilters(input) &&
     catsAllowCinemaPack(input.cats) &&
@@ -616,18 +651,21 @@ export function queryAgenda(
   const densifiedTotal = densifiedCardCount(items);
 
   const shortWindow =
-    !searching &&
-    (input.scope === 'aujourdhui' ||
-      input.scope === 'soir' ||
-      (input.scope === 'date' && Boolean(input.selectedDate)) ||
-      input.scope === 'weekend' ||
-      input.scope === 'semaine');
+    Boolean(input.recoUpcoming) ||
+    (!searching &&
+      (input.scope === 'aujourdhui' ||
+        input.scope === 'soir' ||
+        (input.scope === 'date' && Boolean(input.selectedDate)) ||
+        input.scope === 'weekend' ||
+        input.scope === 'semaine'));
   const offset = Math.max(0, input.offset ?? 0);
   const requested = input.limit ?? (shortWindow ? items.length : AGENDA_PAGE_MAX);
   const cap = shortWindow
     ? Math.min(Math.max(requested, 0), 800)
     : Math.min(Math.max(requested, 0), AGENDA_PAGE_MAX);
-  const page = items.slice(offset, offset + cap).map(slimDayItem);
+  const page = items
+    .slice(offset, offset + cap)
+    .map(input.recoUpcoming ? withRecoTags : slimDayItem);
 
   let counts: Record<string, number> | undefined;
   if (input.includeCounts) {

@@ -45,6 +45,7 @@ export async function GET(req: Request) {
   const rawGenres = parseCsvParam(url.searchParams.get('genres'));
   // Phrase mode: genres = tag slugs (funk, humour…), skip exact chip filter.
   // Title q is ignored when phrase params are present (tag-to-tag).
+  const recoUpcoming = url.searchParams.get('reco') === '1';
   const result = queryAgenda({
     scope: parseTimeScope(url.searchParams.get('scope')),
     commune: url.searchParams.get('commune'),
@@ -65,6 +66,7 @@ export async function GET(req: Request) {
     entities,
     date_from,
     date_to,
+    recoUpcoming,
   });
 
   return NextResponse.json(result);

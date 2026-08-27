@@ -149,6 +149,33 @@ export function mainFromCategorie(categorie: string): MainCategoryId | null {
   return CATEGORIE_TO_MAIN[key] ?? null;
 }
 
+/**
+ * Phrase / reco form: main cat wins, then stored form, then categorie text.
+ * cinema→cine, theatre_danse→theatre, musique→concert.
+ */
+export function formFromCategorieAndForm(
+  categorie: string,
+  storedForm?: string | null,
+): string {
+  const main = mainFromCategorie(categorie || '');
+  if (main === 'cinema') return 'cine';
+  if (main === 'theatre_danse') return 'theatre';
+  if (main === 'musique') return 'concert';
+  if (main === 'festival') return 'festival';
+  if (main === 'enfants_famille') return 'enfants';
+  const raw = (storedForm || '').toString().trim().toLowerCase();
+  if (raw) return raw;
+  const c = (categorie || '').trim().toLowerCase();
+  if (c.includes('cinema') || c.includes('cine')) return 'cine';
+  if (c.includes('theatre') || c.includes('humour') || c.includes('danse'))
+    return 'theatre';
+  if (c.includes('concert') || c.includes('musique') || c.includes('guinguette'))
+    return 'concert';
+  if (c.includes('festival')) return 'festival';
+  if (c.includes('enfant') || c.includes('famille')) return 'enfants';
+  return '';
+}
+
 export function mainFromFamille(famille: string): MainCategoryId | null {
   if (!famille) return null;
   const key = famille.trim().toLowerCase();
