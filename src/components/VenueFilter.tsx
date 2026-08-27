@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Lieu } from '@/lib/types';
 import { formatLieuAffiche } from '@/lib/labels';
+import { normalizeFr } from '@/lib/signals';
 
 type Props = {
   lieux: Lieu[];
@@ -12,6 +13,14 @@ type Props = {
   variant?: 'inline' | 'block';
 };
 
+function lieuMatches(lieu: Lieu, qNorm: string): boolean {
+  if (!qNorm) return true;
+  const blob = normalizeFr(
+    [formatLieuAffiche(lieu), lieu.nom, lieu.commune].filter(Boolean).join(' '),
+  );
+  return blob.includes(qNorm);
+}
+
 export default function VenueFilter({
   lieux,
   selectedLieuId,
@@ -19,19 +28,133 @@ export default function VenueFilter({
   variant = 'inline',
 }: Props) {
   const [open, setOpen] = useState(Boolean(selectedLieuId));
+  const [query, setQuery] = useState('');
+  const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (selectedLieuId) setOpen(true);
   }, [selectedLieuId]);
+
+  useEffect(() => {
+    if (!open) {
+      setQuery('');
+      return;
+    }
+    const id = window.requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
+
+  const qNorm = normalizeFr(query);
+  const filtered = useMemo(
+    () => (qNorm ? lieux.filter((l) => lieuMatches(l, qNorm)) : lieux),
+    [lieux, qNorm],
+  );
 
   if (lieux.length === 0 && !selectedLieuId) return null;
 
   const selected = lieux.find((l) => l.lieu_id === selectedLieuId);
   const selectedLabel = selected ? formatLieuAffiche(selected) : '';
 
+  const pick = (id: string | null) => {
+    onChange(id);
+    setQuery('');
+    if (!id && variant === 'inline') setOpen(false);
+  };
+
+  const panel = (
+    <div
+      id="cc-venue"
+      className="overflow-hidden rounded-xl border border-culture-line bg-culture-surface shadow-card"
+    >
+      <div className="border-b border-culture-line p-2">
+        <input
+          ref={inputRef}
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Rechercher un lieu"
+          aria-label="Rechercher un lieu"
+          autoComplete="off"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') e.preventDefault();
+          }}
+          className="h-11 w-full rounded-lg border border-culture-line bg-culture-surface px-3 text-base text-culture-ink shadow-sm placeholder:text-culture-ink/40 focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta sm:h-10 sm:text-sm"
+        />
+      </div>
+      <ul
+        role="listbox"
+        aria-label="Filtrer par lieu"
+        className="max-h-60 overflow-y-auto py-1"
+      >
+        <li>
+          <button
+            type="button"
+            role="option"
+            aria-selected={!selectedLieuId}
+            onClick={() => pick(null)}
+            className={
+              'flex min-h-11 w-full items-center px-3 text-left text-sm ' +
+              (!selectedLieuId
+                ? 'bg-culture-soft text-culture-ink'
+                : 'text-culture-ink hover:bg-culture-soft')
+            }
+          >
+            Tous les lieux
+          </button>
+        </li>
+        {filtered.map((l) => {
+          const active = l.lieu_id === selectedLieuId;
+          return (
+            <li key={l.lieu_id}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={active}
+                onClick={() => pick(l.lieu_id)}
+                className={
+                  'flex min-h-11 w-full items-center px-3 text-left text-sm ' +
+                  (active
+                    ? 'bg-culture-soft text-culture-ink'
+                    : 'text-culture-ink hover:bg-culture-soft')
+                }
+              >
+                {formatLieuAffiche(l)}
+              </button>
+            </li>
+          );
+        })}
+        {filtered.length === 0 && (
+          <li className="px-3 py-3 text-sm text-culture-ink/50">Aucun lieu</li>
+        )}
+      </ul>
+    </div>
+  );
+
   if (variant === 'inline') {
     return (
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <div
+        ref={rootRef}
+        className="relative flex min-w-0 flex-wrap items-center gap-2"
+      >
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -61,31 +184,16 @@ export default function VenueFilter({
           </button>
         )}
         {open && (
-          <select
-            id="cc-venue"
-            value={selectedLieuId ?? ''}
-            onChange={(e) => {
-              const v = e.target.value || null;
-              onChange(v);
-              if (!v) setOpen(false);
-            }}
-            className="max-w-full min-w-[12rem] flex-1 rounded-full border border-culture-line bg-culture-surface px-3 py-1.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta sm:max-w-xs"
-            aria-label="Filtrer par lieu"
-          >
-            <option value="">Tous les lieux</option>
-            {lieux.map((l) => (
-              <option key={l.lieu_id} value={l.lieu_id}>
-                {formatLieuAffiche(l)}
-              </option>
-            ))}
-          </select>
+          <div className="basis-full w-full sm:absolute sm:left-0 sm:top-full sm:z-30 sm:mt-1 sm:w-80 sm:basis-auto">
+            {panel}
+          </div>
         )}
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
+    <div ref={rootRef} className="relative space-y-2">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
           Lieux
@@ -100,19 +208,22 @@ export default function VenueFilter({
           </button>
         )}
       </div>
-      <select
-        value={selectedLieuId ?? ''}
-        onChange={(e) => onChange(e.target.value || null)}
-        className="w-full rounded-xl border border-culture-line bg-culture-surface px-3 py-2 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-controls="cc-venue"
+        className="flex min-h-11 w-full items-center justify-between rounded-xl border border-culture-line bg-culture-surface px-3 py-2 text-left text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
         aria-label="Filtrer par lieu"
       >
-        <option value="">Tous les lieux</option>
-        {lieux.map((l) => (
-          <option key={l.lieu_id} value={l.lieu_id}>
-            {formatLieuAffiche(l)}
-          </option>
-        ))}
-      </select>
+        <span className="min-w-0 truncate">
+          {selected ? selectedLabel : 'Tous les lieux'}
+        </span>
+        <span aria-hidden className="ml-2 shrink-0 text-culture-ink/50">
+          {open ? '▴' : '▾'}
+        </span>
+      </button>
+      {open && <div className="z-30">{panel}</div>}
     </div>
   );
 }
