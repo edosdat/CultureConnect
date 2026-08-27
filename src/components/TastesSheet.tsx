@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { profileChips } from '@/lib/pourToi';
+import { profileChips, SHEET_BUCKET_TITLES } from '@/lib/pourToi';
 import { useSignals } from './SignalsProvider';
 
 type Props = {
@@ -106,29 +106,40 @@ export default function TastesSheet({ open, onClose }: Props) {
           Tes goûts, en une ligne. Ça nourrit le top 3.
         </p>
         <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4">
-          <ul className="divide-y divide-culture-line">
-            {rows.map((row) => (
-              <li
-                key={`${row.bucket}:${row.key}`}
-                className="flex min-w-0 items-center gap-3 py-2"
-              >
-                <span className="min-w-0 flex-1 truncate text-sm text-culture-ink">
-                  {row.label}
-                </span>
-                <span className="shrink-0 tabular-nums text-sm text-culture-terracotta">
-                  {formatPct(row.pct)}&nbsp;%
-                </span>
-                <button
-                  type="button"
-                  aria-label={`Retirer ${row.label}`}
-                  onClick={() => wipeKey(row.bucket, row.key)}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center text-lg leading-none text-culture-muted hover:text-culture-ink"
-                >
-                  ×
-                </button>
-              </li>
-            ))}
-          </ul>
+          {SHEET_BUCKET_TITLES.map(({ bucket, title }) => {
+            const group = rows.filter((row) => row.bucket === bucket);
+            if (group.length === 0) return null;
+            return (
+              <div key={bucket} className="mb-3">
+                <p className="pt-2 text-xs font-medium uppercase tracking-[0.12em] text-culture-muted">
+                  {title}
+                </p>
+                <ul className="divide-y divide-culture-line">
+                  {group.map((row) => (
+                    <li
+                      key={`${row.bucket}:${row.key}`}
+                      className="flex min-w-0 items-center gap-3 py-2"
+                    >
+                      <span className="min-w-0 flex-1 truncate text-sm text-culture-ink">
+                        {row.label}
+                      </span>
+                      <span className="shrink-0 tabular-nums text-sm text-culture-terracotta">
+                        {formatPct(row.pct)}&nbsp;%
+                      </span>
+                      <button
+                        type="button"
+                        aria-label={`Retirer ${row.label}`}
+                        onClick={() => wipeKey(row.bucket, row.key)}
+                        className="flex h-9 w-9 shrink-0 items-center justify-center text-lg leading-none text-culture-muted hover:text-culture-ink"
+                      >
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
         </div>
         <form
           className="shrink-0 border-t border-culture-line px-4 py-3"

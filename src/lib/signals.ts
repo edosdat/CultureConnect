@@ -33,6 +33,7 @@ export type Signal = {
   categorie?: string;
   genres: string[];
   moods: string[];
+  themes?: string[];
   query?: string;
   chip?: string;
   /** Extra: screening day for « même soirée » scoring. */
@@ -121,6 +122,7 @@ export type TrackPayload = {
   categorie?: string;
   genres?: string[];
   moods?: string[];
+  themes?: string[];
   query?: string;
   chip?: string;
   dayIso?: string;
@@ -298,6 +300,7 @@ export function makeSignal(payload: TrackPayload): Signal {
     weight,
     genres: [...new Set((payload.genres ?? []).map((g) => g.trim().toLowerCase()).filter(Boolean))],
     moods: [...new Set(payload.moods ?? [])],
+    themes: [...new Set((payload.themes ?? []).map((g) => g.trim().toLowerCase()).filter(Boolean))],
   };
   if (payload.event_id) signal.event_id = payload.event_id;
   if (payload.programme_id) signal.programme_id = payload.programme_id;
@@ -382,7 +385,8 @@ export function mappedCategorie(raw: string | undefined): MainCategoryId | null 
 
 export type ProfileBucket = 'cats' | 'moods' | 'genres' | 'themes';
 
-const PROFILE_BUCKETS: readonly ProfileBucket[] = ['cats', 'moods', 'genres', 'themes'];
+/** Goût buckets only — cats are not tastes. */
+const TASTE_BUCKETS: readonly ProfileBucket[] = ['moods', 'genres', 'themes'];
 
 function copyProfile(profile: TasteProfile): TasteProfile {
   return {
@@ -402,7 +406,7 @@ export function overlayZeroWeights(
   const out = copyProfile(coerceProfile(next));
   if (!prev) return recomputeProfilePcts(out);
   const prevC = coerceProfile(prev);
-  for (const bucket of PROFILE_BUCKETS) {
+  for (const bucket of TASTE_BUCKETS) {
     for (const [key, entry] of Object.entries(prevC[bucket])) {
       if (entry.weight === 0) out[bucket][key] = { weight: 0, pct: 0 };
     }
@@ -423,7 +427,7 @@ export function overlayZeroWeightsExceptIncomingPositives(
   const incomingC = incoming ? coerceProfile(incoming) : null;
   const existingC = existing ? coerceProfile(existing) : null;
   if (incomingC) {
-    for (const bucket of PROFILE_BUCKETS) {
+    for (const bucket of TASTE_BUCKETS) {
       for (const [key, entry] of Object.entries(incomingC[bucket])) {
         if (entry.weight > 0) {
           out[bucket][key] = {
@@ -435,7 +439,7 @@ export function overlayZeroWeightsExceptIncomingPositives(
     }
   }
   if (!existingC) return recomputeProfilePcts(out);
-  for (const bucket of PROFILE_BUCKETS) {
+  for (const bucket of TASTE_BUCKETS) {
     for (const [key, entry] of Object.entries(existingC[bucket])) {
       if (entry.weight !== 0) continue;
       if (entryWeight(incomingC?.[bucket][key]) > 0) continue;
@@ -453,7 +457,7 @@ export function unionPositiveWeights(
   const out = copyProfile(coerceProfile(base));
   if (!extra) return out;
   const extraC = coerceProfile(extra);
-  for (const bucket of PROFILE_BUCKETS) {
+  for (const bucket of TASTE_BUCKETS) {
     for (const [key, entry] of Object.entries(extraC[bucket])) {
       if (!(entry.weight > 0)) continue;
       if (entryWeight(out[bucket][key]) === 0 && out[bucket][key]) continue;
@@ -496,18 +500,17 @@ export function unzeroKeysTouchedBySignal(
   signal: Signal,
 ): TasteProfile {
   let next = profile;
-  const main =
-    mappedCategorie(signal.categorie) ?? mappedCategorie(signal.chip);
-  if (main) next = unzeroProfileKey(next, 'cats', main);
+  // chip_cat is a grid filter, not a goût — do not unzero cats.
   for (const g of signal.genres) next = unzeroProfileKey(next, 'genres', g);
   for (const m of signal.moods) next = unzeroProfileKey(next, 'moods', m);
+  for (const th of signal.themes ?? []) next = unzeroProfileKey(next, 'themes', th);
   return next;
 }
 
 export function profileHasZeroWeights(profile?: TasteProfile | null): boolean {
   if (!profile) return false;
   const p = coerceProfile(profile);
-  for (const bucket of PROFILE_BUCKETS) {
+  for (const bucket of TASTE_BUCKETS) {
     if (Object.values(p[bucket]).some((e) => e.weight === 0)) return true;
   }
   return false;
@@ -523,10 +526,10 @@ function hasPositiveWeights(map: Record<string, number>): boolean {
 
 export function applySignalToProfile(profile: TasteProfile, signal: Signal): void {
   const w = signal.weight;
-  const main = mappedCategorie(signal.categorie);
-  if (main) addWeight(profile.cats, main, w);
+  // cats are not tastes — never addWeight on profile.cats
   for (const g of signal.genres) addWeight(profile.genres, g, w);
   for (const m of signal.moods) addWeight(profile.moods, m, w);
+  for (const th of signal.themes ?? []) addWeight(profile.themes, th, w);
   if (signal.commune) addCommuneWeight(profile.communes, signal.commune.trim(), w);
 }
 
@@ -574,12 +577,15 @@ export function rebuildTasteState(
 ): AccountTasteState {
   const signalsRecent = signals.slice(-cap);
   const text = (tastesText || '').trim() || undefined;
+  // read raw → migrate numbers → union stored positives → overlay 0 LAST
   const prev = prevProfile ? coerceProfile(prevProfile) : null;
+  const recalc = recalcProfile(signalsRecent, text);
+  const kept = unionPositiveWeights(recalc, prev);
+  const profile = overlayZeroWeights(kept, prev);
+  profile.cats = {};
   return {
     signalsRecent,
-    profile: recomputeProfilePcts(
-      overlayZeroWeights(recalcProfile(signalsRecent, text), prev),
-    ),
+    profile,
     tastesText: text,
     tastesSetAt: text ? tastesSetAt : tastesSetAt,
   };
@@ -591,10 +597,12 @@ export function parseTasteState(raw: unknown): AccountTasteState | null {
   const signals = Array.isArray(o.signalsRecent)
     ? o.signalsRecent.filter(isSignal)
     : [];
-  const profile =
+  // Migrate leftover numbers → TasteEntry + bucket pcts first (before any overlay).
+  const migrated =
     o.profile && typeof o.profile === 'object'
       ? coerceProfile(o.profile)
-      : recalcProfile(signals, o.tastesText);
+      : null;
+  const profile = migrated ?? recalcProfile(signals, o.tastesText);
   return {
     signalsRecent: signals.slice(-ACCOUNT_CAP),
     profile,
@@ -623,6 +631,7 @@ export function parseGuestStore(raw: unknown): GuestSignalsStore {
   const capped = events.slice(-GUEST_CAP);
   return {
     events: capped,
+    // Migrate leftover numbers → TasteEntry + bucket pcts first (before any overlay).
     profile:
       o.profile && typeof o.profile === 'object'
         ? coerceProfile(o.profile)
@@ -724,6 +733,14 @@ function splitSlugs(raw: string | undefined | null): string[] {
     .filter(Boolean);
 }
 
+export function themesFromDayItem(item: DayItem): string[] {
+  const raw =
+    item.kind === 'programme'
+      ? [item.programme.themes, item.evenement?.themes ?? '']
+      : [item.evenement.themes];
+  return [...new Set(raw.flatMap(splitSlugs))];
+}
+
 export function genresFromDayItem(item: DayItem): string[] {
   const raw =
     item.kind === 'programme'
@@ -782,16 +799,19 @@ export function payloadFromDayItem(
 ): TrackPayload {
   const genres = genresFromDayItem(item);
   const moods = extractMoods(moodSourceFromDayItem(item), genres.join(' '));
+  const themes = themesFromDayItem(item);
   const categorie = categorieFromDayItem(item);
   const payload: TrackPayload = {
     kind,
     genres,
     moods,
-    categorie,
+    themes,
     commune: item.lieu?.commune?.trim() || undefined,
     lieu_id: item.lieu?.lieu_id || undefined,
     dayIso: item.dayIso,
   };
+  // open_card: moods/genres/themes of the fiche, not categorie (not a goût).
+  if (kind !== 'open_card') payload.categorie = categorie || undefined;
   if (item.kind === 'programme') {
     payload.programme_id = item.programme.programme_id || undefined;
     payload.event_id =
@@ -809,7 +829,6 @@ export function hasScorableState(state: AccountTasteState | null | undefined): b
   const p = state.profile;
   if ((state.tastesText || '').trim()) return true;
   return (
-    hasPositiveEntryWeights(p.cats) ||
     hasPositiveEntryWeights(p.moods) ||
     hasPositiveEntryWeights(p.genres) ||
     hasPositiveEntryWeights(p.themes) ||

@@ -406,20 +406,19 @@ export async function readAccountTaste(
   if (!key) return null;
   const stored = await readTasteByKey(key);
   if (!stored) return null;
-  // Recalc, union stored fused positives (e.g. musique:3), overlay 0s last.
+  // read raw → migrate leftover numbers → rebuild (union positives) → overlay 0 LAST.
+  // Never union after overlay: a leftover number must not rewrite a wipe 0.
+  const migrated = coerceProfile(stored.profile);
   const rebuilt = rebuildTasteState(
     stored.signalsRecent,
     stored.tastesText,
     stored.tastesSetAt,
     ACCOUNT_CAP,
-    stored.profile,
+    migrated,
   );
   return {
     ...rebuilt,
-    profile: overlayZeroWeights(
-      unionPositiveWeights(rebuilt.profile, stored.profile),
-      stored.profile,
-    ),
+    profile: overlayZeroWeights(rebuilt.profile, migrated),
   };
 }
 

@@ -11,7 +11,7 @@ import {
   concatTastesText,
   makeSignal,
   mergeSignalLists,
-  overlayZeroWeights,
+  unionPositiveWeights,
   parseTasteState,
   rebuildTasteState,
   unzeroKeysTouchedBySignal,
@@ -190,11 +190,11 @@ export async function POST(req: Request) {
     };
   }
 
-  // Guest wipe wins last on login merge.
+  // Login: leftover guest 0s must not wipe the account. Positives only.
   if (guestProfile) {
     tasteState = {
       ...tasteState,
-      profile: overlayZeroWeights(tasteState.profile, guestProfile),
+      profile: unionPositiveWeights(tasteState.profile, guestProfile),
     };
   }
 

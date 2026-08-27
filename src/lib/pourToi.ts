@@ -45,22 +45,46 @@ const CAT_REASON_LABELS: Record<string, string> = {
 };
 
 const MOOD_CHIP_LABELS: Record<string, string> = {
-  rigolo: 'rire',
-  intense: 'intense',
-  tendre: 'tendre',
-  sortie: 'sortie',
+  rigolo: 'Rire',
+  intense: 'Intense',
+  tendre: 'Tendre',
+  sortie: 'Sortie',
+  cerveau: 'Cerveau',
 };
 
 const GENRE_CHIP_LABELS: Record<string, string> = {
-  funk: 'funk',
-  jazz: 'jazz',
-  jazz_blues: 'jazz',
-  histoire: 'histoire',
-  famille: 'famille',
-  humour: 'humour',
-  cinema: 'Cinéma',
-  theatre_danse: 'Théâtre',
+  funk: 'Funk',
+  jazz: 'Jazz',
+  jazz_blues: 'Jazz',
+  histoire: 'Histoire',
+  famille: 'Famille',
+  humour: 'Humour',
+  comedie: 'Comédie',
+  retro: 'Rétro',
+  patrimoine_retro: 'Rétro',
+  animation_jeune_public: 'Animation jeune public',
 };
+
+/** Main cats are not goûts — hide even if they leaked into genres. */
+const CAT_TASTE_KEYS = new Set([
+  'cinema',
+  'cine',
+  'ciné',
+  'cinéma',
+  'theatre_danse',
+  'theatre',
+  'théâtre',
+  'musique',
+  'festival',
+  'enfants_famille',
+  'enfants',
+  'expo_patrimoine',
+  'expo',
+]);
+
+function isCatTasteKey(key: string): boolean {
+  return CAT_TASTE_KEYS.has(key.trim().toLowerCase());
+}
 
 export type ProfileChip = {
   bucket: ProfileBucket;
@@ -71,26 +95,30 @@ export type ProfileChip = {
 };
 
 function humanizeKey(key: string): string {
-  return key.replace(/_/g, ' ').trim();
+  const spaced = key.replace(/_/g, ' ').trim();
+  if (!spaced) return '';
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
 export function labelProfileChip(bucket: ProfileBucket, key: string): string {
   if (bucket === 'cats') return CAT_CHIP_LABELS[key] ?? humanizeKey(key);
-  if (bucket === 'moods') return MOOD_CHIP_LABELS[key] ?? key;
+  if (bucket === 'moods') return MOOD_CHIP_LABELS[key] ?? humanizeKey(key);
   return GENRE_CHIP_LABELS[key] ?? humanizeKey(key);
 }
+
+const TASTE_SHEET_BUCKETS: readonly ProfileBucket[] = ['moods', 'genres', 'themes'];
 
 export function profileChips(
   profile?: TasteProfile | null,
   max = 8,
 ): ProfileChip[] {
   if (!profile) return [];
-  const out: ProfileChip[] = [];
+  const raw: ProfileChip[] = [];
   const push = (bucket: ProfileBucket, map?: Record<string, TasteEntry>) => {
     for (const [key, entry] of Object.entries(map ?? {})) {
       const weight = entryWeight(entry);
-      if (weight <= 0 || !key) continue;
-      out.push({
+      if (weight <= 0 || !key || isCatTasteKey(key)) continue;
+      raw.push({
         bucket,
         key,
         label: labelProfileChip(bucket, key),
@@ -99,18 +127,32 @@ export function profileChips(
       });
     }
   };
-  push('cats', profile.cats);
   push('moods', profile.moods);
   push('genres', profile.genres);
   push('themes', profile.themes);
-  const bucketOrder: ProfileBucket[] = ['cats', 'moods', 'genres', 'themes'];
+  // Dedup festival/Festival (same human label across keys).
+  const byLabel = new Map<string, ProfileChip>();
+  for (const row of raw) {
+    const k = normalizePhrase(row.label);
+    const prev = byLabel.get(k);
+    if (!prev || row.pct > prev.pct) byLabel.set(k, row);
+  }
+  const out = [...byLabel.values()];
   out.sort((a, b) => {
-    const bi = bucketOrder.indexOf(a.bucket) - bucketOrder.indexOf(b.bucket);
+    const bi =
+      TASTE_SHEET_BUCKETS.indexOf(a.bucket) -
+      TASTE_SHEET_BUCKETS.indexOf(b.bucket);
     if (bi !== 0) return bi;
     return b.pct - a.pct || a.label.localeCompare(b.label, 'fr');
   });
   return out.slice(0, Math.max(0, max));
 }
+
+export const SHEET_BUCKET_TITLES: { bucket: ProfileBucket; title: string }[] = [
+  { bucket: 'moods', title: 'Ambiances' },
+  { bucket: 'genres', title: 'Genres' },
+  { bucket: 'themes', title: 'Thèmes' },
+];
 
 const CINEMA_EXACT = new Set(['cinema', 'cine', 'ciné', 'cinéma']);
 

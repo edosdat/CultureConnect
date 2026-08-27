@@ -901,10 +901,6 @@ const VIVANT_QUOTA_CATS: ReadonlySet<MainCategoryId> = new Set([
 
 const W_PROFILE_GENRE = 15;
 const W_PROFILE_MOOD_NEIGHBOR = 12;
-const W_PROFILE_CAT = 8;
-/** Live cat chip (weight > 0) — above voisin so matching items can enter top 3. */
-const W_LIVE_CAT = 16;
-const W_PROFILE_COMBO = 4;
 const W_PROFILE_COMMUNE = 3;
 const W_PROFILE_SAME_EVENING = 2;
 const FICTION_NEIGHBOR_LIGHT = 0.5;
@@ -926,10 +922,9 @@ function neighborMatch(
   return false;
 }
 
-function liveCatKeys(profile: TasteProfile): string[] {
-  return Object.entries(profile.cats)
-    .filter(([, e]) => entryWeight(e) > 0)
-    .map(([k]) => k);
+function liveCatKeys(_profile: TasteProfile): string[] {
+  // Cats are not goûts — Agenda chip_cat is a grid filter, not top 3.
+  return [];
 }
 
 function itemMatchesLiveCat(
@@ -1004,33 +999,6 @@ function scoreItemFromProfile(
       );
     }
     score += bestNeighbor;
-  }
-
-  const isGuinguette = fields.genreSlugs.includes(GUINGUETTE_GENRE);
-  const allowGuinguetteCat =
-    !isGuinguette ||
-    userMentionedGuinguette(state) ||
-    entryWeight(profile.moods['comedie']) > 0 ||
-    entryWeight(profile.moods['humour']) > 0;
-
-  let hitCat = false;
-  let bestCatNorm = 0;
-  for (const c of fields.mainCats) {
-    const w = entryWeight(profile.cats[c]);
-    if (!w) continue;
-    if (isGuinguette && c === 'musique' && !allowGuinguetteCat) continue;
-    hitCat = true;
-    const norm = entryPct(profile.cats[c]) / 100;
-    if (norm > bestCatNorm) bestCatNorm = norm;
-  }
-  if (hitCat) {
-    // Live cat chip: always score (not gated by cine genres/moods) so
-    // matching pool items can enter top 3 on rank, not a reserved slot.
-    score += W_LIVE_CAT;
-    score += W_PROFILE_CAT * bestCatNorm;
-    if (hitGenre) {
-      score += W_PROFILE_COMBO;
-    }
   }
 
   const commune = (item.lieu?.commune || '').trim();
