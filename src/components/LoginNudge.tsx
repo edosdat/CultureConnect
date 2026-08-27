@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useTastesUi } from './Providers';
+import MailIdeasCheckbox from './MailIdeasCheckbox';
 import { LOGIN_NUDGE_DISMISS_KEY as DISMISS_KEY } from '@/lib/signals';
 
 
@@ -71,6 +72,7 @@ export default function LoginNudge() {
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+          <MailIdeasCheckbox className="flex items-start gap-1.5 text-left text-xs leading-snug text-culture-ink sm:text-right" />
           <button
             type="button"
             onClick={() => signIn('google', { callbackUrl: '/' })}

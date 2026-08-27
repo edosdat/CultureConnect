@@ -26,6 +26,7 @@ import {
   unionPositiveWeights,
   type AccountTasteState,
 } from '@/lib/signals';
+import { deleteMailConsent } from '@/lib/mailConsentStore';
 
 export const ACCOUNT_TASTE_COOKIE = 'cc_account_taste';
 const COOKIE_MAX_AGE_SEC = 365 * 24 * 60 * 60;
@@ -451,6 +452,7 @@ export async function deleteAccountTaste(email: string): Promise<void> {
   } catch {
     /* missing file is fine */
   }
+  await deleteMailConsent(email);
   await clearAccountTasteCookie();
 }
 

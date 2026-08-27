@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useTastesUi } from './Providers';
 import { useSignals } from './SignalsProvider';
+import MailIdeasCheckbox from './MailIdeasCheckbox';
 
 export default function AuthButtons() {
   const { data: session, status } = useSession();
@@ -101,7 +102,7 @@ export default function AuthButtons() {
         {menuOpen ? (
           <div
             role="menu"
-            className="absolute right-0 top-full z-20 mt-1 min-w-[10.5rem] overflow-hidden rounded-xl border-[1.5px] border-culture-line bg-culture-cream py-1 shadow-lg"
+            className="absolute right-0 top-full z-20 mt-1 min-w-[14rem] overflow-hidden rounded-xl border-[1.5px] border-culture-line bg-culture-cream py-1 shadow-lg"
           >
             <button
               type="button"
@@ -114,6 +115,9 @@ export default function AuthButtons() {
             >
               Mes goûts
             </button>
+            <div className="px-3 py-2">
+              <MailIdeasCheckbox className="flex items-start gap-1.5 text-left text-xs leading-snug text-culture-ink" />
+            </div>
             <button
               type="button"
               role="menuitem"
@@ -157,7 +161,8 @@ export default function AuthButtons() {
           </button>
         </span>
       ) : null}
-      <div className="flex shrink-0 flex-col items-end gap-0.5">
+      <div className="flex shrink-0 items-center gap-2">
+      <MailIdeasCheckbox className="hidden max-w-[10.5rem] items-start gap-1.5 text-left text-[10px] leading-snug text-culture-ink sm:flex" />
       <button
         type="button"
         title="Se connecter avec Google"
@@ -180,9 +185,6 @@ export default function AuthButtons() {
         </svg>
         <span className="hidden sm:inline">Se connecter avec Google</span>
       </button>
-      <span className="hidden text-[10px] leading-none text-culture-muted sm:inline">
-        Pour des suggestions perso
-      </span>
       </div>
     </div>
   );

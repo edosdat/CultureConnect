@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 import { clearGuestStore, notifySignalsChanged } from '@/lib/signalsStore';
+import { clearMailIdeasCookie } from '@/lib/mailConsent';
 
 export default function DeleteAccountButton() {
   const { data: session, status } = useSession();
@@ -25,6 +26,7 @@ export default function DeleteAccountButton() {
         return;
       }
       clearGuestStore();
+      clearMailIdeasCookie();
       notifySignalsChanged();
       await signOut({ callbackUrl: '/' });
     } catch {
