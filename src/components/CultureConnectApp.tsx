@@ -61,6 +61,7 @@ type Props = {
         total: number;
         densifiedTotal: number;
         nouveautes: DayItem[];
+        venues: Lieu[];
       }
     >
   >;
@@ -135,6 +136,7 @@ function buildAgendaParams(opts: {
   month: number;
   offset?: number;
   includeCounts?: boolean;
+  includeListMeta?: boolean;
   phraseTags?: PhraseTags | null;
   phraseMode?: boolean;
 }): URLSearchParams {
@@ -167,6 +169,7 @@ function buildAgendaParams(opts: {
   p.set('month', String(opts.month));
   if (opts.offset) p.set('offset', String(opts.offset));
   if (opts.includeCounts) p.set('counts', '1');
+  if (opts.includeListMeta) p.set('meta', '1');
   return p;
 }
 
@@ -369,7 +372,7 @@ export default function CultureConnectApp({
       setNouveautesItems(data.nouveautes ?? []);
       setTotal(data.total);
       setDensifiedTotalApi(data.densifiedTotal);
-      if (data.venues && data.venues.length) setVenueOptions(data.venues);
+      setVenueOptions(data.venues ?? []);
       setAvailableGenreSlugs(data.genreSlugs ?? []);
     } else {
       setTotal(data.total);
@@ -548,6 +551,7 @@ export default function CultureConnectApp({
         year,
         month,
         includeCounts: showMonthPanel,
+        includeListMeta: true,
         phraseMode: isPhraseScope && query.trim().length > 0,
         phraseTags,
       });
@@ -830,6 +834,7 @@ export default function CultureConnectApp({
         setNouveautesItems(snap.nouveautes);
         setTotal(snap.total);
         setDensifiedTotalApi(snap.densifiedTotal);
+        setVenueOptions(snap.venues ?? []);
         skipListFetch.current = true;
         return true;
       }
@@ -847,6 +852,7 @@ export default function CultureConnectApp({
         setNouveautesItems(initialNouveautes);
         setTotal(initialTotal);
         setDensifiedTotalApi(initialDensifiedTotal);
+        setVenueOptions(initialVenues);
         skipListFetch.current = true;
       }
       return;

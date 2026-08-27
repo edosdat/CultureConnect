@@ -64,14 +64,35 @@ export default function VenueFilter({
   }, [open]);
 
   const qNorm = normalizeFr(query);
-  const filtered = useMemo(
-    () => (qNorm ? lieux.filter((l) => lieuMatches(l, qNorm)) : lieux),
-    [lieux, qNorm],
+  const selectedFromList = useMemo(
+    () => lieux.find((l) => l.lieu_id === selectedLieuId) ?? null,
+    [lieux, selectedLieuId],
   );
+  const [heldSelected, setHeldSelected] = useState<Lieu | null>(null);
+  useEffect(() => {
+    if (selectedFromList) setHeldSelected(selectedFromList);
+    else if (!selectedLieuId) setHeldSelected(null);
+  }, [selectedFromList, selectedLieuId]);
+  const selected =
+    selectedFromList ??
+    (selectedLieuId && heldSelected?.lieu_id === selectedLieuId
+      ? heldSelected
+      : null);
+
+  const filtered = useMemo(() => {
+    const base = qNorm ? lieux.filter((l) => lieuMatches(l, qNorm)) : lieux;
+    if (
+      selected &&
+      !base.some((l) => l.lieu_id === selected.lieu_id) &&
+      (!qNorm || lieuMatches(selected, qNorm))
+    ) {
+      return [selected, ...base];
+    }
+    return base;
+  }, [lieux, qNorm, selected]);
 
   if (lieux.length === 0 && !selectedLieuId) return null;
 
-  const selected = lieux.find((l) => l.lieu_id === selectedLieuId);
   const selectedLabel = selected ? formatLieuAffiche(selected) : '';
 
   const pick = (id: string | null) => {
@@ -105,22 +126,24 @@ export default function VenueFilter({
         aria-label="Filtrer par lieu"
         className="max-h-60 overflow-y-auto py-1"
       >
-        <li>
-          <button
-            type="button"
-            role="option"
-            aria-selected={!selectedLieuId}
-            onClick={() => pick(null)}
-            className={
-              'flex min-h-11 w-full items-center px-3 text-left text-sm ' +
-              (!selectedLieuId
-                ? 'bg-culture-soft text-culture-ink'
-                : 'text-culture-ink hover:bg-culture-soft')
-            }
-          >
-            Tous les lieux
-          </button>
-        </li>
+        {!qNorm && (
+          <li>
+            <button
+              type="button"
+              role="option"
+              aria-selected={!selectedLieuId}
+              onClick={() => pick(null)}
+              className={
+                'flex min-h-11 w-full items-center px-3 text-left text-sm ' +
+                (!selectedLieuId
+                  ? 'bg-culture-soft text-culture-ink'
+                  : 'text-culture-ink hover:bg-culture-soft')
+              }
+            >
+              Tous les lieux
+            </button>
+          </li>
+        )}
         {filtered.map((l) => {
           const active = l.lieu_id === selectedLieuId;
           return (

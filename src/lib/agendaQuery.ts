@@ -10,7 +10,6 @@ import {
   genreOfItem,
   itemsForDateRange,
   itemsForDay,
-  lieuxForDay,
 } from './events';
 import {
   filmIdOfItem,
@@ -149,6 +148,26 @@ function itemHeureDebut(item: DayItem): string {
 export function startsAtOrAfter19(item: DayItem): boolean {
   const h = itemHeureDebut(item);
   return Boolean(h) && h >= '19:00';
+}
+
+/** Reco aujourdhui/semaine: still upcoming in Paris. Missing clock stays. */
+function isStillUpcomingSeance(item: DayItem, now: Date): boolean {
+  const paris = parisParts(now);
+  const date = (item.dayIso || '').trim();
+  if (date > paris.iso) return true;
+  if (date !== paris.iso) return false;
+  const h = itemHeureDebut(item);
+  if (!h) return true;
+  const nowHHMM =
+    clockHHMM(
+      new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Europe/Paris',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+      }).format(now),
+    ) || `${String(paris.hour).padStart(2, '0')}:00`;
+  return h >= nowHHMM;
 }
 
 function filmIdOfDayItem(item: DayItem): string {
@@ -643,44 +662,25 @@ function listForRange(
   return { items, searching, rangeDays: range.days };
 }
 
-function venuesForQuery(
-  input: AgendaQueryInput,
-  searching: boolean,
-  now: Date,
-): Lieu[] {
-  const data = loadCultureData();
-  const byId = lieuxByIdFromData();
-  if (searching) {
-    return Array.from(byId.values())
-      .map((l) => slimLieu(l)!)
-      .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
-  }
-  const scopeRange = resolveScopeRange(input.scope, input.selectedDate, now, {
-    year: input.year,
-    month: input.month,
-  });
+/** Unique slim lieux from the same item set the counter uses (lieuId stripped). */
+function venuesFromWindow(items: DayItem[], selectedLieuId: string | null): Lieu[] {
   const map = new Map<string, Lieu>();
-  for (const iso of scopeRange.days) {
-    for (const lieu of lieuxForDay(
-      data.programmeWithContext,
-      data.events,
-      iso,
-      input.cats,
-      input.year,
-      input.month,
-      input.genres,
-    )) {
-      map.set(lieu.lieu_id, lieu);
-    }
+  for (const item of items) {
+    const slim = slimLieu(item.lieu);
+    if (slim?.lieu_id) map.set(slim.lieu_id, slim);
   }
-  let list = Array.from(map.values());
-  if (input.commune) {
-    const target = normalizeCommune(input.commune);
-    list = list.filter((l) => normalizeCommune(l.commune) === target);
+  if (selectedLieuId && !map.has(selectedLieuId)) {
+    const extra = slimLieu(lieuxByIdFromData().get(selectedLieuId));
+    if (extra) map.set(selectedLieuId, extra);
   }
-  return list
-    .map((l) => slimLieu(l)!)
-    .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+  return Array.from(map.values()).sort((a, b) =>
+    a.nom.localeCompare(b.nom, 'fr'),
+  );
+}
+
+function venuesForQuery(input: AgendaQueryInput, now: Date): Lieu[] {
+  const { items } = listForRange({ ...input, lieuId: null }, now);
+  return venuesFromWindow(items, input.lieuId);
 }
 
 function genreSlugsForQuery(
@@ -822,14 +822,18 @@ export function queryAgenda(
   const densifiedTotal = densifiedCardCount(items);
 
   if (input.recoUpcoming) {
+    const pool =
+      input.scope === 'aujourdhui' || input.scope === 'semaine'
+        ? items.filter((item) => isStillUpcomingSeance(item, now))
+        : items;
     const profile = input.recoProfile ?? null;
     const preferred =
       profile && profileHasChipWeight(profile)
-        ? recommendForProfile(items, { signalsRecent: [], profile }, 3).map(
+        ? recommendForProfile(pool, { signalsRecent: [], profile }, 3).map(
             (s) => s.item,
           )
-        : pickSoonestPerSlot(items);
-    const picked = mergeSlotPicks(preferred, pickSoonestPerSlot(items));
+        : pickSoonestPerSlot(pool);
+    const picked = mergeSlotPicks(preferred, pickSoonestPerSlot(pool));
     return {
       scope: input.scope,
       commune: input.commune,
@@ -876,7 +880,7 @@ export function queryAgenda(
     communes: input.includeListMeta
       ? collectCommunes(lieuxByIdFromData().values())
       : [],
-    venues: input.includeListMeta ? venuesForQuery(input, searching, now) : [],
+    venues: venuesForQuery(input, now),
     genreSlugs: genreSlugsForQuery(input, searching, now),
     counts,
     parisIso: paris.iso,
@@ -897,6 +901,7 @@ export type ScopeListSnapshot = {
   total: number;
   densifiedTotal: number;
   nouveautes: DayItem[];
+  venues: Lieu[];
 };
 
 export type ListByScope = Record<RecoBootScope, ScopeListSnapshot>;
@@ -946,6 +951,7 @@ function listSnapshotForScope(scope: RecoBootScope, now: Date): ScopeListSnapsho
     total: res.total,
     densifiedTotal: res.densifiedTotal,
     nouveautes: res.nouveautes,
+    venues: res.venues,
   };
 }
 
