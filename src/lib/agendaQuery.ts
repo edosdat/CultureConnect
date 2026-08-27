@@ -822,10 +822,16 @@ export function queryAgenda(
   const densifiedTotal = densifiedCardCount(items);
 
   if (input.recoUpcoming) {
-    const pool =
+    // aujourdhui/semaine: skip started séances. tous must not — that glued
+    // boot top 3 onto today's soonest trio.
+    const windowPool =
       input.scope === 'aujourdhui' || input.scope === 'semaine'
         ? items.filter((item) => isStillUpcomingSeance(item, now))
         : items;
+    const pool =
+      input.scope === 'tous'
+        ? items.filter((item) => (item.dayIso || '').trim() > paris.iso)
+        : windowPool;
     const profile = input.recoProfile ?? null;
     const preferred =
       profile && profileHasChipWeight(profile)
@@ -833,7 +839,12 @@ export function queryAgenda(
             (s) => s.item,
           )
         : pickSoonestPerSlot(pool);
-    const picked = mergeSlotPicks(preferred, pickSoonestPerSlot(pool));
+    const fromPool = mergeSlotPicks(preferred, pickSoonestPerSlot(pool));
+    // tous: fill an empty slot from date>=today only (no skip-past).
+    const picked =
+      input.scope === 'tous'
+        ? mergeSlotPicks(fromPool, pickSoonestPerSlot(windowPool))
+        : fromPool;
     return {
       scope: input.scope,
       commune: input.commune,
