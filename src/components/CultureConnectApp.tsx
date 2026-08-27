@@ -5,6 +5,7 @@ import type { DayItem, GenreLegend, Lieu } from '@/lib/types';
 import type { AgendaDetailResponse, AgendaListResponse } from '@/lib/slim';
 import { profileHasChipWeight } from '@/lib/reco';
 import { extractMoods, profileHasZeroWeights } from '@/lib/signals';
+import { signIn } from 'next-auth/react';
 import { useSignals } from './SignalsProvider';
 import { densifiedCardCount } from '@/lib/densify';
 import { filmIdOfItem } from '@/lib/nouveautesCine';
@@ -1286,6 +1287,20 @@ export default function CultureConnectApp({
           <h2 className="font-display text-xl text-culture-ink sm:text-2xl">
             Ton top 3 du moment
           </h2>
+          {sessionStatus === 'unauthenticated' ? (
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-culture-muted">
+                C’est le top du moment, le même pour tous.
+              </p>
+              <button
+                type="button"
+                onClick={() => signIn('google', { callbackUrl: '/' })}
+                className="shrink-0 rounded-full bg-culture-terracotta px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-culture-clay"
+              >
+                Connecte-toi pour tes suggestions
+              </button>
+            </div>
+          ) : null}
           {!recoReady && !recoWiped ? (
             <Top3Skeleton />
           ) : (
