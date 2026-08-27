@@ -1228,7 +1228,7 @@ const SLOT_WEIGHTS: Record<RecoSlotForm, { mood: number; theme: number; genre: n
   concert: { mood: 0.5, theme: 0.35, genre: 1.5 },
 };
 
-const SLOT_ORDER: RecoSlotForm[] = ['cine', 'theatre', 'concert'];
+export const SLOT_ORDER: RecoSlotForm[] = ['cine', 'theatre', 'concert'];
 
 function splitTagSlugs(raw: string | string[] | undefined | null): string[] {
   if (!raw) return [];

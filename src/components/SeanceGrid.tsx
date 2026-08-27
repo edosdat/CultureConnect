@@ -10,6 +10,7 @@ import {
 import type { DayItem } from '@/lib/types';
 import { densify, densifiedCardCount } from '@/lib/densify';
 import { filmIdOfItem } from '@/lib/nouveautesCine';
+import { SLOT_ORDER, slotFormOfItem, type RecoSlotForm } from '@/lib/reco';
 import SeanceCard from './SeanceCard';
 
 type Props = {
@@ -24,15 +25,63 @@ type Props = {
   /** Server still has pages beyond the items already in memory. */
   hasMoreRemote?: boolean;
   nouveauFilmIds?: ReadonlySet<string>;
+  /** Top 3: always cine | theatre | concert cells; empty slot stays empty. */
+  fixedSlots?: boolean;
 };
 
 export { densifiedCardCount };
 
-/** 1 card → 1 col; 2 → 2 cols from sm; 3+ → 3 cols from lg. Avoids empty CSS holes. */
-function gridColsClass(count: number): string {
-  if (count <= 1) return 'grid grid-cols-1 gap-4';
-  if (count === 2) return 'grid grid-cols-1 gap-4 sm:grid-cols-2';
-  return 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3';
+const GRID_CLASS = 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3';
+
+function cardNouveau(
+  item: DayItem,
+  nouveauFilmIds: ReadonlySet<string> | undefined,
+): boolean {
+  return Boolean(
+    nouveauFilmIds &&
+      filmIdOfItem(item) &&
+      nouveauFilmIds.has(filmIdOfItem(item)),
+  );
+}
+
+/** Always 3 cells in cine | theatre | concert order. No densify. */
+function FixedSlotsGrid({
+  items,
+  showDate,
+  onSelectItem,
+  onSelectVenue,
+  nouveauFilmIds,
+}: Pick<
+  Props,
+  'items' | 'showDate' | 'onSelectItem' | 'onSelectVenue' | 'nouveauFilmIds'
+>) {
+  const bySlot = new Map<RecoSlotForm, DayItem>();
+  for (const item of items) {
+    const slot = slotFormOfItem(item);
+    if (slot && !bySlot.has(slot)) bySlot.set(slot, item);
+  }
+  return (
+    <div className="space-y-4">
+      <ul className={GRID_CLASS}>
+        {SLOT_ORDER.map((slot) => {
+          const item = bySlot.get(slot);
+          return (
+            <li key={slot} className="min-w-0">
+              {item ? (
+                <SeanceCard
+                  item={item}
+                  showDate={showDate}
+                  onSelect={onSelectItem}
+                  onSelectVenue={onSelectVenue}
+                  nouveau={cardNouveau(item, nouveauFilmIds)}
+                />
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
 }
 
 export default function SeanceGrid({
@@ -45,7 +94,46 @@ export default function SeanceGrid({
   onLoadMore,
   hasMoreRemote = false,
   nouveauFilmIds,
+  fixedSlots = false,
 }: Props) {
+  if (fixedSlots) {
+    return (
+      <FixedSlotsGrid
+        items={items}
+        showDate={showDate}
+        onSelectItem={onSelectItem}
+        onSelectVenue={onSelectVenue}
+        nouveauFilmIds={nouveauFilmIds}
+      />
+    );
+  }
+
+  return (
+    <DensifiedGrid
+      items={items}
+      showDate={showDate}
+      onSelectItem={onSelectItem}
+      onSelectVenue={onSelectVenue}
+      empty={empty}
+      visibleCount={visibleCount}
+      onLoadMore={onLoadMore}
+      hasMoreRemote={hasMoreRemote}
+      nouveauFilmIds={nouveauFilmIds}
+    />
+  );
+}
+
+function DensifiedGrid({
+  items,
+  showDate = false,
+  onSelectItem,
+  onSelectVenue,
+  empty,
+  visibleCount,
+  onLoadMore,
+  hasMoreRemote = false,
+  nouveauFilmIds,
+}: Omit<Props, 'fixedSlots'>) {
   const rows = useMemo(() => densify(items), [items]);
   const limited =
     visibleCount != null ? rows.slice(0, Math.max(0, visibleCount)) : rows;
@@ -95,7 +183,7 @@ export default function SeanceGrid({
 
   return (
     <div className="space-y-4">
-      <ul className={gridColsClass(limited.length)}>
+      <ul className={GRID_CLASS}>
         {limited.map(
           ({
             item,
@@ -116,11 +204,7 @@ export default function SeanceGrid({
                 salleCount={salleCount}
                 earliestHeure={earliestHeure}
                 citiesSummary={citiesSummary}
-                nouveau={Boolean(
-                  nouveauFilmIds &&
-                    filmIdOfItem(item) &&
-                    nouveauFilmIds.has(filmIdOfItem(item)),
-                )}
+                nouveau={cardNouveau(item, nouveauFilmIds)}
               />
             </li>
           ),
