@@ -841,10 +841,14 @@ export function queryAgenda(
         : pickSoonestPerSlot(pool);
     const fromPool = mergeSlotPicks(preferred, pickSoonestPerSlot(pool));
     // tous: fill an empty slot from date>=today only (no skip-past).
-    const picked =
+    const pickedRaw =
       input.scope === 'tous'
         ? mergeSlotPicks(fromPool, pickSoonestPerSlot(windowPool))
         : fromPool;
+    // Reco never surfaces a seance before today Paris (26/08 and earlier).
+    const picked = pickedRaw.filter(
+      (item) => (item.dayIso || '').trim() >= paris.iso,
+    );
     return {
       scope: input.scope,
       commune: input.commune,

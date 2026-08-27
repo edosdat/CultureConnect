@@ -844,7 +844,9 @@ export function recommendForTastes(
 
   scored.sort((a, b) => {
     if (b.score !== a.score) return b.score - a.score;
-    return a.item.dayIso.localeCompare(b.item.dayIso);
+    const day = a.item.dayIso.localeCompare(b.item.dayIso);
+    if (day !== 0) return day;
+    return compareItemTieBreak(a.item, b.item);
   });
 
   const strongOnes = scored.filter((s) => s.strong >= STRONG_SIGNAL);
@@ -1096,7 +1098,9 @@ function applyVivantQuota(
     const svByScore = [...svQ];
     const merged = [...cineByScore, ...svByScore].sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
-      return a.item.dayIso.localeCompare(b.item.dayIso);
+      const day = a.item.dayIso.localeCompare(b.item.dayIso);
+      if (day !== 0) return day;
+      return compareItemTieBreak(a.item, b.item);
     });
     for (const e of merged) {
       if (rest.length >= restSlots) break;
@@ -1121,7 +1125,9 @@ function applyVivantQuota(
     }
     uniq.sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
-      return a.item.dayIso.localeCompare(b.item.dayIso);
+      const day = a.item.dayIso.localeCompare(b.item.dayIso);
+      if (day !== 0) return day;
+      return compareItemTieBreak(a.item, b.item);
     });
     return uniq.slice(0, limit);
   }
@@ -1129,7 +1135,9 @@ function applyVivantQuota(
   // No quota: keep existing diversification, still mix cine/SV by score.
   const combined = [...cineDiv, ...svDiv, ...other].sort((a, b) => {
     if (b.score !== a.score) return b.score - a.score;
-    return a.item.dayIso.localeCompare(b.item.dayIso);
+    const day = a.item.dayIso.localeCompare(b.item.dayIso);
+    if (day !== 0) return day;
+    return compareItemTieBreak(a.item, b.item);
   });
   const seen = new Set<ScoredDayItem>();
   const out: ScoredDayItem[] = [];
@@ -1324,6 +1332,31 @@ function scoreOverlap(
   return hits === 0 ? 0 : score;
 }
 
+function itemEventId(item: DayItem): string {
+  if (item.kind === 'programme') {
+    return (
+      (item.programme.event_id || '').trim() ||
+      (item.evenement?.event_id || '').trim()
+    );
+  }
+  return (item.evenement.event_id || '').trim();
+}
+
+function itemProgrammeId(item: DayItem): string {
+  return item.kind === 'programme'
+    ? (item.programme.programme_id || '').trim()
+    : '';
+}
+
+/** Deterministic last key: event_id, then programme_id, then item.key. */
+function compareItemTieBreak(a: DayItem, b: DayItem): number {
+  const ev = itemEventId(a).localeCompare(itemEventId(b));
+  if (ev !== 0) return ev;
+  const pid = itemProgrammeId(a).localeCompare(itemProgrammeId(b));
+  if (pid !== 0) return pid;
+  return (a.key || '').localeCompare(b.key || '');
+}
+
 function pickBestPerSlot(scored: ScoredDayItem[]): ScoredDayItem[] {
   const best = new Map<RecoSlotForm, ScoredDayItem>();
   for (const entry of scored) {
@@ -1331,12 +1364,20 @@ function pickBestPerSlot(scored: ScoredDayItem[]): ScoredDayItem[] {
     const slot = slotFormOfItem(entry.item);
     if (!slot) continue;
     const prev = best.get(slot);
-    if (
-      !prev ||
-      entry.score > prev.score ||
-      (entry.score === prev.score &&
-        entry.item.dayIso.localeCompare(prev.item.dayIso) < 0)
-    ) {
+    if (!prev) {
+      best.set(slot, entry);
+      continue;
+    }
+    if (entry.score !== prev.score) {
+      if (entry.score > prev.score) best.set(slot, entry);
+      continue;
+    }
+    const day = entry.item.dayIso.localeCompare(prev.item.dayIso);
+    if (day !== 0) {
+      if (day < 0) best.set(slot, entry);
+      continue;
+    }
+    if (compareItemTieBreak(entry.item, prev.item) < 0) {
       best.set(slot, entry);
     }
   }
@@ -1371,10 +1412,16 @@ export function pickSoonestPerSlot(items: DayItem[]): DayItem[] {
       continue;
     }
     const day = item.dayIso.localeCompare(prev.dayIso);
-    if (
-      day < 0 ||
-      (day === 0 && itemClockKey(item).localeCompare(itemClockKey(prev)) < 0)
-    ) {
+    if (day !== 0) {
+      if (day < 0) best.set(slot, item);
+      continue;
+    }
+    const clock = itemClockKey(item).localeCompare(itemClockKey(prev));
+    if (clock !== 0) {
+      if (clock < 0) best.set(slot, item);
+      continue;
+    }
+    if (compareItemTieBreak(item, prev) < 0) {
       best.set(slot, item);
     }
   }
