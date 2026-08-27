@@ -29,6 +29,7 @@ import SearchOmnibox from './SearchOmnibox';
 import EventDetail from './EventDetail';
 import LoginNudge from './LoginNudge';
 import {
+  emptyPhraseTags,
   hasPhraseSignal,
   parsePhraseRules,
   phraseUsesTitleQ,
@@ -164,14 +165,23 @@ export default function CultureConnectApp({
 
   const isPhraseScope = true;
 
+  const titleSearchPending = useRef(false);
+
   function applyPhraseFromQuery(text: string) {
     const q = text.trim();
     if (!q) {
+      titleSearchPending.current = false;
       setPhraseTags(null);
       return;
     }
     const rules = parsePhraseRules(q);
-    setPhraseTags(hasPhraseSignal(rules) ? rules : null);
+    if (hasPhraseSignal(rules)) {
+      titleSearchPending.current = false;
+      setPhraseTags(rules);
+      return;
+    }
+    titleSearchPending.current = true;
+    setPhraseTags(emptyPhraseTags('rules'));
   }
 
   // Title search: debounce 250ms. Phrase rules apply on the same keystroke.
@@ -196,45 +206,25 @@ export default function CultureConnectApp({
     });
   }, [debouncedQuery, isPhraseScope]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // AI only when rules yield nothing. Do not refetch on rules.
-  useEffect(() => {
-    if (!isPhraseScope) return;
-    const q = query.trim();
-    if (!q) return;
-    const rules = parsePhraseRules(q);
+  function requestPhraseAi(phrase: string) {
+    const rules = parsePhraseRules(phrase);
     if (hasPhraseSignal(rules)) return;
-    let cancelled = false;
-    const id = window.setTimeout(() => {
-      void (async () => {
-        try {
-          const res = await fetch('/api/phrase-tags', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phrase: q }),
-          });
-          if (!res.ok) throw new Error('phrase-tags');
-          const data = (await res.json()) as PhraseTags;
-          if (!cancelled) setPhraseTags(data);
-        } catch {
-          if (!cancelled) {
-            setPhraseTags({
-              moods: [],
-              genres: [],
-              themes: [],
-              entities: [],
-              source: 'ai',
-              date_from: rules.date_from,
-              date_to: rules.date_to,
-            });
-          }
-        }
-      })();
-    }, SEARCH_DEBOUNCE_MS);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(id);
-    };
-  }, [query, isPhraseScope]);
+    void (async () => {
+      try {
+        const res = await fetch('/api/phrase-tags', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phrase }),
+        });
+        if (!res.ok) throw new Error('phrase-tags');
+        const data = (await res.json()) as PhraseTags;
+        if (query.trim() !== phrase) return;
+        if (hasPhraseSignal(data)) setPhraseTags(data);
+      } catch {
+        /* keep title-q empty tags */
+      }
+    })();
+  }
 
   function handleQueryChange(next: string) {
     setQuery(next);
@@ -276,6 +266,13 @@ export default function CultureConnectApp({
   );
 
   function applyList(data: AgendaListResponse, append = false) {
+    if (!append && titleSearchPending.current) {
+      titleSearchPending.current = false;
+      const phrase = query.trim();
+      if (phrase && data.total === 0 && !hasPhraseSignal(parsePhraseRules(phrase))) {
+        requestPhraseAi(phrase);
+      }
+    }
     setListItems((prev) => (append ? [...prev, ...data.items] : data.items));
     if (!append) {
       setNouveautesItems(data.nouveautes ?? []);
@@ -297,8 +294,7 @@ export default function CultureConnectApp({
       skipListFetch.current = false;
       return;
     }
-    // Phrase typed but tags not ready (AI path): do not refetch the raw list.
-    if (isPhraseScope && query.trim() && !phraseTags) return;
+    if (isPhraseScope && query.trim() && phraseTags === null) return;
     const gen = ++listFetchGen.current;
     const delay = isPhraseScope && query.trim() ? PHRASE_FETCH_MS : 0;
     let cancelled = false;

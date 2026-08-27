@@ -4,22 +4,32 @@ import type { DayItem, GenreLegend } from './types';
 
 export { normalizeForMatch };
 
-/** True if normalized haystack contains full query, or every query token. */
-export function matchesSearch(haystack: string, query: string): boolean {
-  return matchesNormalizedHaystack(normalizeForMatch(haystack), query);
+/** Search normalize: accents + apostrophes/tirets → espaces (l\'odyssée = odyssee). */
+export function normalizeSearch(text: string): string {
+  return normalizeForMatch(text)
+    .replace(/[''‘`]/g, ' ')
+    .replace(/[-_/]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
-/** Same token matching as matchesSearch; haystack is already normalizeForMatch'd. */
+/** True if normalized haystack contains full query, or every query token. */
+export function matchesSearch(haystack: string, query: string): boolean {
+  return matchesNormalizedHaystack(normalizeSearch(haystack), query);
+}
+
+/** Token matching; haystack may be raw or already normalized. */
 export function matchesNormalizedHaystack(
   hayNormalized: string,
   query: string,
 ): boolean {
-  const q = normalizeForMatch(query).trim();
+  const hay = normalizeSearch(hayNormalized);
+  const q = normalizeSearch(query);
   if (!q) return true;
-  if (hayNormalized.includes(q)) return true;
+  if (hay.includes(q)) return true;
   const tokens = q.split(/\s+/).filter(Boolean);
   if (tokens.length <= 1) return false;
-  return tokens.every((t) => hayNormalized.includes(t));
+  return tokens.every((t) => hay.includes(t));
 }
 
 /** Cache normalizeForMatch(itemSearchBlob) per item.key across keystrokes. */
@@ -57,6 +67,7 @@ export function itemSearchBlob(
   item: DayItem,
   genresLegend: GenreLegend[],
   artisteNameById?: Map<string, string>,
+  filmTitleById?: Map<string, string>,
 ): string {
   const parts: string[] = [];
 
@@ -80,6 +91,10 @@ export function itemSearchBlob(
     const aid = (item.programme.artiste_id || '').trim();
     if (aid && artisteNameById?.has(aid)) {
       parts.push(artisteNameById.get(aid)!);
+    }
+    const fid = (item.programme.film_id || '').trim();
+    if (fid && filmTitleById?.has(fid)) {
+      parts.push(filmTitleById.get(fid)!);
     }
   } else {
     parts.push(item.evenement.titre);

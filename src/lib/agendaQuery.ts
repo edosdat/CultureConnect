@@ -17,11 +17,7 @@ import {
   nouveautesCine,
   pickAussiCeSoir,
 } from './nouveautesCine';
-import {
-  itemSearchBlob,
-  matchesNormalizedHaystack,
-  normalizeForMatch,
-} from './searchText';
+import { itemSearchBlob, matchesNormalizedHaystack } from './searchText';
 import {
   entityAliases,
   normalizePhrase,
@@ -450,9 +446,18 @@ function listForRange(
     );
     const q = input.q.trim();
     if (q) {
+      const artisteNameById = new Map(
+        data.artistes.map((a) => [a.artiste_id, a.nom]),
+      );
+      const filmTitleById = new Map(data.films.map((f) => [f.film_id, f.titre]));
       items = items.filter((item) =>
         matchesNormalizedHaystack(
-          normalizeForMatch(itemSearchBlob(item, data.genresLegend)),
+          itemSearchBlob(
+            item,
+            data.genresLegend,
+            artisteNameById,
+            filmTitleById,
+          ),
           q,
         ),
       );
