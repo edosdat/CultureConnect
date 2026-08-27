@@ -6,7 +6,6 @@ import type { DayItem, GenreLegend, Lieu } from '@/lib/types';
 import type { AgendaDetailResponse, AgendaListResponse } from '@/lib/slim';
 import { profileHasChipWeight, recommendForProfile, recommendForTastes, slotFormOfItem } from '@/lib/reco';
 import { extractMoods, profileHasZeroWeights } from '@/lib/signals';
-import { reasonLineForState } from '@/lib/pourToi';
 import { useSignals } from './SignalsProvider';
 import { densifiedCardCount } from '@/lib/densify';
 import { filmIdOfItem } from '@/lib/nouveautesCine';
@@ -398,10 +397,25 @@ export default function CultureConnectApp({
   const pourToiItems = useMemo(() => {
     if (tasteState) {
       if (!profileHasChipWeight(tasteState.profile)) return [];
-      return recommendForProfile(recoPoolItems, tasteState, 3).map((s) => s.item);
+      return recommendForProfile(recoPoolItems, tasteState, 3, selectedCategories).map((s) => s.item);
     }
     if (tastes) {
       const scored = recommendForTastes(recoPoolItems, tastes, 12);
+      const catSlots = selectedCategories
+        .map((c) =>
+          c === 'cinema' ? 'cine' : c === 'theatre_danse' ? 'theatre' : c === 'musique' ? 'concert' : '',
+        )
+        .filter(Boolean);
+      if (catSlots.length) {
+        return scored
+          .filter((e) => {
+            const slot = slotFormOfItem(e.item);
+            return slot && catSlots.includes(slot) && e.score > 0;
+          })
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 3)
+          .map((s) => s.item);
+      }
       const best = new Map();
       for (const entry of scored) {
         const slot = slotFormOfItem(entry.item);
@@ -414,7 +428,7 @@ export default function CultureConnectApp({
         .filter(Boolean);
     }
     return [];
-  }, [recoPoolItems, tastes, tasteState]);
+  }, [recoPoolItems, tastes, tasteState, selectedCategories]);
 
   const pourToiKeys = useMemo(
     () => new Set(pourToiItems.map((item) => item.key)),
@@ -428,11 +442,6 @@ export default function CultureConnectApp({
     }
     return ids;
   }, [pourToiItems]);
-  const pourToiReason = useMemo(
-    () => reasonLineForState(tasteState),
-    [tasteState],
-  );
-
   const packFilmIds = useMemo(() => {
     const ids = new Set<string>();
     for (const item of nouveautesItems) {

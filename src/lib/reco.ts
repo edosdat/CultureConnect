@@ -1252,6 +1252,13 @@ export function slotFormOfItem(item: DayItem): RecoSlotForm | null {
   if (form === 'cine' || form === 'cinema') return 'cine';
   if (form === 'theatre' || form === 'theatre_danse') return 'theatre';
   if (form === 'concert' || form === 'musique') return 'concert';
+  const genre = `${prog?.genre || ''} ${ev?.genre || ''}`.toLowerCase();
+  if (form === 'festival' && /theatre|humour|standup|danse|cirque/.test(genre)) {
+    return 'theatre';
+  }
+  if (form === 'festival' && /concert|musique|rock|jazz/.test(genre)) {
+    return 'concert';
+  }
   return null;
 }
 
@@ -1346,24 +1353,41 @@ function pickBestPerSlot(scored: ScoredDayItem[]): ScoredDayItem[] {
  * Shared overlap only (moods ∪ genres ∪ themes). Empty slot if 0 overlap.
  * No vivant quota / neighbor fill / 2nd cinema.
  */
+function slotsFromCatChips(cats: string[]): RecoSlotForm[] {
+  const out: RecoSlotForm[] = [];
+  for (const c of cats) {
+    if (c === 'cinema' && !out.includes('cine')) out.push('cine');
+    if (c === 'theatre_danse' && !out.includes('theatre')) out.push('theatre');
+    if (c === 'musique' && !out.includes('concert')) out.push('concert');
+  }
+  return out;
+}
+
 export function recommendForProfile(
   items: DayItem[],
   state: AccountTasteState,
   topN = 3,
+  catMains: string[] = [],
 ): ScoredDayItem[] {
   if (items.length === 0) return [];
   const profile = state.profile;
   if (!profileHasChipWeight(profile)) return [];
 
+  const catSlots = slotsFromCatChips(catMains);
   const scored: ScoredDayItem[] = [];
   for (const item of items) {
     const slot = slotFormOfItem(item);
     if (!slot) continue;
+    if (catSlots.length && !catSlots.includes(slot)) continue;
     const score = scoreOverlap(item, profile, slot);
     if (score <= 0) continue;
     scored.push({ item, score });
   }
 
-  const picked = pickBestPerSlot(scored);
-  return picked.slice(0, Math.max(1, topN));
+  const limit = Math.max(1, topN);
+  if (catSlots.length) {
+    scored.sort((a, b) => b.score - a.score || a.item.dayIso.localeCompare(b.item.dayIso));
+    return scored.slice(0, limit);
+  }
+  return pickBestPerSlot(scored).slice(0, limit);
 }

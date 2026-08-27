@@ -621,6 +621,43 @@ function withRecoTags(item: DayItem): DayItem {
   return slim;
 }
 
+
+/** Reco pool: keep every theatre + concert, then fill cine up to cap. */
+function recoSlotOf(item: DayItem): "cine" | "theatre" | "concert" | null {
+  const ev = item.evenement ?? null;
+  const prog = item.kind === "programme" ? item.programme : null;
+  const form = formFromCategorieAndForm(
+    ev?.categorie || "",
+    prog?.form || ev?.form,
+  );
+  if (form === "cine" || form === "cinema") return "cine";
+  if (form === "theatre" || form === "theatre_danse") return "theatre";
+  if (form === "concert" || form === "musique") return "concert";
+  const genre = `${prog?.genre || ""} ${ev?.genre || ""}`.toLowerCase();
+  if (form === "festival" && /theatre|humour|standup|danse|cirque/.test(genre)) {
+    return "theatre";
+  }
+  if (form === "festival" && /concert|musique|rock|jazz/.test(genre)) {
+    return "concert";
+  }
+  return null;
+}
+
+function balanceRecoPool(items: DayItem[], cap: number): DayItem[] {
+  const cine: DayItem[] = [];
+  const theatre: DayItem[] = [];
+  const concert: DayItem[] = [];
+  for (const item of items) {
+    const slot = recoSlotOf(item);
+    if (slot === "cine") cine.push(item);
+    else if (slot === "theatre") theatre.push(item);
+    else if (slot === "concert") concert.push(item);
+  }
+  const must = [...theatre, ...concert];
+  const rest = Math.max(0, cap - must.length);
+  return [...must, ...cine.slice(0, rest)].slice(0, cap);
+}
+
 /**
  * Short-window list: default scope + commune, slim cards.
  * Search / multi-day pages are capped at ~50.
@@ -663,7 +700,8 @@ export function queryAgenda(
   const cap = shortWindow
     ? Math.min(Math.max(requested, 0), 800)
     : Math.min(Math.max(requested, 0), AGENDA_PAGE_MAX);
-  const page = items
+  const recoItems = input.recoUpcoming ? balanceRecoPool(items, cap) : items;
+  const page = recoItems
     .slice(offset, offset + cap)
     .map(input.recoUpcoming ? withRecoTags : slimDayItem);
 

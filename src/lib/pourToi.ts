@@ -221,28 +221,18 @@ export function reasonLineForState(
 
   if (best.kind === 'open_card') {
     const main = mappedCategorie(best.categorie);
-    if (main === 'theatre_danse') return 'Parce que tu regardes du théâtre';
-    if (main === 'cinema' || best.film_id) return 'Parce que tu regardes du ciné';
+    if (main === 'theatre_danse') return 'D’après tes derniers clics';
+    if (main === 'cinema' || best.film_id) return 'D’après tes derniers clics';
     if (state && cineFicheCount(state.signalsRecent) >= 1) {
-      return 'Parce que tu regardes du ciné';
+      return 'D’après tes derniers clics';
     }
     return 'D’après tes derniers clics';
   }
   if (best.kind === 'reserve' || best.kind === 'agenda_add' || best.kind === 'ics') {
-    return 'Parce que tu as mis ça à l’agenda';
+    return 'D’après tes derniers clics';
   }
-  if (best.kind === 'chip_cat') {
-    const main =
-      mappedCategorie(best.categorie || best.chip) ??
-      best.categorie ??
-      best.chip ??
-      '';
-    const label = CAT_REASON_LABELS[main] ?? (humanizeKey(main) || 'ça');
-    return `Parce que tu filtres ${label}`;
-  }
-  if (best.kind === 'search') {
-    const q = (best.query || best.chip || '').trim();
-    if (q) return `Parce que tu as cherché « ${q} »`;
+  if (best.kind === 'chip_cat' || best.kind === 'search') {
+    return 'D’après tes derniers clics';
   }
   return 'D’après tes derniers clics';
 }
