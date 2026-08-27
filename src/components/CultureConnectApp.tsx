@@ -22,6 +22,7 @@ import VenueFilter from './VenueFilter';
 import MonthCalendar from './MonthCalendar';
 import MonthCalendarDrawer from './MonthCalendarDrawer';
 import SeanceGrid from './SeanceGrid';
+import Top3Skeleton from './Top3Skeleton';
 import TimeScopeBar from './TimeScopeBar';
 import SearchOmnibox from './SearchOmnibox';
 import EventDetail from './EventDetail';
@@ -361,6 +362,9 @@ export default function CultureConnectApp({
     selectedCommune,
     recoKind,
   );
+  const recoReady =
+    !recoWiped &&
+    Object.prototype.hasOwnProperty.call(recoPoolByKey, currentRecoKey);
 
   useEffect(() => {
     if (recoWiped) {
@@ -1047,12 +1051,13 @@ export default function CultureConnectApp({
           {monthCalendar}
         </MonthCalendarDrawer>
 
-        {(pourToiItems.length > 0 ||
-          Boolean(tasteState && profileHasZeroWeights(tasteState.profile))) && (
-          <section className="space-y-3 rounded-card-lg border border-culture-soft/80 bg-culture-surface/80 p-3 sm:p-4">
-            <h2 className="font-display text-xl text-culture-ink sm:text-2xl">
-              Ton top 3 du moment
-            </h2>
+        <section className="space-y-3 rounded-card-lg border border-culture-soft/80 bg-culture-surface/80 p-3 sm:p-4">
+          <h2 className="font-display text-xl text-culture-ink sm:text-2xl">
+            Ton top 3 du moment
+          </h2>
+          {!recoReady && !recoWiped ? (
+            <Top3Skeleton />
+          ) : (
             <SeanceGrid
               items={pourToiItems}
               showDate={showDateLabels}
@@ -1062,8 +1067,8 @@ export default function CultureConnectApp({
               nouveauFilmIds={nouveauFilmIdSet}
               fixedSlots
             />
-          </section>
-        )}
+          )}
+        </section>
 
         {showCinemaPack ? (
           <section className="space-y-2">
