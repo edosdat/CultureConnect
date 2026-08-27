@@ -127,16 +127,27 @@ function normalizeCommune(c: string | null | undefined): string {
   return (c || '').trim().toLocaleLowerCase('fr');
 }
 
-function itemHeureDebut(item: DayItem): string {
-  if (item.kind === 'programme') return (item.programme.heure_debut || '').trim();
-  return (item.evenement.heure_debut || '').trim();
+function clockHHMM(raw: string | undefined | null): string {
+  const h = (raw || '').trim();
+  if (!/^\d{1,2}:\d{2}/.test(h)) return '';
+  const slice = h.slice(0, 5);
+  return slice.length === 4 ? `0${slice}` : slice;
 }
 
-/** Ce soir: heure_debut >= 19:00; exclude period cards without a clock time. */
+function itemHeureDebut(item: DayItem): string {
+  if (item.kind === 'programme') {
+    return (
+      clockHHMM(item.programme.heure_debut) ||
+      clockHHMM(item.evenement?.heure_debut)
+    );
+  }
+  return clockHHMM(item.evenement.heure_debut);
+}
+
+/** Ce soir: clock >= 19:00; period cards without a clock stay out. */
 export function startsAtOrAfter19(item: DayItem): boolean {
   const h = itemHeureDebut(item);
-  if (!h || h.length < 4) return false;
-  return h.slice(0, 5) >= '19:00';
+  return Boolean(h) && h >= '19:00';
 }
 
 function collectCommunes(lieux: Iterable<Lieu>): string[] {

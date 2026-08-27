@@ -28,6 +28,13 @@ type Props = {
 
 export { densifiedCardCount };
 
+/** 1 card → 1 col; 2 → 2 cols from sm; 3+ → 3 cols from lg. Avoids empty CSS holes. */
+function gridColsClass(count: number): string {
+  if (count <= 1) return 'grid grid-cols-1 gap-4';
+  if (count === 2) return 'grid grid-cols-1 gap-4 sm:grid-cols-2';
+  return 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3';
+}
+
 export default function SeanceGrid({
   items,
   showDate = false,
@@ -88,7 +95,7 @@ export default function SeanceGrid({
 
   return (
     <div className="space-y-4">
-      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className={gridColsClass(limited.length)}>
         {limited.map(
           ({
             item,

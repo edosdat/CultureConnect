@@ -1348,6 +1348,17 @@ function pickBestPerSlot(scored: ScoredDayItem[]): ScoredDayItem[] {
   return out;
 }
 
+function itemClockKey(item: DayItem): string {
+  const raw =
+    item.kind === 'programme'
+      ? (item.programme.heure_debut || '').trim() ||
+        (item.evenement?.heure_debut || '').trim()
+      : (item.evenement.heure_debut || '').trim();
+  if (!/^\d{1,2}:\d{2}/.test(raw)) return '99:99';
+  const slice = raw.slice(0, 5);
+  return slice.length === 4 ? `0${slice}` : slice;
+}
+
 /** Guest / no profile: soonest cine + theatre + concert. No overlap required. */
 export function pickSoonestPerSlot(items: DayItem[]): DayItem[] {
   const best = new Map<RecoSlotForm, DayItem>();
@@ -1355,7 +1366,15 @@ export function pickSoonestPerSlot(items: DayItem[]): DayItem[] {
     const slot = slotFormOfItem(item);
     if (!slot) continue;
     const prev = best.get(slot);
-    if (!prev || item.dayIso.localeCompare(prev.dayIso) < 0) {
+    if (!prev) {
+      best.set(slot, item);
+      continue;
+    }
+    const day = item.dayIso.localeCompare(prev.dayIso);
+    if (
+      day < 0 ||
+      (day === 0 && itemClockKey(item).localeCompare(itemClockKey(prev)) < 0)
+    ) {
       best.set(slot, item);
     }
   }
