@@ -456,6 +456,17 @@ export default function EventDetail({
           </div>
 
           <div className="space-y-5 px-5 py-5">
+            {pitchOf(item) ? (
+              <section>
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
+                  Description
+                </h3>
+                <p className="mt-2 whitespace-pre-wrap text-culture-ink leading-relaxed break-words">
+                  {pitchOf(item)}
+                </p>
+              </section>
+            ) : null}
+
             {!hasFilmSeances && (
               <dl className="grid gap-3 text-sm sm:grid-cols-2">
                 <div>
@@ -571,17 +582,6 @@ export default function EventDetail({
               </section>
             )}
 
-            {pitchOf(item) && (
-              <section>
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
-                  Description
-                </h3>
-                <p className="mt-2 whitespace-pre-wrap text-culture-ink leading-relaxed break-words">
-                  {pitchOf(item)}
-                </p>
-              </section>
-            )}
-
             {p.notes && (
               <section>
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
@@ -693,6 +693,17 @@ export default function EventDetail({
         </div>
 
         <div className="space-y-5 px-5 py-5">
+          {pitchOf(item) ? (
+            <section>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
+                Description
+              </h3>
+              <p className="mt-1 whitespace-pre-wrap text-culture-ink leading-relaxed break-words">
+                {pitchOf(item)}
+              </p>
+            </section>
+          ) : null}
+
           <dl className="grid gap-3 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-culture-muted">Dates</dt>
@@ -754,17 +765,6 @@ export default function EventDetail({
                   Site du lieu
                 </a>
               )}
-            </section>
-          )}
-
-          {pitchOf(item) && (
-            <section>
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
-                Description
-              </h3>
-              <p className="mt-1 whitespace-pre-wrap text-culture-ink leading-relaxed break-words">
-                {pitchOf(item)}
-              </p>
             </section>
           )}
 

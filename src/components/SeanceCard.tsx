@@ -32,6 +32,16 @@ type Props = {
   nouveau?: boolean;
 };
 
+function cardPitch(item: DayItem): string {
+  if (item.kind === 'programme') {
+    return (
+      (item.programme.description_item || '').trim() ||
+      (item.evenement?.description_courte || '').trim()
+    );
+  }
+  return (item.evenement.description_courte || '').trim();
+}
+
 function categoryLabelFor(item: DayItem): string {
   if (item.kind === 'programme') {
     const cat = item.evenement?.categorie ?? '';
@@ -192,8 +202,13 @@ export default function SeanceCard({
           {title}
         </h3>
         {!imageUrl && catLabel ? <CategoryPill label={catLabel} /> : null}
+        {cardPitch(item) ? (
+          <p className={'text-sm leading-snug text-culture-ink ' + (compact ? 'line-clamp-2' : 'line-clamp-3')}>
+            {cardPitch(item)}
+          </p>
+        ) : null}
         {metaLine ? (
-          <p className="text-sm text-culture-ink">{metaLine}</p>
+          <p className="text-sm text-culture-muted">{metaLine}</p>
         ) : null}
         {showCities ? (
           <p className="text-xs text-culture-muted">{citiesSummary}</p>

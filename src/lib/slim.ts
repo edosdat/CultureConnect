@@ -24,6 +24,18 @@ export function slimLieu(lieu: Lieu | null | undefined): Lieu | null {
   };
 }
 
+/** 1–2 phrases for list cards. Never the full description_longue. */
+export function clipListPitch(raw?: string | null): string {
+  const t = (raw || '').replace(/\s+/g, ' ').trim();
+  if (!t) return '';
+  const sentences = t.split(/(?<=[.!?…])\s+/).filter(Boolean);
+  let out = sentences.slice(0, 2).join(' ') || t;
+  if (out.length > 320) {
+    out = out.slice(0, 317).replace(/\s+\S*$/, '') + '…';
+  }
+  return out;
+}
+
 function slimEvenement(
   ev: Evenement | EventWithDetails | null | undefined,
 ): Evenement | null {
@@ -40,7 +52,8 @@ function slimEvenement(
     prix: ev.prix,
     gratuit: ev.gratuit,
     url_source: '',
-    description_courte: '',
+    description_courte:
+      clipListPitch(ev.description_courte) || clipListPitch(ev.description_longue),
     statut: ev.statut,
     genre: ev.genre,
     image_url: ev.image_url || '',
@@ -66,13 +79,15 @@ function slimProgramme(p: ProgrammeItem): ProgrammeItem {
     artiste_id: p.artiste_id || '',
     film_id: p.film_id || '',
     image_url: p.image_url || '',
+    description_item: clipListPitch(p.description_item),
   };
 }
 
 /**
  * First-paint card: id, titre, heure, lieu, cat, image, film_id
  * (+ prix / genre / type so SeanceCard + densify + Pour toi still work).
- * Drops descriptions, nested programme[], source blobs.
+ * Keeps a 1–2 sentence pitch (description_courte / description_item).
+ * Drops description_longue, nested programme[], source blobs.
  */
 export function slimDayItem(item: DayItem): DayItem {
   if (item.kind === 'programme') {
