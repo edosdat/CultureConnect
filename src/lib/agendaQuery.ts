@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { unstable_cache } from 'next/cache';
-import type { Artiste, DayItem, Evenement, Lieu, ProgrammeItem } from './types';
+import type { Artiste, DayItem, Evenement, Lieu, ProgrammeItem, ProgrammeWithContext } from './types';
 import { loadCultureData } from './data';
 import { catsAllowCinemaPack, formFromCategorieAndForm } from './categories';
 import { densifiedCardCount } from './densify';
@@ -41,7 +41,7 @@ import {
   upcomingRange,
   type TimeScopeId,
 } from './timeScope';
-import { pickSoonestPerSlot, profileHasChipWeight, recommendForProfile } from './reco';
+import { mergeSlotPicks, pickSoonestPerSlot, profileHasChipWeight, recommendForProfile } from './reco';
 import type { TasteEntry, TasteProfile } from './signals';
 
 export const AGENDA_PAGE_MAX = 50;
@@ -149,6 +149,75 @@ export function startsAtOrAfter19(item: DayItem): boolean {
   const h = itemHeureDebut(item);
   return Boolean(h) && h >= '19:00';
 }
+
+function filmIdOfDayItem(item: DayItem): string {
+  if (item.kind !== 'programme') return '';
+  return (item.programme.film_id || '').trim();
+}
+
+/**
+ * Ce soir: clock >= 19:00. Cinema is one row per séance — a film with 14:00
+ * and 20:00 keeps the 20:00 row. If a film-day was collapsed onto the earliest
+ * heure, look up a raw séance >= 19:00 so the cine slot is not dropped.
+ */
+function filterSoirItems(
+  items: DayItem[],
+  programme: ProgrammeWithContext[],
+): DayItem[] {
+  const kept = items.filter(startsAtOrAfter19);
+  const seenFilmDay = new Set<string>();
+  for (const item of kept) {
+    const fid = filmIdOfDayItem(item);
+    if (fid) seenFilmDay.add(`${item.dayIso}:${fid}`);
+  }
+
+  for (const item of items) {
+    if (startsAtOrAfter19(item)) continue;
+    const fid = filmIdOfDayItem(item);
+    if (!fid) continue;
+    const filmDay = `${item.dayIso}:${fid}`;
+    if (seenFilmDay.has(filmDay)) continue;
+
+    const fromPool = items
+      .filter(
+        (it) =>
+          filmIdOfDayItem(it) === fid &&
+          it.dayIso === item.dayIso &&
+          startsAtOrAfter19(it),
+      )
+      .sort((a, b) => itemHeureDebut(a).localeCompare(itemHeureDebut(b)))[0];
+    if (fromPool) {
+      kept.push(fromPool);
+      seenFilmDay.add(filmDay);
+      continue;
+    }
+
+    const eveningProg = programme
+      .filter(
+        (row) =>
+          (row.programme.film_id || '').trim() === fid &&
+          row.programme.date === item.dayIso &&
+          clockHHMM(row.programme.heure_debut) >= '19:00',
+      )
+      .sort((a, b) =>
+        clockHHMM(a.programme.heure_debut).localeCompare(
+          clockHHMM(b.programme.heure_debut),
+        ),
+      )[0];
+    if (!eveningProg) continue;
+    kept.push({
+      kind: 'programme',
+      key: `p:${eveningProg.programme.programme_id}`,
+      dayIso: item.dayIso,
+      programme: eveningProg.programme,
+      evenement: eveningProg.evenement,
+      lieu: eveningProg.lieu,
+    });
+    seenFilmDay.add(filmDay);
+  }
+  return kept;
+}
+
 
 function collectCommunes(lieux: Iterable<Lieu>): string[] {
   const set = new Set<string>();
@@ -551,7 +620,7 @@ function listForRange(
       }
     }
     if (input.scope === 'soir') {
-      items = items.filter(startsAtOrAfter19);
+      items = filterSoirItems(items, data.programmeWithContext);
     }
   }
 
@@ -753,12 +822,13 @@ export function queryAgenda(
 
   if (input.recoUpcoming) {
     const profile = input.recoProfile ?? null;
-    const picked =
+    const preferred =
       profile && profileHasChipWeight(profile)
         ? recommendForProfile(items, { signalsRecent: [], profile }, 3).map(
             (s) => s.item,
           )
         : pickSoonestPerSlot(items);
+    const picked = mergeSlotPicks(preferred, pickSoonestPerSlot(items));
     return {
       scope: input.scope,
       commune: input.commune,

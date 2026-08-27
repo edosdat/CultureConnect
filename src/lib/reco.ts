@@ -1386,9 +1386,28 @@ export function pickSoonestPerSlot(items: DayItem[]): DayItem[] {
   return out;
 }
 
+/** Prefer preferred per slot, then fill missing forms from fallback. */
+export function mergeSlotPicks(
+  preferred: DayItem[],
+  fallback: DayItem[],
+): DayItem[] {
+  const bySlot = new Map<RecoSlotForm, DayItem>();
+  for (const item of [...preferred, ...fallback]) {
+    const slot = slotFormOfItem(item);
+    if (!slot || bySlot.has(slot)) continue;
+    bySlot.set(slot, item);
+  }
+  const out: DayItem[] = [];
+  for (const slot of SLOT_ORDER) {
+    const hit = bySlot.get(slot);
+    if (hit) out.push(hit);
+  }
+  return out;
+}
+
 /**
  * Top 3 = 1 cine + 1 theatre + 1 concert. Cat chips never filter this.
- * Shared overlap only (moods ∪ genres ∪ themes). Empty slot if 0 overlap.
+ * Overlap ranks inside a slot; empty only if that form is absent from the pool.
  * No vivant quota / neighbor fill / 2nd theatre.
  */
 export function recommendForProfile(
@@ -1410,5 +1429,14 @@ export function recommendForProfile(
   }
 
   const limit = Math.max(1, topN);
-  return pickBestPerSlot(scored).slice(0, limit);
+  const overlap = pickBestPerSlot(scored);
+  const merged = mergeSlotPicks(
+    overlap.map((s) => s.item),
+    pickSoonestPerSlot(items),
+  );
+  const scoreOf = new Map(overlap.map((s) => [s.item, s.score]));
+  return merged.slice(0, limit).map((item) => ({
+    item,
+    score: scoreOf.get(item) ?? 0,
+  }));
 }
