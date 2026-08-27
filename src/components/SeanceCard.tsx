@@ -28,6 +28,8 @@ type Props = {
   citiesSummary?: string;
   /** Tighter card for in-modal suggestions (Aussi ce soir). */
   compact?: boolean;
+  /** 1re séance mercredi de la semaine Paris, encore à venir. */
+  nouveau?: boolean;
 };
 
 function categoryLabelFor(item: DayItem): string {
@@ -67,6 +69,7 @@ export default function SeanceCard({
   earliestHeure = '',
   citiesSummary = '',
   compact = false,
+  nouveau = false,
 }: Props) {
   const catLabel = categoryLabelFor(item);
   const imageUrl =
@@ -134,30 +137,36 @@ export default function SeanceCard({
       }
       style={accentStyle}
     >
-      {imageUrl ? (
+      {imageUrl || nouveau ? (
         <div
           className={
             (compact ? 'relative h-16 w-full overflow-hidden ' : 'relative h-24 w-full overflow-hidden ') +
             catGradient(catLabel)
           }
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imageUrl}
-            alt=""
-            loading="lazy"
-            className="h-full w-full object-cover transition duration-200 ease-out group-hover:scale-[1.03]"
-          />
+          {imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={imageUrl}
+              alt=""
+              loading="lazy"
+              className="h-full w-full object-cover transition duration-200 ease-out group-hover:scale-[1.03]"
+            />
+          ) : null}
           {catLabel && (
             <span className="absolute left-3 top-3">
               <CategoryPill label={catLabel} />
             </span>
           )}
-          {isPeriod && (
+          {nouveau ? (
+            <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-culture-terracotta px-2 py-0.5 text-[11px] font-medium leading-none text-culture-cream">
+              Nouveau
+            </span>
+          ) : isPeriod ? (
             <span className="absolute right-3 top-3 rounded-full bg-culture-surface/95 px-2 py-0.5 text-[10px] uppercase tracking-wide text-culture-muted">
               Sur la période
             </span>
-          )}
+          ) : null}
         </div>
       ) : null}
 

@@ -239,6 +239,7 @@ export type AgendaListResponse = {
   parisIso: string;
   weekday: number;
   genresLegend: GenreLegend[];
+  nouveauFilmIds?: string[];
 };
 
 export type AgendaDetailResponse = {

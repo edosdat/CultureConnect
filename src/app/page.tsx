@@ -19,6 +19,7 @@ export default function HomePage() {
         genresLegend={boot.genresLegend}
         initialYear={2026}
         initialMonth={8}
+        initialNouveauFilmIds={boot.nouveauFilmIds ?? []}
       />
     </main>
   );

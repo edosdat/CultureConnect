@@ -49,6 +49,7 @@ type Props = {
   genresLegend: GenreLegend[];
   initialYear: number;
   initialMonth: number;
+  initialNouveauFilmIds?: string[];
 };
 
 function sortieWord(n: number): string {
@@ -123,6 +124,7 @@ export default function CultureConnectApp({
   genresLegend,
   initialYear,
   initialMonth,
+  initialNouveauFilmIds = [],
 }: Props) {
   const { data: session } = useSession();
   const { track, trackItem, tasteState } = useSignals();
@@ -147,6 +149,9 @@ export default function CultureConnectApp({
   const [listItems, setListItems] = useState<DayItem[]>(initialItems);
   const [nouveautesItems, setNouveautesItems] =
     useState<DayItem[]>(initialNouveautes);
+  const [nouveauFilmIdSet, setNouveauFilmIdSet] = useState<Set<string>>(
+    () => new Set(initialNouveauFilmIds),
+  );
   const [total, setTotal] = useState(initialTotal);
   const [densifiedTotalApi, setDensifiedTotalApi] = useState(
     initialDensifiedTotal,
@@ -286,6 +291,9 @@ export default function CultureConnectApp({
     }
     if (data.counts) {
       setCounts(new Map(Object.entries(data.counts)));
+    }
+    if (!append && data.nouveauFilmIds) {
+      setNouveauFilmIdSet(new Set(data.nouveauFilmIds));
     }
   }
 
@@ -819,6 +827,7 @@ export default function CultureConnectApp({
               onSelectItem={setSelectedItemKey}
               onSelectVenue={handleSelectVenue}
               empty={null}
+              nouveauFilmIds={nouveauFilmIdSet}
             />
           </section>
         )}
@@ -834,6 +843,7 @@ export default function CultureConnectApp({
               onSelectItem={setSelectedItemKey}
               onSelectVenue={handleSelectVenue}
               empty={null}
+              nouveauFilmIds={nouveauFilmIdSet}
             />
           </section>
         ) : null}
@@ -845,6 +855,7 @@ export default function CultureConnectApp({
           onSelectVenue={handleSelectVenue}
           visibleCount={visibleCount}
           onLoadMore={handleLoadMore}
+          nouveauFilmIds={nouveauFilmIdSet}
           empty={
             packCardCount > 0 || pourToiItems.length > 0 ? null : phraseMode ? (
               <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-6 py-12 text-center">

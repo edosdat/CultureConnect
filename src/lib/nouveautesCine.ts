@@ -146,18 +146,20 @@ type FilmBucket = {
   rows: ProgrammeWithContext[];
 };
 
-/**
- * 2–16 cinema DayItems, one per film_id (representative = first upcoming séance).
- * First BDD séance must be this week's Wednesday. Sort: more salles, then more
- * séances. Empty when fewer than 2 films qualify — no orphan title.
- */
-export function nouveautesCine(
+
+type Candidate = {
+  filmId: string;
+  representative: ProgrammeWithContext;
+  salleCount: number;
+  seanceCount: number;
+};
+
+function qualifyingNouveauFilms(
   programme: ProgrammeWithContext[],
-  now = new Date(),
-): DayItem[] {
+  now: Date,
+): Candidate[] {
   const { iso: todayIso, weekday } = parisParts(now);
   const nowHeure = parisHeureMinute(now);
-  // parisParts weekday: 0=Sun .. 6=Sat. Calendar week is Mon–Sun of `now`.
   const daysFromMon = weekday === 0 ? 6 : weekday - 1;
   const weekStart = addDaysIso(todayIso, -daysFromMon);
   const weekEnd = addDaysIso(weekStart, 6);
@@ -178,15 +180,7 @@ export function nouveautesCine(
     bucket.rows.push(p);
   }
 
-  type Candidate = {
-    filmId: string;
-    representative: ProgrammeWithContext;
-    salleCount: number;
-    seanceCount: number;
-  };
-
   const candidates: Candidate[] = [];
-
   for (const { filmId, rows } of byFilm.values()) {
     const sorted = [...rows].sort((a, b) => {
       const d = a.programme.date.localeCompare(b.programme.date);
@@ -195,8 +189,7 @@ export function nouveautesCine(
     });
     const firstOverall = sorted[0];
     if (!firstOverall) continue;
-    const firstOverallDate = firstOverall.programme.date;
-    if (firstOverallDate !== wednesdayIso) continue;
+    if (firstOverall.programme.date !== wednesdayIso) continue;
 
     const firstUpcoming = sorted.find((p) =>
       isUpcomingSeance(
@@ -224,6 +217,27 @@ export function nouveautesCine(
       seanceCount: weekRows.length,
     });
   }
+  return candidates;
+}
+
+/** film_ids whose first BDD séance is this week's Wednesday and still upcoming. */
+export function nouveauFilmIds(
+  programme: ProgrammeWithContext[],
+  now = new Date(),
+): Set<string> {
+  return new Set(qualifyingNouveauFilms(programme, now).map((c) => c.filmId));
+}
+
+/**
+ * 2–16 cinema DayItems, one per film_id (representative = first upcoming séance).
+ * First BDD séance must be this week's Wednesday. Sort: more salles, then more
+ * séances. Empty when fewer than 2 films qualify — no orphan title.
+ */
+export function nouveautesCine(
+  programme: ProgrammeWithContext[],
+  now = new Date(),
+): DayItem[] {
+  const candidates = qualifyingNouveauFilms(programme, now);
 
   if (candidates.length < 2) return [];
 

@@ -14,6 +14,7 @@ import {
 import {
   filmIdOfItem,
   isCinemaDayItem,
+  nouveauFilmIds,
   nouveautesCine,
   pickAussiCeSoir,
 } from './nouveautesCine';
@@ -648,6 +649,7 @@ export function queryAgenda(
     parisIso: paris.iso,
     weekday: paris.weekday,
     genresLegend: data.genresLegend,
+    nouveauFilmIds: Array.from(nouveauFilmIds(data.programmeWithContext, now)),
   };
 }
 

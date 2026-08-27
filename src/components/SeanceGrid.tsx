@@ -9,6 +9,7 @@ import {
 
 import type { DayItem } from '@/lib/types';
 import { densify, densifiedCardCount } from '@/lib/densify';
+import { filmIdOfItem } from '@/lib/nouveautesCine';
 import SeanceCard from './SeanceCard';
 
 type Props = {
@@ -20,6 +21,7 @@ type Props = {
   /** After densify: show at most this many cards (infinite scroll). */
   visibleCount?: number;
   onLoadMore?: () => void;
+  nouveauFilmIds?: ReadonlySet<string>;
 };
 
 export { densifiedCardCount };
@@ -32,6 +34,7 @@ export default function SeanceGrid({
   empty,
   visibleCount,
   onLoadMore,
+  nouveauFilmIds,
 }: Props) {
   const rows = useMemo(() => densify(items), [items]);
   const limited =
@@ -101,6 +104,11 @@ export default function SeanceGrid({
                 salleCount={salleCount}
                 earliestHeure={earliestHeure}
                 citiesSummary={citiesSummary}
+                nouveau={Boolean(
+                  nouveauFilmIds &&
+                    filmIdOfItem(item) &&
+                    nouveauFilmIds.has(filmIdOfItem(item)),
+                )}
               />
             </li>
           ),
