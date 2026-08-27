@@ -444,6 +444,118 @@ export function itemsForDateRange(
   });
 }
 
+function addDaysIso(iso: string, delta: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const utc = Date.UTC(y, m - 1, d + delta);
+  const dt = new Date(utc);
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
+}
+
+/** Publishable programme event_id:date keys — fallbacks skip these days. */
+export function programmeOccurrenceKeys(
+  programme: ProgrammeWithContext[],
+): Set<string> {
+  const keys = new Set<string>();
+  for (const p of programme) {
+    if (!isProgrammePublishable(p)) continue;
+    const id = p.programme.event_id;
+    const d = (p.programme.date || '').trim();
+    if (id && d) keys.add(`${id}:${d}`);
+  }
+  return keys;
+}
+
+/**
+ * One-pass range from a (possibly prefiltered) pool.
+ * Same cards as looping itemsForDay, without walking every calendar day
+ * against the full catalogue.
+ */
+export function itemsForRangeFromPool(
+  programme: ProgrammeWithContext[],
+  events: EventWithDetails[],
+  startIso: string,
+  endIso: string,
+  categories: string[] = [],
+  lieuIds: string[] = [],
+  genres: string[] = [],
+  excludeLongFallbacks = false,
+  programmeDayKeys?: Set<string>,
+): DayItem[] {
+  if (!startIso || !endIso || endIso < startIso) return [];
+
+  const programmeItems: DayItem[] = [];
+  for (const p of programme) {
+    const d = (p.programme.date || '').trim();
+    if (!d || d < startIso || d > endIso) continue;
+    if (!isProgrammePublishable(p)) continue;
+    if (
+      !matchesFilters(
+        categorieOf(p),
+        lieuIdOf(p),
+        genreOfProgramme(p),
+        categories,
+        lieuIds,
+        genres,
+      )
+    ) {
+      continue;
+    }
+    programmeItems.push({
+      kind: 'programme',
+      key: `p:${p.programme.programme_id}`,
+      dayIso: d,
+      programme: p.programme,
+      evenement: p.evenement,
+      lieu: p.lieu,
+    });
+  }
+
+  const dayKeys = programmeDayKeys ?? programmeOccurrenceKeys(programme);
+  const fallbackItems: DayItem[] = [];
+  for (const ev of events) {
+    if (!isPublishableEvent(ev)) continue;
+    if (excludeLongFallbacks && eventSpanDays(ev) > 7) continue;
+    const lieuId = ev.lieu_id || ev.lieu?.lieu_id || '';
+    if (
+      !matchesFilters(
+        ev.categorie,
+        lieuId,
+        ev.genre || '',
+        categories,
+        lieuIds,
+        genres,
+      )
+    ) {
+      continue;
+    }
+    const evStart = (ev.date_debut || '').trim();
+    const evEnd = (ev.date_fin || ev.date_debut || '').trim();
+    if (!evStart) continue;
+    const from = evStart > startIso ? evStart : startIso;
+    const to = evEnd && evEnd < endIso ? evEnd : endIso;
+    if (!to || from > to) continue;
+    let day = from;
+    let guard = 0;
+    while (day <= to && guard < 400) {
+      if (!dayKeys.has(`${ev.event_id}:${day}`)) {
+        fallbackItems.push({
+          kind: 'fallback',
+          key: `e:${ev.event_id}:${day}`,
+          dayIso: day,
+          evenement: ev,
+          lieu: ev.lieu,
+        });
+      }
+      day = addDaysIso(day, 1);
+      guard += 1;
+    }
+  }
+
+  return sortDayItems([...programmeItems, ...fallbackItems], {
+    deprioritizeCinema: categories.length === 0,
+  });
+}
+
 /**
  * Calendar badges: same total as « X sorties » if you click that day
  * (grouped cards, same commune/cat/genre/publication filters).

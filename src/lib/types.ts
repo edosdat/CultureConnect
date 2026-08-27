@@ -177,6 +177,12 @@ export type DayItem =
       lieu: Lieu | null;
     };
 
+/** Programme + fallback events for one UI main category (built at CSV load). */
+export type CategoryBucket = {
+  programme: ProgrammeWithContext[];
+  events: EventWithDetails[];
+};
+
 export type CultureData = {
   lieux: Lieu[];
   evenements: Evenement[];
@@ -189,4 +195,9 @@ export type CultureData = {
   artistesWithDates: ArtisteWithDates[];
   /** 'table' when artistes.csv loaded; 'derived' when built from programme only */
   artistesMode: 'table' | 'derived';
+  /** Memoized with loadCultureData — walk only this subset for cat / form chips. */
+  byMain: Record<string, CategoryBucket>;
+  /** Max YYYY-MM-DD across programme + events (no per-request scan). */
+  maxIso: string;
+  lieuxById: Map<string, Lieu>;
 };

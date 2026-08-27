@@ -149,6 +149,20 @@ export function mainFromCategorie(categorie: string): MainCategoryId | null {
   return CATEGORIE_TO_MAIN[key] ?? null;
 }
 
+/** Phrase `form=` → main bucket (concert chip uses the musique index). */
+export function mainFromForm(form: string | null | undefined): MainCategoryId | null {
+  const q = (form || '').trim().toLowerCase();
+  if (!q) return null;
+  if (q === 'concert' || q === 'musique') return 'musique';
+  if (q === 'cine' || q === 'cinema' || q === 'ciné' || q === 'cinéma') return 'cinema';
+  if (q === 'theatre' || q === 'theatre_danse' || q === 'théatre' || q === 'théâtre')
+    return 'theatre_danse';
+  if (q === 'festival') return 'festival';
+  if (q === 'enfants' || q === 'enfants_famille') return 'enfants_famille';
+  if (q === 'expo' || q === 'expo_patrimoine') return 'expo_patrimoine';
+  return null;
+}
+
 /**
  * Phrase / reco form: main cat wins, then stored form, then categorie text.
  * cinema→cine, theatre_danse→theatre, musique→concert.

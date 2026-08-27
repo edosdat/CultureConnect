@@ -6,8 +6,10 @@ import {
   buildArtistesDerived,
   buildArtistesFromTable,
 } from './artists';
+import { mainsForItem, MAIN_CATEGORIES } from './categories';
 import type {
   Artiste,
+  CategoryBucket,
   CultureData,
   Evenement,
   EventWithDetails,
@@ -169,6 +171,47 @@ function buildCultureData(): CultureData {
     ? buildArtistesFromTable(artistes, programmeWithContext)
     : buildArtistesDerived(programmeWithContext);
 
+  const byMain: Record<string, CategoryBucket> = {};
+  for (const { id } of MAIN_CATEGORIES) {
+    byMain[id] = { programme: [], events: [] };
+  }
+  let maxIso = '';
+  const bumpMax = (raw: string | undefined | null) => {
+    const d = (raw || '').trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d > maxIso) maxIso = d;
+  };
+
+  for (const p of programmeWithContext) {
+    bumpMax(p.programme.date);
+    const cat = p.evenement?.categorie ?? '';
+    const genre = p.programme.genre || p.evenement?.genre || '';
+    for (const main of mainsForItem(cat, genre)) {
+      if (!byMain[main]) byMain[main] = { programme: [], events: [] };
+      byMain[main].programme.push(p);
+    }
+  }
+  for (const ev of events) {
+    bumpMax(ev.date_debut);
+    bumpMax(ev.date_fin);
+    for (const main of mainsForItem(ev.categorie, ev.genre || '')) {
+      if (!byMain[main]) byMain[main] = { programme: [], events: [] };
+      byMain[main].events.push(ev);
+    }
+  }
+  for (const bucket of Object.values(byMain)) {
+    bucket.programme.sort((a, b) =>
+      (a.programme.date || '').localeCompare(b.programme.date || ''),
+    );
+  }
+
+  const lieuxByIdUsed = new Map<string, Lieu>();
+  for (const p of programmeWithContext) {
+    if (p.lieu?.lieu_id) lieuxByIdUsed.set(p.lieu.lieu_id, p.lieu);
+  }
+  for (const ev of events) {
+    if (ev.lieu?.lieu_id) lieuxByIdUsed.set(ev.lieu.lieu_id, ev.lieu);
+  }
+
   return {
     lieux,
     evenements,
@@ -190,6 +233,9 @@ function buildCultureData(): CultureData {
         })),
     artistesWithDates,
     artistesMode: hasTable ? 'table' : 'derived',
+    byMain,
+    maxIso,
+    lieuxById: lieuxByIdUsed,
   };
 }
 

@@ -66,23 +66,25 @@ function citiesSummaryOf(g: DayItem[]): string {
  * - same film_id across the whole list → one card (N salles · dès HH:MM)
  * - else same event_id+day+title → +N créneaux
  */
+export function densifyGroupKey(item: DayItem): string {
+  if (item.kind === 'programme') {
+    const filmId = (item.programme.film_id || '').trim();
+    if (filmId) return `film:${filmId}`;
+    if (item.programme.event_id) {
+      return `p:${item.dayIso}:${item.programme.event_id}:${item.programme.nom_item}`;
+    }
+  }
+  return item.key;
+}
+
 export function densify(items: DayItem[]): DenseRow[] {
   const groups = new Map<string, DayItem[]>();
   const order: string[] = [];
   const filmFlags = new Map<string, boolean>();
 
   for (const item of items) {
-    let groupKey = item.key;
-    let isFilm = false;
-    if (item.kind === 'programme') {
-      const filmId = (item.programme.film_id || '').trim();
-      if (filmId) {
-        groupKey = `film:${filmId}`;
-        isFilm = true;
-      } else if (item.programme.event_id) {
-        groupKey = `p:${item.dayIso}:${item.programme.event_id}:${item.programme.nom_item}`;
-      }
-    }
+    const groupKey = densifyGroupKey(item);
+    const isFilm = groupKey.startsWith('film:');
     if (!groups.has(groupKey)) {
       groups.set(groupKey, []);
       order.push(groupKey);
@@ -114,5 +116,8 @@ export function densify(items: DayItem[]): DenseRow[] {
 
 /** Card count after film_id / créneau collapse (for agenda counters). */
 export function densifiedCardCount(items: DayItem[]): number {
-  return densify(items).length;
+  if (items.length <= 1) return items.length;
+  const keys = new Set<string>();
+  for (const item of items) keys.add(densifyGroupKey(item));
+  return keys.size;
 }

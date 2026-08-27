@@ -1,9 +1,18 @@
 import 'server-only';
 
 import { unstable_cache } from 'next/cache';
-import type { Artiste, DayItem, Evenement, Lieu, ProgrammeItem, ProgrammeWithContext } from './types';
+import type {
+  Artiste,
+  CategoryBucket,
+  DayItem,
+  Evenement,
+  EventWithDetails,
+  Lieu,
+  ProgrammeItem,
+  ProgrammeWithContext,
+} from './types';
 import { loadCultureData } from './data';
-import { catsAllowCinemaPack, formFromCategorieAndForm } from './categories';
+import { catsAllowCinemaPack, formFromCategorieAndForm, mainFromForm } from './categories';
 import { densifiedCardCount } from './densify';
 import {
   countItemsByDay,
@@ -249,15 +258,7 @@ function collectCommunes(lieux: Iterable<Lieu>): string[] {
 }
 
 function lieuxByIdFromData(): Map<string, Lieu> {
-  const data = loadCultureData();
-  const byId = new Map<string, Lieu>();
-  for (const p of data.programmeWithContext) {
-    if (p.lieu?.lieu_id) byId.set(p.lieu.lieu_id, p.lieu);
-  }
-  for (const e of data.events) {
-    if (e.lieu?.lieu_id) byId.set(e.lieu.lieu_id, e.lieu);
-  }
-  return byId;
+  return loadCultureData().lieuxById;
 }
 
 function resolveLieuIds(
@@ -292,19 +293,7 @@ function resolveLieuIds(
 }
 
 function dataMaxIso(): string {
-  const data = loadCultureData();
-  let max = '';
-  for (const p of data.programmeWithContext) {
-    const d = (p.programme.date || '').trim();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d > max) max = d;
-  }
-  for (const e of data.events) {
-    for (const raw of [e.date_debut, e.date_fin]) {
-      const d = (raw || '').trim();
-      if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d > max) max = d;
-    }
-  }
-  return max;
+  return loadCultureData().maxIso || '';
 }
 
 
@@ -542,6 +531,55 @@ function hasPhraseFilters(input: AgendaQueryInput): boolean {
   );
 }
 
+function emptyBucket(): CategoryBucket {
+  return { programme: [], events: [] };
+}
+
+/** Reco keeps cats=[] — never index-filter the top 3 pool. */
+function indexMainsForQuery(
+  reco: boolean,
+  cats: string[],
+  form: string | null | undefined,
+): string[] {
+  if (reco) return [];
+  if (cats.length > 0) return cats;
+  const main = mainFromForm(form);
+  return main ? [main] : [];
+}
+
+function poolForMains(mains: string[]): CategoryBucket {
+  const data = loadCultureData();
+  if (mains.length === 0) {
+    return {
+      programme: data.programmeWithContext,
+      events: data.events,
+    };
+  }
+  if (mains.length === 1) {
+    return data.byMain[mains[0]!] ?? emptyBucket();
+  }
+  const programme: ProgrammeWithContext[] = [];
+  const events: EventWithDetails[] = [];
+  const seenP = new Set<string>();
+  const seenE = new Set<string>();
+  for (const main of mains) {
+    const bucket = data.byMain[main];
+    if (!bucket) continue;
+    for (const p of bucket.programme) {
+      const id = p.programme.programme_id;
+      if (seenP.has(id)) continue;
+      seenP.add(id);
+      programme.push(p);
+    }
+    for (const ev of bucket.events) {
+      if (seenE.has(ev.event_id)) continue;
+      seenE.add(ev.event_id);
+      events.push(ev);
+    }
+  }
+  return { programme, events };
+}
+
 function listForRange(
   input: AgendaQueryInput,
   now: Date,
@@ -585,11 +623,17 @@ function listForRange(
     };
   }
 
+  const indexMains = indexMainsForQuery(reco, cats, input.form);
+  const useIndex = indexMains.length > 0;
+  const pool = useIndex
+    ? poolForMains(indexMains)
+    : { programme: data.programmeWithContext, events: data.events };
+
   let items: DayItem[];
   if (searching) {
     items = itemsForDateRange(
-      data.programmeWithContext,
-      data.events,
+      pool.programme,
+      pool.events,
       range.startIso,
       range.endIso,
       cats,
@@ -615,6 +659,7 @@ function listForRange(
       );
     }
   } else {
+    // One pass on the (possibly pre-indexed) pool. No per-day full-catalogue scan.
     const excludeLong =
       reco ||
       input.scope === 'tous' ||
@@ -622,25 +667,18 @@ function listForRange(
       input.scope === 'soir' ||
       input.scope === 'weekend' ||
       input.scope === 'semaine';
-    const seen = new Set<string>();
-    items = [];
-    for (const iso of range.days) {
-      for (const item of itemsForDay(
-        data.programmeWithContext,
-        data.events,
-        iso,
-        cats,
-        lieuIds,
-        genres,
-        excludeLong,
-      )) {
-        if (seen.has(item.key)) continue;
-        seen.add(item.key);
-        items.push(item);
-      }
-    }
+    items = itemsForDateRange(
+      pool.programme,
+      pool.events,
+      range.startIso,
+      range.endIso,
+      cats,
+      lieuIds,
+      genres,
+      excludeLong,
+    );
     if (input.scope === 'soir') {
-      items = filterSoirItems(items, data.programmeWithContext);
+      items = filterSoirItems(items, pool.programme);
     }
   }
 
@@ -678,39 +716,11 @@ function venuesFromWindow(items: DayItem[], selectedLieuId: string | null): Lieu
   );
 }
 
-function venuesForQuery(input: AgendaQueryInput, now: Date): Lieu[] {
-  const { items } = listForRange({ ...input, lieuId: null }, now);
-  return venuesFromWindow(items, input.lieuId);
-}
-
-function genreSlugsForQuery(
-  input: AgendaQueryInput,
-  searching: boolean,
-  now: Date,
-): string[] {
-  if (input.cats.length === 0) return [];
-  const data = loadCultureData();
-  const scopeRange = resolveScopeRange(input.scope, input.selectedDate, now, {
-    year: input.year,
-    month: input.month,
-  });
-  const lieuIds = searching
-    ? []
-    : resolveLieuIds(input.commune, input.lieuId, false);
+function genreSlugsFromItems(items: DayItem[]): string[] {
   const set = new Set<string>();
-  for (const iso of scopeRange.days) {
-    const dayItems = itemsForDay(
-      data.programmeWithContext,
-      data.events,
-      iso,
-      input.cats,
-      lieuIds,
-      [],
-    );
-    for (const item of dayItems) {
-      const g = genreOfItem(item);
-      if (g) set.add(g);
-    }
+  for (const item of items) {
+    const g = genreOfItem(item);
+    if (g) set.add(g);
   }
   return Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'));
 }
@@ -871,12 +881,17 @@ export function queryAgenda(
   let counts: Record<string, number> | undefined;
   if (input.includeCounts) {
     const lieuIds = resolveLieuIds(input.commune, input.lieuId, searching);
+    const countCats = input.recoUpcoming ? [] : input.cats;
+    const countPool =
+      countCats.length > 0
+        ? poolForMains(countCats)
+        : { programme: data.programmeWithContext, events: data.events };
     const map = countItemsByDay(
-      data.programmeWithContext,
-      data.events,
+      countPool.programme,
+      countPool.events,
       input.year,
       input.month,
-      input.cats,
+      countCats,
       searching ? [] : lieuIds,
       input.genres,
     );
@@ -884,6 +899,11 @@ export function queryAgenda(
   }
 
   void rangeDays;
+
+  // Venues / genres from the already-filtered set — never re-scan days.
+  const venues = venuesFromWindow(items, input.lieuId);
+  const genreSlugs =
+    input.cats.length > 0 ? genreSlugsFromItems(items) : [];
 
   return {
     scope: input.scope,
@@ -895,8 +915,8 @@ export function queryAgenda(
     communes: input.includeListMeta
       ? collectCommunes(lieuxByIdFromData().values())
       : [],
-    venues: venuesForQuery(input, now),
-    genreSlugs: genreSlugsForQuery(input, searching, now),
+    venues,
+    genreSlugs,
     counts,
     parisIso: paris.iso,
     weekday: paris.weekday,
@@ -1154,4 +1174,38 @@ export function parseCsvParam(raw: string | null): string[] {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+
+/** First-page list cache: scope + cat + commune + Paris day. Skip search / phrase / reco. */
+export async function queryAgendaListCached(
+  input: AgendaQueryInput,
+  now = new Date(),
+): Promise<AgendaListResponse> {
+  const searching = Boolean((input.q || '').trim());
+  const phrase = hasPhraseFilters(input);
+  if (searching || phrase || input.recoUpcoming || input.includeCounts) {
+    return queryAgenda(input, now);
+  }
+  const day = parisParts(now).iso;
+  const catKey = [...input.cats].map((c) => c.trim().toLowerCase()).filter(Boolean).sort().join(',');
+  const commune = (input.commune || '').trim();
+  const lieu = (input.lieuId || '').trim();
+  const genreKey = [...input.genres].map((g) => g.trim()).filter(Boolean).sort().join(',');
+  return unstable_cache(
+    async () => queryAgenda(input, new Date()),
+    [
+      'agenda-list',
+      day,
+      input.scope,
+      catKey,
+      commune,
+      lieu,
+      genreKey,
+      String(input.offset ?? 0),
+      String(input.limit ?? ''),
+      input.includeListMeta ? '1' : '0',
+    ],
+    { revalidate: 300 },
+  )();
 }

@@ -5,6 +5,7 @@ import {
   parseTimeScope,
   queryAgenda,
   queryAgendaDetail,
+  queryAgendaListCached,
 } from '@/lib/agendaQuery';
 
 export const dynamic = 'force-dynamic';
@@ -75,7 +76,7 @@ export async function GET(req: Request) {
   // Phrase mode: genres = tag slugs (funk, humour…), skip exact chip filter.
   // Title q is ignored when phrase params are present (tag-to-tag).
   const recoUpcoming = url.searchParams.get('reco') === '1';
-  const result = queryAgenda({
+  const result = await queryAgendaListCached({
     scope: parseTimeScope(url.searchParams.get('scope')),
     commune: url.searchParams.get('commune'),
     q: hasPhrase ? '' : url.searchParams.get('q') || '',
@@ -88,6 +89,7 @@ export async function GET(req: Request) {
     limit: Number.isFinite(limit) ? limit : undefined,
     offset,
     includeCounts: url.searchParams.get('counts') === '1',
+    includeListMeta: url.searchParams.get('meta') === '1',
     form: form,
     moods,
     tagGenres: hasPhrase ? rawGenres : [],
