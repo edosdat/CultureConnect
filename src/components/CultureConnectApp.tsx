@@ -321,17 +321,19 @@ export default function CultureConnectApp({
   const recoKindRef = useRef<RecoKind>('guest');
   const listLoadingRef = useRef(false);
   const detailFetchGen = useRef(0);
-  const [listFetchSlow, setListFetchSlow] = useState(false);
+  const [listSlowWhere, setListSlowWhere] = useState<
+    null | 'top' | 'bottom'
+  >(null);
   const listSlowTimerRef = useRef<number | null>(null);
 
-  function startListSlowWatch(gen: number) {
+  function startListSlowWatch(gen: number, where: 'top' | 'bottom') {
     if (gen !== listFetchGen.current) return;
     if (listSlowTimerRef.current != null) {
       window.clearTimeout(listSlowTimerRef.current);
     }
-    setListFetchSlow(false);
+    setListSlowWhere(null);
     listSlowTimerRef.current = window.setTimeout(() => {
-      if (gen === listFetchGen.current) setListFetchSlow(true);
+      if (gen === listFetchGen.current) setListSlowWhere(where);
     }, 1000);
   }
 
@@ -341,7 +343,7 @@ export default function CultureConnectApp({
       window.clearTimeout(listSlowTimerRef.current);
       listSlowTimerRef.current = null;
     }
-    setListFetchSlow(false);
+    setListSlowWhere(null);
   }
 
   const isPhraseScope = true;
@@ -697,7 +699,7 @@ export default function CultureConnectApp({
         phraseMode: isPhraseScope && query.trim().length > 0,
         phraseTags,
       });
-      startListSlowWatch(gen);
+      startListSlowWatch(gen, 'top');
       void (async () => {
         try {
           const res = await fetch(`/api/agenda?${params.toString()}`);
@@ -839,7 +841,7 @@ export default function CultureConnectApp({
     if (listLoadingRef.current) return;
     listLoadingRef.current = true;
     const gen = ++listFetchGen.current;
-    startListSlowWatch(gen);
+    startListSlowWatch(gen, 'bottom');
     const params = buildAgendaParams({
       scope: timeScope,
       commune: selectedCommune,
@@ -1233,7 +1235,7 @@ export default function CultureConnectApp({
           </button>
         </div>
 
-        {listFetchSlow ? (
+        {listSlowWhere === 'top' ? (
           <div
             className="pointer-events-none flex justify-center"
             style={{ marginTop: 8 }}
@@ -1371,6 +1373,15 @@ export default function CultureConnectApp({
             )
           }
         />
+
+        {listSlowWhere === 'bottom' ? (
+          <div
+            className="pointer-events-none flex justify-center"
+            style={{ margin: 8 }}
+          >
+            <ListWaitDots />
+          </div>
+        ) : null}
 
         <LoginNudge />
       </div>
