@@ -11,6 +11,7 @@ import {
 import { SessionProvider } from 'next-auth/react';
 import SignalsProvider from './SignalsProvider';
 import TastesSheet from './TastesSheet';
+import FirstLoginModal from './FirstLoginModal';
 
 type TastesUiValue = {
   googleAuthEnabled: boolean;
@@ -50,6 +51,7 @@ export default function Providers({ children, googleAuthEnabled }: Props) {
         <TastesUiContext.Provider value={value}>
           {children}
           <TastesSheet open={tastesOpen} onClose={closeTastes} />
+          <FirstLoginModal />
         </TastesUiContext.Provider>
       </SignalsProvider>
     </SessionProvider>

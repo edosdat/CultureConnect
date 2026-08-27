@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { readMailConsent, writeMailConsent } from '@/lib/mailConsentStore';
+import { readMailFlags, writeMailFlags } from '@/lib/mailConsentStore';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -50,8 +50,8 @@ export async function GET(req: Request) {
   }
   const authz = await requireEmail();
   if ('error' in authz) return authz.error;
-  const opted = await readMailConsent(authz.email);
-  return NextResponse.json({ opted });
+  const flags = await readMailFlags(authz.email);
+  return NextResponse.json(flags);
 }
 
 export async function POST(req: Request) {
@@ -66,10 +66,16 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ error: 'JSON invalide' }, { status: 400 });
   }
-  if (!body || typeof body !== 'object' || typeof (body as { opted?: unknown }).opted !== 'boolean') {
-    return NextResponse.json({ error: 'opted requis' }, { status: 400 });
+  if (!body || typeof body !== 'object') {
+    return NextResponse.json({ error: 'Corps invalide' }, { status: 400 });
   }
-  const opted = (body as { opted: boolean }).opted;
-  await writeMailConsent(authz.email, opted);
-  return NextResponse.json({ opted });
+  const raw = body as { opted?: unknown; seen?: unknown };
+  const patch: { opted?: boolean; seen?: boolean } = {};
+  if (typeof raw.opted === 'boolean') patch.opted = raw.opted;
+  if (typeof raw.seen === 'boolean') patch.seen = raw.seen;
+  if (patch.opted === undefined && patch.seen === undefined) {
+    return NextResponse.json({ error: 'opted ou seen requis' }, { status: 400 });
+  }
+  const flags = await writeMailFlags(authz.email, patch);
+  return NextResponse.json(flags);
 }

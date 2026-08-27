@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import DeleteAccountButton from './DeleteAccountButton';
+import MailIdeasCheckbox from '@/components/MailIdeasCheckbox';
 
 export const metadata: Metadata = {
   title: 'Confidentialité — CultureConnect',
@@ -40,6 +41,9 @@ export default function ConfidentialitePage() {
           clic dans chaque mail. On n&apos;écrit pas aux comptes qui n&apos;ont
           pas coché.
         </p>
+        <div className="rounded-2xl border border-culture-line bg-white px-4 py-3">
+          <MailIdeasCheckbox className="flex items-start gap-2 text-sm leading-snug text-culture-ink" />
+        </div>
         <p>
           <span className="font-medium">Où.</span> Vercel (hébergement), Neon
           (base), Google (connexion).

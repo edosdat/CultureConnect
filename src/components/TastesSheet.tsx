@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { profileChips, SHEET_BUCKET_TITLES } from '@/lib/pourToi';
 import { useSignals } from './SignalsProvider';
+import MailIdeasCheckbox from './MailIdeasCheckbox';
 
 type Props = {
   open: boolean;
@@ -140,6 +141,9 @@ export default function TastesSheet({ open, onClose }: Props) {
               </div>
             );
           })}
+        </div>
+        <div className="shrink-0 border-t border-culture-line px-4 py-3">
+          <MailIdeasCheckbox className="flex items-start gap-2 text-sm leading-snug text-culture-ink" />
         </div>
         <form
           className="shrink-0 border-t border-culture-line px-4 py-3"
