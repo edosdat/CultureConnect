@@ -21,7 +21,7 @@ const VIVANT_MAINS: ReadonlySet<MainCategoryId> = new Set([
   'enfants_famille',
 ]);
 
-const MAX_PACK = 8;
+const MAX_PACK = 16;
 const MAX_AUSSI = 3;
 
 function isProgrammePublishable(p: ProgrammeWithContext): boolean {
@@ -146,7 +146,7 @@ type FilmBucket = {
 };
 
 /**
- * 2–8 cinema DayItems, one per film_id (representative = first upcoming séance
+ * 2–16 cinema DayItems, one per film_id (representative = first upcoming séance
  * this Paris calendar week). Empty when fewer than 2 films qualify — caller
  * must not render an orphan title.
  */
