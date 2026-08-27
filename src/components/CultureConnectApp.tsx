@@ -34,6 +34,7 @@ import {
   phraseUsesTitleQ,
   type PhraseTags,
 } from '@/lib/phraseTags';
+import { normalizeDeepLinkId } from '@/lib/deepLink';
 
 type Props = {
   initialScope: TimeScopeId;
@@ -63,6 +64,11 @@ type Props = {
       }
     >
   >;
+  /** Normalized `p:` / `e:` key from `?e=` (or `?id=`). */
+  initialOpenKey?: string | null;
+  initialOpenItem?: DayItem | null;
+  initialRelatedItems?: DayItem[];
+  initialAussiCeSoir?: DayItem[];
 };
 
 function evenementWord(n: number): string {
@@ -180,13 +186,19 @@ export default function CultureConnectApp({
   initialNouveauFilmIds = [],
   initialRecoByScope,
   initialListByScope,
+  initialOpenKey = null,
+  initialOpenItem = null,
+  initialRelatedItems = [],
+  initialAussiCeSoir = [],
 }: Props) {
   const { track, trackItem, tasteState } = useSignals();
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
   const [timeScope, setTimeScope] = useState<TimeScopeId>(initialScope);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);
+  const [selectedItemKey, setSelectedItemKey] = useState<string | null>(
+    initialOpenKey ?? null,
+  );
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedLieuId, setSelectedLieuId] = useState<string | null>(null);
@@ -215,9 +227,15 @@ export default function CultureConnectApp({
   const [availableGenreSlugs, setAvailableGenreSlugs] =
     useState<string[]>(initialGenreSlugs);
   const [counts, setCounts] = useState<Map<string, number>>(new Map());
-  const [detailItem, setDetailItem] = useState<DayItem | null>(null);
-  const [relatedFilmItems, setRelatedFilmItems] = useState<DayItem[]>([]);
-  const [aussiCeSoirItems, setAussiCeSoirItems] = useState<DayItem[]>([]);
+  const [detailItem, setDetailItem] = useState<DayItem | null>(
+    initialOpenItem ?? null,
+  );
+  const [relatedFilmItems, setRelatedFilmItems] = useState<DayItem[]>(
+    initialRelatedItems,
+  );
+  const [aussiCeSoirItems, setAussiCeSoirItems] = useState<DayItem[]>(
+    initialAussiCeSoir,
+  );
 
   const skipListFetch = useRef(true);
   const listFetchGen = useRef(0);
@@ -231,6 +249,14 @@ export default function CultureConnectApp({
   const isPhraseScope = true;
 
   const titleSearchPending = useRef(false);
+
+  // Client fallback: `?e=` / `?id=` when SSR did not pass a key (client nav).
+  useEffect(() => {
+    if (initialOpenKey) return;
+    const params = new URLSearchParams(window.location.search);
+    const key = normalizeDeepLinkId(params.get('e') || params.get('id') || '');
+    if (key) setSelectedItemKey(key);
+  }, [initialOpenKey]);
 
   function applyPhraseFromQuery(text: string) {
     const q = text.trim();

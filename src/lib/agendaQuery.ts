@@ -43,6 +43,7 @@ import {
 } from './timeScope';
 import { mergeSlotPicks, pickSoonestPerSlot, profileHasChipWeight, recommendForProfile } from './reco';
 import type { TasteEntry, TasteProfile } from './signals';
+import { normalizeDeepLinkId } from './deepLink';
 
 export const AGENDA_PAGE_MAX = 50;
 
@@ -987,9 +988,11 @@ export async function loadHomeWindow(
 }
 
 function findItemByKey(id: string): DayItem | null {
+  const normalized = normalizeDeepLinkId(id);
+  if (!normalized) return null;
   const data = loadCultureData();
-  if (id.startsWith('p:')) {
-    const pid = id.slice(2);
+  if (normalized.startsWith('p:')) {
+    const pid = normalized.slice(2);
     const p = data.programmeWithContext.find(
       (row) => row.programme.programme_id === pid,
     );
@@ -1003,8 +1006,8 @@ function findItemByKey(id: string): DayItem | null {
       lieu: p.lieu,
     };
   }
-  if (id.startsWith('e:')) {
-    const rest = id.slice(2);
+  if (normalized.startsWith('e:')) {
+    const rest = normalized.slice(2);
     const lastColon = rest.lastIndexOf(':');
     const eventId = lastColon > 0 ? rest.slice(0, lastColon) : rest;
     const dayIso = lastColon > 0 ? rest.slice(lastColon + 1) : '';

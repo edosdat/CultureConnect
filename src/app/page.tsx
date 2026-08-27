@@ -1,10 +1,25 @@
 import CultureConnectApp from '@/components/CultureConnectApp';
-import { loadHomeWindow } from '@/lib/agendaQuery';
+import { loadHomeWindow, queryAgendaDetail } from '@/lib/agendaQuery';
+import { normalizeDeepLinkId } from '@/lib/deepLink';
 
 export const revalidate = 300;
 
-export default async function HomePage() {
+function firstParam(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) return value[0] ?? '';
+  return value ?? '';
+}
+
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ e?: string; id?: string }>;
+}) {
   const boot = await loadHomeWindow();
+  const params = await searchParams;
+  const initialOpenKey = normalizeDeepLinkId(
+    firstParam(params?.e) || firstParam(params?.id),
+  );
+  const openDetail = initialOpenKey ? queryAgendaDetail(initialOpenKey) : null;
 
   return (
     <main>
@@ -24,6 +39,10 @@ export default async function HomePage() {
         initialNouveauFilmIds={boot.nouveauFilmIds ?? []}
         initialRecoByScope={boot.recoByScope}
         initialListByScope={boot.listByScope}
+        initialOpenKey={initialOpenKey}
+        initialOpenItem={openDetail?.item ?? null}
+        initialRelatedItems={openDetail?.relatedItems}
+        initialAussiCeSoir={openDetail?.aussiCeSoir}
       />
     </main>
   );
