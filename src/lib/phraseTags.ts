@@ -1,5 +1,6 @@
 /**
- * Phrase utilisateur → tags (règles d'abord, IA seulement si tout vide).
+ * Phrase utilisateur → tags.
+ * Pipeline : normalize → titre/artiste (sous-chaîne) → règles → IA.
  * Module pur — pas de réseau ici. Voir briefs/connexion-phrase-vers-tags.md
  */
 
@@ -536,6 +537,18 @@ export function hasPhraseSignal(tags: PhraseTags): boolean {
 /** No form/moods/genres/themes/entities after rules+AI → title-search the raw phrase. */
 export function phraseUsesTitleQ(tags: PhraseTags | null | undefined): boolean {
   return !tags || !hasPhraseSignal(tags);
+}
+
+const MIN_TITLE_Q = 3;
+
+/** True if the normalized phrase is a substring of a titre / nom_item / artiste. */
+export function phraseMatchesTitleCatalog(
+  phrase: string,
+  titles: readonly string[],
+): boolean {
+  const q = normalizePhrase(phrase);
+  if (q.length < MIN_TITLE_Q) return false;
+  return titles.some((t) => normalizePhrase(t).includes(q));
 }
 
 /** Étage 1 — dates, entités, form, thèmes, moods, genres. Dates seules ≠ signal. */

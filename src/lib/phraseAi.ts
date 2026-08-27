@@ -2,16 +2,18 @@
  * Phrase → tags via IA. Réseau seulement. Les règles vivent dans phraseTags.ts.
  */
 
+import { loadCultureData } from './data';
 import {
   emptyPhraseTags,
   hasPhraseSignal,
   parsePhraseRules,
+  phraseMatchesTitleCatalog,
   sanitizeAiTags,
   type PhraseTags,
 } from './phraseTags';
 
 function aiEnv(): { url: string; key: string; model: string } | null {
-  const openai = process.env['OPENAI_API_KEY'];
+  const openai = (process.env['OPENAI_API_KEY'] || '').trim();
   if (openai) {
     return {
       url: 'https://api.openai.com/v1/chat/completions',
@@ -35,7 +37,10 @@ async function phraseTagsFromAi(
   dates: { date_from?: string; date_to?: string },
 ): Promise<PhraseTags> {
   const env = aiEnv();
-  if (!env) return { ...emptyPhraseTags('ai'), ...dates };
+  if (!env) {
+    console.info('[phrase-tags]', { openaiStatus: null });
+    return { ...emptyPhraseTags('ai'), ...dates };
+  }
 
   const system = [
     'Tu convertis une phrase française en tags agenda. JSON strict, pas de prose.',
@@ -66,6 +71,7 @@ async function phraseTagsFromAi(
         ],
       }),
     });
+    console.info('[phrase-tags]', { openaiStatus: res.status });
     if (!res.ok) return { ...emptyPhraseTags('ai'), ...dates };
     const data = (await res.json()) as {
       choices?: Array<{ message?: { content?: string } }>;
@@ -74,14 +80,33 @@ async function phraseTagsFromAi(
     const parsed = JSON.parse(content) as unknown;
     return sanitizeAiTags(parsed, dates);
   } catch {
+    console.info('[phrase-tags]', { openaiStatus: 0 });
     return { ...emptyPhraseTags('ai'), ...dates };
   }
+}
+
+let titleCatalog: string[] | null = null;
+
+function catalogTitles(): string[] {
+  if (titleCatalog) return titleCatalog;
+  const data = loadCultureData();
+  titleCatalog = [
+    ...data.films.map((f) => f.titre),
+    ...data.evenements.map((e) => e.titre),
+    ...data.programme.map((p) => p.nom_item),
+    ...data.artistes.map((a) => a.nom),
+  ];
+  return titleCatalog;
 }
 
 export async function parsePhraseWithAi(
   phrase: string,
   now = new Date(),
 ): Promise<PhraseTags> {
+  if (phraseMatchesTitleCatalog(phrase, catalogTitles())) {
+    console.info('[phrase-tags]', { titleHit: true, openaiStatus: 'skipped' });
+    return emptyPhraseTags('rules');
+  }
   const rules = parsePhraseRules(phrase, now);
   if (hasPhraseSignal(rules)) return rules;
   const dates = {
