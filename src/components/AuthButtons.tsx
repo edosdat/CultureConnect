@@ -165,8 +165,8 @@ export default function AuthButtons() {
       <MailIdeasCheckbox className="hidden max-w-[10.5rem] items-start gap-1.5 text-left text-[10px] leading-snug text-culture-ink sm:flex" />
       <button
         type="button"
-        title="Se connecter avec Google"
-        aria-label="Se connecter avec Google"
+        title="Connecte-toi pour tes suggestions"
+        aria-label="Connecte-toi pour tes suggestions"
         onClick={() => signIn('google', { callbackUrl: '/' })}
         className="flex h-9 w-9 items-center justify-center rounded-full bg-culture-terracotta text-white shadow-sm transition hover:bg-culture-clay sm:h-auto sm:w-auto sm:px-4 sm:py-1.5 sm:text-sm sm:font-semibold"
       >
@@ -183,7 +183,7 @@ export default function AuthButtons() {
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
           <circle cx="12" cy="7" r="4" />
         </svg>
-        <span className="hidden sm:inline">Se connecter avec Google</span>
+        <span className="hidden sm:inline">Connecte-toi pour tes suggestions</span>
       </button>
       </div>
     </div>
