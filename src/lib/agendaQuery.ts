@@ -885,14 +885,24 @@ export function queryAgenda(
   };
 }
 
-const RECO_BOOT_SCOPES = ['tous', 'soir', 'aujourdhui', 'semaine'] as const;
+const RECO_BOOT_SCOPES = ['tous', 'soir', 'aujourdhui', 'weekend', 'semaine'] as const;
 
 export type RecoBootScope = (typeof RECO_BOOT_SCOPES)[number];
 
 export type RecoByScope = Record<RecoBootScope, DayItem[]>;
 
+export type ScopeListSnapshot = {
+  items: DayItem[];
+  total: number;
+  densifiedTotal: number;
+  nouveautes: DayItem[];
+};
+
+export type ListByScope = Record<RecoBootScope, ScopeListSnapshot>;
+
 export type HomeWindow = AgendaListResponse & {
   recoByScope: RecoByScope;
+  listByScope: ListByScope;
 };
 
 function guestRecoForScope(scope: RecoBootScope, now: Date): DayItem[] {
@@ -912,6 +922,30 @@ function guestRecoForScope(scope: RecoBootScope, now: Date): DayItem[] {
     },
     now,
   ).items;
+}
+
+function listSnapshotForScope(scope: RecoBootScope, now: Date): ScopeListSnapshot {
+  const res = queryAgenda(
+    {
+      scope,
+      commune: 'Toulouse',
+      q: '',
+      cats: [],
+      genres: [],
+      lieuId: null,
+      selectedDate: null,
+      year: 2026,
+      month: 8,
+      recoUpcoming: false,
+    },
+    now,
+  );
+  return {
+    items: res.items,
+    total: res.total,
+    densifiedTotal: res.densifiedTotal,
+    nouveautes: res.nouveautes,
+  };
 }
 
 function computeHomeWindow(now = new Date()): HomeWindow {
@@ -934,7 +968,10 @@ function computeHomeWindow(now = new Date()): HomeWindow {
   const recoByScope = Object.fromEntries(
     RECO_BOOT_SCOPES.map((s) => [s, guestRecoForScope(s, now)]),
   ) as RecoByScope;
-  return { ...boot, recoByScope };
+  const listByScope = Object.fromEntries(
+    RECO_BOOT_SCOPES.map((s) => [s, listSnapshotForScope(s, now)]),
+  ) as ListByScope;
+  return { ...boot, recoByScope, listByScope };
 }
 
 /** Home boot: cached 5 min, keyed by Paris calendar day. Guest reco per scope rides along. */

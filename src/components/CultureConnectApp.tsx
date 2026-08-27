@@ -51,6 +51,18 @@ type Props = {
   initialNouveauFilmIds?: string[];
   /** Guest 1+1+1 per date chip, computed in loadHomeWindow. */
   initialRecoByScope?: Partial<Record<TimeScopeId, DayItem[]>>;
+  /** Toulouse list snapshot per date chip (items + window totals). */
+  initialListByScope?: Partial<
+    Record<
+      TimeScopeId,
+      {
+        items: DayItem[];
+        total: number;
+        densifiedTotal: number;
+        nouveautes: DayItem[];
+      }
+    >
+  >;
 };
 
 function evenementWord(n: number): string {
@@ -63,7 +75,7 @@ function normalizeCommune(c: string | null | undefined): string {
 
 type RecoKind = 'guest' | 'profile' | 'wiped';
 
-const RECO_BOOT_SCOPES = ['tous', 'soir', 'aujourdhui', 'semaine'] as const;
+const RECO_BOOT_SCOPES = ['tous', 'soir', 'aujourdhui', 'weekend', 'semaine'] as const;
 
 /** Reco cards are keyed by window so Ce soir never paints boot/tous cards. */
 function recoPoolKey(
@@ -167,6 +179,7 @@ export default function CultureConnectApp({
   initialMonth,
   initialNouveauFilmIds = [],
   initialRecoByScope,
+  initialListByScope,
 }: Props) {
   const { track, trackItem, tasteState } = useSignals();
   const [year, setYear] = useState(initialYear);
@@ -778,6 +791,24 @@ export default function CultureConnectApp({
     }
     setTimeScope(scope);
     setSelectedItemKey(null);
+    const reuseBoot =
+      selectedCommune === 'Toulouse' &&
+      selectedCategories.length === 0 &&
+      selectedGenres.length === 0 &&
+      !selectedLieuId &&
+      !query.trim();
+    const snap = reuseBoot ? initialListByScope?.[scope] : undefined;
+    const applySnapshot = () => {
+      if (snap) {
+        setListItems(snap.items);
+        setNouveautesItems(snap.nouveautes);
+        setTotal(snap.total);
+        setDensifiedTotalApi(snap.densifiedTotal);
+        skipListFetch.current = true;
+        return true;
+      }
+      return false;
+    };
     if (scope === 'tous') {
       listFetchGen.current += 1;
       setSelectedDay(null);
@@ -785,13 +816,7 @@ export default function CultureConnectApp({
       setYear(initialYear);
       setMonth(initialMonth);
       setVisibleCount(AGENDA_PAGE_SIZE);
-      const reuseBoot =
-        selectedCommune === 'Toulouse' &&
-        selectedCategories.length === 0 &&
-        selectedGenres.length === 0 &&
-        !selectedLieuId &&
-        !query.trim();
-      if (reuseBoot) {
+      if (reuseBoot && !applySnapshot()) {
         setListItems(initialItems);
         setNouveautesItems(initialNouveautes);
         setTotal(initialTotal);
@@ -799,6 +824,11 @@ export default function CultureConnectApp({
         skipListFetch.current = true;
       }
       return;
+    }
+    if (reuseBoot && snap) {
+      listFetchGen.current += 1;
+      setVisibleCount(AGENDA_PAGE_SIZE);
+      applySnapshot();
     }
     if (scope === 'date') {
       const day = selectedDay || initialParisIso;

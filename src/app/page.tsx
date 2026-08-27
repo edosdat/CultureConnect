@@ -23,6 +23,7 @@ export default async function HomePage() {
         initialMonth={8}
         initialNouveauFilmIds={boot.nouveauFilmIds ?? []}
         initialRecoByScope={boot.recoByScope}
+        initialListByScope={boot.listByScope}
       />
     </main>
   );

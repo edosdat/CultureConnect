@@ -66,7 +66,7 @@ function FixedSlotsGrid({
         {SLOT_ORDER.map((slot) => {
           const item = bySlot.get(slot);
           return (
-            <li key={slot} className="min-w-0">
+            <li key={slot} className={item ? 'min-w-0' : 'min-w-0 min-h-[7.5rem]'}>
               {item ? (
                 <SeanceCard
                   item={item}
