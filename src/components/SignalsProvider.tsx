@@ -49,6 +49,8 @@ type SignalsValue = {
   addPhrase: (text: string) => void;
   guestStore: GuestSignalsStore;
   tasteState: AccountTasteState | null;
+  /** next-auth session status — paint must not assume guest while this is loading. */
+  sessionStatus: 'loading' | 'authenticated' | 'unauthenticated';
   loginNudgeReady: boolean;
   loginNudgeDismissed: boolean;
   dismissLoginNudge: () => void;
@@ -61,6 +63,7 @@ const SignalsContext = createContext<SignalsValue>({
   addPhrase: () => {},
   guestStore: emptyGuestStore(),
   tasteState: null,
+  sessionStatus: 'loading',
   loginNudgeReady: false,
   loginNudgeDismissed: true,
   dismissLoginNudge: () => {},
@@ -289,6 +292,7 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
       addPhrase,
       guestStore,
       tasteState,
+      sessionStatus: status,
       loginNudgeReady,
       loginNudgeDismissed: dismissed,
       dismissLoginNudge,
@@ -300,6 +304,7 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
       addPhrase,
       guestStore,
       tasteState,
+      status,
       loginNudgeReady,
       dismissed,
       dismissLoginNudge,

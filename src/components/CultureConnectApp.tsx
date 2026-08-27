@@ -80,7 +80,7 @@ function normalizeCommune(c: string | null | undefined): string {
   return (c || '').trim().toLocaleLowerCase('fr');
 }
 
-type RecoKind = 'guest' | 'profile' | 'wiped';
+type RecoKind = 'guest' | 'profile' | 'wiped' | 'pending';
 
 const RECO_BOOT_SCOPES = ['tous', 'soir', 'aujourdhui', 'weekend', 'semaine'] as const;
 
@@ -118,6 +118,75 @@ function hydrateRecoCache(
     out[recoPoolKey(scope as TimeScopeId, day, commune, 'guest')] = items;
   }
   return out;
+}
+
+/** Public card payloads only — no email, no tastes text. */
+const PROFILE_RECO_CACHE_KEY = 'cc.profileReco.v1';
+
+type ProfileRecoCacheFile = {
+  parisIso: string;
+  commune: string;
+  pools: Record<string, DayItem[]>;
+};
+
+function readProfileRecoCache(
+  parisIso: string,
+  commune: string | null,
+): Record<string, DayItem[]> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = sessionStorage.getItem(PROFILE_RECO_CACHE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as ProfileRecoCacheFile;
+    if (!parsed || typeof parsed !== 'object') return {};
+    if (parsed.parisIso !== parisIso) return {};
+    if (normalizeCommune(parsed.commune) !== normalizeCommune(commune)) {
+      return {};
+    }
+    if (!parsed.pools || typeof parsed.pools !== 'object') return {};
+    const out: Record<string, DayItem[]> = {};
+    for (const [key, items] of Object.entries(parsed.pools)) {
+      if (!key.endsWith('|profile') || !Array.isArray(items)) continue;
+      out[key] = items;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function writeProfileRecoCache(
+  parisIso: string,
+  commune: string | null,
+  pools: Record<string, DayItem[]>,
+): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const slim: Record<string, DayItem[]> = {};
+    for (const [key, items] of Object.entries(pools)) {
+      if (!key.endsWith('|profile') || !Array.isArray(items)) continue;
+      slim[key] = items;
+    }
+    sessionStorage.setItem(
+      PROFILE_RECO_CACHE_KEY,
+      JSON.stringify({
+        parisIso,
+        commune: commune ?? '',
+        pools: slim,
+      }),
+    );
+  } catch {
+    /* quota / private mode */
+  }
+}
+
+function clearProfileRecoCache(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.removeItem(PROFILE_RECO_CACHE_KEY);
+  } catch {
+    /* ignore */
+  }
 }
 
 const AGENDA_PAGE_SIZE = 20;
@@ -194,7 +263,7 @@ export default function CultureConnectApp({
   initialRelatedItems = [],
   initialAussiCeSoir = [],
 }: Props) {
-  const { track, trackItem, tasteState } = useSignals();
+  const { track, trackItem, tasteState, sessionStatus } = useSignals();
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
   const [timeScope, setTimeScope] = useState<TimeScopeId>(initialScope);
@@ -246,6 +315,9 @@ export default function CultureConnectApp({
   const recoWipedRef = useRef(false);
   const recoPoolByKeyRef = useRef(recoPoolByKey);
   recoPoolByKeyRef.current = recoPoolByKey;
+  const tasteStateRef = useRef(tasteState);
+  tasteStateRef.current = tasteState;
+  const recoKindRef = useRef<RecoKind>('guest');
   const listLoadingRef = useRef(false);
   const detailFetchGen = useRef(0);
 
@@ -396,7 +468,10 @@ export default function CultureConnectApp({
     ? 'wiped'
     : tasteState && profileHasChipWeight(tasteState.profile)
       ? 'profile'
-      : 'guest';
+      : sessionStatus === 'authenticated' || sessionStatus === 'loading'
+        ? 'pending'
+        : 'guest';
+  recoKindRef.current = recoKind;
   const currentRecoDay = recoKeyDay(timeScope, selectedDay, initialParisIso);
   const currentRecoKey = recoPoolKey(
     timeScope,
@@ -411,13 +486,12 @@ export default function CultureConnectApp({
   useEffect(() => {
     if (recoWiped) {
       setRecoPoolByKey({});
+      clearProfileRecoCache();
       return;
     }
-    // Guest/demo: boot cache is already the filtered pool. No extra document fetch.
-    if (
-      recoKind === 'guest' &&
-      recoPoolByKeyRef.current[currentRecoKey] !== undefined
-    ) {
+    if (recoKind === 'pending') return;
+    // Guest boot cache / profile prefetch / session cache: never POST a filled key.
+    if (recoPoolByKeyRef.current[currentRecoKey] !== undefined) {
       return;
     }
     const key = currentRecoKey;
@@ -425,7 +499,7 @@ export default function CultureConnectApp({
     const gen = ++recoFetchGen.current;
     const params = new URLSearchParams();
     params.set('reco', '1');
-    const profile = tasteState?.profile;
+    const profile = tasteStateRef.current?.profile;
     const sendProfile = recoKind === 'profile';
     void (async () => {
       try {
@@ -451,10 +525,16 @@ export default function CultureConnectApp({
         const data = (await res.json()) as AgendaListResponse;
         if (cancelled || gen !== recoFetchGen.current) return;
         if (recoWipedRef.current) return;
-        setRecoPoolByKey((prev) => ({
-          ...prev,
-          [key]: data.items ?? [],
-        }));
+        setRecoPoolByKey((prev) => {
+          const next = {
+            ...prev,
+            [key]: data.items ?? [],
+          };
+          if (key.endsWith('|profile') && recoKindRef.current === 'profile') {
+            writeProfileRecoCache(initialParisIso, selectedCommune, next);
+          }
+          return next;
+        });
       } catch {
         /* do not paint another scope's pool */
       }
@@ -469,18 +549,18 @@ export default function CultureConnectApp({
     timeScope,
     selectedDay,
     currentRecoDay,
-    tasteState,
     recoWiped,
     recoKind,
     currentRecoKey,
+    initialParisIso,
   ]);
 
-  // After mount, a taste profile refetches boot scopes (same POST reco=1). Guest stays on boot.
+  // After mount, a taste profile prefetches boot scopes (same POST reco=1). Guest stays on boot.
+  // Do not cancel successful writes — JWT/tasteState identity must not drop a finished POST.
   useEffect(() => {
     if (recoKind !== 'profile') return;
-    let cancelled = false;
     const commune = selectedCommune;
-    const profile = tasteState?.profile;
+    const profile = tasteStateRef.current?.profile;
     if (!profile) return;
     const jobs = RECO_BOOT_SCOPES.map((scope) => {
       const day = recoKeyDay(scope, null, initialParisIso);
@@ -514,20 +594,58 @@ export default function CultureConnectApp({
           });
           if (!res.ok) return;
           const data = (await res.json()) as AgendaListResponse;
-          if (cancelled || recoWipedRef.current) return;
-          setRecoPoolByKey((prev) => ({
-            ...prev,
-            [job.key]: data.items ?? [],
-          }));
+          if (recoWipedRef.current) return;
+          setRecoPoolByKey((prev) => {
+            const next = {
+              ...prev,
+              [job.key]: data.items ?? [],
+            };
+            if (recoKindRef.current === 'profile') {
+              writeProfileRecoCache(initialParisIso, commune, next);
+            }
+            return next;
+          });
         } catch {
           /* leave key empty */
         }
       }),
     );
-    return () => {
-      cancelled = true;
-    };
-  }, [recoKind, selectedCommune, tasteState, year, month, initialParisIso]);
+  }, [recoKind, selectedCommune, year, month, initialParisIso]);
+
+  // Reload first-paint: merge public profile card cache (no tastes / email).
+  useEffect(() => {
+    const cached = readProfileRecoCache(initialParisIso, selectedCommune);
+    if (Object.keys(cached).length === 0) return;
+    setRecoPoolByKey((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const [key, items] of Object.entries(cached)) {
+        if (next[key] === undefined) {
+          next[key] = items;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [initialParisIso, selectedCommune]);
+
+  // Drop another account's profile cache when the session is gone.
+  useEffect(() => {
+    if (sessionStatus !== 'unauthenticated') return;
+    clearProfileRecoCache();
+    setRecoPoolByKey((prev) => {
+      let changed = false;
+      const next: Record<string, DayItem[]> = {};
+      for (const [key, items] of Object.entries(prev)) {
+        if (key.endsWith('|profile') || key.endsWith('|pending')) {
+          changed = true;
+          continue;
+        }
+        next[key] = items;
+      }
+      return changed ? next : prev;
+    });
+  }, [sessionStatus]);
 
 
   useEffect(() => {
@@ -603,31 +721,11 @@ export default function CultureConnectApp({
     });
   }, [availableGenreSlugs, selectedCategories, genresLegend]);
 
-  /** Pour toi for scope S is only the payload fetched for S. Missing → empty. */
+  /** Pour toi: exact currentRecoKey only. Missing profile/pending → [] (skeleton). */
   const pourToiItems = useMemo(() => {
     if (recoWiped) return [];
-    const exact = recoPoolByKey[currentRecoKey];
-    if (exact !== undefined) return exact;
-    // Same-scope guest fallback while a profile POST is in flight (never another scope).
-    if (recoKind === 'profile') {
-      const guestKey = recoPoolKey(
-        timeScope,
-        currentRecoDay,
-        selectedCommune,
-        'guest',
-      );
-      return recoPoolByKey[guestKey] ?? [];
-    }
-    return [];
-  }, [
-    recoPoolByKey,
-    currentRecoKey,
-    recoWiped,
-    recoKind,
-    timeScope,
-    currentRecoDay,
-    selectedCommune,
-  ]);
+    return recoPoolByKey[currentRecoKey] ?? [];
+  }, [recoPoolByKey, currentRecoKey, recoWiped]);
 
   const pourToiKeys = useMemo(
     () => new Set(pourToiItems.map((item) => item.key)),
