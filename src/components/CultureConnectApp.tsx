@@ -52,8 +52,8 @@ type Props = {
   initialNouveauFilmIds?: string[];
 };
 
-function sortieWord(n: number): string {
-  return n <= 1 ? 'sortie' : 'sorties';
+function evenementWord(n: number): string {
+  return n <= 1 ? 'événement' : 'événements';
 }
 
 function normalizeCommune(c: string | null | undefined): string {
@@ -658,10 +658,10 @@ export default function CultureConnectApp({
   const shown = pourToiCardCount + packCardCount + Math.min(visibleCount, gridCardCount);
   const countLabel =
     n === 0
-      ? `0 ${sortieWord(0)}`
+      ? `0 ${evenementWord(0)}`
       : shown < n
-        ? `${shown} sur ${n} ${sortieWord(n)}`
-        : `${n} ${sortieWord(n)}`;
+        ? `${shown} sur ${n} ${evenementWord(n)}`
+        : `${n} ${evenementWord(n)}`;
   const rangeLabel = searchingUi ? 'toutes dates' : contextLabel;
   const emptyScopeHint =
     timeScope === 'aujourdhui'
