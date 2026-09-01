@@ -23,16 +23,16 @@ export default function SiteNav() {
   return (
     <nav
       aria-label="Navigation principale"
-      className="border-b border-culture-line/80 bg-culture-cream/80 backdrop-blur"
+      className="overflow-x-hidden border-b border-culture-line/80 bg-culture-cream/80 backdrop-blur"
     >
-      <div className="relative mx-auto flex max-w-7xl min-w-0 items-center gap-1 px-4 py-3 pr-[4.25rem] sm:px-6 sm:pr-6">
+      <div className="relative mx-auto flex max-w-7xl min-w-0 items-center gap-1 overflow-x-hidden px-4 py-3 pr-12 sm:px-6 sm:pr-6">
         <Link
           href="/"
-          className="mr-2 shrink-0 font-display text-lg text-culture-terracotta hover:text-culture-clay sm:mr-3"
+          className="mr-1.5 shrink-0 font-display text-base text-culture-terracotta hover:text-culture-clay sm:mr-3 sm:text-lg"
         >
           CultureConnect
         </Link>
-        <div className="flex min-w-0 flex-1 flex-nowrap gap-1 overflow-x-auto">
+        <div className="flex min-w-0 flex-1 flex-nowrap gap-1 overflow-x-hidden">
           {LINKS.map(({ href, label }) => {
             const active = isActive(href);
             return (

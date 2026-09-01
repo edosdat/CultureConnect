@@ -20,11 +20,11 @@ export default function TimeScopeBar({
 }: Props) {
   const none = scope == null || scope === 'tous';
   const track = (
-    <div className="cc-axes__track relative">
+    <div className="cc-axes__track">
       <div
         role="group"
         aria-label="Quand"
-        className="cc-axes__chips snap-x snap-proximity scroll-px-2 pe-3 pb-0.5"
+        className="cc-axes__chips"
       >
         {TIME_SCOPE_CHIPS.map(({ id, label }) => {
           const active = !none && scope === id;
@@ -37,7 +37,7 @@ export default function TimeScopeBar({
               }}
               aria-pressed={active}
               className={
-                'snap-start shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition ' +
+                'cc-axes__chip shrink-0 whitespace-nowrap rounded-full border font-medium transition ' +
                 (active
                   ? 'border-culture-terracotta bg-culture-terracotta text-white shadow-sm'
                   : 'border-culture-line bg-culture-surface text-culture-ink hover:border-culture-terracotta/50')
@@ -48,10 +48,6 @@ export default function TimeScopeBar({
           );
         })}
       </div>
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-culture-cream to-transparent sm:hidden"
-      />
     </div>
   );
 

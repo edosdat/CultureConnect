@@ -134,7 +134,7 @@ export default function AuthButtons() {
 
   if (!enabled) {
     return (
-      <p className="max-w-[6.5rem] text-right text-[10px] leading-snug text-culture-muted sm:max-w-none sm:text-xs">
+      <p className="hidden text-right text-xs text-culture-muted sm:block">
         Connexion Google bientôt disponible
       </p>
     );
