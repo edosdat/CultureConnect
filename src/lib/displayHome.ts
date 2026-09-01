@@ -13,6 +13,7 @@ import {
   mainOfDayItem,
 } from './nouveautesCine';
 import { formatDateFr, formatHeure, formatLieuAffiche } from './labels';
+import { seanceDateIso } from './timeScope';
 import { profileChips } from './pourToi';
 import type { RecoSlotForm } from './reco';
 import { slotFormOfItem } from './reco';
@@ -69,12 +70,10 @@ export function itemHeure(item: DayItem): string {
   return formatHeure(item.evenement.heure_debut);
 }
 
-/** Planning line: date + time (never time-only). */
+/** Planning line: this séance’s Paris date + time (never a later day’s clock). */
 export function seanceWhen(item: DayItem, earliestHeure?: string): string {
-  const date = formatDateFr(item.dayIso || '');
-  const time = earliestHeure
-    ? formatHeure(earliestHeure)
-    : itemHeure(item);
+  const date = formatDateFr(seanceDateIso(item) || item.dayIso || '');
+  const time = itemHeure(item) || (earliestHeure ? formatHeure(earliestHeure) : '');
   return [date, time].filter(Boolean).join(' · ');
 }
 

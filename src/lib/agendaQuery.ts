@@ -45,6 +45,7 @@ import {
 } from './slim';
 import {
   bootTimeScope,
+  filterSeancesForDisplay,
   hideSeancesBeforeToday,
   parisParts,
   resolveScopeRange,
@@ -1125,6 +1126,11 @@ function withCredits(item: DayItem, artistes: Artiste[]): DayItem {
 export function queryAgendaDetail(
   id: string,
   commune?: string | null,
+  window?: {
+    dateFrom?: string | null;
+    dateTo?: string | null;
+    soir?: boolean;
+  },
 ): AgendaDetailResponse | null {
   const data = loadCultureData();
   const item = findItemByKey(id);
@@ -1153,9 +1159,16 @@ export function queryAgendaDetail(
           );
         })
         .map(relatedSeanceDayItem);
-      relatedItems = filterItemsByCommune(
-        hideSeancesBeforeToday(relatedItems, parisParts().iso),
-        commune,
+      relatedItems = filterSeancesForDisplay(
+        filterItemsByCommune(
+          hideSeancesBeforeToday(relatedItems, parisParts().iso),
+          commune,
+        ),
+        {
+          startIso: window?.dateFrom,
+          endIso: window?.dateTo,
+          soir: Boolean(window?.soir),
+        },
       );
     }
   }

@@ -10,6 +10,7 @@ import {
   formatPrix,
   labelCategorie,
 } from '@/lib/labels';
+import { seanceDateIso } from '@/lib/timeScope';
 import { MAIN_CATEGORY_LABELS, mainFromCategorie, mainFromGenreSlug } from '@/lib/categories';
 import { catCssVar, catGradient } from '@/lib/categoryColor';
 import VisualFallback from './VisualFallback';
@@ -237,7 +238,7 @@ export default function SeanceCard({
         {resolved === 'rail' && catLabel ? <CategoryPill label={catLabel} /> : null}
         {showDate && (
           <span className="text-xs font-medium text-culture-terracotta">
-            {formatDateFr(item.dayIso)}
+            {formatDateFr(seanceDateIso(item) || item.dayIso)}
           </span>
         )}
         {resolved !== 'compact' ? (

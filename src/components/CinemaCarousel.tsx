@@ -17,7 +17,12 @@ import {
   itemTitle,
   seanceWhen,
 } from '@/lib/displayHome';
-import { hideSeancesBeforeToday, parisParts } from '@/lib/timeScope';
+import {
+  filterSeancesForDisplay,
+  hideSeancesBeforeToday,
+  itemInDateWindow,
+  parisParts,
+} from '@/lib/timeScope';
 import VisualFallback, { categoryLabelOf } from './VisualFallback';
 import FavoriteButton from './FavoriteButton';
 import ShareButton from './ShareButton';
@@ -28,6 +33,9 @@ type Props = {
   focusKey?: string | null;
   fallbackVivant?: DayItem[];
   selectedCommune?: string | null;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  soir?: boolean;
   onAgenda?: (item: DayItem) => void;
   onIcs?: (item: DayItem) => void;
   onReserve?: (item: DayItem) => void;
@@ -122,6 +130,9 @@ export default function CinemaCarousel({
   focusKey = null,
   fallbackVivant = [],
   selectedCommune = null,
+  dateFrom = null,
+  dateTo = null,
+  soir = false,
   onAgenda,
   onIcs,
   onReserve,
@@ -158,21 +169,29 @@ export default function CinemaCarousel({
     setAussi([]);
     const key = hero.item.key;
     let cancelled = false;
-    const communeQ = selectedCommune
-      ? `&commune=${encodeURIComponent(selectedCommune)}`
-      : '';
-    void fetch(`/api/agenda?id=${encodeURIComponent(key)}${communeQ}`)
+    const qs = new URLSearchParams();
+    qs.set('id', key);
+    if (selectedCommune) qs.set('commune', selectedCommune);
+    if (dateFrom) qs.set('date_from', dateFrom);
+    if (dateTo) qs.set('date_to', dateTo);
+    if (soir) qs.set('soir', '1');
+    void fetch(`/api/agenda?${qs.toString()}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data: AgendaDetailResponse | null) => {
         if (cancelled || !data) return;
-        setRelated(filterItemsByCommune(data.relatedItems ?? [], selectedCommune));
+        setRelated(
+          filterSeancesForDisplay(
+            filterItemsByCommune(data.relatedItems ?? [], selectedCommune),
+            { startIso: dateFrom, endIso: dateTo, soir },
+          ),
+        );
         setAussi(filterItemsByCommune(data.aussiCeSoir ?? [], selectedCommune));
       })
       .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [hero?.item.key, selectedCommune]);
+  }, [hero?.item.key, selectedCommune, dateFrom, dateTo, soir]);
 
   function scrollStrip(dir: -1 | 1) {
     const el = stripRef.current;
@@ -188,16 +207,20 @@ export default function CinemaCarousel({
   const venue = formatLieuAffiche(item.lieu);
   const cat = categoryLabelOf(item);
   const cal = calendarPayloadFromDayItem(item);
-  const upcoming = filterItemsByCommune(
-    hideSeancesBeforeToday(related, parisParts().iso),
-    selectedCommune,
+  const upcoming = filterSeancesForDisplay(
+    filterItemsByCommune(
+      hideSeancesBeforeToday(related, parisParts().iso),
+      selectedCommune,
+    ),
+    { startIso: dateFrom, endIso: dateTo, soir },
   );
-  const seances =
-    upcoming.length > 0
-      ? upcoming
-      : itemMatchesCommune(item, selectedCommune)
-        ? [item]
-        : [];
+  const heroInWindow =
+    itemMatchesCommune(item, selectedCommune) &&
+    (!dateFrom ||
+      !dateTo ||
+      itemInDateWindow(item, dateFrom, dateTo)) &&
+    (!soir || filterSeancesForDisplay([item], { soir }).length > 0);
+  const seances = upcoming.length > 0 ? upcoming : heroInWindow ? [item] : [];
   const crossSell =
     aussi.length > 0
       ? aussi
