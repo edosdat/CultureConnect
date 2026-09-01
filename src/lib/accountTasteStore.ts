@@ -21,7 +21,6 @@ import {
   overlayZeroWeightsExceptIncomingPositives,
   parseTasteState,
   profileHasZeroWeights,
-  rebuildTasteState,
   recomputeProfilePcts,
   sanitizeTasteProfile,
   unionPositiveWeights,
@@ -336,31 +335,22 @@ function mergeIncomingTaste(
       ? newerTimestamp(existing.tastesSetAt, incoming.tastesSetAt)
       : existing.tastesSetAt;
 
-  const rebuilt = rebuildTasteState(
-    signalsRecent,
-    tastesText,
-    tastesSetAt,
-    ACCOUNT_CAP,
-    existingProfile,
-  );
-  // Recalc, then union fused positives, overlay incoming 0s (wipe persists), then existing 0s
-  // except keys incoming is unzeroing (+) so cinema:1 is not re-zeroed.
+  const existingMigrated = sanitizeTasteProfile(existingProfile);
+  const incomingMigrated = sanitizeTasteProfile(incomingProfile);
+  // Union stored profiles only — do not inventory signalsRecent.
   const profile = recomputeProfilePcts(
     overlayZeroWeightsExceptIncomingPositives(
       overlayZeroWeights(
-        unionPositiveWeights(
-          unionPositiveWeights(rebuilt.profile, existingProfile),
-          incomingProfile,
-        ),
-        incomingProfile,
+        unionPositiveWeights(existingMigrated, incomingMigrated),
+        incomingMigrated,
       ),
-      existingProfile,
-      incomingProfile,
+      existingMigrated,
+      incomingMigrated,
     ),
   );
 
   return {
-    signalsRecent: rebuilt.signalsRecent,
+    signalsRecent,
     profile,
     tastesText,
     tastesSetAt,
@@ -411,16 +401,10 @@ export async function readAccountTaste(
   // read raw → migrate leftover numbers → rebuild (union positives) → overlay 0 LAST.
   // Never union after overlay: a leftover number must not rewrite a wipe 0.
   const migrated = sanitizeTasteProfile(coerceProfile(stored.profile));
-  const rebuilt = rebuildTasteState(
-    stored.signalsRecent,
-    stored.tastesText,
-    stored.tastesSetAt,
-    ACCOUNT_CAP,
-    migrated,
-  );
   return {
-    ...rebuilt,
-    profile: overlayZeroWeights(rebuilt.profile, migrated),
+    ...stored,
+    signalsRecent: stored.signalsRecent.slice(-ACCOUNT_CAP),
+    profile: migrated,
   };
 }
 

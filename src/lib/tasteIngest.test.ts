@@ -460,4 +460,35 @@ describe('taste profile — one-shot migrate of stored mood keys', () => {
     assert.equal(rebuilt.profile.moods.rigolo?.weight, 1);
     assert.equal(rebuilt.profile.genres.comedie, undefined);
   });
+
+  it('does not expand a rigolo-only overlay from old signals (edosdat Ambiances)', () => {
+    const leftover = {
+      ...makeSignal({ kind: 'open_card', moods: ['tendre'], genres: ['comedie'] }),
+      moods: ['tendre', 'comedie'],
+      genres: ['comedie'],
+    };
+    const parsed = parseTasteState({
+      signalsRecent: [leftover],
+      profile: {
+        ...emptyProfile(),
+        moods: { rigolo: { weight: 1, pct: 100 } },
+      },
+    });
+    assert.ok(parsed);
+    assert.deepEqual(Object.keys(parsed!.profile.moods), ['rigolo']);
+    assert.equal(parsed!.profile.moods.rigolo?.weight, 1);
+    assert.equal(parsed!.profile.moods.tendre, undefined);
+    assert.equal(parsed!.profile.genres.comedie, undefined);
+
+    const rebuilt = rebuildTasteState(
+      [leftover],
+      undefined,
+      undefined,
+      40,
+      { ...emptyProfile(), moods: { rigolo: { weight: 1, pct: 100 } } },
+    );
+    assert.deepEqual(Object.keys(rebuilt.profile.moods), ['rigolo']);
+    assert.equal(rebuilt.profile.moods.tendre, undefined);
+    assert.equal(rebuilt.profile.genres.comedie, undefined);
+  });
 });

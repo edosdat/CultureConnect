@@ -7,6 +7,7 @@ import {
 } from '@/lib/accountTasteStore';
 import {
   ACCOUNT_CAP,
+  applyIncomingSignals,
   coerceProfile,
   concatTastesText,
   ingestMapSignal,
@@ -210,11 +211,13 @@ export async function POST(req: Request) {
     ACCOUNT_CAP,
   );
 
-  // Overlay-prev: unzero keys the user is adding back, then keep remaining 0s.
+  // Incoming signals only — do not inventory signalsRecent history.
   let overlayPrev = current.profile;
-  for (const s of incomingSignals.filter(isTasteWritingSignal)) {
+  const incomingTaste = incomingSignals.filter(isTasteWritingSignal);
+  for (const s of incomingTaste) {
     overlayPrev = unzeroKeysTouchedBySignal(overlayPrev, s);
   }
+  overlayPrev = applyIncomingSignals(overlayPrev, incomingTaste);
 
   let tasteState = rebuildTasteState(
     signals,

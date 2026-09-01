@@ -8,12 +8,10 @@ import {
   GUEST_STORAGE_KEY,
   dedupAppend,
   emptyGuestStore,
-  overlayZeroWeights,
+  applyIncomingSignals,
   parseGuestStore,
   profileHasZeroWeights,
-  recalcProfile,
   sanitizeTasteProfile,
-  unionPositiveWeights,
   unzeroKeysTouchedBySignal,
   wipeProfileKey,
   type GuestSignalsStore,
@@ -24,12 +22,9 @@ import {
 const COOKIE_BUDGET = 3500;
 
 function persistGuestProfile(
-  events: Signal[],
   prev: GuestSignalsStore['profile'],
 ): GuestSignalsStore['profile'] {
-  return sanitizeTasteProfile(
-    overlayZeroWeights(unionPositiveWeights(recalcProfile(events), prev), prev),
-  );
+  return sanitizeTasteProfile(prev);
 }
 
 function canUseDom(): boolean {
@@ -75,13 +70,13 @@ function compactForCookie(store: GuestSignalsStore): string {
     events.shift();
     const next = storeToJson({
       events,
-      profile: persistGuestProfile(events, store.profile),
+      profile: persistGuestProfile(store.profile),
     });
     if (next.length <= COOKIE_BUDGET) return next;
   }
   return storeToJson({
     events: events.slice(-1),
-    profile: persistGuestProfile(events.slice(-1), store.profile),
+    profile: persistGuestProfile(store.profile),
   });
 }
 
@@ -121,7 +116,7 @@ export function writeGuestStore(store: GuestSignalsStore): GuestSignalsStore {
   const events = store.events.slice(-GUEST_CAP);
   const next: GuestSignalsStore = {
     events,
-    profile: persistGuestProfile(events, store.profile),
+    profile: persistGuestProfile(store.profile),
   };
   if (!canUseDom()) return next;
   const json = storeToJson(next);
@@ -150,7 +145,8 @@ export function clearGuestStore(): void {
 
 export function appendGuestSignal(signal: Signal): GuestSignalsStore {
   const current = readGuestStore();
-  const profile = unzeroKeysTouchedBySignal(current.profile, signal);
+  let profile = unzeroKeysTouchedBySignal(current.profile, signal);
+  profile = applyIncomingSignals(profile, [signal]);
   const events = dedupAppend(current.events, signal, GUEST_CAP);
   return writeGuestStore({ events, profile });
 }

@@ -841,19 +841,29 @@ export function profileHasPositiveTastes(profile?: TasteProfile | null): boolean
   );
 }
 
+/** Apply incoming signals only. Never inventory signalsRecent history. */
+export function applyIncomingSignals(
+  profile: TasteProfile,
+  incoming: readonly Signal[],
+): TasteProfile {
+  const next = sanitizeTasteProfile(profile);
+  for (const s of incoming) {
+    if (!isTasteWritingSignal(s)) continue;
+    applySignalToProfile(next, s);
+  }
+  return sanitizeTasteProfile(next);
+}
+
 /** Empty / cinema-only guest never passes zv — do not merge, do not wipe. */
 export function guestHasMergeableTastes(
   events?: Signal[] | null,
   profile?: TasteProfile | null,
 ): boolean {
-  const rebuilt = rebuildTasteState(
-    events ?? [],
-    undefined,
-    undefined,
-    ACCOUNT_CAP,
-    profile ?? emptyProfile(),
-  );
-  return hasScorableState(rebuilt);
+  const probe = applyIncomingSignals(profile ?? emptyProfile(), events ?? []);
+  return hasScorableState({
+    signalsRecent: events ?? [],
+    profile: probe,
+  });
 }
 
 export function pickRicherTasteState(
@@ -897,10 +907,11 @@ export function resolveLoginMerge(opts: {
   if (!mergeable && !(opts.extraText || '').trim()) {
     return { state: { ...base, profile: sanitizeTasteProfile(base.profile) }, wroteGuest: false };
   }
-  let overlayPrev = base.profile;
+  let overlayPrev = sanitizeTasteProfile(base.profile);
   for (const s of tasteSignals) {
     overlayPrev = unzeroKeysTouchedBySignal(overlayPrev, s);
   }
+  overlayPrev = applyIncomingSignals(overlayPrev, tasteSignals);
   const tastesText = concatTastesText(base.tastesText, opts.extraText);
   const tastesSetAt =
     tastesText && tastesText !== base.tastesText
@@ -958,11 +969,19 @@ export function rebuildTasteState(
 ): AccountTasteState {
   const signalsRecent = signals.slice(-cap);
   const text = (tastesText || '').trim() || undefined;
-  // read raw → migrate numbers → union stored positives → overlay 0 LAST
-  const prev = prevProfile ? coerceProfile(prevProfile) : null;
-  const recalc = recalcProfile(signalsRecent, text);
-  const kept = unionPositiveWeights(recalc, prev);
-  const profile = sanitizeTasteProfile(overlayZeroWeights(kept, prev));
+  // Migrate stored mood keys only. Do not inventory signalsRecent.
+  let profile = prevProfile
+    ? sanitizeTasteProfile(coerceProfile(prevProfile))
+    : emptyProfile();
+  if (text) {
+    const virtual = makeSignal({
+      kind: 'tastes_text',
+      genres: [],
+      moods: extractMoods(text),
+    });
+    applySignalToProfile(profile, virtual);
+    profile = sanitizeTasteProfile(profile);
+  }
   return {
     signalsRecent,
     profile,
@@ -982,9 +1001,7 @@ export function parseTasteState(raw: unknown): AccountTasteState | null {
     o.profile && typeof o.profile === 'object'
       ? coerceProfile(o.profile)
       : null;
-  const profile = sanitizeTasteProfile(
-    migrated ?? recalcProfile(signals, o.tastesText),
-  );
+  const profile = sanitizeTasteProfile(migrated ?? emptyProfile());
   return {
     signalsRecent: signals.slice(-ACCOUNT_CAP),
     profile,
@@ -1017,7 +1034,7 @@ export function parseGuestStore(raw: unknown): GuestSignalsStore {
     profile:
       o.profile && typeof o.profile === 'object'
         ? sanitizeTasteProfile(coerceProfile(o.profile))
-        : recalcProfile(capped),
+        : emptyProfile(),
   };
 }
 
