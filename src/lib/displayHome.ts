@@ -140,6 +140,12 @@ export function shouldShowTop3Section(opts: {
   return opts.cardCount > 0;
 }
 
+/** H2 for the reco row. Matches visible card count; 0 is hidden by the caller. */
+export function top3Heading(cardCount: number): string {
+  const n = cardCount === 1 || cardCount === 2 || cardCount === 3 ? cardCount : 3;
+  return `Ton top ${n} du moment`;
+}
+
 export function eventIdOf(item: DayItem): string {
   if (item.kind === 'programme') return item.programme.event_id || '';
   return item.evenement.event_id || '';

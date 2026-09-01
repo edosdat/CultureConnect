@@ -24,6 +24,7 @@ import {
   displayReasonForItem,
   liveRows,
   shouldShowTop3Section,
+  top3Heading,
   top3IdentitySet,
   visibleTop3Items,
 } from '@/lib/displayHome';
@@ -1520,7 +1521,7 @@ export default function CultureConnectApp({
           data-top3-count={recoReady ? top3Cards.length : undefined}
         >
           <h2 className="w-full font-display text-xl leading-tight text-culture-ink sm:text-2xl">
-            Ton top 3 du moment
+            {top3Heading(recoReady ? top3Cards.length : 3)}
           </h2>
           {sessionStatus === 'unauthenticated' ? (
             <button

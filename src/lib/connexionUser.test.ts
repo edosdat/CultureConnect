@@ -6,6 +6,7 @@ import {
   recoWhyForMood,
   shouldShowTop3Section,
   top3GridClass,
+  top3Heading,
   visibleTop3Items,
 } from './displayHome';
 import { pickAussiCeSoir } from './nouveautesCine';
@@ -475,6 +476,13 @@ describe('top 3 adaptive layout', () => {
     assert.ok(top3GridClass(2).includes('sm:grid-cols-2'));
     assert.ok(!top3GridClass(2).includes('lg:grid-cols-3'));
     assert.ok(top3GridClass(3).includes('lg:grid-cols-3'));
+  });
+
+  it('H2 says Ton top N du moment for 1 / 2 / 3 cards', () => {
+    assert.equal(top3Heading(1), 'Ton top 1 du moment');
+    assert.equal(top3Heading(2), 'Ton top 2 du moment');
+    assert.equal(top3Heading(3), 'Ton top 3 du moment');
+    assert.equal(top3Heading(0), 'Ton top 3 du moment');
   });
 });
 
