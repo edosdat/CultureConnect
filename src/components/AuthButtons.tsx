@@ -242,7 +242,10 @@ export default function AuthButtons() {
             <button
               type="button"
               role="menuitem"
-              onClick={() => signOut({ callbackUrl: '/' })}
+              onClick={() => {
+                // NextAuth only. Do not wipe cc_signals_v1 / favorites / mail.
+                void signOut({ callbackUrl: '/' });
+              }}
               className="block w-full px-3 py-2 text-left text-sm font-medium text-culture-ink hover:bg-white"
             >
               Déconnexion

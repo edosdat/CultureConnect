@@ -189,25 +189,29 @@ export async function POST(req: Request) {
   const current = hasPersistedTasteState(jwtState)
     ? jwtState
     : (stored ?? jwtState);
-  const tasteSignals = incomingSignals.filter(isTasteWritingSignal);
   const tastesText = concatTastesText(current.tastesText, extraText);
   const tastesSetAt =
     tastesText && tastesText !== current.tastesText
       ? new Date().toISOString()
       : current.tastesSetAt;
 
-  if (!extraText && !wipe && tasteSignals.length === 0) {
+  if (!extraText && !wipe && incomingSignals.length === 0) {
     return NextResponse.json(
       { error: 'signal ou signals requis' },
       { status: 400 },
     );
   }
 
-  const signals = mergeSignalLists(current.signalsRecent, tasteSignals, ACCOUNT_CAP);
+  // chip_cat stays on the wire (Cinéma grid filter). L() does not increment cats.
+  const signals = mergeSignalLists(
+    current.signalsRecent,
+    incomingSignals,
+    ACCOUNT_CAP,
+  );
 
   // Overlay-prev: unzero keys the user is adding back, then keep remaining 0s.
   let overlayPrev = current.profile;
-  for (const s of tasteSignals) {
+  for (const s of incomingSignals.filter(isTasteWritingSignal)) {
     overlayPrev = unzeroKeysTouchedBySignal(overlayPrev, s);
   }
 

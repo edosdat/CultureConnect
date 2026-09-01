@@ -105,13 +105,14 @@ export function labelProfileChip(bucket: ProfileBucket, key: string): string {
 
 const TASTE_SHEET_BUCKETS: readonly ProfileBucket[] = ['moods', 'genres', 'themes'];
 
+/** Fy — Ambiances / Genres / Thèmes only. Never read profile.cats. */
 export function profileChips(
   profile?: TasteProfile | null,
   max = 8,
 ): ProfileChip[] {
   if (!profile) return [];
   const raw: ProfileChip[] = [];
-  const push = (bucket: ProfileBucket, map?: Record<string, TasteEntry>) => {
+  const push = (bucket: Exclude<ProfileBucket, 'cats'>, map?: Record<string, TasteEntry>) => {
     for (const [key, entry] of Object.entries(map ?? {})) {
       const weight = entryWeight(entry);
       if (weight <= 0 || !key || isCatTasteKey(key)) continue;

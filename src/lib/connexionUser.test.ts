@@ -18,6 +18,7 @@ import {
   emptyProfile,
   emptyTasteState,
   guestHasMergeableTastes,
+  hasScorableState,
   makeSignal,
   resolveLoginMerge,
   sanitizeTasteProfile,
@@ -582,6 +583,35 @@ describe('login merge — empty guest must not wipe JWT', () => {
         (k) => (out.state.profile.moods[k]?.weight ?? 0) > 0,
       ).length,
       16,
+    );
+  });
+
+  it('zv ignores cats — cinema-only is not « has tastes »', () => {
+    const cinemaOnly = state({
+      profile: profile({
+        cats: { cinema: { weight: 9, pct: 100 } },
+      }),
+    });
+    assert.equal(hasScorableState(cinemaOnly), false);
+    assert.equal(
+      hasScorableState(
+        state({
+          profile: profile({
+            cats: { cinema: { weight: 9, pct: 100 } },
+            genres: { cinema: { weight: 4, pct: 100 } },
+            moods: { sortie: { weight: 2, pct: 100 } },
+          }),
+        }),
+      ),
+      false,
+    );
+    assert.equal(
+      hasScorableState(
+        state({
+          profile: profile({ moods: { tendre: { weight: 2, pct: 100 } } }),
+        }),
+      ),
+      true,
     );
   });
 

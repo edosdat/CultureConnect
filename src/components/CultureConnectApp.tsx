@@ -1271,9 +1271,14 @@ export default function CultureConnectApp({
   }
 
   function handleCategoriesChange(next: string[]) {
+    const added = next.filter((c) => !selectedCategories.includes(c));
     setSelectedCategories(next);
     if (next.length === 0) {
       setSelectedGenres([]);
+    }
+    // Grid filter only — L() must not increment cats (chip stays chip_cat).
+    for (const chip of added) {
+      track({ kind: 'chip_cat', chip, categorie: chip, genres: [], moods: [] });
     }
   }
 

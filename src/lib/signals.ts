@@ -583,15 +583,15 @@ export function isCatTasteKey(key: string): boolean {
   return CAT_TASTE_KEYS.has(key.trim().toLowerCase());
 }
 
-/** Grid filters — never a taste write. */
+/** Grid filters (Cinéma chip stays chip_cat). Not a goût write by themselves. */
 export function isTasteWritingSignal(s: Pick<Signal, 'kind'>): boolean {
   return s.kind !== 'chip_cat' && s.kind !== 'chip_time';
 }
 
+/** L() — moods / genres / themes only. Never increment profile.cats. */
 export function applySignalToProfile(profile: TasteProfile, signal: Signal): void {
-  if (!isTasteWritingSignal(signal)) return;
   const w = signal.weight;
-  // cats are not tastes — never addWeight on profile.cats
+  // cats are not tastes — never addWeight on profile.cats (cinema chip_cat no-op)
   for (const g of signal.genres) {
     if (isCatTasteKey(g)) continue;
     addWeight(profile.genres, g, w);
@@ -647,14 +647,19 @@ export function profileHasPositiveTastes(profile?: TasteProfile | null): boolean
   );
 }
 
-/** Empty guest / chip_cat-only must not merge over the account. */
+/** Empty / cinema-only guest never passes zv — do not merge, do not wipe. */
 export function guestHasMergeableTastes(
   events?: Signal[] | null,
   profile?: TasteProfile | null,
 ): boolean {
-  const tasteSignals = (events ?? []).filter(isTasteWritingSignal);
-  if (tasteSignals.length > 0) return true;
-  return profileHasPositiveTastes(profile);
+  const rebuilt = rebuildTasteState(
+    events ?? [],
+    undefined,
+    undefined,
+    ACCOUNT_CAP,
+    profile ?? emptyProfile(),
+  );
+  return hasScorableState(rebuilt);
 }
 
 export function pickRicherTasteState(
@@ -690,11 +695,11 @@ export function resolveLoginMerge(opts: {
   extraText?: string;
 }): { state: AccountTasteState; wroteGuest: boolean } {
   const base = pickRicherTasteState(opts.stored, opts.jwt);
-  const tasteSignals = opts.guestSignals.filter(isTasteWritingSignal);
   const guestProfile = opts.guestProfile
     ? sanitizeTasteProfile(opts.guestProfile)
     : null;
-  const mergeable = guestHasMergeableTastes(tasteSignals, guestProfile);
+  const mergeable = guestHasMergeableTastes(opts.guestSignals, guestProfile);
+  const tasteSignals = opts.guestSignals.filter(isTasteWritingSignal);
   if (!mergeable && !(opts.extraText || '').trim()) {
     return { state: { ...base, profile: sanitizeTasteProfile(base.profile) }, wroteGuest: false };
   }
@@ -1007,16 +1012,21 @@ export function payloadFromDayItem(
   return payload;
 }
 
+/** zv — ignores cats. Cinema-only must not count as « has tastes ». */
 export function hasScorableState(state: AccountTasteState | null | undefined): boolean {
   if (!state) return false;
-  const p = state.profile;
   if ((state.tastesText || '').trim()) return true;
-  return (
-    hasPositiveEntryWeights(p.moods) ||
-    hasPositiveEntryWeights(p.genres) ||
-    hasPositiveEntryWeights(p.themes) ||
-    hasPositiveWeights(p.communes)
+  const p = state.profile;
+  const moodHit = Object.entries(p.moods ?? {}).some(
+    ([k, e]) => isTasteMood(k) && entryWeight(e) > 0,
   );
+  const genreHit = Object.entries(p.genres ?? {}).some(
+    ([k, e]) => !isCatTasteKey(k) && entryWeight(e) > 0,
+  );
+  const themeHit = Object.entries(p.themes ?? {}).some(
+    ([k, e]) => !isCatTasteKey(k) && entryWeight(e) > 0,
+  );
+  return moodHit || genreHit || themeHit || hasPositiveWeights(p.communes);
 }
 
 export function profileMaxWeight(profile: TasteProfile): number {

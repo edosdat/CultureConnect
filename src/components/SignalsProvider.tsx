@@ -124,8 +124,11 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (status !== 'authenticated' || !session?.user) return;
     if (mergedRef.current) return;
+    const jwtTaste = session.user.tasteState ?? null;
     const guest = readGuestStore();
-    if (!guestHasMergeableTastes(guest.events, guest.profile)) {
+    const guestMergeable = guestHasMergeableTastes(guest.events, guest.profile);
+    // zv(JWT) → show JWT. Empty / cinema-only guest never passes zv — no POST, no wipe.
+    if (hasScorableState(jwtTaste) || !guestMergeable) {
       mergedRef.current = true;
       return;
     }
@@ -139,7 +142,6 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
       });
       if (cancelled) return;
       if (!data?.tasteState) {
-        // Merge failed — keep guest as filet; retry once the account hydrates.
         mergedRef.current = false;
         return;
       }
@@ -148,8 +150,7 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
         tastes: data.tastes ?? data.tasteState.tastesText ?? '',
         tastesSetAt: data.tastesSetAt ?? data.tasteState.tastesSetAt,
       });
-      // Only drop guest when the account profile is scorable (Safari / first
-      // login: JWT may still be empty — keep guest so « Ton top 3 » stays).
+      // Wipe cc_signals_v1 only if zv(response). Cinema-only never passes.
       if (hasScorableState(data.tasteState)) {
         clearGuestStore();
         setGuestStore(emptyGuestStore());

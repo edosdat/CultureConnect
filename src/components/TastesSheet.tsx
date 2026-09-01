@@ -20,12 +20,18 @@ function formatPct(n: number): string {
 
 /** Bottom sheet Mes goûts — lines label + % + ×. Not a questionnaire. */
 export default function TastesSheet({ open, onClose }: Props) {
-  const { wipeKey, addPhrase, tasteState } = useSignals();
+  const { wipeKey, addPhrase, tasteState, guestStore, sessionStatus } =
+    useSignals();
   const [mounted, setMounted] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
   const [visible, setVisible] = useState(false);
   const [draft, setDraft] = useState('');
-  const rows = profileChips(tasteState?.profile, 64);
+  // Logged-out sheet = guest store. Signed-in uses JWT (or guest fallback).
+  const sheetProfile =
+    sessionStatus === 'authenticated'
+      ? tasteState?.profile
+      : guestStore.profile;
+  const rows = profileChips(sheetProfile, 64);
 
   useEffect(() => {
     setMounted(true);
