@@ -48,7 +48,7 @@ export default function CategoryFilter({
           ? EXTRA_CATEGORY_CHIPS
           : MAIN_CATEGORIES;
     return (
-      <div className="relative min-w-0 w-0 flex-1">
+      <div className="relative min-w-0 w-full">
         <div
           role="group"
           aria-label="Quoi"

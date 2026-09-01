@@ -20,7 +20,7 @@ export default function TimeScopeBar({
 }: Props) {
   const none = scope == null || scope === 'tous';
   const track = (
-    <div className="relative min-w-0 w-0 flex-1">
+    <div className="relative min-w-0 w-full">
       <div
         role="group"
         aria-label="Quand"

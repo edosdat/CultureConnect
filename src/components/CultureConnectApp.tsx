@@ -1376,8 +1376,8 @@ export default function CultureConnectApp({
       </div>
 
       <div className="space-y-2.5 sm:space-y-4">
-        <div className="flex w-full min-w-0 flex-nowrap items-center gap-1.5 overflow-hidden sm:gap-3">
-          <div className="flex w-0 min-w-0 flex-1 items-center gap-1 overflow-hidden">
+        <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] items-center gap-x-1.5 sm:grid-cols-[minmax(0,1fr)_1px_minmax(0,1.2fr)] sm:gap-x-3">
+          <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
             <p className="hidden shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted sm:inline">
               Quand
             </p>
@@ -1390,9 +1390,9 @@ export default function CultureConnectApp({
           <div
             role="separator"
             aria-hidden
-            className="h-7 w-px shrink-0 bg-culture-line"
+            className="h-7 w-px self-center bg-culture-line"
           />
-          <div className="flex w-0 min-w-0 flex-1 items-center gap-1 overflow-hidden">
+          <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
             <p className="hidden shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted sm:inline">
               Quoi
             </p>
