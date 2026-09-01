@@ -619,9 +619,12 @@ function listForRange(
   });
   const phraseFrom = reco ? '' : (input.date_from || '').trim();
   const phraseTo = reco ? '' : (input.date_to || '').trim();
-  let range = searching || input.scope === 'tous'
-    ? upcomingRange(paris.iso, dataMaxIso())
-    : scopeRange;
+  // Title search still honors an active date chip (Ce soir / samedi / …).
+  // Only `tous` opens the full upcoming window.
+  let range =
+    input.scope === 'tous'
+      ? upcomingRange(paris.iso, dataMaxIso())
+      : scopeRange;
   if (!searching && (phraseFrom || phraseTo)) {
     const start =
       phraseFrom && phraseFrom > range.startIso ? phraseFrom : range.startIso;
@@ -697,9 +700,9 @@ function listForRange(
       genres,
       excludeLong,
     );
-    if (input.scope === 'soir') {
-      items = filterSoirItems(items, pool.programme);
-    }
+  }
+  if (input.scope === 'soir') {
+    items = filterSoirItems(items, pool.programme);
   }
 
   if (phrase) {
