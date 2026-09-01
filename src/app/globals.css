@@ -197,6 +197,30 @@ body {
 .cc-axes__more {
   flex: 0 0 auto;
 }
+/* Cine hero/fiche: compact landscape. object-contain — full affiche, never crop. */
+.cine-hero-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 7;
+  max-height: 11rem;
+  overflow: hidden;
+  background: var(--cc-sand);
+}
+.cine-hero-frame > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+@media (min-width: 768px) {
+  .cine-hero-frame {
+    aspect-ratio: 16 / 9;
+    max-height: 16rem;
+  }
+}
+
 @media (min-width: 640px) {
   .cc-axes {
     gap: 0.75rem;
