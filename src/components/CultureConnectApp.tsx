@@ -8,7 +8,7 @@ import { extractMoods, profileHasZeroWeights } from '@/lib/signals';
 import { signIn } from 'next-auth/react';
 import { useSignals } from './SignalsProvider';
 import { densify, densifiedCardCount } from '@/lib/densify';
-import { filmIdOfItem } from '@/lib/nouveautesCine';
+import { filmIdOfItem, isCinemaDayItem } from '@/lib/nouveautesCine';
 import { catsAllowCinemaPack, genreBelongsToMains, mainFromGenreSlug } from '@/lib/categories';
 import {
   capCineRows,
@@ -16,7 +16,6 @@ import {
   cineRows,
   dedupAgainstTop3,
   displayReasonForItem,
-  editorialRows,
   liveRows,
   top3IdentitySet,
 } from '@/lib/displayHome';
@@ -36,13 +35,12 @@ import SeanceGrid from './SeanceGrid';
 import Top3Skeleton from './Top3Skeleton';
 import TimeScopeBar from './TimeScopeBar';
 import SearchOmnibox from './SearchOmnibox';
-import SearchExamples from './SearchExamples';
 import ListWaitDots from './ListWaitDots';
 import EventDetail from './EventDetail';
 import LoginNudge from './LoginNudge';
 import HomeSection from './HomeSection';
 import CinemaCarousel from './CinemaCarousel';
-import SeanceCard from './SeanceCard';
+import LiveCarousel from './LiveCarousel';
 import {
   emptyPhraseTags,
   hasPhraseSignal,
@@ -293,9 +291,16 @@ export default function CultureConnectApp({
   const [month, setMonth] = useState(initialMonth);
   const [timeScope, setTimeScope] = useState<TimeScopeId>(initialScope);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const [selectedItemKey, setSelectedItemKey] = useState<string | null>(
-    initialOpenKey ?? null,
-  );
+  const [selectedItemKey, setSelectedItemKey] = useState<string | null>(() => {
+    if (initialOpenItem && isCinemaDayItem(initialOpenItem)) return null;
+    return initialOpenKey ?? null;
+  });
+  const [cineFocusKey, setCineFocusKey] = useState<string | null>(() => {
+    if (initialOpenItem && isCinemaDayItem(initialOpenItem)) {
+      return initialOpenKey ?? null;
+    }
+    return null;
+  });
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedLieuId, setSelectedLieuId] = useState<string | null>(null);
@@ -911,11 +916,6 @@ export default function CultureConnectApp({
     if (liveExpanded || timeScope !== 'tous') return allLiveRows;
     return capLiveRows(allLiveRows).slice(0, 9);
   }, [allLiveRows, liveExpanded, timeScope]);
-  const editorial = useMemo(
-    () => editorialRows(listItems, nouveautesItems, top3Set, nouveauFilmIdSet),
-    [listItems, nouveautesItems, top3Set, nouveauFilmIdSet],
-  );
-
   const livingCatOn = selectedCategories.some(
     (c) =>
       c === 'musique' ||
@@ -950,14 +950,29 @@ export default function CultureConnectApp({
   const showLiveBlock =
     !hideLiveSection &&
     visibleLiveRows.length > 0;
-  const showEditorial =
-    editorial.length > 0 &&
-    !phraseMode &&
-    !searchingUi;
   const leftoverRows = useMemo(() => {
     if (!hideCineSection || !hideLiveSection) return [];
     return densify(dedupAgainstTop3(listItems, top3Set));
   }, [hideCineSection, hideLiveSection, listItems, top3Set]);
+
+  function handleSelectHome(key: string) {
+    const found =
+      listItems.find((i) => i.key === key) ??
+      pourToiItems.find((i) => i.key === key) ??
+      nouveautesItems.find((i) => i.key === key) ??
+      vivantItems.find((i) => i.key === key) ??
+      leftoverRows.find((r) => r.item.key === key)?.item ??
+      null;
+    if (found && isCinemaDayItem(found)) {
+      setCineFocusKey(key);
+      setSelectedItemKey(null);
+      document
+        .getElementById('cine')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    setSelectedItemKey(key);
+  }
   const listEmpty =
     listItems.length === 0 &&
     allCineRows.length === 0 &&
@@ -1285,26 +1300,10 @@ export default function CultureConnectApp({
 
   return (
     <div className="mx-auto max-w-7xl min-w-0 overflow-x-hidden px-4 pb-16 pt-3 sm:px-6 sm:pt-6">
-      <header className="mb-2 hidden sm:mb-4 sm:block">
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-culture-terracotta">
-          Toulouse & alentours
-        </p>
-        <h1 className="font-display mt-1 text-4xl text-culture-ink">
-          Agenda
-        </h1>
-        <p className="mt-2 max-w-2xl text-base text-culture-muted">
-          Qu&apos;est-ce qu&apos;on fait ce soir ou ce week-end dans la région toulousaine&nbsp;?
-        </p>
-      </header>
       <h1 className="sr-only">Agenda CultureConnect</h1>
 
-      <div className="sticky top-0 z-20 -mx-4 mb-3 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:mb-5 sm:px-6">
-        <SearchOmnibox
-          value={query}
-          onChange={handleQueryChange}
-          placeholder="Qu’est-ce qui te ferait vibrer ?"
-        />
-        <SearchExamples onPick={handleQueryChange} activeQuery={query} />
+      <div className="sticky top-0 z-20 -mx-4 mb-2 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-1.5 backdrop-blur sm:-mx-6 sm:px-6">
+        <SearchOmnibox value={query} onChange={handleQueryChange} />
       </div>
 
       <div className="space-y-2.5 sm:space-y-4">
@@ -1424,8 +1423,8 @@ export default function CultureConnectApp({
           {monthCalendar}
         </MonthCalendarDrawer>
 
-        <section className="space-y-3 rounded-card-lg border border-culture-soft/80 bg-culture-surface/80 p-3 sm:p-4">
-          <h2 className="font-display text-xl text-culture-ink sm:text-2xl">
+        <section className="w-full space-y-3 rounded-card-lg border border-culture-soft/80 bg-culture-surface/80 p-3 sm:p-4">
+          <h2 className="w-full font-display text-xl leading-tight text-culture-ink sm:text-2xl">
             Ton top 3 du moment
           </h2>
           {sessionStatus === 'unauthenticated' ? (
@@ -1443,7 +1442,7 @@ export default function CultureConnectApp({
             <SeanceGrid
               items={pourToiItems}
               showDate={showDateLabels}
-              onSelectItem={setSelectedItemKey}
+              onSelectItem={handleSelectHome}
               onSelectVenue={handleSelectVenue}
               empty={null}
               nouveauFilmIds={nouveauFilmIdSet}
@@ -1540,8 +1539,13 @@ export default function CultureConnectApp({
           >
             <CinemaCarousel
               rows={visibleCineRows}
-              onSelectItem={setSelectedItemKey}
               mobile={narrowHome}
+              focusKey={cineFocusKey}
+              fallbackVivant={allLiveRows.map((row) => row.item)}
+              onAgenda={(item) => trackItem(item, 'agenda_add')}
+              onIcs={(item) => trackItem(item, 'ics')}
+              onReserve={(item) => trackItem(item, 'reserve')}
+              onSelectLive={handleSelectHome}
             />
           </HomeSection>
         ) : null}
@@ -1555,30 +1559,11 @@ export default function CultureConnectApp({
             expanded={liveExpanded}
             onSeeAll={() => setLiveExpanded(true)}
           >
-            <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {visibleLiveRows.map((row) => (
-                <li key={row.groupKey} className="min-w-0">
-                  <SeanceCard
-                    item={row.item}
-                    showDate={showDateLabels}
-                    onSelect={setSelectedItemKey}
-                    onSelectVenue={handleSelectVenue}
-                    extraSlots={row.isFilmGroup ? 0 : row.extraSlots}
-                    salleCount={row.salleCount}
-                    earliestHeure={row.earliestHeure}
-                    citiesSummary={row.citiesSummary}
-                    nouveau={
-                      Boolean(
-                        filmIdOfItem(row.item) &&
-                          nouveauFilmIdSet.has(filmIdOfItem(row.item)),
-                      )
-                    }
-                    variant="live"
-                    reason={reasonFor(row.item)}
-                  />
-                </li>
-              ))}
-            </ul>
+            <LiveCarousel
+              rows={visibleLiveRows}
+              onSelectItem={handleSelectHome}
+              reasonFor={reasonFor}
+            />
           </HomeSection>
         ) : null}
 
@@ -1592,45 +1577,11 @@ export default function CultureConnectApp({
             <SeanceGrid
               items={leftoverRows.map((r) => r.item)}
               showDate={showDateLabels}
-              onSelectItem={setSelectedItemKey}
+              onSelectItem={handleSelectHome}
               onSelectVenue={handleSelectVenue}
               nouveauFilmIds={nouveauFilmIdSet}
               reasonFor={reasonFor}
             />
-          </HomeSection>
-        ) : null}
-
-        {showEditorial ? (
-          <HomeSection
-            id="a-ne-pas-manquer"
-            title="À ne pas manquer"
-            count={editorial.length}
-            shown={editorial.length}
-          >
-            <ul className="flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {editorial.map((row) => (
-                <li key={row.groupKey} className="w-[16.5rem] shrink-0 sm:w-[18rem]">
-                  <SeanceCard
-                    item={row.item}
-                    showDate
-                    onSelect={setSelectedItemKey}
-                    onSelectVenue={handleSelectVenue}
-                    extraSlots={row.isFilmGroup ? 0 : row.extraSlots}
-                    salleCount={row.salleCount}
-                    earliestHeure={row.earliestHeure}
-                    citiesSummary={row.citiesSummary}
-                    nouveau={
-                      Boolean(
-                        filmIdOfItem(row.item) &&
-                          nouveauFilmIdSet.has(filmIdOfItem(row.item)),
-                      )
-                    }
-                    variant="rail"
-                    reason={reasonFor(row.item)}
-                  />
-                </li>
-              ))}
-            </ul>
           </HomeSection>
         ) : null}
 
@@ -1647,12 +1598,14 @@ export default function CultureConnectApp({
       </div>
 
       <EventDetail
-        item={selectedItem}
+        item={
+          selectedItem && !isCinemaDayItem(selectedItem) ? selectedItem : null
+        }
         onClose={() => setSelectedItemKey(null)}
         onSelectVenue={handleSelectVenue}
         relatedItems={relatedFilmItems}
         aussiCeSoirItems={aussiCeSoirItems}
-        onSelectItem={setSelectedItemKey}
+        onSelectItem={handleSelectHome}
         onAgenda={() => selectedItem && trackItem(selectedItem, 'agenda_add')}
         onIcs={() => selectedItem && trackItem(selectedItem, 'ics')}
         onReserve={() => selectedItem && trackItem(selectedItem, 'reserve')}

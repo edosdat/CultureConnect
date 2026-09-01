@@ -69,6 +69,18 @@ export function itemHeure(item: DayItem): string {
   return formatHeure(item.evenement.heure_debut);
 }
 
+/** Planning line: date + time (never time-only). */
+export function seanceWhen(item: DayItem, earliestHeure?: string): string {
+  const date = formatDateFr(item.dayIso || '');
+  const time = earliestHeure
+    ? formatHeure(earliestHeure)
+    : itemHeure(item);
+  return [date, time].filter(Boolean).join(' · ');
+}
+
+export const SEARCH_PLACEHOLDER =
+  'Qu’est-ce qui te ferait vibrer ? (un truc intimiste, envie de danser, un film feel good)';
+
 export function itemVenue(item: DayItem): string {
   return formatLieuAffiche(item.lieu);
 }
