@@ -1231,6 +1231,7 @@ export async function queryAgendaListCached(
     async () => queryAgenda(input, new Date()),
     [
       'agenda-list',
+      'commune-exact-v1',
       day,
       input.scope,
       catKey,
