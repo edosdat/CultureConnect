@@ -43,7 +43,11 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const id = (url.searchParams.get('id') || '').trim();
   if (id) {
-    const detail = queryAgendaDetail(id);
+    const detail = queryAgendaDetail(id, url.searchParams.get('commune'), {
+      dateFrom: url.searchParams.get('date_from'),
+      dateTo: url.searchParams.get('date_to'),
+      soir: url.searchParams.get('soir') === '1',
+    });
     if (!detail) {
       return NextResponse.json({ error: 'Introuvable' }, { status: 404 });
     }

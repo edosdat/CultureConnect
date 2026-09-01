@@ -147,6 +147,8 @@ const FORM_WORDS: Record<string, PhraseForm> = {
   theatre: 'theatre',
   piece: 'theatre',
   standup: 'theatre',
+  danse: 'theatre',
+  danser: 'theatre',
   concert: 'concert',
   concerts: 'concert',
   gig: 'concert',
@@ -214,6 +216,8 @@ const MOOD_WORDS: Record<string, PhraseMood> = {
   verre: 'sortie',
   guinguette: 'sortie',
   bal: 'sortie',
+  danser: 'sortie',
+  danse: 'sortie',
 };
 
 /** Comedy tokens also feed genre humour (rire → rigolo + humour). */

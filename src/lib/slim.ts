@@ -51,13 +51,17 @@ function slimEvenement(
     heure_fin: ev.heure_fin,
     prix: ev.prix,
     gratuit: ev.gratuit,
-    url_source: '',
+    url_source: ev.url_source || '',
     description_courte:
       clipListPitch(ev.description_courte) || clipListPitch(ev.description_longue),
     statut: ev.statut,
     genre: ev.genre,
     image_url: ev.image_url || '',
     publication: ev.publication || '',
+    form: ev.form || '',
+    moods: ev.moods || '',
+    genres_mood: ev.genres_mood || '',
+    billetterie_url: ev.billetterie_url || '',
   };
 }
 
@@ -73,13 +77,17 @@ function slimProgramme(p: ProgrammeItem): ProgrammeItem {
     heure_fin: p.heure_fin || '',
     scene_salle: p.scene_salle || '',
     prix_item: p.prix_item || '',
-    url: '',
+    url: p.url || '',
     notes: '',
+    billetterie_url: p.billetterie_url || '',
     genre: p.genre || '',
     artiste_id: p.artiste_id || '',
     film_id: p.film_id || '',
     image_url: p.image_url || '',
     description_item: clipListPitch(p.description_item),
+    form: p.form || '',
+    moods: p.moods || '',
+    genres_mood: p.genres_mood || '',
   };
 }
 
@@ -257,6 +265,10 @@ export type AgendaListResponse = {
   nouveauFilmIds?: string[];
   date_from?: string;
   date_to?: string;
+  /** All living-arts cards in the window (display sections). */
+  vivantItems?: DayItem[];
+  vivantTotal?: number;
+  cineTotal?: number;
 };
 
 export type AgendaDetailResponse = {

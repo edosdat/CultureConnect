@@ -176,6 +176,79 @@ export function hideSeancesBeforeToday<
   return items.filter((item) => isNotBeforeToday(seanceDateIso(item), todayIso));
 }
 
+function clockHHMM(raw: string | undefined | null): string {
+  const h = (raw || '').trim();
+  if (!/^\d{1,2}:\d{2}/.test(h)) return '';
+  const slice = h.slice(0, 5);
+  return slice.length === 4 ? `0${slice}` : slice;
+}
+
+/** Paris clock on the séance row (programme first). */
+export function seanceClockHHMM(item: {
+  kind?: string;
+  programme?: { heure_debut?: string };
+  evenement?: { heure_debut?: string } | null;
+}): string {
+  if (item.kind === 'programme') {
+    return (
+      clockHHMM(item.programme?.heure_debut) ||
+      clockHHMM(item.evenement?.heure_debut)
+    );
+  }
+  return clockHHMM(item.evenement?.heure_debut);
+}
+
+/** Ce soir: clock >= 19:00 Paris. Missing clock stays out. */
+export function isSoirSeance(item: {
+  kind?: string;
+  programme?: { heure_debut?: string };
+  evenement?: { heure_debut?: string } | null;
+}): boolean {
+  const h = seanceClockHHMM(item);
+  return Boolean(h) && h >= '19:00';
+}
+
+export function itemInDateWindow(
+  item: { dayIso?: string; programme?: { date?: string } },
+  startIso: string,
+  endIso: string,
+): boolean {
+  const d = seanceDateIso(item);
+  if (!d || !startIso || !endIso) return false;
+  return d >= startIso && d <= endIso;
+}
+
+/** Keep séances whose Paris calendar date falls in [start, end]. */
+export function filterItemsByDateWindow<
+  T extends { dayIso?: string; programme?: { date?: string } },
+>(items: T[], startIso: string | null | undefined, endIso: string | null | undefined): T[] {
+  const start = (startIso || '').trim();
+  const end = (endIso || '').trim();
+  if (!start || !end) return items;
+  return items.filter((item) => itemInDateWindow(item, start, end));
+}
+
+/** Display filter: selected day/window, plus Ce soir clock. */
+export function filterSeancesForDisplay<
+  T extends {
+    dayIso?: string;
+    programme?: { date?: string; heure_debut?: string };
+    evenement?: { heure_debut?: string } | null;
+    kind?: string;
+  },
+>(
+  items: T[],
+  opts: {
+    startIso?: string | null;
+    endIso?: string | null;
+    soir?: boolean;
+  },
+): T[] {
+  let out = filterItemsByDateWindow(items, opts.startIso, opts.endIso);
+  if (opts.soir) out = out.filter((item) => isSoirSeance(item));
+  return out;
+}
+
 export function resolveScopeRange(
   scope: TimeScopeId,
   selectedDateIso: string | null,

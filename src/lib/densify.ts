@@ -1,7 +1,10 @@
 import type { DayItem } from './types';
+import { seanceDateIso } from './timeScope';
 
 export type DenseRow = {
   item: DayItem;
+  /** Filtered séances in this film/event group (source of truth for horaires). */
+  seances: DayItem[];
   groupKey: string;
   extraSlots: number;
   salleCount: number;
@@ -25,13 +28,15 @@ function hasImage(item: DayItem): boolean {
   return Boolean((item.evenement.image_url || '').trim());
 }
 
+/** Earliest Paris calendar séance in the group — never a later day with a nicer poster. */
 function pickRepresentative(g: DayItem[]): DayItem {
   const ranked = [...g].sort((a, b) => {
-    const img = Number(hasImage(b)) - Number(hasImage(a));
-    if (img !== 0) return img;
-    const day = a.dayIso.localeCompare(b.dayIso);
-    if (day !== 0) return day;
-    return heureKey(a).localeCompare(heureKey(b));
+    const da = seanceDateIso(a);
+    const db = seanceDateIso(b);
+    if (da !== db) return da.localeCompare(db);
+    const ha = heureKey(a).localeCompare(heureKey(b));
+    if (ha !== 0) return ha;
+    return Number(hasImage(b)) - Number(hasImage(a));
   });
   return ranked[0];
 }
@@ -98,14 +103,19 @@ export function densify(items: DayItem[]): DenseRow[] {
     const isFilmGroup = filmFlags.get(k) === true;
     const item = isFilmGroup
       ? pickRepresentative(g)
-      : [...g].sort((a, b) => heureKey(a).localeCompare(heureKey(b)))[0];
+      : [...g].sort((a, b) => {
+          const da = seanceDateIso(a).localeCompare(seanceDateIso(b));
+          if (da !== 0) return da;
+          return heureKey(a).localeCompare(heureKey(b));
+        })[0];
     const venues = new Set(
       g.map((i) => i.lieu?.lieu_id).filter((id): id is string => Boolean(id)),
     );
     return {
       item,
+      seances: g,
       groupKey: k,
-      extraSlots: g.length - 1,
+      extraSlots: Math.max(0, g.length - 1),
       salleCount: isFilmGroup ? venues.size : 0,
       earliestHeure: isFilmGroup ? earliestHeureOf(g) : '',
       citiesSummary: isFilmGroup ? citiesSummaryOf(g) : '',

@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { SessionProvider } from 'next-auth/react';
 import SignalsProvider from './SignalsProvider';
+import FavoritesProvider from './FavoritesProvider';
 import TastesSheet from './TastesSheet';
 import FirstLoginModal from './FirstLoginModal';
 
@@ -48,11 +49,13 @@ export default function Providers({ children, googleAuthEnabled }: Props) {
   return (
     <SessionProvider>
       <SignalsProvider>
-        <TastesUiContext.Provider value={value}>
-          {children}
-          <TastesSheet open={tastesOpen} onClose={closeTastes} />
-          <FirstLoginModal />
-        </TastesUiContext.Provider>
+        <FavoritesProvider>
+          <TastesUiContext.Provider value={value}>
+            {children}
+            <TastesSheet open={tastesOpen} onClose={closeTastes} />
+            <FirstLoginModal />
+          </TastesUiContext.Provider>
+        </FavoritesProvider>
       </SignalsProvider>
     </SessionProvider>
   );

@@ -1,6 +1,8 @@
 'use client';
 
 import {
+  EXTRA_CATEGORY_CHIPS,
+  HOME_CATEGORY_CHIPS,
   MAIN_CATEGORIES,
   type MainCategoryId,
 } from '@/lib/categories';
@@ -9,7 +11,7 @@ type Props = {
   selected: string[];
   onChange: (next: string[]) => void;
   /** Horizontal chips (home P0) vs stacked sidebar list */
-  variant?: 'chips' | 'list';
+  variant?: 'chips' | 'list' | 'home' | 'extra';
 };
 
 /** Same --cc-cat-* hex as card bar / pastille. */
@@ -38,15 +40,21 @@ export default function CategoryFilter({
     }
   }
 
-  if (variant === 'chips') {
+  if (variant === 'chips' || variant === 'home' || variant === 'extra') {
+    const chips =
+      variant === 'home'
+        ? [...HOME_CATEGORY_CHIPS, ...EXTRA_CATEGORY_CHIPS]
+        : variant === 'extra'
+          ? EXTRA_CATEGORY_CHIPS
+          : MAIN_CATEGORIES;
     return (
-      <div className="relative">
+      <div className="relative min-w-0 flex-1">
         <div
           role="group"
           aria-label="Catégories"
-          className="flex flex-nowrap gap-1.5 overflow-x-auto pe-4 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex flex-nowrap gap-1.5 overflow-x-auto overscroll-x-contain scroll-px-3 pe-4 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          {MAIN_CATEGORIES.map(({ id, label }) => {
+          {chips.map(({ id, label }) => {
             const active = selected.includes(id);
             const tint = `var(${CHIP_VAR[id]})`;
             return (
@@ -55,7 +63,7 @@ export default function CategoryFilter({
                 type="button"
                 onClick={() => toggle(id)}
                 aria-pressed={active}
-                className="shrink-0 rounded-full px-3 py-1.5 text-sm transition"
+                className="shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-sm transition"
                 style={{
                   borderWidth: 1.5,
                   borderStyle: 'solid',
@@ -80,7 +88,7 @@ export default function CategoryFilter({
         </div>
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-culture-cream to-transparent sm:hidden"
+          className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-culture-cream to-transparent sm:hidden"
         />
       </div>
     );

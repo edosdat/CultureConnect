@@ -13,6 +13,7 @@ import type {
 } from './types';
 import { loadCultureData } from './data';
 import { catsAllowCinemaPack, formFromCategorieAndForm, mainFromForm } from './categories';
+import { filterItemsByCommune } from './commune';
 import { densifiedCardCount } from './densify';
 import {
   countItemsByDay,
@@ -23,6 +24,7 @@ import {
 import {
   filmIdOfItem,
   isCinemaDayItem,
+  isVivantDayItem,
   nouveauFilmIds,
   nouveautesCine,
   pickAussiCeSoir,
@@ -43,6 +45,7 @@ import {
 } from './slim';
 import {
   bootTimeScope,
+  filterSeancesForDisplay,
   hideSeancesBeforeToday,
   parisParts,
   resolveScopeRange,
@@ -119,7 +122,15 @@ export function parseRecoProfile(raw: unknown): TasteProfile | null {
 
 function emptyRecoExtras(): Pick<
   AgendaListResponse,
-  'nouveautes' | 'communes' | 'venues' | 'genreSlugs' | 'genresLegend' | 'nouveauFilmIds'
+  | 'nouveautes'
+  | 'communes'
+  | 'venues'
+  | 'genreSlugs'
+  | 'genresLegend'
+  | 'nouveauFilmIds'
+  | 'vivantItems'
+  | 'vivantTotal'
+  | 'cineTotal'
 > {
   return {
     nouveautes: [],
@@ -128,6 +139,9 @@ function emptyRecoExtras(): Pick<
     genreSlugs: [],
     genresLegend: [],
     nouveauFilmIds: [],
+    vivantItems: [],
+    vivantTotal: 0,
+    cineTotal: 0,
   };
 }
 
@@ -823,9 +837,12 @@ export function queryAgenda(
       input.scope === 'aujourdhui' ||
       input.scope === 'soir' ||
       input.scope === 'semaine');
-  const nouveautes = hideSeancesBeforeToday(
-    showNouveautes ? nouveautesCine(data.programmeWithContext, now) : [],
-    paris.iso,
+  const nouveautes = filterItemsByCommune(
+    hideSeancesBeforeToday(
+      showNouveautes ? nouveautesCine(data.programmeWithContext, now) : [],
+      paris.iso,
+    ),
+    input.commune,
   );
 
   const total = items.length;
@@ -875,6 +892,15 @@ export function queryAgenda(
   const cap = Math.min(Math.max(requested, 0), AGENDA_PAGE_MAX);
   const page = items.slice(offset, offset + cap).map(slimDayItem);
 
+  const vivantAll = items.filter(isVivantDayItem);
+  const cineAll = items.filter(isCinemaDayItem);
+  const vivantItems =
+    !searching && offset === 0
+      ? vivantAll.slice(0, 40).map(slimDayItem)
+      : [];
+  const vivantTotal = densifiedCardCount(vivantAll);
+  const cineTotal = densifiedCardCount(cineAll);
+
   let counts: Record<string, number> | undefined;
   if (input.includeCounts) {
     const lieuIds = resolveLieuIds(input.commune, input.lieuId, searching);
@@ -919,6 +945,9 @@ export function queryAgenda(
     weekday: paris.weekday,
     genresLegend: input.includeListMeta ? data.genresLegend : [],
     nouveauFilmIds: Array.from(nouveauFilmIds(data.programmeWithContext, now)),
+    vivantItems,
+    vivantTotal,
+    cineTotal,
   };
 }
 
@@ -934,6 +963,9 @@ export type ScopeListSnapshot = {
   densifiedTotal: number;
   nouveautes: DayItem[];
   venues: Lieu[];
+  vivantItems?: DayItem[];
+  vivantTotal?: number;
+  cineTotal?: number;
 };
 
 export type ListByScope = Record<RecoBootScope, ScopeListSnapshot>;
@@ -984,6 +1016,9 @@ function listSnapshotForScope(scope: RecoBootScope, now: Date): ScopeListSnapsho
     densifiedTotal: res.densifiedTotal,
     nouveautes: res.nouveautes,
     venues: res.venues,
+    vivantItems: res.vivantItems,
+    vivantTotal: res.vivantTotal,
+    cineTotal: res.cineTotal,
   };
 }
 
@@ -1090,6 +1125,12 @@ function withCredits(item: DayItem, artistes: Artiste[]): DayItem {
 
 export function queryAgendaDetail(
   id: string,
+  commune?: string | null,
+  window?: {
+    dateFrom?: string | null;
+    dateTo?: string | null;
+    soir?: boolean;
+  },
 ): AgendaDetailResponse | null {
   const data = loadCultureData();
   const item = findItemByKey(id);
@@ -1118,9 +1159,16 @@ export function queryAgendaDetail(
           );
         })
         .map(relatedSeanceDayItem);
-      relatedItems = hideSeancesBeforeToday(
-        relatedItems,
-        parisParts().iso,
+      relatedItems = filterSeancesForDisplay(
+        filterItemsByCommune(
+          hideSeancesBeforeToday(relatedItems, parisParts().iso),
+          commune,
+        ),
+        {
+          startIso: window?.dateFrom,
+          endIso: window?.dateTo,
+          soir: Boolean(window?.soir),
+        },
       );
     }
   }
@@ -1141,7 +1189,10 @@ export function queryAgendaDetail(
           true,
         ).filter(startsAtOrAfter19)
       : [];
-    aussiCeSoir = pickAussiCeSoir(tonight, item, 3).map(slimDayItem);
+    aussiCeSoir = filterItemsByCommune(
+      pickAussiCeSoir(tonight, item, 3).map(slimDayItem),
+      commune,
+    );
   }
 
   return {
@@ -1193,6 +1244,7 @@ export async function queryAgendaListCached(
     async () => queryAgenda(input, new Date()),
     [
       'agenda-list',
+      'commune-exact-v1',
       day,
       input.scope,
       catKey,

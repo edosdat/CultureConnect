@@ -1,6 +1,6 @@
 'use client';
 
-const PHRASE_LABEL = 'Qu’est-ce qui te ferait vibrer ?';
+import { SEARCH_PLACEHOLDER } from '@/lib/displayHome';
 
 type Props = {
   value: string;
@@ -11,7 +11,7 @@ type Props = {
 export default function SearchOmnibox({
   value,
   onChange,
-  placeholder = PHRASE_LABEL,
+  placeholder = SEARCH_PLACEHOLDER,
 }: Props) {
   return (
     <div className="relative w-full">
@@ -33,7 +33,7 @@ export default function SearchOmnibox({
         placeholder={placeholder}
         aria-label={placeholder}
         autoComplete="off"
-        className="h-10 w-full rounded-full border border-culture-line bg-culture-surface py-0 pl-9 pr-10 text-base text-culture-ink sm:text-sm shadow-sm placeholder:text-culture-muted/70 focus:border-culture-terracotta focus:outline-none focus:ring-2 focus:ring-culture-terracotta/30 [&::-webkit-search-cancel-button]:appearance-none"
+        className="h-10 w-full rounded-full border border-culture-line bg-culture-surface py-0 pl-9 pr-10 text-sm text-culture-ink shadow-sm placeholder:truncate placeholder:text-culture-muted/70 focus:border-culture-terracotta focus:outline-none focus:ring-2 focus:ring-culture-terracotta/30 [&::-webkit-search-cancel-button]:appearance-none"
       />
       {value && (
         <button
