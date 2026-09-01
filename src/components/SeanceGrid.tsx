@@ -10,7 +10,12 @@ import {
 import type { DayItem } from '@/lib/types';
 import { densify, densifiedCardCount } from '@/lib/densify';
 import { filmIdOfItem } from '@/lib/nouveautesCine';
-import { top3GridClass, visibleTop3Items } from '@/lib/displayHome';
+import {
+  top3GridClass,
+  visibleTop3Items,
+  visibleTop3Nearest,
+} from '@/lib/displayHome';
+import { itemKmLabel, minKmLabel, type GeoPos } from '@/lib/nearMe';
 import SeanceCard, { type SeanceCardVariant } from './SeanceCard';
 
 type Props = {
@@ -30,6 +35,8 @@ type Props = {
   variant?: SeanceCardVariant;
   /** Reco why-line (Ton top 3 only). Catalogue grids omit this. */
   reasonFor?: (item: DayItem) => string | null;
+  /** Tab-only GPS origin. Sort + « 2,3 km » when venue coords exist. */
+  origin?: GeoPos | null;
 };
 
 export { densifiedCardCount };
@@ -55,6 +62,7 @@ function FixedSlotsGrid({
   onSelectVenue,
   nouveauFilmIds,
   reasonFor,
+  origin,
 }: Pick<
   Props,
   | 'items'
@@ -63,8 +71,11 @@ function FixedSlotsGrid({
   | 'onSelectVenue'
   | 'nouveauFilmIds'
   | 'reasonFor'
+  | 'origin'
 >) {
-  const visible = visibleTop3Items(items);
+  const visible = origin
+    ? visibleTop3Nearest(items, origin)
+    : visibleTop3Items(items);
   if (visible.length === 0) return null;
   // 3-up keeps the compact rail. 1–2 cards use the stacked tile so they
   // actually fill the row (full width / 50-50) instead of a left-aligned strip.
@@ -85,6 +96,7 @@ function FixedSlotsGrid({
               nouveau={cardNouveau(item, nouveauFilmIds)}
               variant={cardVariant}
               reason={reasonFor?.(item) ?? null}
+              distanceKm={itemKmLabel(item, origin)}
             />
           </li>
         ))}
@@ -106,6 +118,7 @@ export default function SeanceGrid({
   fixedSlots = false,
   variant,
   reasonFor,
+  origin,
 }: Props) {
   if (fixedSlots) {
     return (
@@ -116,6 +129,7 @@ export default function SeanceGrid({
         onSelectVenue={onSelectVenue}
         nouveauFilmIds={nouveauFilmIds}
         reasonFor={reasonFor}
+        origin={origin}
       />
     );
   }
@@ -133,6 +147,7 @@ export default function SeanceGrid({
       nouveauFilmIds={nouveauFilmIds}
       variant={variant}
       reasonFor={reasonFor}
+      origin={origin}
     />
   );
 }
@@ -149,8 +164,12 @@ function DensifiedGrid({
   nouveauFilmIds,
   variant,
   reasonFor,
+  origin,
 }: Omit<Props, 'fixedSlots'>) {
-  const rows = useMemo(() => densify(items), [items]);
+  const rows = useMemo(
+    () => densify(items, origin ? { origin } : undefined),
+    [items, origin],
+  );
   const limited =
     visibleCount != null ? rows.slice(0, Math.max(0, visibleCount)) : rows;
   const hasMore =
@@ -203,6 +222,7 @@ function DensifiedGrid({
         {limited.map(
           ({
             item,
+            seances,
             groupKey,
             extraSlots,
             salleCount,
@@ -223,6 +243,12 @@ function DensifiedGrid({
                 nouveau={cardNouveau(item, nouveauFilmIds)}
                 variant={variant}
                 reason={reasonFor?.(item) ?? null}
+                distanceKm={
+                  origin
+                    ? minKmLabel(seances ?? [item], origin) ??
+                      itemKmLabel(item, origin)
+                    : null
+                }
               />
             </li>
           ),

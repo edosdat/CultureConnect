@@ -69,6 +69,11 @@ export default function ConfidentialitePage() {
           .
         </p>
         <p>
+          <span className="font-medium">Autour de moi.</span> On utilise ta
+          position le temps du tri.
+        </p>
+        <p>On ne la garde pas.</p>
+        <p>
           Base légale : intérêt légitime à proposer «&nbsp;Pour toi&nbsp;», et
           ton action quand tu indiques tes goûts. Conservation 24 mois après
           la dernière activité, puis suppression. Cookie visiteur : 14 jours.

@@ -21,6 +21,8 @@ export function slimLieu(lieu: Lieu | null | undefined): Lieu | null {
     dist_km_capitole: '',
     site_web: '',
     notes: '',
+    lat: lieu.lat || '',
+    lng: lieu.lng || '',
   };
 }
 
@@ -244,6 +246,8 @@ function detailLieu(lieu: Lieu | null | undefined): Lieu | null {
     dist_km_capitole: '',
     site_web: lieu.site_web || '',
     notes: '',
+    lat: lieu.lat || '',
+    lng: lieu.lng || '',
   };
 }
 

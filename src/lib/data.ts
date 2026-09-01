@@ -7,6 +7,7 @@ import {
   buildArtistesFromTable,
 } from './artists';
 import { mainsForItem, MAIN_CATEGORIES } from './categories';
+import { attachLieuCoords } from './lieuCoords';
 import type {
   Artiste,
   CategoryBucket,
@@ -44,10 +45,14 @@ function csvExists(filename: string): boolean {
 }
 
 export function loadLieux(): Lieu[] {
-  return readCsv<Lieu>('lieux.csv').map((r) => ({
-    ...r,
-    label_affiche: r.label_affiche ?? '',
-  }));
+  return readCsv<Lieu>('lieux.csv').map((r) =>
+    attachLieuCoords({
+      ...r,
+      label_affiche: r.label_affiche ?? '',
+      lat: r.lat ?? '',
+      lng: r.lng ?? '',
+    }),
+  );
 }
 
 export function loadEvenements(): Evenement[] {

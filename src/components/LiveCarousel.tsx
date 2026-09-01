@@ -4,12 +4,14 @@ import { useRef } from 'react';
 import type { DenseRow } from '@/lib/densify';
 import { formatLieuAffiche } from '@/lib/labels';
 import { itemPitch, itemTitle, seanceWhen } from '@/lib/displayHome';
+import { itemKmLabel, minKmLabel, type GeoPos } from '@/lib/nearMe';
 import VisualFallback, { categoryLabelOf } from './VisualFallback';
 import FavoriteButton from './FavoriteButton';
 
 type Props = {
   rows: DenseRow[];
   onSelectItem: (key: string) => void;
+  origin?: GeoPos | null;
 };
 
 function imageUrl(row: DenseRow): string {
@@ -23,7 +25,11 @@ function imageUrl(row: DenseRow): string {
   return (item.evenement.image_url || '').trim();
 }
 
-export default function LiveCarousel({ rows, onSelectItem }: Props) {
+export default function LiveCarousel({
+  rows,
+  onSelectItem,
+  origin = null,
+}: Props) {
   const stripRef = useRef<HTMLUListElement | null>(null);
 
   function scroll(dir: -1 | 1) {
@@ -42,6 +48,8 @@ export default function LiveCarousel({ rows, onSelectItem }: Props) {
           const image = imageUrl(row);
           const cat = categoryLabelOf(item);
           const when = seanceWhen(item, row.earliestHeure);
+          const km =
+            minKmLabel(row.seances, origin) ?? itemKmLabel(item, origin);
           return (
             <li
               key={row.groupKey}
@@ -90,7 +98,15 @@ export default function LiveCarousel({ rows, onSelectItem }: Props) {
                   {item.lieu ? (
                     <p className="text-sm font-semibold text-culture-ink">
                       {formatLieuAffiche(item.lieu)}
+                      {km ? (
+                        <span className="font-medium text-culture-terracotta">
+                          {' '}
+                          · {km}
+                        </span>
+                      ) : null}
                     </p>
+                  ) : km ? (
+                    <p className="text-sm text-culture-terracotta">{km}</p>
                   ) : null}
                 </div>
               </button>

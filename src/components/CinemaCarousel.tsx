@@ -22,6 +22,7 @@ import {
   itemTitle,
   seanceWhen,
 } from '@/lib/displayHome';
+import { itemKmLabel, minKmLabel, type GeoPos } from '@/lib/nearMe';
 import { reservePickOf } from '@/lib/reserve';
 import VisualFallback, { categoryLabelOf } from './VisualFallback';
 import FavoriteButton from './FavoriteButton';
@@ -45,6 +46,7 @@ type Props = {
   onIcs?: (item: DayItem) => void;
   onReserve?: (item: DayItem) => void;
   onSelectLive?: (key: string) => void;
+  origin?: GeoPos | null;
 };
 
 function posterUrl(item: DayItem): string {
@@ -69,10 +71,12 @@ function FilmThumb({
   row,
   onSelect,
   active,
+  distanceKm,
 }: {
   row: DenseRow;
   onSelect: () => void;
   active?: boolean;
+  distanceKm?: string | null;
 }) {
   const item = row.item;
   const image = posterUrl(item);
@@ -111,6 +115,11 @@ function FilmThumb({
       {itemPitch(item) ? (
         <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-culture-muted">
           {itemPitch(item)}
+        </p>
+      ) : null}
+      {distanceKm ? (
+        <p className="mt-0.5 text-xs font-medium text-culture-terracotta">
+          {distanceKm}
         </p>
       ) : null}
     </button>
@@ -204,6 +213,7 @@ export default function CinemaCarousel({
   onIcs,
   onReserve,
   onSelectLive,
+  origin = null,
 }: Props) {
   const [heroIndex, setHeroIndex] = useState(0);
   const [pickedKey, setPickedKey] = useState<string | null>(null);
@@ -381,6 +391,9 @@ export default function CinemaCarousel({
     item;
   const when = seanceWhen(active);
   const venue = formatLieuAffiche(active.lieu);
+  const km =
+    minKmLabel(seances.length ? seances : [active], origin) ??
+    itemKmLabel(active, origin);
   const cal = calendarPayloadFromDayItem(active);
   const crossSell = filterSeancesForActiveFilters(
     aussi.length > 0
@@ -406,6 +419,9 @@ export default function CinemaCarousel({
               if (i >= rows.length - 1) requestMore();
             }}
             active={i === heroIndex}
+            distanceKm={
+              minKmLabel(row.seances, origin) ?? itemKmLabel(row.item, origin)
+            }
           />
         ))}
         {hasMore && onNeedMore ? (
@@ -461,7 +477,7 @@ export default function CinemaCarousel({
         <p className="text-sm leading-relaxed text-culture-ink">{itemPitch(item)}</p>
       ) : null}
       <p className="text-sm text-culture-muted">
-        {[venue, when].filter(Boolean).join(' • ')}
+        {[venue, km, when].filter(Boolean).join(' • ')}
       </p>
       <div ref={seancesRef} id="cine-seances">
         {seances.length > 0 ? (

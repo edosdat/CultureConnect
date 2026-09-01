@@ -9,6 +9,9 @@ export type Lieu = {
   dist_km_capitole: string;
   site_web: string;
   notes: string;
+  /** Optional venue coords. Absent → GPS sort uses commune when possible; no km label. */
+  lat?: string;
+  lng?: string;
 };
 
 export type Evenement = {
