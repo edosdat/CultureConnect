@@ -23,9 +23,9 @@ export default function SiteNav() {
   return (
     <nav
       aria-label="Navigation principale"
-      className="overflow-x-hidden border-b border-culture-line/80 bg-culture-cream/80 backdrop-blur"
+      className="border-b border-culture-line/80 bg-culture-cream/80 backdrop-blur"
     >
-      <div className="relative mx-auto flex max-w-7xl min-w-0 items-center gap-1 overflow-x-hidden px-4 py-3 pr-12 sm:px-6 sm:pr-6">
+      <div className="mx-auto flex max-w-7xl min-w-0 items-center gap-1 px-4 py-3 sm:px-6">
         <Link
           href="/"
           className="mr-1.5 shrink-0 font-display text-base text-culture-terracotta hover:text-culture-clay sm:mr-3 sm:text-lg"
@@ -52,7 +52,7 @@ export default function SiteNav() {
             );
           })}
         </div>
-        <div className="absolute right-4 top-1/2 z-10 -translate-y-1/2 sm:static sm:right-auto sm:top-auto sm:z-auto sm:ml-auto sm:translate-y-0">
+        <div className="relative z-20 ml-1 shrink-0 overflow-visible">
           <AuthButtons />
         </div>
       </div>

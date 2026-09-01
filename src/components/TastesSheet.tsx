@@ -20,12 +20,18 @@ function formatPct(n: number): string {
 
 /** Bottom sheet Mes goûts — lines label + % + ×. Not a questionnaire. */
 export default function TastesSheet({ open, onClose }: Props) {
-  const { wipeKey, addPhrase, tasteState } = useSignals();
+  const { wipeKey, addPhrase, tasteState, guestStore, sessionStatus } =
+    useSignals();
   const [mounted, setMounted] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
   const [visible, setVisible] = useState(false);
   const [draft, setDraft] = useState('');
-  const rows = profileChips(tasteState?.profile, 64);
+  // Logged-out sheet = guest store. Signed-in uses JWT (or guest fallback).
+  const sheetProfile =
+    sessionStatus === 'authenticated'
+      ? tasteState?.profile
+      : guestStore.profile;
+  const rows = profileChips(sheetProfile, 64);
 
   useEffect(() => {
     setMounted(true);
@@ -107,6 +113,11 @@ export default function TastesSheet({ open, onClose }: Props) {
           Tes goûts, en une ligne. Ça nourrit le top 3.
         </p>
         <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4">
+          {rows.length === 0 ? (
+            <p className="py-6 text-sm text-culture-muted">
+              aucun goût pour l’instant
+            </p>
+          ) : null}
           {SHEET_BUCKET_TITLES.map(({ bucket, title }) => {
             const group = rows.filter((row) => row.bucket === bucket);
             if (group.length === 0) return null;

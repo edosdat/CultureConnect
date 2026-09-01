@@ -15,6 +15,7 @@ import {
   cineFicheCount,
   entryPct,
   entryWeight,
+  isCatTasteKey,
   mappedCategorie,
   type AccountTasteState,
   type ProfileBucket,
@@ -52,10 +53,21 @@ const CAT_REASON_LABELS: Record<string, string> = {
 
 const MOOD_CHIP_LABELS: Record<string, string> = {
   rigolo: 'Rire',
-  intense: 'Intense',
   tendre: 'Tendre',
-  sortie: 'Sortie',
+  intense: 'Intense',
+  angoissant: 'Angoissant',
+  epique: 'Épique',
+  brutal: 'Brutal',
+  festif: 'Festif',
   cerveau: 'Cerveau',
+  intimiste: 'Intimiste',
+  absurde: 'Absurde',
+  critique: 'Critique',
+  sombre: 'Sombre',
+  poetique: 'Poétique',
+  dansant: 'Dansant',
+  contemplatif: 'Contemplatif',
+  leger: 'Léger',
 };
 
 const GENRE_CHIP_LABELS: Record<string, string> = {
@@ -70,27 +82,6 @@ const GENRE_CHIP_LABELS: Record<string, string> = {
   patrimoine_retro: 'Rétro',
   animation_jeune_public: 'Animation jeune public',
 };
-
-/** Main cats are not goûts — hide even if they leaked into genres. */
-const CAT_TASTE_KEYS = new Set([
-  'cinema',
-  'cine',
-  'ciné',
-  'cinéma',
-  'theatre_danse',
-  'theatre',
-  'théâtre',
-  'musique',
-  'festival',
-  'enfants_famille',
-  'enfants',
-  'expo_patrimoine',
-  'expo',
-]);
-
-function isCatTasteKey(key: string): boolean {
-  return CAT_TASTE_KEYS.has(key.trim().toLowerCase());
-}
 
 export type ProfileChip = {
   bucket: ProfileBucket;
@@ -114,13 +105,14 @@ export function labelProfileChip(bucket: ProfileBucket, key: string): string {
 
 const TASTE_SHEET_BUCKETS: readonly ProfileBucket[] = ['moods', 'genres', 'themes'];
 
+/** Fy — Ambiances / Genres / Thèmes only. Never read profile.cats. */
 export function profileChips(
   profile?: TasteProfile | null,
   max = 8,
 ): ProfileChip[] {
   if (!profile) return [];
   const raw: ProfileChip[] = [];
-  const push = (bucket: ProfileBucket, map?: Record<string, TasteEntry>) => {
+  const push = (bucket: Exclude<ProfileBucket, 'cats'>, map?: Record<string, TasteEntry>) => {
     for (const [key, entry] of Object.entries(map ?? {})) {
       const weight = entryWeight(entry);
       if (weight <= 0 || !key || isCatTasteKey(key)) continue;
