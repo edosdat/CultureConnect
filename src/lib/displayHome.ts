@@ -438,7 +438,8 @@ export function guestReasonLine(
 
 /**
  * Reco why-line only (Ton top 3 / Pour toi).
- * Logged-in: 16 locked moods, grammatical French, never a raw slug.
+ * Logged-in: 16 locked moods, grammatical French, display labels
+ * (rigolo → rire, critique → satirique). Never a raw slug.
  * Guest: place/time line — never « parce que tu aimes ».
  * Catalogue cards must not call this.
  */
@@ -453,7 +454,7 @@ const RECO_WHY_FR: Record<TasteMood, string> = {
   cerveau: 'parce que tu aimes le cerveau',
   intimiste: 'parce que tu aimes l’intimiste',
   absurde: 'parce que tu aimes l’absurde',
-  critique: 'parce que tu aimes l’esprit critique',
+  critique: 'parce que tu aimes le satirique',
   sombre: 'parce que tu aimes le sombre',
   poetique: 'parce que tu aimes le poétique',
   dansant: 'parce que tu as envie de danser',
