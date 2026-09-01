@@ -8,9 +8,11 @@ import {
   nearMeOnDenied,
   nearMeOnGranted,
   nearMeOnToggleOff,
+  nearMeFromBoot,
   resolveNearMeResult,
   sortItemsNearestFirst,
   TOULOUSE_CHIP_DEFAULT,
+  NEAR_ME_CHIP_LABEL,
   assertGpsNotPersisted,
 } from './nearMe';
 import { buildAgendaParams } from './agendaParams';
@@ -246,7 +248,29 @@ describe('près de moi sort', () => {
   });
 });
 
+describe('près de moi first paint', () => {
+  it('exposes a stable chip label for SSR (no client-only hide)', () => {
+    assert.equal(NEAR_ME_CHIP_LABEL, 'Près de moi');
+  });
+});
+
 describe('près de moi permission + persistence', () => {
+  it('boot grant activates km sort in memory only', () => {
+    const next = nearMeFromBoot({ ok: true, pos: CAPITOLE });
+    assert.equal(next.active, true);
+    assert.deepEqual(next.pos, CAPITOLE);
+    assert.equal(next.commune, null);
+  });
+
+  it('boot deny / error / no perm keeps Toulouse and drops pos', () => {
+    for (const reason of ['denied', 'unavailable', 'insecure'] as const) {
+      const next = nearMeFromBoot({ ok: false, reason });
+      assert.equal(next.active, false);
+      assert.equal(next.pos, null);
+      assert.equal(next.commune, 'Toulouse');
+    }
+  });
+
   it('denied keeps Toulouse and drops pos — no error wall state', () => {
     const next = resolveNearMeResult(
       { ok: false, reason: 'denied' },
