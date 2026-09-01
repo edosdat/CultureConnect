@@ -338,7 +338,7 @@ export function displayReasonForItem(
   },
 ): string | null {
   if (opts.guest || !opts.tasteState) {
-    return guestReasonLine(opts.scope, opts.commune);
+    return null;
   }
   const chips = profileChips(opts.tasteState.profile, 12);
   if (chips.length === 0) return null;
