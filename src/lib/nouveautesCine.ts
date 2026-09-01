@@ -12,7 +12,7 @@ import {
   isPublishableEvent,
   isPublishableProgrammeName,
 } from './publishable';
-import { addDaysIso, parisParts } from './timeScope';
+import { addDaysIso, parisParts, weekendRange } from './timeScope';
 import type { DayItem, ProgrammeWithContext } from './types';
 
 const VIVANT_MAINS: ReadonlySet<MainCategoryId> = new Set([
@@ -250,14 +250,42 @@ export function nouveautesCine(
   return candidates.slice(0, MAX_PACK).map((c) => toDayItem(c.representative));
 }
 
+/** Living rarity / desirability — never séance count, never earliest-hour. */
+export function livingDesirability(
+  item: DayItem,
+  todayIso: string,
+  weekday: number,
+): number {
+  let score = 0;
+  const ev = item.evenement;
+  const start = (ev?.date_debut || item.dayIso || '').trim();
+  const end = (ev?.date_fin || item.dayIso || '').trim();
+  if (start && end && start === end) score += 3;
+  if (start && start === item.dayIso) score += 2;
+  if (end && end === item.dayIso) score += 1;
+
+  const we = weekendRange(todayIso, weekday);
+  const isWeekend = item.dayIso >= we.startIso && item.dayIso <= we.endIso;
+  const isTomorrow = item.dayIso === addDaysIso(todayIso, 1);
+  if (isTomorrow || isWeekend) score += 4;
+  if (item.dayIso > todayIso) score += 1;
+
+  const h = itemHeure(item);
+  if (h && h >= '19:00' && h <= '21:30') score += 1.5;
+  else if (h && h < '19:00') score += 0.5;
+  return score;
+}
+
 /**
- * 1–3 vivant items from tonight's Ce soir list.
- * Same commune if any, else all. Empty → omit the section.
+ * 1–3 vivant items. Same commune if any, else all.
+ * Sort by rarity / desirability (tomorrow / weekend / earlier evening),
+ * not earliest hour.
  */
 export function pickAussiCeSoir(
   ceSoirItems: DayItem[],
   openItem: DayItem,
   limit = MAX_AUSSI,
+  now = new Date(),
 ): DayItem[] {
   const openFilmId = filmIdOfItem(openItem);
   const openKey = openItem.key;
@@ -266,6 +294,7 @@ export function pickAussiCeSoir(
       ? openItem.programme.event_id || ''
       : openItem.evenement.event_id || '';
   const openCommune = normalizeCommune(openItem.lieu?.commune);
+  const paris = parisParts(now);
 
   const vivant = ceSoirItems.filter((item) => {
     if (item.key === openKey) return false;
@@ -281,10 +310,9 @@ export function pickAussiCeSoir(
   const pool = sameCommune.length > 0 ? sameCommune : vivant;
 
   const sorted = [...pool].sort((a, b) => {
-    const ha = itemHeure(a) || '99:99';
-    const hb = itemHeure(b) || '99:99';
-    const byHeure = ha.localeCompare(hb);
-    if (byHeure !== 0) return byHeure;
+    const da = livingDesirability(a, paris.iso, paris.weekday);
+    const db = livingDesirability(b, paris.iso, paris.weekday);
+    if (db !== da) return db - da;
     return a.key.localeCompare(b.key);
   });
 

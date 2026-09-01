@@ -4,6 +4,7 @@
  */
 import type { MainCategoryId } from '@/lib/categories';
 import { normalizePhrase, parsePhraseRules, type PhraseForm } from '@/lib/phraseTags';
+import type { RecoReason } from '@/lib/reco';
 import {
   SIGNAL_WEIGHTS,
   cineFicheCount,
@@ -46,10 +47,22 @@ const CAT_REASON_LABELS: Record<string, string> = {
 
 const MOOD_CHIP_LABELS: Record<string, string> = {
   rigolo: 'Rire',
-  intense: 'Intense',
   tendre: 'Tendre',
+  intense: 'Intense',
+  angoissant: 'Angoissant',
+  epique: 'Épique',
+  brutal: 'Brutal',
   sortie: 'Sortie',
+  festif: 'Festif',
   cerveau: 'Cerveau',
+  intimiste: 'Intimiste',
+  absurde: 'Absurde',
+  critique: 'Critique',
+  sombre: 'Sombre',
+  poetique: 'Poétique',
+  dansant: 'Dansant',
+  contemplatif: 'Contemplatif',
+  leger: 'Léger',
 };
 
 const GENRE_CHIP_LABELS: Record<string, string> = {
@@ -206,6 +219,25 @@ function strongestSignal(signals: Signal[]): Signal | null {
     }
   }
   return best;
+}
+
+/**
+ * Copy for a reco reason. Guest never gets « tu as aimé ».
+ * Profile hits expose mood/genre slugs for the UI; else popularité / nouveauté.
+ */
+export function reasonCopy(
+  reason: RecoReason | undefined,
+  opts?: { guest?: boolean },
+): string {
+  if (!reason) return 'Popularité';
+  const guest = Boolean(opts?.guest);
+  if (guest || reason.source !== 'profile') {
+    if (reason.source === 'nouveaute') return 'Nouveauté';
+    return 'Popularité';
+  }
+  if (reason.mood) return MOOD_CHIP_LABELS[reason.mood] ?? reason.mood;
+  if (reason.genre) return GENRE_CHIP_LABELS[reason.genre] ?? reason.genre;
+  return 'Popularité';
 }
 
 export function reasonLineForState(

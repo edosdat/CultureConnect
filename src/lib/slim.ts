@@ -257,6 +257,11 @@ export type AgendaListResponse = {
   nouveauFilmIds?: string[];
   date_from?: string;
   date_to?: string;
+  /** Top-3 reason payload (mood/genre or popularité / nouveauté). */
+  recoReasons?: Record<
+    string,
+    { source: 'profile' | 'popularite' | 'nouveaute'; mood?: string; genre?: string }
+  >;
 };
 
 export type AgendaDetailResponse = {
