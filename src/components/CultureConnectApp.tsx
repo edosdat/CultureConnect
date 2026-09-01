@@ -218,7 +218,6 @@ function clearProfileRecoCache(): void {
 }
 
 const AGENDA_PAGE_SIZE = 20;
-const SEARCH_DEBOUNCE_MS = 250;
 
 export default function CultureConnectApp({
   initialScope,
@@ -272,6 +271,8 @@ export default function CultureConnectApp({
   const [selectedCommune, setSelectedCommune] = useState<string | null>('Toulouse');
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  /** Leftover title after Enter / submit — never parsed per keystroke. */
+  const [committedTitle, setCommittedTitle] = useState('');
   const [phraseTags, setPhraseTags] = useState<PhraseTags | null>(null);
   const searchDrivenRef = useRef({ scope: false, cat: false });
   const lastSearchChipsRef = useRef({ scope: '', date: '', cat: '' });
@@ -365,8 +366,7 @@ export default function CultureConnectApp({
     setListSlowWhere(null);
   }
 
-  const parsedChips = useMemo(() => parseSearchChips(query), [query]);
-  const titleLeftover = parsedChips.titleQuery;
+  const titleLeftover = committedTitle;
 
   // Client fallback: `?e=` / `?id=` when SSR did not pass a key (client nav).
   useEffect(() => {
@@ -431,36 +431,26 @@ export default function CultureConnectApp({
     lastSearchChipsRef.current = { scope: scopeKey, date: dateKey, cat: catKey };
   }
 
-  // Title leftover: debounce 250ms. Chips wait for Enter / submit.
-  useEffect(() => {
-    if (!titleLeftover) {
-      setDebouncedQuery('');
-      return;
-    }
-    const id = window.setTimeout(
-      () => setDebouncedQuery(titleLeftover),
-      SEARCH_DEBOUNCE_MS,
-    );
-    return () => window.clearTimeout(id);
-  }, [titleLeftover]);
-
   function handleQueryChange(next: string) {
     setQuery(next);
     if (next.trim() === '') {
+      setCommittedTitle('');
       setDebouncedQuery('');
       setPhraseTags(null);
     }
   }
 
   function handleSearchSubmit(raw: string) {
-    applyParsedChips(parseSearchChips(raw), raw);
+    const parsed = parseSearchChips(raw);
+    applyParsedChips(parsed, raw);
+    setCommittedTitle(parsed.titleQuery);
+    setDebouncedQuery(parsed.titleQuery);
   }
 
   const queryTrimmed = query.trim();
   const phraseMode = false;
-  /** Immediate: leftover title only — chip-only phrases are not a title search. */
+  /** Leftover title after submit — chip-only phrases are not a title search. */
   const searchingUi = titleLeftover.length > 0;
-  /** Debounced leftover title. */
   const searching = debouncedQuery.trim().length > 0;
 
   const scopeRange = useMemo(
