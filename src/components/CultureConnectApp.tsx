@@ -56,6 +56,7 @@ import {
 import {
   parseSearchChips,
   searchChipsToUi,
+  searchSubmitAppliesChips,
   type SearchChipParse,
 } from '@/lib/parseSearchChips';
 import { normalizeDeepLinkId } from '@/lib/deepLink';
@@ -399,52 +400,43 @@ export default function CultureConnectApp({
     }
   }
 
-  /** Enter / search submit only. Empty raw = vider ≠ décocher (chips stay). */
+  /** Enter / search submit only. Never unchecks chips (vider ≠ décocher). */
   function applyParsedChips(parsed: SearchChipParse, raw: string) {
-    if (!raw.trim()) return;
+    if (!searchSubmitAppliesChips(raw, parsed)) return;
     const ui = searchChipsToUi(parsed, initialParisIso);
     const scopeKey = ui.scope ?? '';
     const dateKey = ui.selectedDate ?? '';
     const catKey = ui.categories.slice().sort().join(',');
     const prev = lastSearchChipsRef.current;
 
-    if (ui.scope) {
-      if (prev.scope !== scopeKey || prev.date !== dateKey) {
-        applyScopeFromSearch(ui.scope, ui.selectedDate);
-      }
+    if (ui.scope && (prev.scope !== scopeKey || prev.date !== dateKey)) {
+      applyScopeFromSearch(ui.scope, ui.selectedDate);
       searchDrivenRef.current.scope = true;
-    } else if (searchDrivenRef.current.scope) {
-      applyScopeFromSearch('tous', null);
-      searchDrivenRef.current.scope = false;
     }
 
-    if (ui.categories.length > 0) {
-      if (prev.cat !== catKey) {
-        setSelectedCategories(ui.categories);
-      }
+    if (ui.categories.length > 0 && prev.cat !== catKey) {
+      setSelectedCategories(ui.categories);
       searchDrivenRef.current.cat = true;
-    } else if (searchDrivenRef.current.cat) {
-      setSelectedCategories([]);
-      searchDrivenRef.current.cat = false;
     }
 
-    lastSearchChipsRef.current = { scope: scopeKey, date: dateKey, cat: catKey };
+    lastSearchChipsRef.current = {
+      scope: ui.scope ? scopeKey : prev.scope,
+      date: ui.scope ? dateKey : prev.date,
+      cat: ui.categories.length > 0 ? catKey : prev.cat,
+    };
   }
 
   function handleQueryChange(next: string) {
     setQuery(next);
-    if (next.trim() === '') {
-      setCommittedTitle('');
-      setDebouncedQuery('');
-      setPhraseTags(null);
-    }
   }
 
   function handleSearchSubmit(raw: string) {
     const parsed = parseSearchChips(raw);
     applyParsedChips(parsed, raw);
-    setCommittedTitle(parsed.titleQuery);
-    setDebouncedQuery(parsed.titleQuery);
+    if (raw.trim()) {
+      setCommittedTitle(parsed.titleQuery);
+      setDebouncedQuery(parsed.titleQuery);
+    }
   }
 
   const queryTrimmed = query.trim();

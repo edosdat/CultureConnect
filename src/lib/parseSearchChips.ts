@@ -423,3 +423,12 @@ export function searchChipsToUi(
   };
 }
 
+/** Empty box / title-only leftover never unchecks chips (vider ≠ décocher). */
+export function searchSubmitAppliesChips(
+  raw: string,
+  parsed: SearchChipParse,
+): boolean {
+  if (!(raw || '').trim()) return false;
+  return Boolean(parsed.scope || parsed.categories.length);
+}
+
