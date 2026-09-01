@@ -7,7 +7,12 @@ import {
   mainFromGenreSlug,
   type MainCategoryId,
 } from '@/lib/categories';
-import { isTasteMood, parsePhraseRules, type PhraseForm } from '@/lib/phraseTags';
+import {
+  isTasteMood,
+  parsePhraseRules,
+  TASTE_MOODS,
+  type PhraseForm,
+} from '@/lib/phraseTags';
 import type { DayItem } from '@/lib/types';
 
 export type SignalKind =
@@ -91,8 +96,15 @@ const ACTION_KINDS: ReadonlySet<SignalKind> = new Set([
 ]);
 
 /** Mood lexicon — word match only (no short substring ≤ 3). */
-const MOOD_PHRASES = ['science fiction'] as const;
+const MOOD_PHRASES = [
+  'science fiction',
+  'stand up',
+  'one man',
+  'one woman',
+  'seul en scene',
+] as const;
 const MOOD_WORDS = [
+  ...TASTE_MOODS,
   'horreur',
   'horror',
   'epouvante',
@@ -100,7 +112,10 @@ const MOOD_WORDS = [
   'suspense',
   'polar',
   'comedie',
+  'comique',
   'humour',
+  'standup',
+  'sketch',
   'romance',
   'amour',
   'sf',
@@ -307,7 +322,9 @@ export function makeSignal(payload: TrackPayload): Signal {
   let genres = [
     ...new Set((payload.genres ?? []).map((g) => g.trim().toLowerCase()).filter(Boolean)),
   ];
-  let moods = [...new Set(payload.moods ?? [])];
+  let moods = [
+    ...new Set((payload.moods ?? []).map((m) => m.trim().toLowerCase()).filter(Boolean)),
+  ];
   let themes = [
     ...new Set((payload.themes ?? []).map((g) => g.trim().toLowerCase()).filter(Boolean)),
   ];
@@ -344,7 +361,7 @@ export function makeSignal(payload: TrackPayload): Signal {
   if (payload.query) signal.query = payload.query;
   if (payload.chip) signal.chip = payload.chip;
   if (payload.dayIso) signal.dayIso = payload.dayIso;
-  return signal;
+  return ingestMapSignal(signal);
 }
 
 /** Same kind + target within 30 min → keep one, weight = max. */
@@ -588,6 +605,164 @@ export function isTasteWritingSignal(s: Pick<Signal, 'kind'>): boolean {
   return s.kind !== 'chip_cat' && s.kind !== 'chip_time';
 }
 
+/**
+ * 89-vocab genre slugs written on mapped ingest signals.
+ * Mirror of reco CLOSED_GENRES — do not invent free-text genres.
+ */
+export const TASTE_GENRE_SLUGS = [
+  'comedie',
+  'drame',
+  'thriller',
+  'horreur',
+  'sf',
+  'romance',
+  'polar',
+  'animation',
+  'documentaire',
+  'biopic',
+  'patrimoine',
+  'aventure',
+  'action',
+  'rock',
+  'electro',
+  'jazz',
+  'hiphop',
+  'classique',
+  'chanson',
+  'funk',
+  'metal',
+  'world',
+  'contemporain',
+  'classique_theatre',
+  'standup',
+  'danse',
+  'cirque',
+] as const;
+
+const TASTE_GENRE_SET = new Set<string>(TASTE_GENRE_SLUGS);
+
+function uniqueSlugs(xs: Iterable<string>): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of xs) {
+    const s = raw.trim().toLowerCase();
+    if (!s || seen.has(s)) continue;
+    seen.add(s);
+    out.push(s);
+  }
+  return out;
+}
+
+function hasIngestPhrase(norm: string, phrase: string): boolean {
+  const p = normalizeFr(phrase);
+  if (!p) return false;
+  const re = new RegExp(
+    `(?:^|[^a-z0-9])${p.replace(/ /g, '[\\s-]+')}(?:[^a-z0-9]|$)`,
+  );
+  return re.test(norm);
+}
+
+/** open_card / reserve / agenda_add always; chip_genre only if moods[] nonempty. */
+export function shouldMapTasteIngest(
+  kind: SignalKind,
+  moods: readonly string[] | undefined | null,
+): boolean {
+  if (kind === 'open_card' || kind === 'reserve' || kind === 'agenda_add') {
+    return true;
+  }
+  if (kind === 'chip_genre') {
+    return (moods ?? []).some((m) => m.trim().length > 0);
+  }
+  return false;
+}
+
+/**
+ * Closed MAP then DROP. Moods ⊆ 16; genres ⊆ 89 slugs. Never sortie / cats.
+ * Idempotent. Does not invent a 17th mood.
+ */
+export function mapThenDropTasteTags(
+  moods: readonly string[] | undefined | null,
+  genres: readonly string[] | undefined | null,
+  extraText?: string,
+): { moods: string[]; genres: string[] } {
+  const srcMoods = uniqueSlugs(moods ?? []);
+  const srcGenres = uniqueSlugs(genres ?? []);
+  const norm = normalizeFr(
+    [...srcMoods, ...srcGenres, extraText ?? ''].filter(Boolean).join(' '),
+  );
+  const tokens = wordSet(norm);
+
+  const nextMoods: string[] = [];
+  const nextGenres: string[] = [];
+
+  for (const m of srcMoods) {
+    if (isTasteMood(m)) nextMoods.push(m);
+  }
+  for (const g of srcGenres) {
+    if (TASTE_GENRE_SET.has(g) && !isCatTasteKey(g)) nextGenres.push(g);
+  }
+  for (const t of tokens) {
+    if (isTasteMood(t)) nextMoods.push(t);
+    if (TASTE_GENRE_SET.has(t) && !isCatTasteKey(t)) nextGenres.push(t);
+  }
+
+  if (['comedie', 'comique', 'humour'].some((t) => tokens.has(t))) {
+    nextMoods.push('rigolo');
+    nextGenres.push('comedie');
+  }
+  if (
+    tokens.has('standup') ||
+    tokens.has('sketch') ||
+    hasIngestPhrase(norm, 'stand up') ||
+    hasIngestPhrase(norm, 'one man') ||
+    hasIngestPhrase(norm, 'one woman') ||
+    hasIngestPhrase(norm, 'seul en scene')
+  ) {
+    nextMoods.push('rigolo');
+    nextGenres.push('standup');
+  }
+  if (tokens.has('horreur') || tokens.has('horror')) {
+    nextMoods.push('angoissant');
+    nextGenres.push('horreur');
+  }
+  if (tokens.has('epouvante')) {
+    // Biblio: épouvante is not a 89 slug — mood only.
+    nextMoods.push('angoissant');
+  }
+  if (tokens.has('animation') || tokens.has('animations')) {
+    nextGenres.push('animation');
+  }
+  if (tokens.has('patrimoine') || tokens.has('retro')) {
+    nextGenres.push('patrimoine');
+  }
+
+  return {
+    moods: uniqueSlugs(nextMoods).filter((m) => isTasteMood(m)),
+    genres: uniqueSlugs(nextGenres).filter(
+      (g) =>
+        TASTE_GENRE_SET.has(g) &&
+        !isCatTasteKey(g) &&
+        g !== 'animation_jeune_public' &&
+        g !== 'patrimoine_retro',
+    ),
+  };
+}
+
+export function ingestMapSignal<
+  T extends Pick<Signal, 'kind' | 'moods' | 'genres'> & {
+    chip?: string;
+    query?: string;
+  },
+>(signal: T): T {
+  if (!shouldMapTasteIngest(signal.kind, signal.moods)) return signal;
+  const mapped = mapThenDropTasteTags(
+    signal.moods,
+    signal.genres,
+    [signal.chip, signal.query].filter(Boolean).join(' '),
+  );
+  return { ...signal, moods: mapped.moods, genres: mapped.genres };
+}
+
 /** L() — moods / genres / themes only. Never increment profile.cats. */
 export function applySignalToProfile(profile: TasteProfile, signal: Signal): void {
   const w = signal.weight;
@@ -622,9 +797,28 @@ export function concatTastesText(
   return `${a}. ${b}`;
 }
 
+/**
+ * One-shot remap of CURRENT profile.moods keys outside the 16.
+ * Same Biblio table as ingest. Does not replay signalsRecent.
+ * Weight 0 / already-dropped keys are not invented.
+ */
+export function migrateStoredMoodKeys(profile: TasteProfile): TasteProfile {
+  const src = coerceProfile(profile);
+  const out = copyProfile(src);
+  for (const [key, entry] of Object.entries(src.moods)) {
+    if (isTasteMood(key)) continue;
+    delete out.moods[key];
+    if (!(entry.weight > 0)) continue;
+    const mapped = mapThenDropTasteTags([key], [], key);
+    for (const m of mapped.moods) addWeight(out.moods, m, entry.weight);
+    for (const g of mapped.genres) addWeight(out.genres, g, entry.weight);
+  }
+  return out;
+}
+
 /** Drop cats, `sortie`, and any non-biblio mood. 16 TASTE_MOODS only. */
 export function sanitizeTasteProfile(profile: TasteProfile): TasteProfile {
-  const p = coerceProfile(profile);
+  const p = migrateStoredMoodKeys(profile);
   p.cats = {};
   for (const key of Object.keys(p.moods)) {
     if (!isTasteMood(key)) delete p.moods[key];
@@ -647,19 +841,29 @@ export function profileHasPositiveTastes(profile?: TasteProfile | null): boolean
   );
 }
 
+/** Apply incoming signals only. Never inventory signalsRecent history. */
+export function applyIncomingSignals(
+  profile: TasteProfile,
+  incoming: readonly Signal[],
+): TasteProfile {
+  const next = sanitizeTasteProfile(profile);
+  for (const s of incoming) {
+    if (!isTasteWritingSignal(s)) continue;
+    applySignalToProfile(next, s);
+  }
+  return sanitizeTasteProfile(next);
+}
+
 /** Empty / cinema-only guest never passes zv — do not merge, do not wipe. */
 export function guestHasMergeableTastes(
   events?: Signal[] | null,
   profile?: TasteProfile | null,
 ): boolean {
-  const rebuilt = rebuildTasteState(
-    events ?? [],
-    undefined,
-    undefined,
-    ACCOUNT_CAP,
-    profile ?? emptyProfile(),
-  );
-  return hasScorableState(rebuilt);
+  const probe = applyIncomingSignals(profile ?? emptyProfile(), events ?? []);
+  return hasScorableState({
+    signalsRecent: events ?? [],
+    profile: probe,
+  });
 }
 
 export function pickRicherTasteState(
@@ -703,10 +907,11 @@ export function resolveLoginMerge(opts: {
   if (!mergeable && !(opts.extraText || '').trim()) {
     return { state: { ...base, profile: sanitizeTasteProfile(base.profile) }, wroteGuest: false };
   }
-  let overlayPrev = base.profile;
+  let overlayPrev = sanitizeTasteProfile(base.profile);
   for (const s of tasteSignals) {
     overlayPrev = unzeroKeysTouchedBySignal(overlayPrev, s);
   }
+  overlayPrev = applyIncomingSignals(overlayPrev, tasteSignals);
   const tastesText = concatTastesText(base.tastesText, opts.extraText);
   const tastesSetAt =
     tastesText && tastesText !== base.tastesText
@@ -764,11 +969,19 @@ export function rebuildTasteState(
 ): AccountTasteState {
   const signalsRecent = signals.slice(-cap);
   const text = (tastesText || '').trim() || undefined;
-  // read raw → migrate numbers → union stored positives → overlay 0 LAST
-  const prev = prevProfile ? coerceProfile(prevProfile) : null;
-  const recalc = recalcProfile(signalsRecent, text);
-  const kept = unionPositiveWeights(recalc, prev);
-  const profile = sanitizeTasteProfile(overlayZeroWeights(kept, prev));
+  // Migrate stored mood keys only. Do not inventory signalsRecent.
+  let profile = prevProfile
+    ? sanitizeTasteProfile(coerceProfile(prevProfile))
+    : emptyProfile();
+  if (text) {
+    const virtual = makeSignal({
+      kind: 'tastes_text',
+      genres: [],
+      moods: extractMoods(text),
+    });
+    applySignalToProfile(profile, virtual);
+    profile = sanitizeTasteProfile(profile);
+  }
   return {
     signalsRecent,
     profile,
@@ -788,9 +1001,7 @@ export function parseTasteState(raw: unknown): AccountTasteState | null {
     o.profile && typeof o.profile === 'object'
       ? coerceProfile(o.profile)
       : null;
-  const profile = sanitizeTasteProfile(
-    migrated ?? recalcProfile(signals, o.tastesText),
-  );
+  const profile = sanitizeTasteProfile(migrated ?? emptyProfile());
   return {
     signalsRecent: signals.slice(-ACCOUNT_CAP),
     profile,
@@ -822,8 +1033,8 @@ export function parseGuestStore(raw: unknown): GuestSignalsStore {
     // Migrate leftover numbers → TasteEntry + bucket pcts first (before any overlay).
     profile:
       o.profile && typeof o.profile === 'object'
-        ? coerceProfile(o.profile)
-        : recalcProfile(capped),
+        ? sanitizeTasteProfile(coerceProfile(o.profile))
+        : emptyProfile(),
   };
 }
 
@@ -952,15 +1163,35 @@ export function categorieFromDayItem(item: DayItem): string {
   return raw;
 }
 
+export function moodsFromDayItem(item: DayItem): string[] {
+  const raw =
+    item.kind === 'programme'
+      ? [item.programme.moods, item.evenement?.moods ?? '']
+      : [item.evenement.moods];
+  return [...new Set(raw.flatMap(splitSlugs))];
+}
+
+export function genresMoodFromDayItem(item: DayItem): string[] {
+  const raw =
+    item.kind === 'programme'
+      ? [item.programme.genres_mood, item.evenement?.genres_mood ?? '']
+      : [item.evenement.genres_mood];
+  return [...new Set(raw.flatMap(splitSlugs))];
+}
+
 export function moodSourceFromDayItem(item: DayItem): string {
   if (item.kind === 'programme') {
     return [
       item.programme.nom_item,
       item.programme.genre,
+      item.programme.moods,
+      item.programme.genres_mood,
       item.programme.notes,
       item.programme.description_item,
       item.evenement?.titre,
       item.evenement?.genre,
+      item.evenement?.moods,
+      item.evenement?.genres_mood,
       item.evenement?.categorie,
       item.evenement?.description_courte,
       item.evenement?.description_longue,
@@ -972,6 +1203,8 @@ export function moodSourceFromDayItem(item: DayItem): string {
   return [
     item.evenement.titre,
     item.evenement.genre,
+    item.evenement.moods,
+    item.evenement.genres_mood,
     item.evenement.categorie,
     item.evenement.description_courte,
     item.evenement.description_longue,
@@ -985,8 +1218,15 @@ export function payloadFromDayItem(
   item: DayItem,
   kind: Extract<SignalKind, 'open_card' | 'agenda_add' | 'ics' | 'reserve'>,
 ): TrackPayload {
-  const genres = genresFromDayItem(item);
-  const moods = extractMoods(moodSourceFromDayItem(item), genres.join(' '));
+  const genres = [
+    ...new Set([...genresFromDayItem(item), ...genresMoodFromDayItem(item)]),
+  ];
+  const moods = [
+    ...new Set([
+      ...moodsFromDayItem(item),
+      ...extractMoods(moodSourceFromDayItem(item), genres.join(' ')),
+    ]),
+  ];
   const themes = themesFromDayItem(item);
   const categorie = categorieFromDayItem(item);
   const payload: TrackPayload = {
