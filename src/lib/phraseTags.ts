@@ -294,7 +294,6 @@ const MOOD_WORDS: Record<string, PhraseMood> = {
   verre: 'sortie',
   guinguette: 'sortie',
   bal: 'sortie',
-  danser: 'sortie',
   danse: 'sortie',
 };
 
