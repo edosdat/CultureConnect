@@ -16,6 +16,7 @@ export default function NearMeChip({
   return (
     <button
       type="button"
+      data-near-me=""
       onClick={onToggle}
       aria-pressed={active}
       aria-busy={pending || undefined}

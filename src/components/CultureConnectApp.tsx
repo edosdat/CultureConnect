@@ -68,6 +68,7 @@ import {
 import {
   requestBrowserPosition,
   resolveNearMeResult,
+  nearMeFromBoot,
   nearMeOnToggleOff,
   type GeoPos,
 } from '@/lib/nearMe';
@@ -1375,12 +1376,21 @@ export default function CultureConnectApp({
     setSelectedCommune(next.commune);
   }
 
+  // Landing: getCurrentPosition once. Chip stays visible (no pending « … »).
+  // Deny / error → Toulouse already on screen. Pos stays in React state only.
+  useEffect(() => {
+    let cancelled = false;
+    void requestBrowserPosition().then((result) => {
+      if (cancelled) return;
+      applyNearMeState(nearMeFromBoot(result));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   function handleNearMeToggle() {
     if (nearMePending) return;
-    if (nearMeActive) {
-      applyNearMeState(nearMeOnToggleOff());
-      return;
-    }
     setNearMePending(true);
     void requestBrowserPosition().then((result) => {
       setNearMePending(false);
@@ -1564,12 +1574,8 @@ export default function CultureConnectApp({
                 {adminCountLine}
               </p>
             ) : null}
-            <div
-              className={
-                (showFiltersMobile ? 'flex' : 'hidden') +
-                ' min-w-0 flex-wrap items-center gap-2 md:flex'
-              }
-            >
+            {/* First paint / SSR: Toulouse + Près de moi stay visible (no hidden / Filtres gate). */}
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <CityFilter
                 communes={communes}
                 selectedCommune={selectedCommune}
@@ -1592,6 +1598,13 @@ export default function CultureConnectApp({
                 pending={nearMePending}
                 onToggle={handleNearMeToggle}
               />
+            </div>
+            <div
+              className={
+                (showFiltersMobile ? 'flex' : 'hidden') +
+                ' min-w-0 flex-wrap items-center gap-2 md:flex'
+              }
+            >
               <VenueFilter
                 lieux={venueOptions}
                 selectedLieuId={selectedLieuId}
