@@ -14,15 +14,17 @@ export type PhraseForm =
   | 'enfants'
   | 'autre';
 
-/** Closed catalog — do not invent mood strings. */
-export const CATALOG_MOODS = [
+/**
+ * Taste / scoring / inverse-frequency / « parce que tu as aimé » — 16 only.
+ * Do not invent mood strings. `sortie` is not a goût (form + date chips cover it).
+ */
+export const TASTE_MOODS = [
   'rigolo',
   'tendre',
   'intense',
   'angoissant',
   'epique',
   'brutal',
-  'sortie',
   'festif',
   'cerveau',
   'intimiste',
@@ -35,7 +37,37 @@ export const CATALOG_MOODS = [
   'leger',
 ] as const;
 
+/** Phrase/search may see this catalog slug; it is never a goût. */
+export const NON_TASTE_CATALOG_MOODS = ['sortie'] as const;
+
+/** Closed catalog for phrase/search — TASTE_MOODS + kept event slugs. */
+export const CATALOG_MOODS = [
+  ...TASTE_MOODS,
+  ...NON_TASTE_CATALOG_MOODS,
+] as const;
+
+export type TasteMood = (typeof TASTE_MOODS)[number];
 export type PhraseMood = (typeof CATALOG_MOODS)[number];
+
+const TASTE_MOOD_SET = new Set<string>(TASTE_MOODS);
+
+export function isTasteMood(slug: string | null | undefined): boolean {
+  return Boolean(slug && TASTE_MOOD_SET.has(slug.trim().toLowerCase()));
+}
+
+/** Drop `sortie` and any non-taste slug before profile / scoring. */
+export function tasteMoodsOf(moods: readonly string[] | undefined | null): string[] {
+  if (!moods) return [];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of moods) {
+    const s = raw.trim().toLowerCase();
+    if (!isTasteMood(s) || seen.has(s)) continue;
+    seen.add(s);
+    out.push(s);
+  }
+  return out;
+}
 
 export type PhraseTags = {
   form?: PhraseForm;

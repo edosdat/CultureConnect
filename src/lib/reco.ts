@@ -17,7 +17,7 @@ import {
   type MainCategoryId,
 } from '@/lib/categories';
 import { nouveauFilmIds as collectNouveauFilmIds } from '@/lib/nouveautesCine';
-import { CATALOG_MOODS } from '@/lib/phraseTags';
+import { TASTE_MOODS } from '@/lib/phraseTags';
 import {
   cinemaActionShare,
   cineFicheCount,
@@ -1176,14 +1176,17 @@ export function profileHasChipWeight(profile?: TasteProfile | null): boolean {
   if (!profile) return false;
   return (
     Object.values(profile.genres).some((e) => entryWeight(e) > 0) ||
-    Object.values(profile.moods).some((e) => entryWeight(e) > 0) ||
+    Object.entries(profile.moods).some(
+      ([key, e]) => CLOSED_MOODS.has(key) && entryWeight(e) > 0,
+    ) ||
     Object.values(profile.themes ?? {}).some((e) => entryWeight(e) > 0)
   );
 }
 
 export type RecoSlotForm = 'cine' | 'theatre' | 'concert';
 
-const CLOSED_MOODS = new Set<string>(CATALOG_MOODS);
+/** Scoring / IDF / « tu as aimé » — 16 taste moods only. `sortie` is not a goût. */
+const CLOSED_MOODS = new Set<string>(TASTE_MOODS);
 const CLOSED_THEMES = new Set([
   'feminisme',
   'histoire',

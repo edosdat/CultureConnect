@@ -1,24 +1,26 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { parsePhraseRules } from './phraseTags';
+import { isTasteMood, parsePhraseRules, TASTE_MOODS } from './phraseTags';
 import { pickAussiCeSoir } from './nouveautesCine';
 import {
   dailySalt,
   itemIdentity,
   itemIsUntagged,
+  profileHasChipWeight,
   recommendForProfile,
   recommendSlice,
   SLOT_ORDER,
   slotFormOfItem,
 } from './reco';
 import {
+  applySignalToProfile,
   emptyProfile,
   emptyTasteState,
   makeSignal,
   SIGNAL_WEIGHTS,
   tagsFromSearchQuery,
 } from './signals';
-import { reasonCopy } from './pourToi';
+import { phraseToTrackPayload, profileChips, reasonCopy } from './pourToi';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 import type { AccountTasteState, TasteProfile } from './signals';
 
@@ -143,16 +145,26 @@ const TRIO = [
   item({ key: 'co-a', cat: 'musique', moods: 'festif', genre: 'electro_techno' }),
 ];
 
-describe('phrase rules — 17 catalog moods, no AI', () => {
-  it('parses « un truc intimiste » → intimiste', () => {
+describe('phrase rules — catalog strings, 16 taste moods', () => {
+  it('parses « un truc intimiste » → intimiste (taste)', () => {
     const tags = parsePhraseRules('un truc intimiste');
     assert.deepEqual(tags.moods, ['intimiste']);
+    assert.equal(isTasteMood('intimiste'), true);
     assert.equal(tags.source, 'rules');
   });
 
-  it('parses « envie de danser » → dansant', () => {
+  it('parses « envie de danser » → dansant (taste)', () => {
     const tags = parsePhraseRules('envie de danser');
     assert.deepEqual(tags.moods, ['dansant']);
+    assert.equal(isTasteMood('dansant'), true);
+  });
+
+  it('may parse sortie for search, but sortie is not a goût', () => {
+    const tags = parsePhraseRules('une sortie entre potes');
+    assert.ok(tags.moods.includes('sortie'));
+    assert.equal(isTasteMood('sortie'), false);
+    assert.equal(TASTE_MOODS.includes('sortie' as (typeof TASTE_MOODS)[number]), false);
+    assert.equal(TASTE_MOODS.length, 16);
   });
 
   it('does not invent mood strings', () => {
@@ -397,6 +409,41 @@ describe('search tags → session taste path', () => {
   it('tagsFromSearchQuery matches parsePhraseRules', () => {
     const a = tagsFromSearchQuery('envie de danser');
     assert.deepEqual(a.moods, ['dansant']);
+  });
+});
+
+describe('sortie is not a goût', () => {
+  it('does not land in the profile or Mes goûts chips', () => {
+    const p = emptyProfile();
+    applySignalToProfile(
+      p,
+      makeSignal({ kind: 'search', query: 'une sortie entre potes', moods: ['sortie'] }),
+    );
+    assert.equal(p.moods.sortie, undefined);
+    const leaked = profile({ moods: { sortie: { weight: 5, pct: 100 } } });
+    assert.equal(profileChips(leaked).some((c) => c.key === 'sortie'), false);
+    assert.equal(profileHasChipWeight(leaked), false);
+    const payload = phraseToTrackPayload('entre potes');
+    assert.ok(!payload || !payload.moods?.includes('sortie'));
+  });
+
+  it('does not score or inverse-frequency weight sortie', () => {
+    const st = state({
+      profile: profile({
+        moods: { sortie: { weight: 8, pct: 100 } },
+      }),
+    });
+    const pool = [
+      item({ key: 'cine-s', cat: 'cinema', filmId: 'FS', moods: 'sortie' }),
+      item({ key: 'th-s', cat: 'theatre', moods: 'sortie' }),
+      item({ key: 'co-s', cat: 'musique', moods: 'sortie' }),
+    ];
+    const out = recommendForProfile(pool, st, 3, { now: NOW });
+    assert.equal(out.length, 3);
+    for (const row of out) {
+      assert.notEqual(row.reason?.source, 'profile');
+      assert.notEqual(row.reason?.mood, 'sortie');
+    }
   });
 });
 

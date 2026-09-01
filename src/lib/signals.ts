@@ -7,7 +7,11 @@ import {
   mainFromGenreSlug,
   type MainCategoryId,
 } from '@/lib/categories';
-import { parsePhraseRules, type PhraseForm } from '@/lib/phraseTags';
+import {
+  isTasteMood,
+  parsePhraseRules,
+  type PhraseForm,
+} from '@/lib/phraseTags';
 import type { DayItem } from '@/lib/types';
 
 export type SignalKind =
@@ -552,7 +556,10 @@ export function unzeroKeysTouchedBySignal(
   let next = profile;
   // chip_cat is a grid filter, not a goût — do not unzero cats.
   for (const g of signal.genres) next = unzeroProfileKey(next, 'genres', g);
-  for (const m of signal.moods) next = unzeroProfileKey(next, 'moods', m);
+  for (const m of signal.moods) {
+    if (!isTasteMood(m)) continue;
+    next = unzeroProfileKey(next, 'moods', m);
+  }
   for (const th of signal.themes ?? []) next = unzeroProfileKey(next, 'themes', th);
   return next;
 }
@@ -578,7 +585,10 @@ export function applySignalToProfile(profile: TasteProfile, signal: Signal): voi
   const w = signal.weight;
   // cats are not tastes — never addWeight on profile.cats
   for (const g of signal.genres) addWeight(profile.genres, g, w);
-  for (const m of signal.moods) addWeight(profile.moods, m, w);
+  for (const m of signal.moods) {
+    if (!isTasteMood(m)) continue;
+    addWeight(profile.moods, m, w);
+  }
   for (const th of signal.themes ?? []) addWeight(profile.themes, th, w);
   if (signal.commune) addCommuneWeight(profile.communes, signal.commune.trim(), w);
 }
@@ -877,8 +887,11 @@ export function hasScorableState(state: AccountTasteState | null | undefined): b
   if (!state) return false;
   const p = state.profile;
   if ((state.tastesText || '').trim()) return true;
+  const hasTasteMood = Object.entries(p.moods).some(
+    ([key, e]) => isTasteMood(key) && entryWeight(e) > 0,
+  );
   return (
-    hasPositiveEntryWeights(p.moods) ||
+    hasTasteMood ||
     hasPositiveEntryWeights(p.genres) ||
     hasPositiveEntryWeights(p.themes) ||
     hasPositiveWeights(p.communes)
