@@ -1376,9 +1376,9 @@ export default function CultureConnectApp({
       </div>
 
       <div className="space-y-2.5 sm:space-y-4">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-          <div className="flex min-w-0 flex-1 items-center gap-1.5">
-            <p className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
+        <div className="cc-axes">
+          <div className="cc-axes__col">
+            <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
               Quand
             </p>
             <TimeScopeBar
@@ -1390,10 +1390,10 @@ export default function CultureConnectApp({
           <div
             role="separator"
             aria-hidden
-            className="h-7 w-px shrink-0 bg-culture-line"
+            className="cc-axes__rule"
           />
-          <div className="flex min-w-0 flex-[1.2] items-center gap-1.5">
-            <p className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
+          <div className="cc-axes__col">
+            <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
               Quoi
             </p>
             <CategoryFilter

@@ -48,11 +48,11 @@ export default function CategoryFilter({
           ? EXTRA_CATEGORY_CHIPS
           : MAIN_CATEGORIES;
     return (
-      <div className="relative min-w-0 flex-1">
+      <div className="cc-axes__track relative">
         <div
           role="group"
-          aria-label="Catégories"
-          className="flex flex-nowrap gap-1.5 overflow-x-auto overscroll-x-contain scroll-px-3 pe-4 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          aria-label="Quoi"
+          className="cc-axes__chips scroll-px-2 pe-3 pb-0.5"
         >
           {chips.map(({ id, label }) => {
             const active = selected.includes(id);

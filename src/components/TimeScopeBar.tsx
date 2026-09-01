@@ -20,11 +20,11 @@ export default function TimeScopeBar({
 }: Props) {
   const none = scope == null || scope === 'tous';
   const track = (
-    <div className="relative min-w-0 flex-1">
+    <div className="cc-axes__track relative">
       <div
         role="group"
-        aria-label="Période"
-        className="flex flex-nowrap snap-x snap-proximity gap-1.5 overflow-x-auto overscroll-x-contain scroll-px-3 pe-4 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        aria-label="Quand"
+        className="cc-axes__chips snap-x snap-proximity scroll-px-2 pe-3 pb-0.5"
       >
         {TIME_SCOPE_CHIPS.map(({ id, label }) => {
           const active = !none && scope === id;
