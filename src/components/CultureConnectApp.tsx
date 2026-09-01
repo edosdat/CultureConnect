@@ -1159,7 +1159,10 @@ export default function CultureConnectApp({
           filterSeancesForActiveFilters(data.relatedItems ?? [], activeFilter),
         );
         setAussiCeSoirItems(
-          filterSeancesForActiveFilters(data.aussiCeSoir ?? [], activeFilter),
+          filterItemsByCommune(
+            data.aussiCeSoir ?? [],
+            selectedCommune || 'Toulouse',
+          ),
         );
         if (!slim) trackItem(data.item, 'open_card');
       } catch {
