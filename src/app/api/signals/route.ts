@@ -9,6 +9,7 @@ import {
   ACCOUNT_CAP,
   coerceProfile,
   concatTastesText,
+  ingestMapSignal,
   isTasteWritingSignal,
   makeSignal,
   mergeSignalLists,
@@ -66,11 +67,11 @@ function normalizeIncomingSignal(raw: Signal | TrackPayload): Signal {
     typeof raw.ts === 'string' &&
     typeof raw.weight === 'number'
   ) {
-    return {
+    return ingestMapSignal({
       ...raw,
       genres: raw.genres ?? [],
       moods: raw.moods ?? [],
-    } as Signal;
+    } as Signal);
   }
   return makeSignal(raw);
 }
