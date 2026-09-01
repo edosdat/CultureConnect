@@ -50,11 +50,10 @@ import HomeSection from './HomeSection';
 import CinemaCarousel from './CinemaCarousel';
 import LiveCarousel from './LiveCarousel';
 import {
-  emptyPhraseTags,
-  hasPhraseSignal,
-  parsePhraseRules,
+  phraseUsesTitleQ,
   type PhraseTags,
 } from '@/lib/phraseTags';
+import { parseSearchChips, type SearchChipParse } from '@/lib/parseSearchChips';
 import { normalizeDeepLinkId } from '@/lib/deepLink';
 import {
   buildAgendaParams,
@@ -216,7 +215,6 @@ function clearProfileRecoCache(): void {
 
 const AGENDA_PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 250;
-const PHRASE_FETCH_MS = 80;
 
 export default function CultureConnectApp({
   initialScope,
@@ -271,6 +269,8 @@ export default function CultureConnectApp({
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [phraseTags, setPhraseTags] = useState<PhraseTags | null>(null);
+  const searchDrivenRef = useRef({ scope: false, cat: false });
+  const lastSearchChipsRef = useRef({ scope: '', date: '', cat: '' });
   const [showMonthPanel, setShowMonthPanel] = useState(false);
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
   const [visibleCount, setVisibleCount] = useState(AGENDA_PAGE_SIZE);
@@ -361,9 +361,8 @@ export default function CultureConnectApp({
     setListSlowWhere(null);
   }
 
-  const isPhraseScope = true;
-
-  const titleSearchPending = useRef(false);
+  const parsedChips = useMemo(() => parseSearchChips(query), [query]);
+  const titleLeftover = parsedChips.titleQuery;
 
   // Client fallback: `?e=` / `?id=` when SSR did not pass a key (client nav).
   useEffect(() => {
@@ -373,81 +372,94 @@ export default function CultureConnectApp({
     if (key) setSelectedItemKey(key);
   }, [initialOpenKey]);
 
-  function applyPhraseFromQuery(text: string) {
-    const q = text.trim();
-    if (!q) {
-      titleSearchPending.current = false;
-      setPhraseTags(null);
+  function applyScopeFromSearch(scope: TimeScopeId, dateIso: string | null) {
+    setTimeScope(scope);
+    if (scope === 'date' && dateIso) {
+      setSelectedDay(dateIso);
+      syncMonthFromIso(dateIso);
       return;
     }
-    const rules = parsePhraseRules(q);
-    if (hasPhraseSignal(rules)) {
-      titleSearchPending.current = false;
-      setPhraseTags(rules);
+    if (scope === 'aujourdhui' || scope === 'soir') {
+      setSelectedDay(initialParisIso);
+      syncMonthFromIso(initialParisIso);
       return;
     }
-    titleSearchPending.current = true;
-    setPhraseTags(emptyPhraseTags('rules'));
+    setSelectedDay(null);
+    if (scope !== 'tous') {
+      const next = resolveScopeRange(scope, null);
+      syncMonthFromIso(next.startIso);
+    }
   }
 
-  // Title search: debounce 250ms. Phrase rules apply on the same keystroke.
+  function applyParsedChips(parsed: SearchChipParse, raw: string) {
+    if (!raw.trim()) {
+      if (searchDrivenRef.current.scope) {
+        applyScopeFromSearch('tous', null);
+        searchDrivenRef.current.scope = false;
+      }
+      if (searchDrivenRef.current.cat) {
+        setSelectedCategories([]);
+        searchDrivenRef.current.cat = false;
+      }
+      lastSearchChipsRef.current = { scope: '', date: '', cat: '' };
+      return;
+    }
+    const scopeKey = parsed.scope ?? '';
+    const dateKey = parsed.selectedDate ?? '';
+    const catKey = parsed.categories.slice().sort().join(',');
+    const prev = lastSearchChipsRef.current;
+
+    if (parsed.scope) {
+      if (prev.scope !== scopeKey || prev.date !== dateKey) {
+        applyScopeFromSearch(parsed.scope, parsed.selectedDate);
+      }
+      searchDrivenRef.current.scope = true;
+    } else if (searchDrivenRef.current.scope) {
+      applyScopeFromSearch('tous', null);
+      searchDrivenRef.current.scope = false;
+    }
+
+    if (parsed.categories.length > 0) {
+      if (prev.cat !== catKey) {
+        setSelectedCategories(parsed.categories);
+      }
+      searchDrivenRef.current.cat = true;
+    } else if (searchDrivenRef.current.cat) {
+      setSelectedCategories([]);
+      searchDrivenRef.current.cat = false;
+    }
+
+    lastSearchChipsRef.current = { scope: scopeKey, date: dateKey, cat: catKey };
+  }
+
+  // Title leftover: debounce 250ms. Date/category chips apply on the same keystroke.
   useEffect(() => {
-    if (isPhraseScope) return;
-    if (query.trim() === '') {
+    if (!titleLeftover) {
       setDebouncedQuery('');
       return;
     }
-    const id = window.setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS);
+    const id = window.setTimeout(
+      () => setDebouncedQuery(titleLeftover),
+      SEARCH_DEBOUNCE_MS,
+    );
     return () => window.clearTimeout(id);
-  }, [query, isPhraseScope]);
-
-  useEffect(() => {
-    const q = debouncedQuery.trim();
-    if (!q || isPhraseScope) return;
-    track({
-      kind: 'search',
-      query: q,
-      moods: extractMoods(q),
-      genres: [],
-    });
-  }, [debouncedQuery, isPhraseScope]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  function requestPhraseAi(phrase: string) {
-    const rules = parsePhraseRules(phrase);
-    if (hasPhraseSignal(rules)) return;
-    void (async () => {
-      try {
-        const res = await fetch('/api/phrase-tags', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phrase }),
-        });
-        if (!res.ok) throw new Error('phrase-tags');
-        const data = (await res.json()) as PhraseTags;
-        if (query.trim() !== phrase) return;
-        if (hasPhraseSignal(data)) setPhraseTags(data);
-      } catch {
-        /* keep title-q empty tags */
-      }
-    })();
-  }
+  }, [titleLeftover]);
 
   function handleQueryChange(next: string) {
     setQuery(next);
+    applyParsedChips(parseSearchChips(next), next);
     if (next.trim() === '') {
       setDebouncedQuery('');
       setPhraseTags(null);
-      return;
     }
-    if (isPhraseScope) applyPhraseFromQuery(next);
   }
 
   const queryTrimmed = query.trim();
-  const phraseMode = isPhraseScope && queryTrimmed.length > 0;
-  /** Immediate: chips, empty copy, count line, city chip look. Title search only. */
-  const searchingUi = !isPhraseScope && queryTrimmed.length > 0;
-  /** Debounced: date range, commune skip, matching. */
-  const searching = !isPhraseScope && debouncedQuery.trim().length > 0;
+  const phraseMode = false;
+  /** Immediate: leftover title only — chip-only phrases are not a title search. */
+  const searchingUi = titleLeftover.length > 0;
+  /** Debounced leftover title. */
+  const searching = debouncedQuery.trim().length > 0;
 
   const scopeRange = useMemo(
     () =>
@@ -472,13 +484,6 @@ export default function CultureConnectApp({
   );
 
   function applyList(data: AgendaListResponse, append = false) {
-    if (!append && titleSearchPending.current) {
-      titleSearchPending.current = false;
-      const phrase = query.trim();
-      if (phrase && data.total === 0 && !hasPhraseSignal(parsePhraseRules(phrase))) {
-        requestPhraseAi(phrase);
-      }
-    }
     setListItems((prev) => (append ? [...prev, ...data.items] : data.items));
     if (!append) {
       setNouveautesItems(
@@ -734,16 +739,16 @@ export default function CultureConnectApp({
       return;
     }
     skipListFetch.current = false;
-    if (isPhraseScope && query.trim() && phraseTags === null) return;
+    if (titleLeftover && titleLeftover !== debouncedQuery.trim()) return;
     const gen = ++listFetchGen.current;
-    const delay = isPhraseScope && query.trim() ? PHRASE_FETCH_MS : 0;
+    const delay = 0;
     let cancelled = false;
     const id = window.setTimeout(() => {
       if (cancelled || gen !== listFetchGen.current) return;
       const params = buildAgendaParams({
         scope: timeScope,
         commune: selectedCommune,
-        q: isPhraseScope ? query.trim() : debouncedQuery.trim(),
+        q: debouncedQuery.trim(),
         cats: selectedCategories,
         genres: selectedGenres,
         lieuId: selectedLieuId,
@@ -751,7 +756,7 @@ export default function CultureConnectApp({
         year,
         month,
         includeListMeta: true,
-        phraseMode: isPhraseScope && query.trim().length > 0,
+        phraseMode: false,
         phraseTags,
       });
       startListSlowWatch(gen, 'top');
@@ -779,14 +784,13 @@ export default function CultureConnectApp({
     selectedDay,
     year,
     month,
-    query,
+    titleLeftover,
     debouncedQuery,
     selectedCommune,
     selectedLieuId,
     selectedCategories,
     selectedGenres,
     phraseTags,
-    isPhraseScope,
   ]);
 
   // Month badges: own request so a day click never waits on countItemsByDay.
@@ -1079,7 +1083,7 @@ export default function CultureConnectApp({
     const params = buildAgendaParams({
       scope: timeScope,
       commune: selectedCommune,
-      q: isPhraseScope ? query.trim() : debouncedQuery.trim(),
+      q: debouncedQuery.trim(),
       cats: selectedCategories,
       genres: selectedGenres,
       lieuId: selectedLieuId,
@@ -1087,7 +1091,8 @@ export default function CultureConnectApp({
       year,
       month,
       offset: listItems.length,
-      phraseMode: isPhraseScope && query.trim().length > 0,
+      includeCounts: showMonthPanel,
+      phraseMode: false,
       phraseTags,
     });
     void fetch(`/api/agenda?${params.toString()}`)
@@ -1106,7 +1111,6 @@ export default function CultureConnectApp({
     total,
     timeScope,
     selectedCommune,
-    query,
     debouncedQuery,
     selectedCategories,
     selectedGenres,
@@ -1115,7 +1119,6 @@ export default function CultureConnectApp({
     year,
     month,
     phraseTags,
-    isPhraseScope,
   ]);
 
   const selectedItem =
@@ -1187,6 +1190,7 @@ export default function CultureConnectApp({
   }
 
   function handleScopeChange(scope: TimeScopeId) {
+    searchDrivenRef.current.scope = false;
     if (scope !== timeScope && scope !== 'tous') {
       track({ kind: 'chip_time', chip: scope, genres: [], moods: [] });
     }
@@ -1279,6 +1283,7 @@ export default function CultureConnectApp({
 
   function handleSelectDay(iso: string) {
     skipListFetch.current = false;
+    searchDrivenRef.current.scope = false;
     setTimeScope('date');
     setSelectedDay(iso);
     syncMonthFromIso(iso);
@@ -1304,6 +1309,7 @@ export default function CultureConnectApp({
   }
 
   function handleCategoriesChange(next: string[]) {
+    searchDrivenRef.current.cat = false;
     const added = next.filter((c) => !selectedCategories.includes(c));
     setSelectedCategories(next);
     if (next.length === 0) {
