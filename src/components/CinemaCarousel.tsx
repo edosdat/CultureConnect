@@ -22,6 +22,7 @@ import {
   itemTitle,
   seanceWhen,
 } from '@/lib/displayHome';
+import { reservePickOf } from '@/lib/reserve';
 import VisualFallback, { categoryLabelOf } from './VisualFallback';
 import FavoriteButton from './FavoriteButton';
 import ShareButton from './ShareButton';
@@ -143,6 +144,47 @@ function seanceLine(rel: DayItem): string {
 function seanceOptionLabel(rel: DayItem): string {
   const date = formatDateShort(seanceDateIso(rel) || rel.dayIso);
   return [date, seanceHeure(rel), compactVenue(rel)].filter(Boolean).join(' · ');
+}
+
+function SeanceReserveLink({
+  item,
+  onReserve,
+  compact = false,
+}: {
+  item: DayItem;
+  onReserve?: (item: DayItem) => void;
+  compact?: boolean;
+}) {
+  const pick = reservePickOf(item);
+  if (pick.soldOut) {
+    return (
+      <span
+        aria-disabled="true"
+        className={
+          'pointer-events-none shrink-0 cursor-default rounded-full border border-culture-line bg-culture-cream px-2.5 py-1 text-xs font-medium text-culture-muted ' +
+          (compact ? '' : 'inline-flex min-h-10 items-center px-4 py-2 text-sm')
+        }
+      >
+        Sold out
+      </span>
+    );
+  }
+  if (!pick.url) return null;
+  return (
+    <a
+      href={pick.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={() => onReserve?.(item)}
+      className={
+        compact
+          ? 'shrink-0 rounded-full bg-culture-terracotta px-2.5 py-1 text-xs font-semibold text-white hover:bg-culture-clay'
+          : 'inline-flex min-h-10 shrink-0 items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-semibold text-white hover:bg-culture-clay'
+      }
+    >
+      Réserver
+    </a>
+  );
 }
 
 export default function CinemaCarousel({
@@ -327,8 +369,9 @@ export default function CinemaCarousel({
   );
   const fromApi = filterSeancesForActiveFilters(related, displayFilter);
   const seanceKeys = new Set(groupSeances.map((s) => s.key));
+  const apiByKey = new Map(fromApi.map((s) => [s.key, s]));
   const seances = sortSeances([
-    ...groupSeances,
+    ...groupSeances.map((s) => apiByKey.get(s.key) ?? s),
     ...fromApi.filter((s) => !seanceKeys.has(s.key)),
   ]);
   const active =
@@ -427,14 +470,17 @@ export default function CinemaCarousel({
               <p className="text-xs font-semibold uppercase tracking-wide text-culture-muted">
                 Séances
               </p>
-              <ul className="mt-1 space-y-1 text-sm text-culture-ink">
+              <ul className="mt-1 space-y-1.5 text-sm text-culture-ink">
                 {seances.map((rel) => (
-                  <li key={rel.key}>
+                  <li
+                    key={rel.key}
+                    className="flex items-center justify-between gap-2"
+                  >
                     <button
                       type="button"
                       onClick={() => setPickedKey(rel.key)}
                       className={
-                        'w-full text-left ' +
+                        'min-w-0 flex-1 text-left ' +
                         (rel.key === active.key
                           ? 'font-medium text-culture-ink'
                           : 'text-culture-ink/80 hover:text-culture-ink')
@@ -442,52 +488,41 @@ export default function CinemaCarousel({
                     >
                       {seanceLine(rel)}
                     </button>
+                    <SeanceReserveLink
+                      item={rel}
+                      onReserve={onReserve}
+                      compact
+                    />
                   </li>
                 ))}
               </ul>
             </>
           ) : (
-            <label className="block">
+            <div>
               <span className="text-xs font-semibold uppercase tracking-wide text-culture-muted">
                 Séances
               </span>
-              <select
-                ref={selectRef}
-                value={active.key}
-                onChange={(e) => setPickedKey(e.target.value)}
-                aria-label="Choisir une séance"
-                className="mt-1 h-11 w-full rounded-lg border border-culture-line bg-culture-surface px-3 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
-              >
-                {seances.map((rel) => (
-                  <option key={rel.key} value={rel.key}>
-                    {seanceOptionLabel(rel)}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <div className="mt-1 flex items-center gap-2">
+                <select
+                  ref={selectRef}
+                  value={active.key}
+                  onChange={(e) => setPickedKey(e.target.value)}
+                  aria-label="Choisir une séance"
+                  className="h-11 min-w-0 flex-1 rounded-lg border border-culture-line bg-culture-surface px-3 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
+                >
+                  {seances.map((rel) => (
+                    <option key={rel.key} value={rel.key}>
+                      {seanceOptionLabel(rel)}
+                    </option>
+                  ))}
+                </select>
+                <SeanceReserveLink item={active} onReserve={onReserve} />
+              </div>
+            </div>
           )
         ) : null}
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={() => {
-            const box = seancesRef.current;
-            const select = selectRef.current;
-            if (select) {
-              select.focus();
-              try {
-                select.showPicker?.();
-              } catch {
-                /* native picker not available */
-              }
-            }
-            box?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }}
-          className="inline-flex min-h-10 items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-semibold text-white hover:bg-culture-clay"
-        >
-          Voir les séances
-        </button>
         {cal ? (
           <>
             <a

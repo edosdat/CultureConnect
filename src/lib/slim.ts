@@ -51,7 +51,7 @@ function slimEvenement(
     heure_fin: ev.heure_fin,
     prix: ev.prix,
     gratuit: ev.gratuit,
-    url_source: '',
+    url_source: ev.url_source || '',
     description_courte:
       clipListPitch(ev.description_courte) || clipListPitch(ev.description_longue),
     statut: ev.statut,
@@ -61,6 +61,7 @@ function slimEvenement(
     form: ev.form || '',
     moods: ev.moods || '',
     genres_mood: ev.genres_mood || '',
+    billetterie_url: ev.billetterie_url || '',
   };
 }
 
@@ -76,8 +77,9 @@ function slimProgramme(p: ProgrammeItem): ProgrammeItem {
     heure_fin: p.heure_fin || '',
     scene_salle: p.scene_salle || '',
     prix_item: p.prix_item || '',
-    url: '',
+    url: p.url || '',
     notes: '',
+    billetterie_url: p.billetterie_url || '',
     genre: p.genre || '',
     artiste_id: p.artiste_id || '',
     film_id: p.film_id || '',
