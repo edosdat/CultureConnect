@@ -162,19 +162,25 @@ function SeanceReserveLink({
   item,
   onReserve,
   compact = false,
+  wide = false,
 }: {
   item: DayItem;
   onReserve?: (item: DayItem) => void;
   compact?: boolean;
+  wide?: boolean;
 }) {
   const pick = reservePickOf(item);
+  const wideCls = wide
+    ? 'flex w-full items-center justify-center'
+    : '';
   if (pick.soldOut) {
     return (
       <span
         aria-disabled="true"
         className={
           'pointer-events-none shrink-0 cursor-default rounded-full border border-culture-line bg-culture-cream px-2.5 py-1 text-xs font-medium text-culture-muted ' +
-          (compact ? '' : 'inline-flex min-h-10 items-center px-4 py-2 text-sm')
+          (compact ? '' : 'inline-flex min-h-10 items-center px-4 py-2 text-sm ') +
+          wideCls
         }
       >
         Sold out
@@ -191,7 +197,8 @@ function SeanceReserveLink({
       className={
         compact
           ? 'shrink-0 rounded-full bg-culture-terracotta px-2.5 py-1 text-xs font-semibold text-white hover:bg-culture-clay'
-          : 'inline-flex min-h-10 shrink-0 items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-semibold text-white hover:bg-culture-clay'
+          : 'inline-flex min-h-10 shrink-0 items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-semibold text-white hover:bg-culture-clay ' +
+            wideCls
       }
     >
       Réserver
@@ -463,129 +470,26 @@ export default function CinemaCarousel({
     </div>
   );
 
-  const panel = (
-    <div className="flex min-w-0 flex-1 flex-col gap-2 p-3 sm:p-4">
+  const titleBlock = (
+    <>
       <div className="flex items-start justify-between gap-2">
         <span className="inline-flex rounded bg-culture-terracotta px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">
           {cat || 'Cinéma'}
         </span>
         <FavoriteButton itemKey={item.key} />
       </div>
-      <h3 className="font-display text-lg leading-snug text-culture-ink md:text-2xl">
+      <h3 className="font-display text-base leading-snug text-culture-ink md:text-2xl">
         {itemTitle(item)}
       </h3>
-      {itemPitch(item) ? (
-        <p className="line-clamp-3 text-sm leading-relaxed text-culture-ink md:line-clamp-none">
-          {itemPitch(item)}
-        </p>
-      ) : null}
-      <p className="text-sm text-culture-muted">
+      <p className="text-sm leading-snug text-culture-muted">
         {[venue, km, when].filter(Boolean).join(' • ')}
       </p>
-      <VivantComplementLinks
-        film={active}
-        items={complements}
-        onSelect={onSelectLive}
-      />
-      <div ref={seancesRef} id="cine-seances">
-        {seances.length > 0 ? (
-          datePinned ? (
-            <>
-              <p className="text-xs font-semibold uppercase tracking-wide text-culture-muted">
-                Séances
-              </p>
-              <ul className="mt-1 space-y-1.5 text-sm text-culture-ink">
-                {seances.map((rel) => (
-                  <li
-                    key={rel.key}
-                    className="flex items-center justify-between gap-2"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setPickedKey(rel.key)}
-                      className={
-                        'min-w-0 flex-1 text-left ' +
-                        (rel.key === active.key
-                          ? 'font-medium text-culture-ink'
-                          : 'text-culture-ink/80 hover:text-culture-ink')
-                      }
-                    >
-                      {seanceLine(rel)}
-                    </button>
-                    <SeanceReserveLink
-                      item={rel}
-                      onReserve={onReserve}
-                      compact
-                    />
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : (
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-wide text-culture-muted">
-                Séances
-              </span>
-              <div className="mt-1 flex items-center gap-2">
-                <select
-                  ref={selectRef}
-                  value={active.key}
-                  onChange={(e) => setPickedKey(e.target.value)}
-                  aria-label="Choisir une séance"
-                  className="h-11 min-w-0 flex-1 rounded-lg border border-culture-line bg-culture-surface px-3 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
-                >
-                  {seances.map((rel) => (
-                    <option key={rel.key} value={rel.key}>
-                      {seanceOptionLabel(rel)}
-                    </option>
-                  ))}
-                </select>
-                <SeanceReserveLink item={active} onReserve={onReserve} />
-              </div>
-            </div>
-          )
-        ) : null}
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        {cal ? (
-          <>
-            <a
-              href={googleCalendarUrl(cal)}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => {
-                onAgenda?.(active);
-              }}
-              className="inline-flex min-h-10 items-center rounded-full border border-culture-line bg-white px-3 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
-            >
-              Google Agenda
-            </a>
-            {mobileCal ? (
-              <a
-                href={webcalHref(active.key)}
-                onClick={() => {
-                  onIcs?.(active);
-                }}
-                className="inline-flex min-h-10 items-center rounded-full border border-culture-line bg-white px-3 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
-              >
-                S’abonner au calendrier
-              </a>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  onIcs?.(active);
-                  downloadIcs(cal);
-                }}
-                className="inline-flex min-h-10 items-center rounded-full border border-culture-line bg-white px-3 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
-              >
-                Télécharger (.ics)
-              </button>
-            )}
-          </>
-        ) : null}
-        <ShareButton item={active} />
-      </div>
+    </>
+  );
+
+  const reserveWide = (
+    <div className="md:hidden">
+      <SeanceReserveLink item={active} onReserve={onReserve} wide />
     </div>
   );
 
@@ -596,14 +500,133 @@ export default function CinemaCarousel({
         onTouchEnd={onHeroTouchEnd}
         className="flex flex-col overflow-hidden rounded-card-lg border border-culture-line bg-culture-surface shadow-card md:flex-row md:items-start"
       >
-        <div className="shrink-0 px-3 pt-3 md:p-0">
+        <div className="flex items-start gap-3 p-3 md:contents md:p-0">
           <FilmPoster
             src={image}
             item={item}
-            className="mx-auto h-[17.5rem] w-[11.625rem] md:mx-0 md:h-[20rem] md:w-[13.35rem]"
+            className="h-[10.5rem] w-[7rem] shrink-0 md:h-[20rem] md:w-[13.35rem]"
           />
+          <div className="flex min-w-0 flex-1 flex-col gap-1 md:hidden">
+            {titleBlock}
+          </div>
         </div>
-        {panel}
+        <div className="flex min-w-0 flex-1 flex-col gap-2 px-3 pb-3 md:p-4">
+          <div className="hidden flex-col gap-2 md:flex">{titleBlock}</div>
+          {itemPitch(item) ? (
+            <p className="hidden text-sm leading-relaxed text-culture-ink md:block">
+              {itemPitch(item)}
+            </p>
+          ) : null}
+          {reserveWide}
+          <VivantComplementLinks
+            film={active}
+            items={complements}
+            onSelect={onSelectLive}
+          />
+          <div ref={seancesRef} id="cine-seances">
+            {seances.length > 0 ? (
+              datePinned ? (
+                <>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-culture-muted">
+                    Séances
+                  </p>
+                  <ul className="mt-1 space-y-1.5 text-sm text-culture-ink">
+                    {seances.map((rel) => (
+                      <li
+                        key={rel.key}
+                        className="flex items-center justify-between gap-2"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setPickedKey(rel.key)}
+                          className={
+                            'min-w-0 flex-1 text-left ' +
+                            (rel.key === active.key
+                              ? 'font-medium text-culture-ink'
+                              : 'text-culture-ink/80 hover:text-culture-ink')
+                          }
+                        >
+                          {seanceLine(rel)}
+                        </button>
+                        <span className="hidden md:inline">
+                          <SeanceReserveLink
+                            item={rel}
+                            onReserve={onReserve}
+                            compact
+                          />
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <div>
+                  <span className="text-xs font-semibold uppercase tracking-wide text-culture-muted">
+                    Séances
+                  </span>
+                  <div className="mt-1 flex items-center gap-2">
+                    <select
+                      ref={selectRef}
+                      value={active.key}
+                      onChange={(e) => setPickedKey(e.target.value)}
+                      aria-label="Choisir une séance"
+                      className="h-11 min-w-0 w-full rounded-lg border border-culture-line bg-culture-surface px-3 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta md:flex-1"
+                    >
+                      {seances.map((rel) => (
+                        <option key={rel.key} value={rel.key}>
+                          {seanceOptionLabel(rel)}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="hidden md:inline">
+                      <SeanceReserveLink item={active} onReserve={onReserve} />
+                    </span>
+                  </div>
+                </div>
+              )
+            ) : null}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {cal ? (
+              <>
+                <a
+                  href={googleCalendarUrl(cal)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => {
+                    onAgenda?.(active);
+                  }}
+                  className="inline-flex min-h-10 items-center rounded-full border border-culture-line bg-white px-3 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
+                >
+                  Google Agenda
+                </a>
+                {mobileCal ? (
+                  <a
+                    href={webcalHref(active.key)}
+                    onClick={() => {
+                      onIcs?.(active);
+                    }}
+                    className="inline-flex min-h-10 items-center rounded-full border border-culture-line bg-white px-3 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
+                  >
+                    S’abonner au calendrier
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onIcs?.(active);
+                      downloadIcs(cal);
+                    }}
+                    className="inline-flex min-h-10 items-center rounded-full border border-culture-line bg-white px-3 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
+                  >
+                    Télécharger (.ics)
+                  </button>
+                )}
+              </>
+            ) : null}
+            <ShareButton item={active} />
+          </div>
+        </div>
       </div>
       {thumbs}
     </div>

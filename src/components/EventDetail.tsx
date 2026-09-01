@@ -402,11 +402,11 @@ export default function EventDetail({
           </div>
 
           {cinemaFiche ? (
-            <div className="flex flex-col gap-3 px-5 pt-4 md:flex-row md:items-start md:gap-4">
+            <div className="flex flex-row items-start gap-3 px-5 pt-4 md:gap-4">
               <FilmPoster
                 src={itemImageUrl(item)}
                 item={item}
-                className="mx-auto h-[17.5rem] w-[11.625rem] shrink-0 md:mx-0 md:h-[20rem] md:w-[13.35rem]"
+                className="h-[10.5rem] w-[7rem] shrink-0 md:h-[20rem] md:w-[13.35rem]"
               />
               <div className="min-w-0 flex-1 break-words">
                 <div className="flex flex-wrap gap-2">
@@ -423,7 +423,7 @@ export default function EventDetail({
                 </div>
                 <h2
                   id="event-detail-title"
-                  className="mt-2 font-display text-lg text-culture-ink break-words md:text-2xl"
+                  className="mt-2 font-display text-base leading-snug text-culture-ink break-words md:text-2xl"
                 >
                   {p.nom_item}
                 </h2>
@@ -728,11 +728,11 @@ export default function EventDetail({
         </div>
 
         {cinemaFiche ? (
-          <div className="flex flex-col gap-3 px-5 pt-4 md:flex-row md:items-start md:gap-4">
+          <div className="flex flex-row items-start gap-3 px-5 pt-4 md:gap-4">
             <FilmPoster
               src={itemImageUrl(item)}
               item={item}
-              className="mx-auto h-[17.5rem] w-[11.625rem] shrink-0 md:mx-0 md:h-[20rem] md:w-[13.35rem]"
+              className="h-[10.5rem] w-[7rem] shrink-0 md:h-[20rem] md:w-[13.35rem]"
             />
             <div className="min-w-0 flex-1 break-words">
               <span className="rounded-full bg-white px-2.5 py-0.5 text-xs text-culture-terracotta">
@@ -740,7 +740,7 @@ export default function EventDetail({
               </span>
               <h2
                 id="event-detail-title"
-                className="mt-2 font-display text-lg text-culture-ink break-words md:text-2xl"
+                className="mt-2 font-display text-base leading-snug text-culture-ink break-words md:text-2xl"
               >
                 {event.titre}
               </h2>
