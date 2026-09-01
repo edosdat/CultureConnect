@@ -9,8 +9,9 @@ import {
 } from '@/lib/calendar';
 import { filterItemsByCommune, normalizeCommune } from '@/lib/commune';
 import { filterSeancesForActiveFilters } from '@/lib/displayFilter';
-import { isLikelyMobile } from '@/lib/displayHome';
+import { isLikelyMobile, itemImageUrl } from '@/lib/displayHome';
 import SeanceCard from './SeanceCard';
+import FilmPoster from './FilmPoster';
 import ShareButton from './ShareButton';
 import FavoriteButton from './FavoriteButton';
 import {
@@ -389,35 +390,7 @@ export default function EventDetail({
           className="max-h-[92vh] w-full max-w-2xl min-w-0 overflow-y-auto overflow-x-hidden rounded-t-3xl border border-culture-sand bg-culture-cream shadow-xl sm:rounded-3xl"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="sticky top-0 flex items-start justify-between gap-3 border-b border-culture-sand bg-culture-cream/95 px-5 py-4 backdrop-blur">
-            <div className="min-w-0 break-words">
-              <div className="flex flex-wrap gap-2">
-                {categorie && (
-                  <span className="rounded-full bg-white px-2.5 py-0.5 text-xs text-culture-terracotta">
-                    {labelCategorie(categorie)}
-                  </span>
-                )}
-                {p.type_item && (
-                  <span className="rounded-full bg-culture-sage/15 px-2.5 py-0.5 text-xs text-culture-sage">
-                    {labelTypeItem(p.type_item)}
-                  </span>
-                )}
-              </div>
-              <h2
-                id="event-detail-title"
-                className="mt-2 font-display text-2xl text-culture-ink break-words"
-              >
-                {p.nom_item}
-              </h2>
-              {creditNamesOf(item).length > 0 && (
-                <p className="mt-1 text-sm text-culture-ink break-words">
-                  {creditNamesOf(item).join(' · ')}
-                </p>
-              )}
-              {ev?.titre && ev.titre !== p.nom_item && (
-                <p className="mt-1 text-sm text-culture-muted break-words">{ev.titre}</p>
-              )}
-            </div>
+          <div className="sticky top-0 z-10 flex items-start justify-end border-b border-culture-sand bg-culture-cream/95 px-5 py-3 backdrop-blur">
             <button
               type="button"
               onClick={onClose}
@@ -427,6 +400,79 @@ export default function EventDetail({
               Fermer
             </button>
           </div>
+
+          {cinemaFiche ? (
+            <div className="flex flex-col gap-3 px-5 pt-4 md:flex-row md:items-start md:gap-4">
+              <FilmPoster
+                src={itemImageUrl(item)}
+                item={item}
+                className="mx-auto h-[17.5rem] w-[11.625rem] shrink-0 md:mx-0 md:h-[20rem] md:w-[13.35rem]"
+              />
+              <div className="min-w-0 flex-1 break-words">
+                <div className="flex flex-wrap gap-2">
+                  {categorie && (
+                    <span className="rounded-full bg-white px-2.5 py-0.5 text-xs text-culture-terracotta">
+                      {labelCategorie(categorie)}
+                    </span>
+                  )}
+                  {p.type_item && (
+                    <span className="rounded-full bg-culture-sage/15 px-2.5 py-0.5 text-xs text-culture-sage">
+                      {labelTypeItem(p.type_item)}
+                    </span>
+                  )}
+                </div>
+                <h2
+                  id="event-detail-title"
+                  className="mt-2 font-display text-lg text-culture-ink break-words md:text-2xl"
+                >
+                  {p.nom_item}
+                </h2>
+                {creditNamesOf(item).length > 0 && (
+                  <p className="mt-1 text-sm text-culture-ink break-words">
+                    {creditNamesOf(item).join(' · ')}
+                  </p>
+                )}
+                {ev?.titre && ev.titre !== p.nom_item && (
+                  <p className="mt-1 text-sm text-culture-muted break-words">
+                    {ev.titre}
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="px-5 pt-4">
+              <div className="min-w-0 break-words">
+                <div className="flex flex-wrap gap-2">
+                  {categorie && (
+                    <span className="rounded-full bg-white px-2.5 py-0.5 text-xs text-culture-terracotta">
+                      {labelCategorie(categorie)}
+                    </span>
+                  )}
+                  {p.type_item && (
+                    <span className="rounded-full bg-culture-sage/15 px-2.5 py-0.5 text-xs text-culture-sage">
+                      {labelTypeItem(p.type_item)}
+                    </span>
+                  )}
+                </div>
+                <h2
+                  id="event-detail-title"
+                  className="mt-2 font-display text-2xl text-culture-ink break-words"
+                >
+                  {p.nom_item}
+                </h2>
+                {creditNamesOf(item).length > 0 && (
+                  <p className="mt-1 text-sm text-culture-ink break-words">
+                    {creditNamesOf(item).join(' · ')}
+                  </p>
+                )}
+                {ev?.titre && ev.titre !== p.nom_item && (
+                  <p className="mt-1 text-sm text-culture-muted break-words">
+                    {ev.titre}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-5 px-5 py-5">
             {pitchOf(item) ? (
@@ -670,26 +716,7 @@ export default function EventDetail({
         className="max-h-[92vh] w-full max-w-2xl min-w-0 overflow-y-auto overflow-x-hidden rounded-t-3xl border border-culture-sand bg-culture-cream shadow-xl sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="sticky top-0 flex items-start justify-between gap-3 border-b border-culture-sand bg-culture-cream/95 px-5 py-4 backdrop-blur">
-          <div className="min-w-0 break-words">
-            <span className="rounded-full bg-white px-2.5 py-0.5 text-xs text-culture-terracotta">
-              {labelCategorie(event.categorie)}
-            </span>
-            <h2
-              id="event-detail-title"
-              className="mt-2 font-display text-2xl text-culture-ink break-words"
-            >
-              {event.titre}
-            </h2>
-            {creditNamesOf(item).length > 0 && (
-              <p className="mt-1 text-sm text-culture-ink break-words">
-                {creditNamesOf(item).join(' · ')}
-              </p>
-            )}
-            <p className="mt-1 text-xs uppercase tracking-wide text-culture-muted">
-              Sur la période (pas de séance datée ce jour)
-            </p>
-          </div>
+        <div className="sticky top-0 z-10 flex items-start justify-end border-b border-culture-sand bg-culture-cream/95 px-5 py-3 backdrop-blur">
           <button
             type="button"
             onClick={onClose}
@@ -699,6 +726,57 @@ export default function EventDetail({
             Fermer
           </button>
         </div>
+
+        {cinemaFiche ? (
+          <div className="flex flex-col gap-3 px-5 pt-4 md:flex-row md:items-start md:gap-4">
+            <FilmPoster
+              src={itemImageUrl(item)}
+              item={item}
+              className="mx-auto h-[17.5rem] w-[11.625rem] shrink-0 md:mx-0 md:h-[20rem] md:w-[13.35rem]"
+            />
+            <div className="min-w-0 flex-1 break-words">
+              <span className="rounded-full bg-white px-2.5 py-0.5 text-xs text-culture-terracotta">
+                {labelCategorie(event.categorie)}
+              </span>
+              <h2
+                id="event-detail-title"
+                className="mt-2 font-display text-lg text-culture-ink break-words md:text-2xl"
+              >
+                {event.titre}
+              </h2>
+              {creditNamesOf(item).length > 0 && (
+                <p className="mt-1 text-sm text-culture-ink break-words">
+                  {creditNamesOf(item).join(' · ')}
+                </p>
+              )}
+              <p className="mt-1 text-xs uppercase tracking-wide text-culture-muted">
+                Sur la période (pas de séance datée ce jour)
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="px-5 pt-4">
+            <div className="min-w-0 break-words">
+              <span className="rounded-full bg-white px-2.5 py-0.5 text-xs text-culture-terracotta">
+                {labelCategorie(event.categorie)}
+              </span>
+              <h2
+                id="event-detail-title"
+                className="mt-2 font-display text-2xl text-culture-ink break-words"
+              >
+                {event.titre}
+              </h2>
+              {creditNamesOf(item).length > 0 && (
+                <p className="mt-1 text-sm text-culture-ink break-words">
+                  {creditNamesOf(item).join(' · ')}
+                </p>
+              )}
+              <p className="mt-1 text-xs uppercase tracking-wide text-culture-muted">
+                Sur la période (pas de séance datée ce jour)
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-5 px-5 py-5">
           {pitchOf(item) ? (

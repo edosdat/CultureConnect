@@ -26,6 +26,7 @@ import { itemKmLabel, minKmLabel, type GeoPos } from '@/lib/nearMe';
 import { reservePickOf } from '@/lib/reserve';
 import { filterItemsByCommune } from '@/lib/commune';
 import VisualFallback, { categoryLabelOf } from './VisualFallback';
+import FilmPoster from './FilmPoster';
 import FavoriteButton from './FavoriteButton';
 import ShareButton from './ShareButton';
 import VivantComplementLinks from './VivantComplementLinks';
@@ -596,21 +597,11 @@ export default function CinemaCarousel({
         className="flex flex-col overflow-hidden rounded-card-lg border border-culture-line bg-culture-surface shadow-card md:flex-row md:items-start"
       >
         <div className="shrink-0 px-3 pt-3 md:p-0">
-          <div className="relative mx-auto aspect-[2/3] h-[17.5rem] w-[11.625rem] overflow-hidden bg-culture-sand md:mx-0 md:h-[20rem] md:w-[13.35rem]">
-            {image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={image}
-                src={image}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover object-top"
-              />
-            ) : (
-              <div className="absolute inset-0">
-                <VisualFallback item={item} />
-              </div>
-            )}
-          </div>
+          <FilmPoster
+            src={image}
+            item={item}
+            className="mx-auto h-[17.5rem] w-[11.625rem] md:mx-0 md:h-[20rem] md:w-[13.35rem]"
+          />
         </div>
         {panel}
       </div>
