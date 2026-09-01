@@ -53,7 +53,11 @@ import {
   phraseUsesTitleQ,
   type PhraseTags,
 } from '@/lib/phraseTags';
-import { parseSearchChips, type SearchChipParse } from '@/lib/parseSearchChips';
+import {
+  parseSearchChips,
+  searchChipsToUi,
+  type SearchChipParse,
+} from '@/lib/parseSearchChips';
 import { normalizeDeepLinkId } from '@/lib/deepLink';
 import {
   buildAgendaParams,
@@ -374,11 +378,15 @@ export default function CultureConnectApp({
 
   function applyScopeFromSearch(scope: TimeScopeId, dateIso: string | null) {
     setTimeScope(scope);
-    if (scope === 'date' && dateIso) {
-      setSelectedDay(dateIso);
-      syncMonthFromIso(dateIso);
+    if (scope === 'date') {
+      if (dateIso) {
+        setSelectedDay(dateIso);
+        syncMonthFromIso(dateIso);
+      }
+      setShowMonthPanel(true);
       return;
     }
+    setShowMonthPanel(false);
     if (scope === 'aujourdhui' || scope === 'soir') {
       setSelectedDay(initialParisIso);
       syncMonthFromIso(initialParisIso);
@@ -391,27 +399,18 @@ export default function CultureConnectApp({
     }
   }
 
+  /** Enter / search submit only. Empty raw = vider ≠ décocher (chips stay). */
   function applyParsedChips(parsed: SearchChipParse, raw: string) {
-    if (!raw.trim()) {
-      if (searchDrivenRef.current.scope) {
-        applyScopeFromSearch('tous', null);
-        searchDrivenRef.current.scope = false;
-      }
-      if (searchDrivenRef.current.cat) {
-        setSelectedCategories([]);
-        searchDrivenRef.current.cat = false;
-      }
-      lastSearchChipsRef.current = { scope: '', date: '', cat: '' };
-      return;
-    }
-    const scopeKey = parsed.scope ?? '';
-    const dateKey = parsed.selectedDate ?? '';
-    const catKey = parsed.categories.slice().sort().join(',');
+    if (!raw.trim()) return;
+    const ui = searchChipsToUi(parsed, initialParisIso);
+    const scopeKey = ui.scope ?? '';
+    const dateKey = ui.selectedDate ?? '';
+    const catKey = ui.categories.slice().sort().join(',');
     const prev = lastSearchChipsRef.current;
 
-    if (parsed.scope) {
+    if (ui.scope) {
       if (prev.scope !== scopeKey || prev.date !== dateKey) {
-        applyScopeFromSearch(parsed.scope, parsed.selectedDate);
+        applyScopeFromSearch(ui.scope, ui.selectedDate);
       }
       searchDrivenRef.current.scope = true;
     } else if (searchDrivenRef.current.scope) {
@@ -419,9 +418,9 @@ export default function CultureConnectApp({
       searchDrivenRef.current.scope = false;
     }
 
-    if (parsed.categories.length > 0) {
+    if (ui.categories.length > 0) {
       if (prev.cat !== catKey) {
-        setSelectedCategories(parsed.categories);
+        setSelectedCategories(ui.categories);
       }
       searchDrivenRef.current.cat = true;
     } else if (searchDrivenRef.current.cat) {
@@ -432,7 +431,7 @@ export default function CultureConnectApp({
     lastSearchChipsRef.current = { scope: scopeKey, date: dateKey, cat: catKey };
   }
 
-  // Title leftover: debounce 250ms. Date/category chips apply on the same keystroke.
+  // Title leftover: debounce 250ms. Chips wait for Enter / submit.
   useEffect(() => {
     if (!titleLeftover) {
       setDebouncedQuery('');
@@ -447,11 +446,14 @@ export default function CultureConnectApp({
 
   function handleQueryChange(next: string) {
     setQuery(next);
-    applyParsedChips(parseSearchChips(next), next);
     if (next.trim() === '') {
       setDebouncedQuery('');
       setPhraseTags(null);
     }
+  }
+
+  function handleSearchSubmit(raw: string) {
+    applyParsedChips(parseSearchChips(raw), raw);
   }
 
   const queryTrimmed = query.trim();
@@ -1066,7 +1068,7 @@ export default function CultureConnectApp({
     selectedDay,
     year,
     month,
-    query,
+    debouncedQuery,
     selectedCommune,
     selectedLieuId,
     selectedCategories,
@@ -1384,7 +1386,11 @@ export default function CultureConnectApp({
       <h1 className="sr-only">Agenda CultureConnect</h1>
 
       <div className="sticky top-0 z-20 -mx-4 mb-2 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-1.5 backdrop-blur sm:-mx-6 sm:px-6">
-        <SearchOmnibox value={query} onChange={handleQueryChange} />
+        <SearchOmnibox
+          value={query}
+          onChange={handleQueryChange}
+          onSubmit={handleSearchSubmit}
+        />
       </div>
 
       <div className="space-y-2.5 sm:space-y-4">

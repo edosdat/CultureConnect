@@ -19,6 +19,15 @@ export type SearchChipParse = {
   titleQuery: string;
 };
 
+/** UI after a search submit — never infer Date… from a Ce soir day iso. */
+export type SearchChipUi = {
+  scope: TimeScopeId | null;
+  selectedDate: string | null;
+  showMonthPanel: boolean;
+  categories: MainCategoryId[];
+  titleQuery: string;
+};
+
 const GLUE = new Set([
   'un',
   'une',
@@ -255,8 +264,11 @@ function extractCalendarDate(
 /**
  * One QUAND chip, most specific first:
  * Ce soir > Aujourd'hui > Ce WE > Cette semaine > Date…
+ * "ce soir" / "soir" always win — never a calendar Date… chip.
+ * Bare "ce" / "cet" / "cette" / "ces" is not a date.
  */
 function extractDate(norm: string, raw: string, now: Date): DateHit | null {
+  if (/^(ce|cet|cette|ces)$/.test(norm)) return null;
   const { iso, weekday, year } = parisParts(now);
   const extra = datePhrasesPresent(norm, raw);
 
@@ -353,6 +365,61 @@ export function parseSearchChips(query: string, now = new Date()): SearchChipPar
     selectedDate: dateHit?.selectedDate ?? null,
     categories: catHit.categories,
     titleQuery: titleTokens.join(' '),
+  };
+}
+
+/**
+ * Map a parse onto existing chips. `selectedDate` on Ce soir / Aujourd'hui
+ * is today's iso for the list window — it must not open Date… / calendar.
+ */
+export function searchChipsToUi(
+  parsed: SearchChipParse,
+  todayIso: string,
+): SearchChipUi {
+  const categories = parsed.categories;
+  const titleQuery = parsed.titleQuery;
+  if (parsed.scope === 'soir') {
+    return {
+      scope: 'soir',
+      selectedDate: todayIso,
+      showMonthPanel: false,
+      categories,
+      titleQuery,
+    };
+  }
+  if (parsed.scope === 'aujourdhui') {
+    return {
+      scope: 'aujourdhui',
+      selectedDate: todayIso,
+      showMonthPanel: false,
+      categories,
+      titleQuery,
+    };
+  }
+  if (parsed.scope === 'weekend' || parsed.scope === 'semaine') {
+    return {
+      scope: parsed.scope,
+      selectedDate: null,
+      showMonthPanel: false,
+      categories,
+      titleQuery,
+    };
+  }
+  if (parsed.scope === 'date') {
+    return {
+      scope: 'date',
+      selectedDate: parsed.selectedDate,
+      showMonthPanel: true,
+      categories,
+      titleQuery,
+    };
+  }
+  return {
+    scope: null,
+    selectedDate: null,
+    showMonthPanel: false,
+    categories,
+    titleQuery,
   };
 }
 
