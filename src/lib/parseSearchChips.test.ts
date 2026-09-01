@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  leftoverTitleAfterDraftChange,
   parseSearchChips,
   searchChipsToUi,
   searchSubmitAppliesChips,
@@ -128,5 +129,12 @@ describe('parseSearchChips', () => {
     assert.equal(searchSubmitAppliesChips('Dune', dune), false);
     const film = parseSearchChips('un film ce soir', NOW);
     assert.equal(searchSubmitAppliesChips('un film ce soir', film), true);
+  });
+
+  it('empty draft clears leftover title immediately; typing does not', () => {
+    assert.equal(leftoverTitleAfterDraftChange('', 'taquin'), '');
+    assert.equal(leftoverTitleAfterDraftChange('   ', 'taquin'), '');
+    assert.equal(leftoverTitleAfterDraftChange('taqui', 'taquin'), 'taquin');
+    assert.equal(searchSubmitAppliesChips('', parseSearchChips('', NOW)), false);
   });
 });

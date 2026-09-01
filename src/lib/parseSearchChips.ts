@@ -432,3 +432,15 @@ export function searchSubmitAppliesChips(
   return Boolean(parsed.scope || parsed.categories.length);
 }
 
+/**
+ * × / backspace-to-empty clears leftover title immediately.
+ * Non-empty draft does not change leftover (chips still wait for Enter).
+ */
+export function leftoverTitleAfterDraftChange(
+  draft: string,
+  currentLeftover: string,
+): string {
+  if (!(draft || '').trim()) return '';
+  return currentLeftover;
+}
+

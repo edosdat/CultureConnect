@@ -56,6 +56,7 @@ import {
   type PhraseTags,
 } from '@/lib/phraseTags';
 import {
+  leftoverTitleAfterDraftChange,
   parseSearchChips,
   searchChipsToUi,
   searchSubmitAppliesChips,
@@ -458,6 +459,11 @@ export default function CultureConnectApp({
 
   function handleQueryChange(next: string) {
     setQuery(next);
+    const leftover = leftoverTitleAfterDraftChange(next, committedTitle);
+    if (leftover !== committedTitle) {
+      setCommittedTitle(leftover);
+      setDebouncedQuery(leftover);
+    }
   }
 
   function handleSearchSubmit(raw: string) {
