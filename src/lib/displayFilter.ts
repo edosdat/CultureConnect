@@ -13,6 +13,11 @@ export type DisplayFilter = {
   soir?: boolean;
   commune?: string | null;
   lieuId?: string | null;
+  /**
+   * Reco `tous` (QUAND chips off): POST is already scoped to upcoming.
+   * Do not re-apply the day / Ce soir window.
+   */
+  skipDateWindow?: boolean;
 };
 
 export function itemMatchesLieu(
@@ -31,6 +36,7 @@ export function filterSeancesForActiveFilters<T extends DayItem>(
   if (filter.lieuId) {
     out = out.filter((item) => itemMatchesLieu(item, filter.lieuId));
   }
+  if (filter.skipDateWindow) return out;
   return filterSeancesForDisplay(out, {
     startIso: filter.startIso,
     endIso: filter.endIso,

@@ -1262,6 +1262,8 @@ function splitTagSlugs(raw: string | string[] | undefined | null): string[] {
 export function slotFormOfItem(item: DayItem): RecoSlotForm | null {
   const ev = item.evenement ?? null;
   const prog = item.kind === 'programme' ? item.programme : null;
+  // Same as carousel isCinemaDayItem: form cine OR nonempty film_id.
+  if ((prog?.film_id || '').trim()) return 'cine';
   const form = formFromCategorieAndForm(
     ev?.categorie || '',
     prog?.form || ev?.form,
@@ -1579,6 +1581,46 @@ function pickBestPerSlot(scored: ScoredDayItem[]): ScoredDayItem[] {
   return out;
 }
 
+function mergeScoredSlots(
+  preferred: ScoredDayItem[],
+  extra: ScoredDayItem[],
+): ScoredDayItem[] {
+  const bySlot = new Map<RecoSlotForm, ScoredDayItem>();
+  for (const entry of [...preferred, ...extra]) {
+    const slot = slotFormOfItem(entry.item);
+    if (!slot || bySlot.has(slot)) continue;
+    bySlot.set(slot, entry);
+  }
+  const out: ScoredDayItem[] = [];
+  for (const slot of SLOT_ORDER) {
+    const hit = bySlot.get(slot);
+    if (hit) out.push(hit);
+  }
+  return out;
+}
+
+/**
+ * 1+1+1 fill-empty for cine: if the pool has ≥1 film, the cine slot must
+ * fill (best fallback score, else earliest). Empty only when 0 films.
+ */
+export function fillEmptyCineSlot(
+  preferred: DayItem[],
+  pool: DayItem[],
+  nouveauIds: ReadonlySet<string> = new Set(),
+): DayItem[] {
+  const have = new Set(
+    preferred.map((item) => slotFormOfItem(item)).filter(Boolean),
+  );
+  if (have.has('cine')) return preferred;
+  const films = pool.filter((item) => slotFormOfItem(item) === 'cine');
+  if (films.length === 0) return preferred;
+  const best = pickBestPerSlot(scoreFallbackPool(films, nouveauIds)).find(
+    (s) => slotFormOfItem(s.item) === 'cine',
+  );
+  if (best) return mergeSlotPicks(preferred, [best.item]);
+  return mergeSlotPicks(preferred, pickSoonestPerSlot(films));
+}
+
 function itemClockKey(item: DayItem): string {
   return itemClockHHMM(item) || '99:99';
 }
@@ -1791,7 +1833,9 @@ function scoreFallbackPool(
  * Top 3 = 1 cine + 1 theatre + 1 concert. Cat chips never filter this.
  * Guest / empty profile: living 1/freq; cine cold start = nouveauté ×
  * densified séance count. Never [].
- * Profile: overlap only (empty slot if 0 overlap). If every slot is empty, fallback.
+ * Profile: overlap only (empty living slot if 0 overlap). Cine fills from
+ * fallback (best score, else earliest) when the pool has ≥1 film.
+ * If every slot is empty, fallback.
  */
 export function recommendForProfile(
   items: DayItem[],
@@ -1863,7 +1907,10 @@ export function recommendForProfile(
   if (overlap.length === 0) {
     return fallback.slice(0, limit);
   }
-  return overlap.slice(0, limit);
+  const cineFallback = fallback.filter(
+    (s) => slotFormOfItem(s.item) === 'cine',
+  );
+  return mergeScoredSlots(overlap, cineFallback).slice(0, limit);
 }
 
 /**

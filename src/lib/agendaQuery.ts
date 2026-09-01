@@ -56,6 +56,7 @@ import {
   type TimeScopeId,
 } from './timeScope';
 import {
+  fillEmptyCineSlot,
   mergeSlotPicks,
   pickSoonestPerSlot,
   profileHasChipWeight,
@@ -798,23 +799,7 @@ function withRecoTags(item: DayItem): DayItem {
 
 /** Reco pool: keep every theatre + concert, then fill cine up to cap. */
 function recoSlotOf(item: DayItem): "cine" | "theatre" | "concert" | null {
-  const ev = item.evenement ?? null;
-  const prog = item.kind === "programme" ? item.programme : null;
-  const form = formFromCategorieAndForm(
-    ev?.categorie || "",
-    prog?.form || ev?.form,
-  );
-  if (form === "cine" || form === "cinema") return "cine";
-  if (form === "theatre" || form === "theatre_danse") return "theatre";
-  if (form === "concert" || form === "musique") return "concert";
-  const genre = `${prog?.genre || ""} ${ev?.genre || ""}`.toLowerCase();
-  if (form === "festival" && /theatre|humour|standup|danse|cirque/.test(genre)) {
-    return "theatre";
-  }
-  if (form === "festival" && /concert|musique|rock|jazz/.test(genre)) {
-    return "concert";
-  }
-  return null;
+  return slotFormOfItem(item);
 }
 
 function balanceRecoPool(items: DayItem[], cap: number): DayItem[] {
@@ -888,9 +873,14 @@ export function queryAgenda(
       { now, nouveauFilmIds: nouveauFilmIds(data.programmeWithContext, now) },
     );
     const preferred = scored.map((s) => s.item);
-    const fromPool = profileHasChipWeight(profile)
+    const fromPoolRaw = profileHasChipWeight(profile)
       ? preferred
       : mergeSlotPicks(preferred, pickSoonestPerSlot(pool));
+    const fromPool = fillEmptyCineSlot(
+      fromPoolRaw,
+      windowPool,
+      nouveauFilmIds(data.programmeWithContext, now),
+    );
     const haveSlots = new Set(
       fromPool.map((item) => slotFormOfItem(item)).filter(Boolean),
     );

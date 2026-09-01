@@ -14,15 +14,17 @@ import { useSignals } from './SignalsProvider';
 import { filterItemsByCommune, normalizeCommune } from '@/lib/commune';
 import { filterSeancesForActiveFilters } from '@/lib/displayFilter';
 import { densify, densifiedCardCount } from '@/lib/densify';
-import { filmIdOfItem, homePackOfItem } from '@/lib/nouveautesCine';
+import { filmIdOfItem, homePackOfItem, isCinemaDayItem } from '@/lib/nouveautesCine';
 import { catsAllowCinemaPack, genreBelongsToMains, mainFromGenreSlug } from '@/lib/categories';
 import {
   cineFirstPaint,
   cineRows,
   dedupAgainstTop3,
   displayReasonForItem,
+  fillEmptyCineFromPool,
   homeSectionsVisible,
   musiqueRows,
+  shouldInvalidateProfileRecoCache,
   shouldShowTop3Section,
   top3Heading,
   theatreRows,
@@ -371,6 +373,8 @@ export default function CultureConnectApp({
   tasteStateRef.current = tasteState;
   const recoKindRef = useRef<RecoKind>('guest');
   const recoPostedWithChipsRef = useRef<Set<string>>(new Set());
+  /** Keys filled by a live reco POST this session — do not re-invalidate. */
+  const recoFetchedKeysRef = useRef<Set<string>>(new Set());
   const listLoadingRef = useRef(false);
   const detailFetchGen = useRef(0);
   const [listSlowWhere, setListSlowWhere] = useState<
@@ -578,7 +582,16 @@ export default function CultureConnectApp({
     // Guest: skip if this guest key is filled. Profile: skip only a filled |profile
     // that already came from a perso POST (never keep guest / anonymous fill).
     const existing = recoPoolByKeyRef.current[currentRecoKey];
-    if (recoKind === 'guest' && existing !== undefined) return;
+    const staleCached =
+      existing !== undefined &&
+      !recoFetchedKeysRef.current.has(currentRecoKey) &&
+      shouldInvalidateProfileRecoCache(
+        existing,
+        cineTotal > 0
+          ? cineTotal
+          : densifiedCardCount(listItems.filter(isCinemaDayItem)),
+      );
+    if (recoKind === 'guest' && existing !== undefined && !staleCached) return;
     if (
       recoKind === 'profile' &&
       existing !== undefined &&
@@ -592,7 +605,8 @@ export default function CultureConnectApp({
       recoKind === 'profile' &&
       existing !== undefined &&
       !sendProfile &&
-      currentRecoKey.endsWith('|profile')
+      currentRecoKey.endsWith('|profile') &&
+      !staleCached
     ) {
       // Personal cache already on screen. Wait for chips to overwrite.
       return;
@@ -631,6 +645,7 @@ export default function CultureConnectApp({
             ...prev,
             [key]: data.items ?? [],
           };
+          recoFetchedKeysRef.current.add(key);
           if (key.endsWith('|profile') && recoKindRef.current === 'profile') {
             if (sendProfile) recoPostedWithChipsRef.current.add(key);
             writeProfileRecoCache(initialParisIso, selectedCommune, next);
@@ -656,6 +671,8 @@ export default function CultureConnectApp({
     currentRecoKey,
     initialParisIso,
     tasteState,
+    cineTotal,
+    listItems,
   ]);
 
   // After mount, a taste profile prefetches boot scopes (same POST reco=1). Guest stays on boot.
@@ -703,6 +720,7 @@ export default function CultureConnectApp({
               ...prev,
               [job.key]: data.items ?? [],
             };
+            recoFetchedKeysRef.current.add(job.key);
             if (recoKindRef.current === 'profile') {
               writeProfileRecoCache(initialParisIso, commune, next);
             }
@@ -719,18 +737,46 @@ export default function CultureConnectApp({
   useEffect(() => {
     const cached = readProfileRecoCache(initialParisIso, selectedCommune);
     if (Object.keys(cached).length === 0) return;
+    let droppedStale = false;
     setRecoPoolByKey((prev) => {
       let changed = false;
       const next = { ...prev };
+      const kept: Record<string, DayItem[]> = {};
       for (const [key, items] of Object.entries(cached)) {
+        const scope = key.split('|')[0] as TimeScopeId;
+        const snap = initialListByScope?.[scope];
+        const cineN =
+          typeof snap?.cineTotal === 'number'
+            ? snap.cineTotal
+            : scope === initialScope
+              ? initialCineTotal
+              : densifiedCardCount((snap?.items ?? []).filter(isCinemaDayItem));
+        if (shouldInvalidateProfileRecoCache(items, cineN)) {
+          droppedStale = true;
+          changed = true;
+          continue;
+        }
+        kept[key] = items;
         if (next[key] === undefined) {
           next[key] = items;
           changed = true;
         }
       }
+      if (droppedStale) {
+        writeProfileRecoCache(initialParisIso, selectedCommune, {
+          ...next,
+          ...kept,
+        });
+      }
       return changed ? next : prev;
     });
-  }, [initialParisIso, selectedCommune]);
+  }, [
+    initialParisIso,
+    selectedCommune,
+    initialListByScope,
+    initialScope,
+    initialCineTotal,
+  ]);
 
   // Drop another account's profile cache when the session is gone.
   useEffect(() => {
@@ -891,38 +937,26 @@ export default function CultureConnectApp({
   const pourToiItems = useMemo(() => {
     if (recoWiped) return [];
     // Date + commune/salle filter Top 3; category chips do not.
+    // tous (QUAND off): Reco POST is already scoped — do not re-apply day/soir.
     return filterSeancesForActiveFilters(
       recoPoolByKey[visibleRecoKey] ?? [],
-      activeFilter,
+      timeScope === 'tous'
+        ? {
+            commune: selectedCommune,
+            lieuId: selectedLieuId,
+            skipDateWindow: true,
+          }
+        : activeFilter,
     );
   }, [
     recoPoolByKey,
     visibleRecoKey,
     recoWiped,
     activeFilter,
+    timeScope,
+    selectedCommune,
+    selectedLieuId,
   ]);
-
-  const top3Cards = useMemo(
-    () => visibleTop3Items(pourToiItems),
-    [pourToiItems],
-  );
-  const showTop3Section = shouldShowTop3Section({
-    ready: recoReady,
-    wiped: recoWiped,
-    cardCount: top3Cards.length,
-  });
-  const pourToiKeys = useMemo(
-    () => new Set(pourToiItems.map((item) => item.key)),
-    [pourToiItems],
-  );
-  const pourToiFilmIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const item of pourToiItems) {
-      const fid = filmIdOfItem(item);
-      if (fid) ids.add(fid);
-    }
-    return ids;
-  }, [pourToiItems]);
   const packFilmIds = useMemo(() => {
     const ids = new Set<string>();
     for (const item of nouveautesItems) {
@@ -931,6 +965,49 @@ export default function CultureConnectApp({
     }
     return ids;
   }, [nouveautesItems]);
+
+  const packCardCount = useMemo(
+    () => densifiedCardCount(nouveautesItems),
+    [nouveautesItems],
+  );
+  const showCinemaPack =
+    packCardCount > 0 &&
+    !phraseMode &&
+    !searchingUi &&
+    catsAllowCinemaPack(selectedCategories);
+  const visiblePackCount = showCinemaPack ? packCardCount : 0;
+
+  const cineSource = useMemo(() => {
+    const fromList = filterSeancesForActiveFilters(listItems, activeFilter);
+    const fromNouv = filterSeancesForActiveFilters(nouveautesItems, activeFilter);
+    const seen = new Set(fromList.map((item) => item.key));
+    return [...fromList, ...fromNouv.filter((item) => !seen.has(item.key))];
+  }, [listItems, nouveautesItems, activeFilter]);
+  const pourToiFilled = useMemo(
+    () => fillEmptyCineFromPool(pourToiItems, cineSource),
+    [pourToiItems, cineSource],
+  );
+  const top3Cards = useMemo(
+    () => visibleTop3Items(pourToiFilled),
+    [pourToiFilled],
+  );
+  const showTop3Section = shouldShowTop3Section({
+    ready: recoReady,
+    wiped: recoWiped,
+    cardCount: top3Cards.length,
+  });
+  const pourToiKeys = useMemo(
+    () => new Set(pourToiFilled.map((item) => item.key)),
+    [pourToiFilled],
+  );
+  const pourToiFilmIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const item of pourToiFilled) {
+      const fid = filmIdOfItem(item);
+      if (fid) ids.add(fid);
+    }
+    return ids;
+  }, [pourToiFilled]);
 
   /** Main grid minus pack + Pour toi keys/film_ids so nothing is listed twice. */
   const gridItems = useMemo(() => {
@@ -952,27 +1029,10 @@ export default function CultureConnectApp({
 
   /** Cards after film_id / créneau collapse — pack included, not doubled. */
   const pourToiCardCount = useMemo(
-    () => densifiedCardCount(pourToiItems),
-    [pourToiItems],
+    () => densifiedCardCount(pourToiFilled),
+    [pourToiFilled],
   );
-  const packCardCount = useMemo(
-    () => densifiedCardCount(nouveautesItems),
-    [nouveautesItems],
-  );
-  const showCinemaPack =
-    packCardCount > 0 &&
-    !phraseMode &&
-    !searchingUi &&
-    catsAllowCinemaPack(selectedCategories);
-  const visiblePackCount = showCinemaPack ? packCardCount : 0;
-
-  const top3Set = useMemo(() => top3IdentitySet(pourToiItems), [pourToiItems]);
-  const cineSource = useMemo(() => {
-    const fromList = filterSeancesForActiveFilters(listItems, activeFilter);
-    const fromNouv = filterSeancesForActiveFilters(nouveautesItems, activeFilter);
-    const seen = new Set(fromList.map((item) => item.key));
-    return [...fromList, ...fromNouv.filter((item) => !seen.has(item.key))];
-  }, [listItems, nouveautesItems, activeFilter]);
+  const top3Set = useMemo(() => top3IdentitySet(pourToiFilled), [pourToiFilled]);
   const gpsOrigin = nearMeActive ? userPos : null;
   const allCineRows = useMemo(
     () => cineRows(cineSource, top3Set, gpsOrigin ? { origin: gpsOrigin } : undefined),
@@ -1034,6 +1094,28 @@ export default function CultureConnectApp({
 
   /** Same unique-film set as the Ciné strip — never Toulouse-wide cineTotal. */
   const cineCount = allCineRows.length;
+
+  useEffect(() => {
+    if (recoKind !== 'profile') return;
+    const existing = recoPoolByKey[visibleRecoKey];
+    if (!existing) return;
+    if (recoFetchedKeysRef.current.has(visibleRecoKey)) return;
+    if (!shouldInvalidateProfileRecoCache(existing, cineCount)) return;
+    setRecoPoolByKey((prev) => {
+      if (!(visibleRecoKey in prev)) return prev;
+      const next = { ...prev };
+      delete next[visibleRecoKey];
+      writeProfileRecoCache(initialParisIso, selectedCommune, next);
+      return next;
+    });
+  }, [
+    recoKind,
+    visibleRecoKey,
+    recoPoolByKey,
+    cineCount,
+    initialParisIso,
+    selectedCommune,
+  ]);
   const theatreCount = allTheatreRows.length;
   const musiqueCount = allMusiqueRows.length;
   const showCineBlock =
