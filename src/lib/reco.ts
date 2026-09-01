@@ -1656,25 +1656,59 @@ function workFreq(items: DayItem[]): Map<string, number> {
   return counts;
 }
 
-/** Living = 1/freq(work). Cine séance count is forbidden as popularity. */
+function lieuIdOf(item: DayItem): string {
+  return (item.lieu?.lieu_id || '').trim();
+}
+
+/** Same film + day + time + salle → one séance (CSV clones collapse). */
+function cineSeanceFingerprint(item: DayItem): string {
+  return `${workIdOf(item)}|${(item.dayIso || '').trim()}|${itemClockHHMM(item)}|${lieuIdOf(item)}`;
+}
+
+/**
+ * Distinct feasible séances per densified film (`film_id`, else title).
+ * Raw row clones of the same séance do not increment the count.
+ */
+export function densifiedCineSeanceCounts(pool: DayItem[]): Map<string, number> {
+  const seen = new Set<string>();
+  const counts = new Map<string, number>();
+  for (const item of pool) {
+    if (slotFormOfItem(item) !== 'cine') continue;
+    const id = workIdOf(item);
+    if (!id) continue;
+    const fp = cineSeanceFingerprint(item);
+    if (seen.has(fp)) continue;
+    seen.add(fp);
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  return counts;
+}
+
+const CINE_NOUVEAU_MUL = 1.6;
+
+/**
+ * Living = 1/freq(work) — never séance count.
+ * Cine cold start only: nouveauté × nb_séances(film) after densify.
+ */
 function fallbackScore(
   item: DayItem,
   slot: RecoSlotForm,
   freq: Map<string, number>,
+  cineSeances: Map<string, number>,
   nouveauIds: ReadonlySet<string>,
 ): { score: number; reason: RecoReason } {
   const id = workIdOf(item);
-  const n = Math.max(1, freq.get(id) ?? 1);
-  const rarity = 1 / n;
   if (slot === 'cine') {
+    const n = Math.max(1, cineSeances.get(id) ?? 1);
     const fid = filmIdOf(item);
     const isNouveau = Boolean(fid && nouveauIds.has(fid));
     return {
-      score: rarity * (isNouveau ? 1.6 : 1),
+      score: n * (isNouveau ? CINE_NOUVEAU_MUL : 1),
       reason: { source: isNouveau ? 'nouveaute' : 'popularite' },
     };
   }
-  return { score: rarity, reason: { source: 'popularite' } };
+  const n = Math.max(1, freq.get(id) ?? 1);
+  return { score: 1 / n, reason: { source: 'popularite' } };
 }
 
 export function itemIdentity(item: DayItem): string {
@@ -1742,11 +1776,12 @@ function scoreFallbackPool(
   nouveauIds: ReadonlySet<string>,
 ): ScoredDayItem[] {
   const freq = workFreq(pool);
+  const cineSeances = densifiedCineSeanceCounts(pool);
   const scored: ScoredDayItem[] = [];
   for (const item of pool) {
     const slot = slotFormOfItem(item);
     if (!slot) continue;
-    const cold = fallbackScore(item, slot, freq, nouveauIds);
+    const cold = fallbackScore(item, slot, freq, cineSeances, nouveauIds);
     scored.push({ item, score: cold.score, reason: cold.reason });
   }
   return scored;
@@ -1754,7 +1789,8 @@ function scoreFallbackPool(
 
 /**
  * Top 3 = 1 cine + 1 theatre + 1 concert. Cat chips never filter this.
- * Guest / empty profile: popularity × living × cine nouveautés, never [].
+ * Guest / empty profile: living 1/freq; cine cold start = nouveauté ×
+ * densified séance count. Never [].
  * Profile: overlap only (empty slot if 0 overlap). If every slot is empty, fallback.
  */
 export function recommendForProfile(

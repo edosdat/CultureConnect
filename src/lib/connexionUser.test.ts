@@ -10,6 +10,7 @@ import {
   itemIdentity,
   itemIsUntagged,
   workIdOf,
+  densifiedCineSeanceCounts,
 } from './reco';
 import {
   applySignalToProfile,
@@ -199,6 +200,110 @@ describe('recommendForProfile — guest never empty, deterministic', () => {
     assert.equal(workIdOf(cine!.item), 'f:F40');
     const theatre = out.find((s) => slotFormOfItem(s.item) === 'theatre');
     assert.equal(theatre?.item.key, 'th-one');
+  });
+
+  it('cine cold start = nouveauté × densified séance count (clones collapse)', () => {
+    const clones = Array.from({ length: 5 }, (_, i) =>
+      item({
+        key: `clone-${i}`,
+        cat: 'cinema',
+        filmId: 'F-CLONE',
+        day: '2026-09-02',
+        heure: '20:00',
+      }),
+    );
+    const twoSeances = [
+      item({
+        key: 'few-a',
+        cat: 'cinema',
+        filmId: 'F-FEW',
+        day: '2026-09-02',
+        heure: '18:00',
+      }),
+      item({
+        key: 'few-b',
+        cat: 'cinema',
+        filmId: 'F-FEW',
+        day: '2026-09-02',
+        heure: '21:00',
+      }),
+    ];
+    const untitled = [
+      item({
+        key: 'title-a',
+        cat: 'cinema',
+        titre: 'Sans Id',
+        day: '2026-09-02',
+        heure: '17:00',
+      }),
+      item({
+        key: 'title-b',
+        cat: 'cinema',
+        titre: 'Sans Id',
+        day: '2026-09-02',
+        heure: '19:30',
+      }),
+    ];
+    const counts = densifiedCineSeanceCounts([
+      ...clones,
+      ...twoSeances,
+      ...untitled,
+    ]);
+    assert.equal(counts.get('f:F-CLONE'), 1);
+    assert.equal(counts.get('f:F-FEW'), 2);
+    assert.equal(counts.get('t:sans id'), 2);
+
+    const pool = [
+      ...clones,
+      ...twoSeances,
+      item({ key: 'th-x', cat: 'theatre', eventId: 'E-TH' }),
+      item({ key: 'co-x', cat: 'musique', eventId: 'E-CO2' }),
+    ];
+    const out = recommendForProfile(pool, emptyTasteState(), 3, { now: NOW });
+    const cine = out.find((s) => slotFormOfItem(s.item) === 'cine');
+    assert.equal(workIdOf(cine!.item), 'f:F-FEW');
+    assert.equal(cine?.reason?.source, 'popularite');
+  });
+
+  it('cine cold start: nouveauté multiplies densified séance count', () => {
+    const nouveauTwo = [
+      item({
+        key: 'new-a',
+        cat: 'cinema',
+        filmId: 'F-NEW',
+        day: '2026-09-02',
+        heure: '18:00',
+      }),
+      item({
+        key: 'new-b',
+        cat: 'cinema',
+        filmId: 'F-NEW',
+        day: '2026-09-02',
+        heure: '22:00',
+      }),
+    ];
+    const oldThree = ['16:00', '19:00', '23:00'].map((heure, i) =>
+      item({
+        key: `old-${i}`,
+        cat: 'cinema',
+        filmId: 'F-OLD',
+        day: '2026-09-02',
+        heure,
+      }),
+    );
+    const pool = [
+      ...nouveauTwo,
+      ...oldThree,
+      item({ key: 'th-y', cat: 'theatre', eventId: 'E-THY' }),
+      item({ key: 'co-y', cat: 'musique', eventId: 'E-COY' }),
+    ];
+    const out = recommendForProfile(pool, emptyTasteState(), 3, {
+      now: NOW,
+      nouveauFilmIds: new Set(['F-NEW']),
+    });
+    const cine = out.find((s) => slotFormOfItem(s.item) === 'cine');
+    assert.equal(workIdOf(cine!.item), 'f:F-NEW');
+    assert.equal(cine?.reason?.source, 'nouveaute');
   });
 
   it('empty slot if 0 overlap for a signed-in profile (no stretched angoissant)', () => {
