@@ -51,10 +51,13 @@ import {
   emptyPhraseTags,
   hasPhraseSignal,
   parsePhraseRules,
-  phraseUsesTitleQ,
   type PhraseTags,
 } from '@/lib/phraseTags';
 import { normalizeDeepLinkId } from '@/lib/deepLink';
+import {
+  buildAgendaParams,
+  listFetchShouldSkipBoot,
+} from '@/lib/agendaParams';
 
 type Props = {
   initialScope: TimeScopeId;
@@ -213,55 +216,6 @@ const AGENDA_PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 250;
 const PHRASE_FETCH_MS = 80;
 
-function buildAgendaParams(opts: {
-  scope: TimeScopeId;
-  commune: string | null;
-  q: string;
-  cats: string[];
-  genres: string[];
-  lieuId: string | null;
-  selectedDate: string | null;
-  year: number;
-  month: number;
-  offset?: number;
-  includeCounts?: boolean;
-  includeListMeta?: boolean;
-  phraseTags?: PhraseTags | null;
-  phraseMode?: boolean;
-}): URLSearchParams {
-  const p = new URLSearchParams();
-  p.set('scope', opts.scope);
-  if (opts.commune) p.set('commune', opts.commune);
-  const usePhraseTags =
-    Boolean(opts.phraseMode) && !phraseUsesTitleQ(opts.phraseTags);
-  if (usePhraseTags) {
-    const t = opts.phraseTags;
-    if (t?.form) p.set('form', t.form);
-    p.set('moods', (t?.moods ?? []).join(','));
-    const tagGenres = t?.genres ?? [];
-    const merged = [...opts.genres, ...tagGenres];
-    if (merged.length) p.set('genres', merged.join(','));
-    const themes = t?.themes ?? [];
-    if (themes.length) p.set('themes', themes.join(','));
-    const entities = t?.entities ?? [];
-    if (entities.length) p.set('entities', entities.join(','));
-    if (t?.date_from) p.set('date_from', t.date_from);
-    if (t?.date_to) p.set('date_to', t.date_to);
-  } else {
-    if (opts.q) p.set('q', opts.q);
-    if (opts.genres.length) p.set('genres', opts.genres.join(','));
-  }
-  if (opts.cats.length) p.set('cat', opts.cats.join(','));
-  if (opts.lieuId) p.set('lieu', opts.lieuId);
-  if (opts.selectedDate && opts.scope !== 'tous') p.set('date', opts.selectedDate);
-  p.set('year', String(opts.year));
-  p.set('month', String(opts.month));
-  if (opts.offset) p.set('offset', String(opts.offset));
-  if (opts.includeCounts) p.set('counts', '1');
-  if (opts.includeListMeta) p.set('meta', '1');
-  return p;
-}
-
 export default function CultureConnectApp({
   initialScope,
   initialParisIso,
@@ -369,6 +323,7 @@ export default function CultureConnectApp({
 
   const skipListFetch = useRef(true);
   const listFetchGen = useRef(0);
+  const countsFetchGen = useRef(0);
   const recoFetchGen = useRef(0);
   const recoWipedRef = useRef(false);
   const recoPoolByKeyRef = useRef(recoPoolByKey);
@@ -770,10 +725,13 @@ export default function CultureConnectApp({
 
 
   useEffect(() => {
-    if (skipListFetch.current) {
+    if (
+      listFetchShouldSkipBoot(skipListFetch.current, timeScope, selectedDay)
+    ) {
       skipListFetch.current = false;
       return;
     }
+    skipListFetch.current = false;
     if (isPhraseScope && query.trim() && phraseTags === null) return;
     const gen = ++listFetchGen.current;
     const delay = isPhraseScope && query.trim() ? PHRASE_FETCH_MS : 0;
@@ -790,7 +748,6 @@ export default function CultureConnectApp({
         selectedDate: selectedDay,
         year,
         month,
-        includeCounts: showMonthPanel,
         includeListMeta: true,
         phraseMode: isPhraseScope && query.trim().length > 0,
         phraseTags,
@@ -826,9 +783,49 @@ export default function CultureConnectApp({
     selectedLieuId,
     selectedCategories,
     selectedGenres,
-    showMonthPanel,
     phraseTags,
     isPhraseScope,
+  ]);
+
+  // Month badges: own request so a day click never waits on countItemsByDay.
+  useEffect(() => {
+    if (!showMonthPanel) return;
+    const gen = ++countsFetchGen.current;
+    const params = buildAgendaParams({
+      scope: 'date',
+      commune: selectedCommune,
+      q: '',
+      cats: selectedCategories,
+      genres: selectedGenres,
+      lieuId: selectedLieuId,
+      selectedDate: null,
+      year,
+      month,
+      includeCounts: true,
+    });
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/agenda?${params.toString()}`);
+        if (!res.ok) return;
+        const data = (await res.json()) as AgendaListResponse;
+        if (cancelled || gen !== countsFetchGen.current) return;
+        if (data.counts) setCounts(new Map(Object.entries(data.counts)));
+      } catch {
+        /* keep previous badges */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    showMonthPanel,
+    year,
+    month,
+    selectedCommune,
+    selectedLieuId,
+    selectedCategories,
+    selectedGenres,
   ]);
 
   useEffect(() => {
@@ -950,7 +947,13 @@ export default function CultureConnectApp({
     [allCineRows, cineLimit],
   );
   const allLiveRows = useMemo(() => {
-    const pool = vivantItems.length > 0 ? vivantItems : listItems;
+    const seen = new Set<string>();
+    const pool: DayItem[] = [];
+    for (const item of [...vivantItems, ...listItems]) {
+      if (seen.has(item.key)) continue;
+      seen.add(item.key);
+      pool.push(item);
+    }
     return liveRows(
       filterSeancesForActiveFilters(pool, activeFilter),
       top3Set,
@@ -1073,7 +1076,6 @@ export default function CultureConnectApp({
       year,
       month,
       offset: listItems.length,
-      includeCounts: showMonthPanel,
       phraseMode: isPhraseScope && query.trim().length > 0,
       phraseTags,
     });
@@ -1101,7 +1103,6 @@ export default function CultureConnectApp({
     selectedDay,
     year,
     month,
-    showMonthPanel,
     phraseTags,
     isPhraseScope,
   ]);
@@ -1228,6 +1229,7 @@ export default function CultureConnectApp({
       applySnapshot();
     }
     if (scope === 'date') {
+      skipListFetch.current = false;
       const day = selectedDay || initialParisIso;
       setSelectedDay(day);
       syncMonthFromIso(day);
@@ -1265,6 +1267,7 @@ export default function CultureConnectApp({
   }
 
   function handleSelectDay(iso: string) {
+    skipListFetch.current = false;
     setTimeScope('date');
     setSelectedDay(iso);
     syncMonthFromIso(iso);
