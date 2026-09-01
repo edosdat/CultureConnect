@@ -9,6 +9,7 @@ import {
   parsePhraseRules,
   tasteMoodsOf,
   type PhraseForm,
+  type TasteMood,
 } from '@/lib/phraseTags';
 import {
   SIGNAL_WEIGHTS,
@@ -51,7 +52,11 @@ const CAT_REASON_LABELS: Record<string, string> = {
   enfants_famille: 'famille',
 };
 
-const MOOD_CHIP_LABELS: Record<string, string> = {
+/**
+ * Display-only FR labels for the 16 locked taste moods.
+ * Overlay + reco why-lines. Never a 17th. Slugs / scoring unchanged.
+ */
+export const TASTE_MOOD_LABELS_FR: Record<TasteMood, string> = {
   rigolo: 'Rire',
   tendre: 'Tendre',
   intense: 'Intense',
@@ -62,13 +67,21 @@ const MOOD_CHIP_LABELS: Record<string, string> = {
   cerveau: 'Cerveau',
   intimiste: 'Intimiste',
   absurde: 'Absurde',
-  critique: 'Critique',
+  critique: 'Satirique',
   sombre: 'Sombre',
   poetique: 'Poétique',
   dansant: 'Dansant',
   contemplatif: 'Contemplatif',
   leger: 'Léger',
 };
+
+/** Display label for a locked mood slug, or null. Never invents a 17th. */
+export function labelTasteMood(slug: string | null | undefined): string | null {
+  if (!slug) return null;
+  const key = slug.trim().toLowerCase();
+  if (!isTasteMood(key)) return null;
+  return TASTE_MOOD_LABELS_FR[key as TasteMood];
+}
 
 const GENRE_CHIP_LABELS: Record<string, string> = {
   funk: 'Funk',
@@ -99,7 +112,7 @@ function humanizeKey(key: string): string {
 
 export function labelProfileChip(bucket: ProfileBucket, key: string): string {
   if (bucket === 'cats') return CAT_CHIP_LABELS[key] ?? humanizeKey(key);
-  if (bucket === 'moods') return MOOD_CHIP_LABELS[key] ?? humanizeKey(key);
+  if (bucket === 'moods') return labelTasteMood(key) ?? humanizeKey(key);
   return GENRE_CHIP_LABELS[key] ?? humanizeKey(key);
 }
 
