@@ -13,8 +13,10 @@ import {
   TOULOUSE_CHIP_DEFAULT,
   assertGpsNotPersisted,
 } from './nearMe';
-import { communeCentroid } from './lieuCoords';
 import { buildAgendaParams } from './agendaParams';
+import fs from 'fs';
+import path from 'path';
+import Papa from 'papaparse';
 import { filterSeancesForActiveFilters } from './displayFilter';
 import { visibleTop3Items, visibleTop3Nearest } from './displayHome';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
@@ -168,27 +170,58 @@ describe('près de moi sort', () => {
     );
   });
 
-  it('still sorts by commune centroid when only commune + dist_km exist', () => {
-    const tls = item({
-      key: 'tls',
+  it('empty CSV lat/lng skips km label and sorts after located venues', () => {
+    const empty = item({
+      key: 'empty',
       cat: 'theatre',
       day: '2026-09-01',
       commune: 'Toulouse',
     });
-    const labege = item({
-      key: 'lab',
+    const wilson = item({
+      key: 'wilson',
       cat: 'cinema',
       day: '2026-09-01',
-      commune: 'Labège',
+      lat: '43.6045',
+      lng: '1.4472',
     });
-    assert.equal(itemKmLabel(tls, CAPITOLE), null);
-    assert.equal(itemKmLabel(labege, CAPITOLE), null);
-    assert.ok(communeCentroid('Labège'));
-    assert.ok(itemSortKm(labege, CAPITOLE) > itemSortKm(tls, CAPITOLE));
-    const sorted = sortItemsNearestFirst([labege, tls], CAPITOLE);
+    assert.equal(itemKmLabel(empty, CAPITOLE), null);
+    assert.equal(itemSortKm(empty, CAPITOLE), Number.POSITIVE_INFINITY);
+    const sorted = sortItemsNearestFirst([empty, wilson], CAPITOLE);
     assert.deepEqual(
       sorted.map((r) => r.key),
-      ['tls', 'lab'],
+      ['wilson', 'empty'],
+    );
+  });
+
+  it('haversine uses lieux.csv lat/lng columns (OSM); 19 rows stay unlabeled', () => {
+    const text = fs.readFileSync(
+      path.join(process.cwd(), 'data', 'lieux.csv'),
+      'utf-8',
+    );
+    const rows = Papa.parse<Record<string, string>>(text, {
+      header: true,
+      skipEmptyLines: true,
+    }).data;
+    const withCoords = rows.filter(
+      (r) => (r.lat || '').trim() && (r.lng || '').trim(),
+    );
+    const empty = rows.filter(
+      (r) => !(r.lat || '').trim() || !(r.lng || '').trim(),
+    );
+    assert.ok(withCoords.length >= 127, `got ${withCoords.length} with coords`);
+    assert.equal(empty.length, 19);
+    const wilson = withCoords.find((r) => r.lieu_id === 'L137');
+    assert.ok(wilson);
+    const pos = parseLieuCoords(wilson);
+    assert.ok(pos);
+    const km = haversineKm(CAPITOLE, pos!);
+    assert.ok(km >= 0 && km < 2, `Wilson should be near Capitole, got ${km}`);
+    const reynerie = empty.find((r) => r.lieu_id === 'L011');
+    assert.ok(reynerie);
+    assert.equal(parseLieuCoords(reynerie), null);
+    assert.equal(
+      itemKmLabel({ lieu: { lat: reynerie!.lat, lng: reynerie!.lng } }, CAPITOLE),
+      null,
     );
   });
 

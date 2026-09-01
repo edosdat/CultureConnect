@@ -11,7 +11,6 @@ import {
   parseLieuCoords,
   type GeoPos,
 } from './geo';
-import { communeCentroid, sortCoordsForLieu } from './lieuCoords';
 import type { DayItem } from './types';
 
 export type { GeoPos };
@@ -136,22 +135,20 @@ export function itemKmLabel(
 }
 
 /**
- * Sort key: exact lat/lng if present, else commune centroid.
- * Missing both → +∞ (stay after located items).
+ * Haversine on lieux.csv lat/lng only. Empty coords → +∞ (after located items).
+ * Never invent from commune / dist_km_capitole.
  */
 export function itemSortKm(
   item: {
     lieu?: {
-      lieu_id?: string;
       lat?: string | number | null;
       lng?: string | number | null;
-      commune?: string | null;
     } | null;
   },
   origin: GeoPos | null | undefined,
 ): number {
   if (!origin) return Number.POSITIVE_INFINITY;
-  const coords = sortCoordsForLieu(item.lieu);
+  const coords = parseLieuCoords(item.lieu);
   if (!coords) return Number.POSITIVE_INFINITY;
   return haversineKm(origin, coords);
 }
@@ -207,4 +204,4 @@ export function assertGpsNotPersisted(payload: Record<string, unknown>): void {
   }
 }
 
-export { parseLieuCoords, communeCentroid };
+export { parseLieuCoords };
