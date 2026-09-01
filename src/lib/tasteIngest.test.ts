@@ -418,6 +418,28 @@ describe('taste profile — one-shot migrate of stored mood keys', () => {
     assert.deepEqual(clean.genres, {});
   });
 
+  it('does not migrate genres into moods', () => {
+    const clean = sanitizeTasteProfile({
+      ...emptyProfile(),
+      moods: { rigolo: { weight: 1, pct: 50 } },
+      genres: {
+        comedie: { weight: 4, pct: 40 },
+        animation: { weight: 3, pct: 30 },
+        patrimoine: { weight: 3, pct: 30 },
+        horreur: { weight: 2, pct: 0 },
+      },
+    });
+    assert.deepEqual(Object.keys(clean.moods).sort(), ['rigolo']);
+    assert.equal(clean.moods.angoissant, undefined);
+    assert.equal(clean.moods.animation, undefined);
+    assert.equal(clean.moods.patrimoine, undefined);
+    assert.ok((clean.genres.comedie?.weight ?? 0) > 0);
+    assert.ok((clean.genres.animation?.weight ?? 0) > 0);
+    assert.ok((clean.genres.patrimoine?.weight ?? 0) > 0);
+    assert.equal(clean.genres.animation_jeune_public, undefined);
+    assert.equal(clean.genres.patrimoine_retro, undefined);
+  });
+
   it('does not replay signalsRecent when rebuilding', () => {
     const old = makeSignal({
       kind: 'open_card',
