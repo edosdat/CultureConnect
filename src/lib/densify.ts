@@ -3,6 +3,8 @@ import { seanceDateIso } from './timeScope';
 
 export type DenseRow = {
   item: DayItem;
+  /** Filtered séances in this film/event group (source of truth for horaires). */
+  seances: DayItem[];
   groupKey: string;
   extraSlots: number;
   salleCount: number;
@@ -106,21 +108,17 @@ export function densify(items: DayItem[]): DenseRow[] {
           if (da !== 0) return da;
           return heureKey(a).localeCompare(heureKey(b));
         })[0];
-    const visibleDay = seanceDateIso(item);
-    const sameDay = g.filter((i) => seanceDateIso(i) === visibleDay);
-    const venuePool = sameDay.length > 0 ? sameDay : g;
     const venues = new Set(
-      venuePool
-        .map((i) => i.lieu?.lieu_id)
-        .filter((id): id is string => Boolean(id)),
+      g.map((i) => i.lieu?.lieu_id).filter((id): id is string => Boolean(id)),
     );
     return {
       item,
+      seances: g,
       groupKey: k,
-      extraSlots: Math.max(0, venuePool.length - 1),
+      extraSlots: Math.max(0, g.length - 1),
       salleCount: isFilmGroup ? venues.size : 0,
-      earliestHeure: isFilmGroup ? earliestHeureOf(venuePool) : '',
-      citiesSummary: isFilmGroup ? citiesSummaryOf(venuePool) : '',
+      earliestHeure: isFilmGroup ? earliestHeureOf(g) : '',
+      citiesSummary: isFilmGroup ? citiesSummaryOf(g) : '',
       isFilmGroup,
     };
   });

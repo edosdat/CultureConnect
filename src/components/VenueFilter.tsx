@@ -112,8 +112,8 @@ export default function VenueFilter({
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Rechercher un lieu"
-          aria-label="Rechercher un lieu"
+          placeholder="Rechercher une salle"
+          aria-label="Rechercher une salle"
           autoComplete="off"
           onKeyDown={(e) => {
             if (e.key === 'Enter') e.preventDefault();
@@ -123,7 +123,7 @@ export default function VenueFilter({
       </div>
       <ul
         role="listbox"
-        aria-label="Filtrer par lieu"
+        aria-label="Filtrer par salle"
         className="max-h-60 overflow-y-auto py-1"
       >
         {!qNorm && (
@@ -140,7 +140,7 @@ export default function VenueFilter({
                   : 'text-culture-ink hover:bg-culture-soft')
               }
             >
-              Tous les lieux
+              Toutes les salles
             </button>
           </li>
         )}
@@ -166,7 +166,7 @@ export default function VenueFilter({
           );
         })}
         {filtered.length === 0 && (
-          <li className="px-3 py-3 text-sm text-culture-ink/50">Aucun lieu</li>
+          <li className="px-3 py-3 text-sm text-culture-ink/50">Aucune salle</li>
         )}
       </ul>
     </div>
@@ -190,7 +190,7 @@ export default function VenueFilter({
               : 'border-culture-line bg-culture-surface text-culture-ink hover:border-culture-terracotta/50')
           }
         >
-          {selected ? selectedLabel : 'Lieu'}
+          {selected ? selectedLabel : 'Salles'}
           {selected ? '' : open ? ' ▾' : ' ▸'}
         </button>
         {selected && (
@@ -201,7 +201,7 @@ export default function VenueFilter({
               setOpen(false);
             }}
             className="rounded-full bg-culture-soft px-2.5 py-1 text-xs text-culture-clay"
-            aria-label="Effacer le filtre lieu"
+            aria-label="Effacer le filtre salles"
           >
             ×
           </button>
@@ -219,7 +219,7 @@ export default function VenueFilter({
     <div ref={rootRef} className="relative space-y-2">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
-          Lieux
+          Salles
         </h2>
         {selectedLieuId && (
           <button
@@ -237,10 +237,10 @@ export default function VenueFilter({
         aria-expanded={open}
         aria-controls="cc-venue"
         className="flex min-h-11 w-full items-center justify-between rounded-xl border border-culture-line bg-culture-surface px-3 py-2 text-left text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
-        aria-label="Filtrer par lieu"
+        aria-label="Filtrer par salle"
       >
         <span className="min-w-0 truncate">
-          {selected ? selectedLabel : 'Tous les lieux'}
+          {selected ? selectedLabel : 'Toutes les salles'}
         </span>
         <span aria-hidden className="ml-2 shrink-0 text-culture-ink/50">
           {open ? '▴' : '▾'}

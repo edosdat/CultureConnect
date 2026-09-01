@@ -10,19 +10,17 @@ import {
   googleCalendarUrl,
 } from '@/lib/calendar';
 import { formatDateFr, formatHeure, formatLieuAffiche } from '@/lib/labels';
-import { filterItemsByCommune, itemMatchesCommune } from '@/lib/commune';
+import {
+  filterSeancesForActiveFilters,
+  sortSeances,
+  type DisplayFilter,
+} from '@/lib/displayFilter';
 import {
   isLikelyMobile,
   itemPitch,
   itemTitle,
   seanceWhen,
 } from '@/lib/displayHome';
-import {
-  filterSeancesForDisplay,
-  hideSeancesBeforeToday,
-  itemInDateWindow,
-  parisParts,
-} from '@/lib/timeScope';
 import VisualFallback, { categoryLabelOf } from './VisualFallback';
 import FavoriteButton from './FavoriteButton';
 import ShareButton from './ShareButton';
@@ -33,9 +31,14 @@ type Props = {
   focusKey?: string | null;
   fallbackVivant?: DayItem[];
   selectedCommune?: string | null;
+  selectedLieuId?: string | null;
   dateFrom?: string | null;
   dateTo?: string | null;
   soir?: boolean;
+  /** Calendar day is on — show horaires inline. Otherwise a séances dropdown. */
+  datePinned?: boolean;
+  hasMore?: boolean;
+  onNeedMore?: () => void;
   onAgenda?: (item: DayItem) => void;
   onIcs?: (item: DayItem) => void;
   onReserve?: (item: DayItem) => void;
@@ -130,9 +133,13 @@ export default function CinemaCarousel({
   focusKey = null,
   fallbackVivant = [],
   selectedCommune = null,
+  selectedLieuId = null,
   dateFrom = null,
   dateTo = null,
   soir = false,
+  datePinned = false,
+  hasMore = false,
+  onNeedMore,
   onAgenda,
   onIcs,
   onReserve,
@@ -145,6 +152,7 @@ export default function CinemaCarousel({
   const [aussi, setAussi] = useState<DayItem[]>([]);
   const [engaged, setEngaged] = useState(false);
   const [mobileCal, setMobileCal] = useState(false);
+  const moreLock = useRef(0);
 
   useEffect(() => {
     setMobileCal(isLikelyMobile());
@@ -161,17 +169,24 @@ export default function CinemaCarousel({
   }, [heroIndex, rows.length]);
 
   const hero = rows[heroIndex] ?? rows[0];
+  const displayFilter: DisplayFilter = {
+    startIso: dateFrom,
+    endIso: dateTo,
+    soir,
+    commune: selectedCommune,
+    lieuId: selectedLieuId,
+  };
 
   useEffect(() => {
     if (!hero) return;
     setEngaged(false);
-    setRelated([]);
     setAussi([]);
     const key = hero.item.key;
     let cancelled = false;
     const qs = new URLSearchParams();
     qs.set('id', key);
     if (selectedCommune) qs.set('commune', selectedCommune);
+    if (selectedLieuId) qs.set('lieu', selectedLieuId);
     if (dateFrom) qs.set('date_from', dateFrom);
     if (dateTo) qs.set('date_to', dateTo);
     if (soir) qs.set('soir', '1');
@@ -180,23 +195,38 @@ export default function CinemaCarousel({
       .then((data: AgendaDetailResponse | null) => {
         if (cancelled || !data) return;
         setRelated(
-          filterSeancesForDisplay(
-            filterItemsByCommune(data.relatedItems ?? [], selectedCommune),
-            { startIso: dateFrom, endIso: dateTo, soir },
-          ),
+          filterSeancesForActiveFilters(data.relatedItems ?? [], displayFilter),
         );
-        setAussi(filterItemsByCommune(data.aussiCeSoir ?? [], selectedCommune));
+        setAussi(
+          filterSeancesForActiveFilters(data.aussiCeSoir ?? [], displayFilter),
+        );
       })
       .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [hero?.item.key, selectedCommune, dateFrom, dateTo, soir]);
+  }, [
+    hero?.item.key,
+    selectedCommune,
+    selectedLieuId,
+    dateFrom,
+    dateTo,
+    soir,
+  ]);
 
   function scrollStrip(dir: -1 | 1) {
     const el = stripRef.current;
     if (!el) return;
     el.scrollBy({ left: dir * 220, behavior: 'smooth' });
+  }
+
+  function onStripScroll() {
+    const el = stripRef.current;
+    if (!el || !onNeedMore || !hasMore) return;
+    if (el.scrollLeft + el.clientWidth < el.scrollWidth - 96) return;
+    if (Date.now() < moreLock.current) return;
+    moreLock.current = Date.now() + 800;
+    onNeedMore();
   }
 
   if (!hero) return null;
@@ -207,33 +237,28 @@ export default function CinemaCarousel({
   const venue = formatLieuAffiche(item.lieu);
   const cat = categoryLabelOf(item);
   const cal = calendarPayloadFromDayItem(item);
-  const upcoming = filterSeancesForDisplay(
-    filterItemsByCommune(
-      hideSeancesBeforeToday(related, parisParts().iso),
-      selectedCommune,
-    ),
-    { startIso: dateFrom, endIso: dateTo, soir },
+  const groupSeances = filterSeancesForActiveFilters(
+    hero.seances?.length ? hero.seances : [item],
+    displayFilter,
   );
-  const heroInWindow =
-    itemMatchesCommune(item, selectedCommune) &&
-    (!dateFrom ||
-      !dateTo ||
-      itemInDateWindow(item, dateFrom, dateTo)) &&
-    (!soir || filterSeancesForDisplay([item], { soir }).length > 0);
-  const seances = upcoming.length > 0 ? upcoming : heroInWindow ? [item] : [];
-  const crossSell =
+  const fromApi = filterSeancesForActiveFilters(related, displayFilter);
+  const seanceKeys = new Set(groupSeances.map((s) => s.key));
+  const seances = sortSeances([
+    ...groupSeances,
+    ...fromApi.filter((s) => !seanceKeys.has(s.key)),
+  ]);
+  const crossSell = filterSeancesForActiveFilters(
     aussi.length > 0
       ? aussi
-      : fallbackVivant
-          .filter(
-            (it) => it.key !== item.key && itemMatchesCommune(it, selectedCommune),
-          )
-          .slice(0, 2);
+      : fallbackVivant.filter((it) => it.key !== item.key),
+    displayFilter,
+  ).slice(0, 2);
 
   const thumbs = (
     <div className="relative">
       <div
         ref={stripRef}
+        onScroll={onStripScroll}
         className="flex gap-3 overflow-x-auto scroll-px-2 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {rows.map((row, i) => (
@@ -244,6 +269,15 @@ export default function CinemaCarousel({
             active={i === heroIndex}
           />
         ))}
+        {hasMore && onNeedMore ? (
+          <button
+            type="button"
+            onClick={onNeedMore}
+            className="flex w-[7.5rem] shrink-0 flex-col items-center justify-center rounded-lg border border-dashed border-culture-line bg-culture-surface text-sm font-medium text-culture-terracotta sm:w-[8.5rem]"
+          >
+            Plus de films
+          </button>
+        ) : null}
       </div>
       {rows.length > 4 && !mobile ? (
         <>
@@ -292,24 +326,43 @@ export default function CinemaCarousel({
       </p>
       <div ref={seancesRef} id="cine-seances">
         {seances.length > 0 ? (
-          <>
-            <p className="text-xs font-semibold uppercase tracking-wide text-culture-muted">
-              Séances
-            </p>
-            <ul className="mt-1 space-y-1 text-sm text-culture-ink">
-              {seances.map((rel) => (
-                <li key={rel.key}>{seanceLine(rel)}</li>
-              ))}
-            </ul>
-          </>
+          datePinned ? (
+            <>
+              <p className="text-xs font-semibold uppercase tracking-wide text-culture-muted">
+                Séances
+              </p>
+              <ul className="mt-1 space-y-1 text-sm text-culture-ink">
+                {seances.map((rel) => (
+                  <li key={rel.key}>{seanceLine(rel)}</li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <details className="group rounded-lg border border-culture-line bg-culture-cream/60 px-3 py-2">
+              <summary className="cursor-pointer text-sm font-semibold text-culture-ink">
+                Séances
+                <span className="ml-1 font-normal text-culture-muted">
+                  ({seances.length})
+                </span>
+              </summary>
+              <ul className="mt-2 space-y-1 text-sm text-culture-ink">
+                {seances.map((rel) => (
+                  <li key={rel.key}>{seanceLine(rel)}</li>
+                ))}
+              </ul>
+            </details>
+          )
         ) : null}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
-          onClick={() =>
-            seancesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-          }
+          onClick={() => {
+            const box = seancesRef.current;
+            const details = box?.querySelector('details');
+            if (details) details.open = true;
+            box?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }}
           className="inline-flex min-h-10 items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-semibold text-white hover:bg-culture-clay"
         >
           Voir les séances

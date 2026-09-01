@@ -8,6 +8,7 @@ import { extractMoods, profileHasZeroWeights } from '@/lib/signals';
 import { signIn } from 'next-auth/react';
 import { useSignals } from './SignalsProvider';
 import { filterItemsByCommune, normalizeCommune } from '@/lib/commune';
+import { filterSeancesForActiveFilters } from '@/lib/displayFilter';
 import { densify, densifiedCardCount } from '@/lib/densify';
 import { filmIdOfItem, isCinemaDayItem } from '@/lib/nouveautesCine';
 import { catsAllowCinemaPack, genreBelongsToMains, mainFromGenreSlug } from '@/lib/categories';
@@ -22,7 +23,6 @@ import {
 } from '@/lib/displayHome';
 import { MONTH_NAMES_FR } from '@/lib/labels';
 import {
-  filterSeancesForDisplay,
   resolveScopeRange,
   scopeContextLabel,
   type TimeScopeId,
@@ -828,27 +828,35 @@ export default function CultureConnectApp({
   }, [availableGenreSlugs, selectedCategories, genresLegend]);
 
   /** Signed-in / loading: |profile or [] (skeleton). Never the guest trio. */
+  const activeFilter = useMemo(
+    () => ({
+      startIso: scopeRange.startIso,
+      endIso: scopeRange.endIso,
+      soir: timeScope === 'soir',
+      commune: selectedCommune,
+      lieuId: selectedLieuId,
+    }),
+    [
+      scopeRange.startIso,
+      scopeRange.endIso,
+      timeScope,
+      selectedCommune,
+      selectedLieuId,
+    ],
+  );
+
   const pourToiItems = useMemo(() => {
     if (recoWiped) return [];
-    return filterSeancesForDisplay(
-      filterItemsByCommune(
-        recoPoolByKey[visibleRecoKey] ?? [],
-        selectedCommune,
-      ),
-      {
-        startIso: scopeRange.startIso,
-        endIso: scopeRange.endIso,
-        soir: timeScope === 'soir',
-      },
+    // Date + commune/salle filter Top 3; category chips do not.
+    return filterSeancesForActiveFilters(
+      recoPoolByKey[visibleRecoKey] ?? [],
+      activeFilter,
     );
   }, [
     recoPoolByKey,
     visibleRecoKey,
     recoWiped,
-    selectedCommune,
-    scopeRange.startIso,
-    scopeRange.endIso,
-    timeScope,
+    activeFilter,
   ]);
 
   const pourToiKeys = useMemo(
@@ -908,48 +916,11 @@ export default function CultureConnectApp({
 
   const top3Set = useMemo(() => top3IdentitySet(pourToiItems), [pourToiItems]);
   const cineSource = useMemo(() => {
-    const windowOpts = {
-      startIso: scopeRange.startIso,
-      endIso: scopeRange.endIso,
-      soir: timeScope === 'soir',
-    };
-    const fromList = filterSeancesForDisplay(
-      filterItemsByCommune(listItems, selectedCommune),
-      windowOpts,
-    );
-    const fromNouv = filterSeancesForDisplay(
-      filterItemsByCommune(nouveautesItems, selectedCommune),
-      windowOpts,
-    );
-    const byFilm = new Map<string, DayItem>();
-    for (const item of fromList) {
-      const fid = filmIdOfItem(item) || item.key;
-      if (!byFilm.has(fid)) byFilm.set(fid, item);
-    }
-    const seen = new Set<string>();
-    const out: DayItem[] = [];
-    // Nouveautés first in order, but the visible séance is the in-window list row.
-    for (const item of fromNouv) {
-      const fid = filmIdOfItem(item) || item.key;
-      if (seen.has(fid)) continue;
-      seen.add(fid);
-      out.push(byFilm.get(fid) ?? item);
-    }
-    for (const item of fromList) {
-      const fid = filmIdOfItem(item) || item.key;
-      if (seen.has(fid)) continue;
-      seen.add(fid);
-      out.push(item);
-    }
-    return out;
-  }, [
-    nouveautesItems,
-    listItems,
-    selectedCommune,
-    scopeRange.startIso,
-    scopeRange.endIso,
-    timeScope,
-  ]);
+    const fromList = filterSeancesForActiveFilters(listItems, activeFilter);
+    const fromNouv = filterSeancesForActiveFilters(nouveautesItems, activeFilter);
+    const seen = new Set(fromList.map((item) => item.key));
+    return [...fromList, ...fromNouv.filter((item) => !seen.has(item.key))];
+  }, [listItems, nouveautesItems, activeFilter]);
   const allCineRows = useMemo(
     () => cineRows(cineSource, top3Set),
     [cineSource, top3Set],
@@ -961,22 +932,10 @@ export default function CultureConnectApp({
   const allLiveRows = useMemo(() => {
     const pool = vivantItems.length > 0 ? vivantItems : listItems;
     return liveRows(
-      filterSeancesForDisplay(filterItemsByCommune(pool, selectedCommune), {
-        startIso: scopeRange.startIso,
-        endIso: scopeRange.endIso,
-        soir: timeScope === 'soir',
-      }),
+      filterSeancesForActiveFilters(pool, activeFilter),
       top3Set,
     );
-  }, [
-    vivantItems,
-    listItems,
-    top3Set,
-    selectedCommune,
-    scopeRange.startIso,
-    scopeRange.endIso,
-    timeScope,
-  ]);
+  }, [vivantItems, listItems, top3Set, activeFilter]);
   const visibleLiveRows = useMemo(() => {
     if (liveExpanded || timeScope !== 'tous') return allLiveRows;
     return capLiveRows(allLiveRows).slice(0, 9);
@@ -1019,27 +978,11 @@ export default function CultureConnectApp({
     if (!hideCineSection || !hideLiveSection) return [];
     return densify(
       dedupAgainstTop3(
-        filterSeancesForDisplay(
-          filterItemsByCommune(listItems, selectedCommune),
-          {
-            startIso: scopeRange.startIso,
-            endIso: scopeRange.endIso,
-            soir: timeScope === 'soir',
-          },
-        ),
+        filterSeancesForActiveFilters(listItems, activeFilter),
         top3Set,
       ),
     );
-  }, [
-    hideCineSection,
-    hideLiveSection,
-    listItems,
-    selectedCommune,
-    top3Set,
-    scopeRange.startIso,
-    scopeRange.endIso,
-    timeScope,
-  ]);
+  }, [hideCineSection, hideLiveSection, listItems, activeFilter, top3Set]);
 
   function handleSelectHome(key: string) {
     const found =
@@ -1173,6 +1116,7 @@ export default function CultureConnectApp({
         const qs = new URLSearchParams();
         qs.set('id', selectedItemKey);
         if (selectedCommune) qs.set('commune', selectedCommune);
+        if (selectedLieuId) qs.set('lieu', selectedLieuId);
         if (scopeRange.startIso) qs.set('date_from', scopeRange.startIso);
         if (scopeRange.endIso) qs.set('date_to', scopeRange.endIso);
         if (timeScope === 'soir') qs.set('soir', '1');
@@ -1182,17 +1126,10 @@ export default function CultureConnectApp({
         if (cancelled || gen !== detailFetchGen.current) return;
         setDetailItem(data.item);
         setRelatedFilmItems(
-          filterSeancesForDisplay(
-            filterItemsByCommune(data.relatedItems ?? [], selectedCommune),
-            {
-              startIso: scopeRange.startIso,
-              endIso: scopeRange.endIso,
-              soir: timeScope === 'soir',
-            },
-          ),
+          filterSeancesForActiveFilters(data.relatedItems ?? [], activeFilter),
         );
         setAussiCeSoirItems(
-          filterItemsByCommune(data.aussiCeSoir ?? [], selectedCommune),
+          filterSeancesForActiveFilters(data.aussiCeSoir ?? [], activeFilter),
         );
         if (!slim) trackItem(data.item, 'open_card');
       } catch {
@@ -1203,7 +1140,7 @@ export default function CultureConnectApp({
       cancelled = true;
     };
     // track by key so reopening the same fiche dedups in 30 min
-  }, [selectedItemKey, selectedCommune, scopeRange.startIso, scopeRange.endIso, timeScope]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedItemKey, activeFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const showDateLabels = !searching && scopeRange.days.length > 1;
 
@@ -1650,9 +1587,19 @@ export default function CultureConnectApp({
               mobile={narrowHome}
               focusKey={cineFocusKey}
               selectedCommune={selectedCommune}
+              selectedLieuId={selectedLieuId}
               dateFrom={scopeRange.startIso}
               dateTo={scopeRange.endIso}
               soir={timeScope === 'soir'}
+              datePinned={timeScope === 'date' && Boolean(selectedDay)}
+              hasMore={
+                (!cineExpanded && allCineRows.length > visibleCineRows.length) ||
+                listItems.length < total
+              }
+              onNeedMore={() => {
+                setCineExpanded(true);
+                if (listItems.length < total) handleLoadMore();
+              }}
               fallbackVivant={allLiveRows.map((row) => row.item)}
               onAgenda={(item) => trackItem(item, 'agenda_add')}
               onIcs={(item) => trackItem(item, 'ics')}

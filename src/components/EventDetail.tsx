@@ -8,6 +8,7 @@ import {
   googleCalendarUrl,
 } from '@/lib/calendar';
 import { filterItemsByCommune, normalizeCommune } from '@/lib/commune';
+import { filterSeancesForActiveFilters } from '@/lib/displayFilter';
 import { isLikelyMobile } from '@/lib/displayHome';
 import SeanceCard from './SeanceCard';
 import ShareButton from './ShareButton';
@@ -432,11 +433,22 @@ export default function EventDetail({
       formatHeure(p.heure_debut) +
       (p.heure_fin ? ` – ${formatHeure(p.heure_fin)}` : '');
     const categorie = ev?.categorie ?? '';
-    const upcomingRelated = filterItemsByCommune(
+    const upcomingRelated = filterSeancesForActiveFilters(
       hideSeancesBeforeToday(relatedItems, parisParts().iso),
-      selectedCommune,
+      { commune: selectedCommune, lieuId: selectedLieuId },
     );
-    const hasFilmSeances = upcomingRelated.length > 0;
+    const selfMatches =
+      filterSeancesForActiveFilters([item], {
+        commune: selectedCommune,
+        lieuId: selectedLieuId,
+      }).length > 0;
+    const seancesForList =
+      upcomingRelated.length > 0
+        ? upcomingRelated
+        : selfMatches
+          ? [item]
+          : [];
+    const hasFilmSeances = seancesForList.length > 0;
 
     return (
       <div
@@ -547,7 +559,7 @@ export default function EventDetail({
                   Séances
                 </h3>
                 <FilmSeancesList
-                  items={upcomingRelated}
+                  items={seancesForList}
                   onSelectVenue={
                     onSelectVenue
                       ? (lieuId) => {

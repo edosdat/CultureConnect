@@ -187,7 +187,7 @@ function clockHHMM(raw: string | undefined | null): string {
 export function seanceClockHHMM(item: {
   kind?: string;
   programme?: { heure_debut?: string };
-  evenement?: { heure_debut?: string };
+  evenement?: { heure_debut?: string } | null;
 }): string {
   if (item.kind === 'programme') {
     return (
@@ -202,7 +202,7 @@ export function seanceClockHHMM(item: {
 export function isSoirSeance(item: {
   kind?: string;
   programme?: { heure_debut?: string };
-  evenement?: { heure_debut?: string };
+  evenement?: { heure_debut?: string } | null;
 }): boolean {
   const h = seanceClockHHMM(item);
   return Boolean(h) && h >= '19:00';
@@ -233,7 +233,7 @@ export function filterSeancesForDisplay<
   T extends {
     dayIso?: string;
     programme?: { date?: string; heure_debut?: string };
-    evenement?: { heure_debut?: string };
+    evenement?: { heure_debut?: string } | null;
     kind?: string;
   },
 >(
