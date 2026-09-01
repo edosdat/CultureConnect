@@ -12,6 +12,7 @@ import { filmIdOfItem } from '@/lib/nouveautesCine';
 import { catsAllowCinemaPack, genreBelongsToMains, mainFromGenreSlug } from '@/lib/categories';
 import {
   capCineRows,
+  capLiveRows,
   cineRows,
   dedupAgainstTop3,
   displayReasonForItem,
@@ -906,10 +907,10 @@ export default function CultureConnectApp({
     const pool = vivantItems.length > 0 ? vivantItems : listItems;
     return liveRows(pool, top3Set);
   }, [vivantItems, listItems, top3Set]);
-  const visibleLiveRows = useMemo(
-    () => (liveExpanded ? allLiveRows : allLiveRows),
-    [allLiveRows, liveExpanded],
-  );
+  const visibleLiveRows = useMemo(() => {
+    if (liveExpanded || timeScope !== 'tous') return allLiveRows;
+    return capLiveRows(allLiveRows).slice(0, 9);
+  }, [allLiveRows, liveExpanded, timeScope]);
   const editorial = useMemo(
     () => editorialRows(listItems, nouveautesItems, top3Set, nouveauFilmIdSet),
     [listItems, nouveautesItems, top3Set, nouveauFilmIdSet],
@@ -1657,6 +1658,7 @@ export default function CultureConnectApp({
         onReserve={() => selectedItem && trackItem(selectedItem, 'reserve')}
         selectedCommune={selectedCommune}
         selectedLieuId={selectedLieuId}
+        fallbackVivant={allLiveRows.map((row) => row.item)}
       />
     </div>
   );

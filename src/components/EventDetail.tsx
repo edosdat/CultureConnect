@@ -44,6 +44,8 @@ type Props = {
   selectedCommune?: string | null;
   /** Agenda venue already selected. */
   selectedLieuId?: string | null;
+  /** Display fallback when pickAussiCeSoir is empty (tomorrow / weekend vivant). */
+  fallbackVivant?: DayItem[];
 };
 
 function useEscapeClose(active: boolean, onClose: () => void) {
@@ -396,6 +398,7 @@ export default function EventDetail({
   onReserve,
   selectedCommune,
   selectedLieuId,
+  fallbackVivant = [],
 }: Props) {
   useEscapeClose(Boolean(item), onClose);
   const [engaged, setEngaged] = useState(false);
@@ -416,7 +419,12 @@ export default function EventDetail({
   if (!item) return null;
 
   const cal = calendarPayloadFromDayItem(item);
-  const showCrossSell = engaged && aussiCeSoirItems.length > 0;
+  const openKey = item.key;
+  const crossSellItems =
+    aussiCeSoirItems.length > 0
+      ? aussiCeSoirItems
+      : fallbackVivant.filter((it) => it.key !== openKey).slice(0, 2);
+  const showCrossSell = engaged && crossSellItems.length > 0;
 
   if (item.kind === 'programme') {
     const { programme: p, evenement: ev, lieu } = item;
@@ -687,7 +695,7 @@ export default function EventDetail({
 
             {showCrossSell ? (
               <AussiCeSoirSection
-                items={aussiCeSoirItems}
+                items={crossSellItems}
                 onSelectItem={onSelectItem}
               />
             ) : null}
@@ -886,7 +894,7 @@ export default function EventDetail({
 
           {showCrossSell ? (
             <AussiCeSoirSection
-              items={aussiCeSoirItems}
+              items={crossSellItems}
               onSelectItem={onSelectItem}
             />
           ) : null}
