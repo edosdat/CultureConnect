@@ -68,7 +68,11 @@ export function canUseBrowserGeolocation(
   if (typeof navigator === 'undefined' || !navigator.geolocation) return false;
   if (secureContext) return true;
   if (!loc) return false;
-  return loc.protocol === 'https:' || loc.hostname === 'localhost';
+  return (
+    loc.protocol === 'https:' ||
+    loc.hostname === 'localhost' ||
+    loc.hostname === '127.0.0.1'
+  );
 }
 
 export function requestBrowserPosition(): Promise<NearMeRequestResult> {
