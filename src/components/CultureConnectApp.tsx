@@ -1377,35 +1377,32 @@ export default function CultureConnectApp({
 
       <div className="space-y-2.5 sm:space-y-4">
         <div className="cc-axes-row">
-          <div className="cc-axes-scroll">
-            <div className="cc-axes">
-              <div className="cc-axes__col">
-                <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
-                  Quand
-                </p>
-                <TimeScopeBar
-                  scope={timeScope}
-                  onChange={handleScopeChange}
-                  hideLabel
-                />
-              </div>
-              <div
-                role="separator"
-                aria-hidden
-                className="cc-axes__rule"
-              />
-              <div className="cc-axes__col">
-                <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
-                  Quoi
-                </p>
-                <CategoryFilter
-                  selected={selectedCategories}
-                  onChange={handleCategoriesChange}
-                  variant="home"
-                />
-              </div>
-            </div>
-            <div aria-hidden className="cc-axes-fade" />
+          <div
+            className="cc-axes"
+            role="group"
+            aria-label="Quand et quoi"
+          >
+            <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
+              Quand
+            </p>
+            <TimeScopeBar
+              scope={timeScope}
+              onChange={handleScopeChange}
+              hideLabel
+            />
+            <div
+              role="separator"
+              aria-hidden
+              className="cc-axes__rule"
+            />
+            <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
+              Quoi
+            </p>
+            <CategoryFilter
+              selected={selectedCategories}
+              onChange={handleCategoriesChange}
+              variant="home"
+            />
           </div>
           <div className="cc-axes__more md:hidden">
             <button
