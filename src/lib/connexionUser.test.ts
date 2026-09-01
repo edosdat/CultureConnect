@@ -1,7 +1,13 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { parsePhraseRules, isTasteMood, TASTE_MOODS } from './phraseTags';
-import { displayReasonForItem, recoWhyForMood } from './displayHome';
+import {
+  displayReasonForItem,
+  recoWhyForMood,
+  shouldShowTop3Section,
+  top3GridClass,
+  visibleTop3Items,
+} from './displayHome';
 import { pickAussiCeSoir } from './nouveautesCine';
 import {
   recommendForProfile,
@@ -419,6 +425,54 @@ describe('search → existing session profile', () => {
   });
 });
 
+describe('top 3 adaptive layout', () => {
+  it('omits empty slots and does not invent cards to fill 3', () => {
+    const two = visibleTop3Items([
+      item({ key: 'co-only', cat: 'musique', moods: 'festif' }),
+      item({ key: 'th-only', cat: 'theatre', moods: 'tendre' }),
+    ]);
+    assert.equal(two.length, 2);
+    assert.deepEqual(
+      two.map((row) => slotFormOfItem(row)),
+      ['concert', 'theatre'],
+    );
+
+    const one = visibleTop3Items([
+      item({ key: 'cine-only', cat: 'cinema', filmId: 'F9', moods: 'rigolo' }),
+    ]);
+    assert.equal(one.length, 1);
+    assert.equal(slotFormOfItem(one[0]!), 'cine');
+
+    const none = visibleTop3Items([
+      item({ key: 'expo', cat: 'exposition', moods: 'contemplatif' }),
+    ]);
+    assert.equal(none.length, 0);
+  });
+
+  it('guest reco omits a missing form instead of padding', () => {
+    const out = recommendForProfile(
+      [item({ key: 'co-only', cat: 'musique', moods: 'festif' })],
+      emptyTasteState(),
+      3,
+      { now: NOW },
+    );
+    assert.equal(out.length, 1);
+    assert.equal(slotFormOfItem(out[0]!.item), 'concert');
+  });
+
+  it('hides the section at 0 cards and relayouts 1 / 2 / 3', () => {
+    assert.equal(shouldShowTop3Section({ ready: true, wiped: false, cardCount: 0 }), false);
+    assert.equal(shouldShowTop3Section({ ready: true, wiped: false, cardCount: 1 }), true);
+    assert.equal(shouldShowTop3Section({ ready: false, wiped: false, cardCount: 0 }), true);
+    assert.equal(shouldShowTop3Section({ ready: false, wiped: true, cardCount: 0 }), false);
+    assert.ok(!top3GridClass(1).includes('grid-cols-2'));
+    assert.ok(!top3GridClass(1).includes('lg:grid-cols-3'));
+    assert.ok(top3GridClass(2).includes('sm:grid-cols-2'));
+    assert.ok(!top3GridClass(2).includes('lg:grid-cols-3'));
+    assert.ok(top3GridClass(3).includes('lg:grid-cols-3'));
+  });
+});
+
 describe('displayReasonForItem — reco why-line only', () => {
   const opts = {
     guest: false,
@@ -431,10 +485,7 @@ describe('displayReasonForItem — reco why-line only', () => {
 
   it('uses grammatical French for locked mood overlap', () => {
     const row = item({ key: 'th-t', cat: 'theatre', moods: 'tendre' });
-    assert.equal(
-      displayReasonForItem(row, opts),
-      'parce que tu aimes le tendre',
-    );
+    assert.equal(displayReasonForItem(row, opts), 'parce que tu aimes le tendre');
   });
 
   it('agrees feminine ambiance (festif → festive)', () => {
@@ -504,13 +555,14 @@ describe('displayReasonForItem — reco why-line only', () => {
       scope: 'soir',
     });
     assert.equal(line, 'Ce soir à Toulouse');
-    assert.ok(line && !/parce que tu aimes/i.test(line));
   });
 
   it('covers all 16 moods in French, never a raw slug after ambiance', () => {
-    const rawAfterAmbiance = /ambiance\s+(festif|angoissant|contemplatif|epique|poetique|leger|tiré|tendre|rigolo)\b/;
+    const rawAfterAmbiance =
+      /ambiance\s+(festif|angoissant|contemplatif|epique|poetique|leger|tiré|tendre|rigolo)\b/;
     const english = /\b(because|like|mood|you)\b/i;
-    const rawSlugs = /\b(epique|poetique|leger|festif|dansant|contemplatif|angoissant)\b/;
+    const rawSlugs =
+      /\b(epique|poetique|leger|festif|dansant|contemplatif|angoissant)\b/;
     for (const mood of TASTE_MOODS) {
       const line = recoWhyForMood(mood);
       assert.ok(line, mood);

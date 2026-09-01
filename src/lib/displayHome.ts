@@ -108,6 +108,38 @@ export function itemGenreSlugs(item: DayItem): string[] {
   return splitTagField(raw);
 }
 
+/** Reco cards that actually exist (1 ciné + 1 théâtre + 1 concert). Omit empty slots. */
+export function visibleTop3Items(items: DayItem[]): DayItem[] {
+  const bySlot = new Map<RecoSlotForm, DayItem>();
+  for (const item of items) {
+    const slot = slotFormOfItem(item);
+    if (slot && !bySlot.has(slot)) bySlot.set(slot, item);
+  }
+  const out: DayItem[] = [];
+  for (const slot of DISPLAY_SLOT_ORDER) {
+    const hit = bySlot.get(slot);
+    if (hit) out.push(hit);
+  }
+  return out;
+}
+
+/** 0 → hide; 1 → full width; 2 → 50/50; 3 → current 3-up. */
+export function top3GridClass(count: number): string {
+  if (count <= 1) return 'grid w-full grid-cols-1 gap-3';
+  if (count === 2) return 'grid w-full grid-cols-1 gap-3 sm:grid-cols-2';
+  return 'grid w-full grid-cols-1 gap-3 lg:grid-cols-3';
+}
+
+export function shouldShowTop3Section(opts: {
+  ready: boolean;
+  wiped: boolean;
+  cardCount: number;
+}): boolean {
+  if (opts.wiped) return false;
+  if (!opts.ready) return true;
+  return opts.cardCount > 0;
+}
+
 export function eventIdOf(item: DayItem): string {
   if (item.kind === 'programme') return item.programme.event_id || '';
   return item.evenement.event_id || '';

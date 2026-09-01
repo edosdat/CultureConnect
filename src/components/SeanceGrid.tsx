@@ -10,8 +10,7 @@ import {
 import type { DayItem } from '@/lib/types';
 import { densify, densifiedCardCount } from '@/lib/densify';
 import { filmIdOfItem } from '@/lib/nouveautesCine';
-import { slotFormOfItem, type RecoSlotForm } from '@/lib/reco';
-import { DISPLAY_SLOT_ORDER } from '@/lib/displayHome';
+import { top3GridClass, visibleTop3Items } from '@/lib/displayHome';
 import SeanceCard, { type SeanceCardVariant } from './SeanceCard';
 
 type Props = {
@@ -26,10 +25,10 @@ type Props = {
   /** Server still has pages beyond the items already in memory. */
   hasMoreRemote?: boolean;
   nouveauFilmIds?: ReadonlySet<string>;
-  /** Top 3: always cine | theatre | concert cells; empty slot stays empty. */
+  /** Top 3: only real reco cards (1–3). Empty slots are omitted, not placeholders. */
   fixedSlots?: boolean;
   variant?: SeanceCardVariant;
-  /** Reco why-line (Ton top 3 / Pour toi only). Catalogue grids omit this. */
+  /** Reco why-line (Ton top 3 only). Catalogue grids omit this. */
   reasonFor?: (item: DayItem) => string | null;
 };
 
@@ -48,7 +47,7 @@ function cardNouveau(
   );
 }
 
-/** Always 3 cells in cine | theatre | concert order. No densify. */
+/** 1–3 real reco cards. Omit empty slots — no placeholder cells. */
 function FixedSlotsGrid({
   items,
   showDate,
@@ -65,32 +64,30 @@ function FixedSlotsGrid({
   | 'nouveauFilmIds'
   | 'reasonFor'
 >) {
-  const bySlot = new Map<RecoSlotForm, DayItem>();
-  for (const item of items) {
-    const slot = slotFormOfItem(item);
-    if (slot && !bySlot.has(slot)) bySlot.set(slot, item);
-  }
+  const visible = visibleTop3Items(items);
+  if (visible.length === 0) return null;
+  // 3-up keeps the compact rail. 1–2 cards use the stacked tile so they
+  // actually fill the row (full width / 50-50) instead of a left-aligned strip.
+  const cardVariant = visible.length === 3 ? 'rail' : 'default';
   return (
     <div className="space-y-4">
-      <ul className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-        {DISPLAY_SLOT_ORDER.map((slot) => {
-          const item = bySlot.get(slot);
-          return (
-            <li key={slot} className={item ? 'min-w-0' : 'min-w-0 min-h-[6.5rem]'}>
-              {item ? (
-                <SeanceCard
-                  item={item}
-                  showDate={showDate}
-                  onSelect={onSelectItem}
-                  onSelectVenue={onSelectVenue}
-                  nouveau={cardNouveau(item, nouveauFilmIds)}
-                  variant="rail"
-                  reason={reasonFor?.(item) ?? null}
-                />
-              ) : null}
-            </li>
-          );
-        })}
+      <ul
+        className={top3GridClass(visible.length)}
+        data-top3-count={visible.length}
+      >
+        {visible.map((item) => (
+          <li key={item.key} className="min-w-0 w-full">
+            <SeanceCard
+              item={item}
+              showDate={showDate}
+              onSelect={onSelectItem}
+              onSelectVenue={onSelectVenue}
+              nouveau={cardNouveau(item, nouveauFilmIds)}
+              variant={cardVariant}
+              reason={reasonFor?.(item) ?? null}
+            />
+          </li>
+        ))}
       </ul>
     </div>
   );

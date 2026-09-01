@@ -23,7 +23,9 @@ import {
   dedupAgainstTop3,
   displayReasonForItem,
   liveRows,
+  shouldShowTop3Section,
   top3IdentitySet,
+  visibleTop3Items,
 } from '@/lib/displayHome';
 import { MONTH_NAMES_FR } from '@/lib/labels';
 import {
@@ -876,6 +878,15 @@ export default function CultureConnectApp({
     activeFilter,
   ]);
 
+  const top3Cards = useMemo(
+    () => visibleTop3Items(pourToiItems),
+    [pourToiItems],
+  );
+  const showTop3Section = shouldShowTop3Section({
+    ready: recoReady,
+    wiped: recoWiped,
+    cardCount: top3Cards.length,
+  });
   const pourToiKeys = useMemo(
     () => new Set(pourToiItems.map((item) => item.key)),
     [pourToiItems],
@@ -1495,7 +1506,12 @@ export default function CultureConnectApp({
           {monthCalendar}
         </MonthCalendarDrawer>
 
-        <section className="w-full space-y-3 rounded-card-lg border border-culture-soft/80 bg-culture-surface/80 p-3 sm:p-4">
+        {showTop3Section ? (
+        <section
+          className="w-full space-y-3 rounded-card-lg border border-culture-soft/80 bg-culture-surface/80 p-3 sm:p-4"
+          data-top3=""
+          data-top3-count={recoReady ? top3Cards.length : undefined}
+        >
           <h2 className="w-full font-display text-xl leading-tight text-culture-ink sm:text-2xl">
             Ton top 3 du moment
           </h2>
@@ -1512,7 +1528,7 @@ export default function CultureConnectApp({
             <Top3Skeleton />
           ) : (
             <SeanceGrid
-              items={pourToiItems}
+              items={top3Cards}
               showDate={showDateLabels}
               onSelectItem={handleSelectHome}
               onSelectVenue={handleSelectVenue}
@@ -1523,6 +1539,7 @@ export default function CultureConnectApp({
             />
           )}
         </section>
+        ) : null}
 
         {listEmpty && !showCineBlock && !showLiveBlock ? (
           phraseMode || searchingUi ? (
@@ -1573,7 +1590,9 @@ export default function CultureConnectApp({
                 {selectedCategories.length > 0 ? ' pour cette catégorie' : ''}
               </p>
               <p className="mt-2 text-sm text-culture-muted">
-                Le top 3 reste visible. Essaie une autre période.
+                {showTop3Section
+                  ? 'Le top 3 reste visible. Essaie une autre période.'
+                  : 'Essaie une autre période.'}
               </p>
               {timeScope === 'soir' && (
                 <button
