@@ -7,6 +7,7 @@ import {
   mainFromGenreSlug,
   type MainCategoryId,
 } from '@/lib/categories';
+import { isTasteMood, parsePhraseRules, type PhraseForm } from '@/lib/phraseTags';
 import type { DayItem } from '@/lib/types';
 
 export type SignalKind =
@@ -34,6 +35,7 @@ export type Signal = {
   genres: string[];
   moods: string[];
   themes?: string[];
+  entities?: string[];
   query?: string;
   chip?: string;
   /** Extra: screening day for « même soirée » scoring. */
@@ -123,6 +125,7 @@ export type TrackPayload = {
   genres?: string[];
   moods?: string[];
   themes?: string[];
+  entities?: string[];
   query?: string;
   chip?: string;
   dayIso?: string;
@@ -289,25 +292,55 @@ function newId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+const SEARCH_FORM_TO_CAT: Record<Exclude<PhraseForm, 'autre'>, string> = {
+  cine: 'cinema',
+  theatre: 'theatre_danse',
+  concert: 'musique',
+  festival: 'festival',
+  enfants: 'enfants_famille',
+};
+
 export function makeSignal(payload: TrackPayload): Signal {
   const kind = payload.kind;
   const weight =
     typeof payload.weight === 'number' ? payload.weight : SIGNAL_WEIGHTS[kind];
+  let genres = [
+    ...new Set((payload.genres ?? []).map((g) => g.trim().toLowerCase()).filter(Boolean)),
+  ];
+  let moods = [...new Set(payload.moods ?? [])];
+  let themes = [
+    ...new Set((payload.themes ?? []).map((g) => g.trim().toLowerCase()).filter(Boolean)),
+  ];
+  let entities = [
+    ...new Set((payload.entities ?? []).map((g) => g.trim().toLowerCase()).filter(Boolean)),
+  ];
+  let categorie = payload.categorie;
+  if ((kind === 'search' || kind === 'tastes_text') && payload.query) {
+    const tags = parsePhraseRules(payload.query);
+    moods = [...new Set([...moods, ...tags.moods])];
+    genres = [...new Set([...genres, ...tags.genres])];
+    themes = [...new Set([...themes, ...tags.themes])];
+    entities = [...new Set([...entities, ...tags.entities])];
+    if (!categorie && tags.form && tags.form !== 'autre') {
+      categorie = SEARCH_FORM_TO_CAT[tags.form];
+    }
+  }
   const signal: Signal = {
     id: newId(),
     ts: new Date().toISOString(),
     kind,
     weight,
-    genres: [...new Set((payload.genres ?? []).map((g) => g.trim().toLowerCase()).filter(Boolean))],
-    moods: [...new Set(payload.moods ?? [])],
-    themes: [...new Set((payload.themes ?? []).map((g) => g.trim().toLowerCase()).filter(Boolean))],
+    genres,
+    moods,
+    themes,
+    entities,
   };
   if (payload.event_id) signal.event_id = payload.event_id;
   if (payload.programme_id) signal.programme_id = payload.programme_id;
   if (payload.film_id) signal.film_id = payload.film_id;
   if (payload.lieu_id) signal.lieu_id = payload.lieu_id;
   if (payload.commune) signal.commune = payload.commune;
-  if (payload.categorie) signal.categorie = payload.categorie;
+  if (categorie) signal.categorie = categorie;
   if (payload.query) signal.query = payload.query;
   if (payload.chip) signal.chip = payload.chip;
   if (payload.dayIso) signal.dayIso = payload.dayIso;
@@ -502,7 +535,10 @@ export function unzeroKeysTouchedBySignal(
   let next = profile;
   // chip_cat is a grid filter, not a goût — do not unzero cats.
   for (const g of signal.genres) next = unzeroProfileKey(next, 'genres', g);
-  for (const m of signal.moods) next = unzeroProfileKey(next, 'moods', m);
+  for (const m of signal.moods) {
+    if (!isTasteMood(m)) continue;
+    next = unzeroProfileKey(next, 'moods', m);
+  }
   for (const th of signal.themes ?? []) next = unzeroProfileKey(next, 'themes', th);
   return next;
 }
@@ -528,7 +564,10 @@ export function applySignalToProfile(profile: TasteProfile, signal: Signal): voi
   const w = signal.weight;
   // cats are not tastes — never addWeight on profile.cats
   for (const g of signal.genres) addWeight(profile.genres, g, w);
-  for (const m of signal.moods) addWeight(profile.moods, m, w);
+  for (const m of signal.moods) {
+    if (!isTasteMood(m)) continue;
+    addWeight(profile.moods, m, w);
+  }
   for (const th of signal.themes ?? []) addWeight(profile.themes, th, w);
   if (signal.commune) addCommuneWeight(profile.communes, signal.commune.trim(), w);
 }

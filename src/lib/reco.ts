@@ -16,6 +16,7 @@ import {
   mainFromGenreSlug,
   type MainCategoryId,
 } from '@/lib/categories';
+import { isTasteMood, TASTE_MOODS } from '@/lib/phraseTags';
 import {
   cinemaActionShare,
   cineFicheCount,
@@ -27,6 +28,7 @@ import {
   type AccountTasteState,
   type TasteProfile,
 } from '@/lib/signals';
+import { parisParts } from '@/lib/timeScope';
 
 /** Light French stopwords — keep matching useful content words. */
 const FR_STOPWORDS = new Set([
@@ -789,9 +791,23 @@ function diversifyByGenreIntents(
   return out;
 }
 
+export type RecoReasonSource = 'profile' | 'popularite' | 'nouveaute';
+
+export type RecoReason = {
+  source: RecoReasonSource;
+  mood?: string;
+  genre?: string;
+};
+
 export type ScoredDayItem = {
   item: DayItem;
   score: number;
+  reason?: RecoReason;
+};
+
+export type RecommendOptions = {
+  now?: Date;
+  nouveauFilmIds?: ReadonlySet<string>;
 };
 
 /**
@@ -1155,25 +1171,18 @@ export function profileHasChipWeight(profile?: TasteProfile | null): boolean {
   if (!profile) return false;
   return (
     Object.values(profile.genres).some((e) => entryWeight(e) > 0) ||
-    Object.values(profile.moods).some((e) => entryWeight(e) > 0) ||
+    Object.entries(profile.moods).some(
+      ([key, e]) => isTasteMood(key) && entryWeight(e) > 0,
+    ) ||
     Object.values(profile.themes ?? {}).some((e) => entryWeight(e) > 0)
   );
 }
 
 export type RecoSlotForm = 'cine' | 'theatre' | 'concert';
 
-const CLOSED_MOODS = new Set([
-  'rigolo',
-  'tendre',
-  'intense',
-  'cerveau',
-  'sombre',
-  'leger',
-  'epique',
-  'intimiste',
-  'festif',
-  'contemplatif',
-]);
+/** 16 taste moods only. `sortie` is not a goût — do not score it. */
+const CLOSED_MOODS = new Set<string>(TASTE_MOODS);
+const NO_BRIDGE_MOODS = new Set(['angoissant', 'brutal', 'cerveau']);
 const CLOSED_THEMES = new Set([
   'feminisme',
   'histoire',
@@ -1310,28 +1319,6 @@ function userPctForSlug(
   return entryPct(profile.genres[slug]);
 }
 
-/** Σ (user.pct/100)*weight for each closed-vocab slug on the event. 0 if no overlap. */
-function scoreOverlap(
-  item: DayItem,
-  profile: TasteProfile,
-  slot: RecoSlotForm,
-): number {
-  const slugs = itemClosedSlugs(item);
-  if (slugs.length === 0) return 0;
-  const weights = SLOT_WEIGHTS[slot];
-  let score = 0;
-  let hits = 0;
-  for (const slug of slugs) {
-    const bucket = bucketOfSlug(slug);
-    if (!bucket) continue;
-    const pct = userPctForSlug(profile, slug, bucket);
-    if (pct <= 0) continue;
-    hits += 1;
-    score += (pct / 100) * weights[bucket];
-  }
-  return hits === 0 ? 0 : score;
-}
-
 function itemEventId(item: DayItem): string {
   if (item.kind === 'programme') {
     return (
@@ -1348,12 +1335,230 @@ function itemProgrammeId(item: DayItem): string {
     : '';
 }
 
-/** Deterministic last key: event_id, then programme_id, then item.key. */
+function itemPrimaryGenre(item: DayItem): string {
+  const raw =
+    item.kind === 'programme'
+      ? item.programme.genre || item.evenement?.genre || ''
+      : item.evenement.genre || '';
+  return (
+    raw
+      .split(/[,;/|]+/)
+      .map((g) => g.trim().toLowerCase())
+      .find(Boolean) || ''
+  );
+}
+
+function itemTitleNorm(item: DayItem): string {
+  const raw =
+    item.kind === 'programme'
+      ? item.programme.nom_item || item.evenement?.titre || ''
+      : item.evenement.titre || '';
+  return raw
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function filmIdOf(item: DayItem): string {
+  return item.kind === 'programme'
+    ? (item.programme.film_id || '').trim()
+    : '';
+}
+
+/** Work id: densified film_id (or title), else event_id. Never raw séance rows. */
+export function workIdOf(item: DayItem): string {
+  const film = filmIdOf(item);
+  if (film) return `f:${film}`;
+  const slot = slotFormOfItem(item);
+  if (slot === 'cine') {
+    const title = itemTitleNorm(item);
+    if (title) return `t:${title}`;
+  }
+  const ev = itemEventId(item);
+  if (ev) return `e:${ev}`;
+  return item.key || '';
+}
+
+function itemClockHHMM(item: DayItem): string {
+  const raw =
+    item.kind === 'programme'
+      ? (item.programme.heure_debut || '').trim() ||
+        (item.evenement?.heure_debut || '').trim()
+      : (item.evenement.heure_debut || '').trim();
+  if (!/^\d{1,2}:\d{2}/.test(raw)) return '';
+  const slice = raw.slice(0, 5);
+  return slice.length === 4 ? `0${slice}` : slice;
+}
+
+type OverlapHit = { score: number; mood?: string; genre?: string };
+
+type OverlapCtx = {
+  idf: Map<string, number>;
+  stock: Set<string>;
+  neighborOk: Map<string, boolean>;
+};
+
+/** IDF in the slot pool: log(N / n_tag). 82% rigolo → ≈ 0. */
+function inverseMoodWeights(
+  items: DayItem[],
+  slot: RecoSlotForm,
+): Map<string, number> {
+  const inSlot = items.filter((item) => slotFormOfItem(item) === slot);
+  const n = inSlot.length;
+  const counts = new Map<string, number>();
+  for (const item of inSlot) {
+    for (const slug of itemClosedSlugs(item)) {
+      if (!CLOSED_MOODS.has(slug)) continue;
+      counts.set(slug, (counts.get(slug) ?? 0) + 1);
+    }
+  }
+  const out = new Map<string, number>();
+  if (n <= 0) return out;
+  for (const [mood, count] of counts) {
+    if (count <= 0) continue;
+    const share = count / n;
+    const raw = Math.log(n / count);
+    // Dominant tag in a large slot (theatre ≈ 82% rigolo) → 0.
+    // Tiny slot 1/1 must stay > 0 so a real mood hit still scores.
+    const idf =
+      n >= 6 && share >= 0.75 ? 0 : Math.max(raw, share >= 0.75 ? 0.15 : 0.25);
+    out.set(mood, idf);
+  }
+  return out;
+}
+
+function moodStockInSlot(items: DayItem[], slot: RecoSlotForm): Set<string> {
+  const stock = new Set<string>();
+  for (const item of items) {
+    if (slotFormOfItem(item) !== slot) continue;
+    for (const slug of itemClosedSlugs(item)) {
+      if (CLOSED_MOODS.has(slug)) stock.add(slug);
+    }
+  }
+  return stock;
+}
+
+function itemHasNeighborTargets(item: DayItem, targets: string[]): boolean {
+  const slugs = itemClosedSlugs(item);
+  const genre = itemPrimaryGenre(item);
+  const form = slotFormOfItem(item);
+  return (
+    slugs.some((s) => targets.includes(s)) ||
+    Boolean(genre && targets.includes(genre)) ||
+    Boolean(form && targets.includes(form))
+  );
+}
+
+/** Bridge only if ≥1 feasible living item in this slot is tagged that way. */
+function neighborBridgeOk(
+  pool: DayItem[],
+  slot: RecoSlotForm,
+  key: string,
+): boolean {
+  if (slot === 'cine') return false;
+  if (NO_BRIDGE_MOODS.has(key)) return false;
+  const targets = CINE_VIVANT_NEIGHBORS[key];
+  if (!targets) return false;
+  return pool.some(
+    (item) =>
+      slotFormOfItem(item) === slot && itemHasNeighborTargets(item, targets),
+  );
+}
+
+/**
+ * Σ (user.pct/100)*weight*idf. Moods only if stock in the target form.
+ * Neighbor bridge only when the living slot has tagged stock.
+ */
+function scoreOverlap(
+  item: DayItem,
+  profile: TasteProfile,
+  slot: RecoSlotForm,
+  ctx?: OverlapCtx,
+): number {
+  return scoreOverlapHit(item, profile, slot, ctx).score;
+}
+
+function scoreOverlapHit(
+  item: DayItem,
+  profile: TasteProfile,
+  slot: RecoSlotForm,
+  ctx?: OverlapCtx,
+): OverlapHit {
+  const slugs = itemClosedSlugs(item);
+  const weights = SLOT_WEIGHTS[slot];
+  let score = 0;
+  let bestMood: { slug: string; pts: number } | undefined;
+  let bestGenre: { slug: string; pts: number } | undefined;
+
+  for (const slug of slugs) {
+    const bucket = bucketOfSlug(slug);
+    if (!bucket) continue;
+    if (bucket === 'mood' && !isTasteMood(slug)) continue;
+    if (bucket === 'mood' && ctx && !ctx.stock.has(slug)) continue;
+    const pct = userPctForSlug(profile, slug, bucket);
+    if (pct <= 0) continue;
+    const idfMul =
+      bucket === 'mood' ? (ctx?.idf.get(slug) ?? Math.log(1)) : 1;
+    const pts = (pct / 100) * weights[bucket] * idfMul;
+    if (pts <= 0) continue;
+    score += pts;
+    if (bucket === 'mood' && (!bestMood || pts > bestMood.pts)) {
+      bestMood = { slug, pts };
+    }
+    if (bucket === 'genre' && (!bestGenre || pts > bestGenre.pts)) {
+      bestGenre = { slug, pts };
+    }
+  }
+
+  if (slot !== 'cine' && ctx) {
+    const keys = [
+      ...Object.entries(profile.moods),
+      ...Object.entries(profile.genres),
+    ];
+    for (const [key, entry] of keys) {
+      if (NO_BRIDGE_MOODS.has(key)) continue;
+      if (entryWeight(entry) <= 0) continue;
+      if (!ctx.neighborOk.get(key)) continue;
+      const targets = CINE_VIVANT_NEIGHBORS[key];
+      if (!targets || !itemHasNeighborTargets(item, targets)) continue;
+      const light = key === 'fiction' ? FICTION_NEIGHBOR_LIGHT : 1;
+      const pts =
+        0.35 * (entryPct(entry) / 100) * weights.mood * light;
+      if (pts <= 0) continue;
+      score += pts;
+      if (!bestGenre || pts > bestGenre.pts) bestGenre = { slug: key, pts };
+    }
+  }
+
+  if (score <= 0) return { score: 0 };
+  return {
+    score,
+    mood: bestMood?.slug,
+    genre: bestGenre?.slug,
+  };
+}
+
+/** score desc, then date+time, then key. No Math.random. */
+function compareRank(a: ScoredDayItem, b: ScoredDayItem): number {
+  if (b.score !== a.score) return b.score - a.score;
+  const day = a.item.dayIso.localeCompare(b.item.dayIso);
+  if (day !== 0) return day;
+  const clock = (itemClockHHMM(a.item) || '99:99').localeCompare(
+    itemClockHHMM(b.item) || '99:99',
+  );
+  if (clock !== 0) return clock;
+  return (a.item.key || '').localeCompare(b.item.key || '');
+}
+
 function compareItemTieBreak(a: DayItem, b: DayItem): number {
-  const ev = itemEventId(a).localeCompare(itemEventId(b));
-  if (ev !== 0) return ev;
-  const pid = itemProgrammeId(a).localeCompare(itemProgrammeId(b));
-  if (pid !== 0) return pid;
+  const day = a.dayIso.localeCompare(b.dayIso);
+  if (day !== 0) return day;
+  const clock = (itemClockHHMM(a) || '99:99').localeCompare(
+    itemClockHHMM(b) || '99:99',
+  );
+  if (clock !== 0) return clock;
   return (a.key || '').localeCompare(b.key || '');
 }
 
@@ -1364,22 +1569,7 @@ function pickBestPerSlot(scored: ScoredDayItem[]): ScoredDayItem[] {
     const slot = slotFormOfItem(entry.item);
     if (!slot) continue;
     const prev = best.get(slot);
-    if (!prev) {
-      best.set(slot, entry);
-      continue;
-    }
-    if (entry.score !== prev.score) {
-      if (entry.score > prev.score) best.set(slot, entry);
-      continue;
-    }
-    const day = entry.item.dayIso.localeCompare(prev.item.dayIso);
-    if (day !== 0) {
-      if (day < 0) best.set(slot, entry);
-      continue;
-    }
-    if (compareItemTieBreak(entry.item, prev.item) < 0) {
-      best.set(slot, entry);
-    }
+    if (!prev || compareRank(entry, prev) < 0) best.set(slot, entry);
   }
   const out: ScoredDayItem[] = [];
   for (const slot of SLOT_ORDER) {
@@ -1390,14 +1580,109 @@ function pickBestPerSlot(scored: ScoredDayItem[]): ScoredDayItem[] {
 }
 
 function itemClockKey(item: DayItem): string {
-  const raw =
-    item.kind === 'programme'
-      ? (item.programme.heure_debut || '').trim() ||
-        (item.evenement?.heure_debut || '').trim()
-      : (item.evenement.heure_debut || '').trim();
-  if (!/^\d{1,2}:\d{2}/.test(raw)) return '99:99';
-  const slice = raw.slice(0, 5);
-  return slice.length === 4 ? `0${slice}` : slice;
+  return itemClockHHMM(item) || '99:99';
+}
+
+function parisHHMM(now: Date): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Paris',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(now);
+  const hour = parts.find((p) => p.type === 'hour')?.value ?? '00';
+  const minute = parts.find((p) => p.type === 'minute')?.value ?? '00';
+  return `${hour}:${minute}`;
+}
+
+export function isTimeReachable(item: DayItem, now: Date): boolean {
+  const today = parisParts(now).iso;
+  const day = (item.dayIso || '').trim();
+  if (!day) return true;
+  if (day > today) return true;
+  if (day < today) return false;
+  const clock = itemClockHHMM(item);
+  if (!clock) return true;
+  return clock >= parisHHMM(now);
+}
+
+function normalizeCommune(c: string | null | undefined): string {
+  return (c || '').trim().toLocaleLowerCase('fr');
+}
+
+function preferredCommunes(profile: TasteProfile): Set<string> {
+  const out = new Set<string>();
+  for (const [name, w] of Object.entries(profile.communes ?? {})) {
+    if (w > 0) out.add(normalizeCommune(name));
+  }
+  return out;
+}
+
+function feasiblePool(
+  items: DayItem[],
+  profile: TasteProfile,
+  now: Date,
+): DayItem[] {
+  const reachable = items.filter((item) => isTimeReachable(item, now));
+  const timed = reachable.length > 0 ? reachable : items;
+  const communes = preferredCommunes(profile);
+  if (communes.size === 0) return timed;
+  const bySlot = new Map<RecoSlotForm, DayItem[]>();
+  for (const item of timed) {
+    const slot = slotFormOfItem(item);
+    if (!slot) continue;
+    const list = bySlot.get(slot) ?? [];
+    list.push(item);
+    bySlot.set(slot, list);
+  }
+  const out: DayItem[] = [];
+  for (const slot of SLOT_ORDER) {
+    const slotItems = bySlot.get(slot) ?? [];
+    const local = slotItems.filter((item) =>
+      communes.has(normalizeCommune(item.lieu?.commune)),
+    );
+    out.push(...(local.length > 0 ? local : slotItems));
+  }
+  return out;
+}
+
+function workFreq(items: DayItem[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    const id = workIdOf(item);
+    if (!id) continue;
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  return counts;
+}
+
+/** Living = 1/freq(work). Cine séance count is forbidden as popularity. */
+function fallbackScore(
+  item: DayItem,
+  slot: RecoSlotForm,
+  freq: Map<string, number>,
+  nouveauIds: ReadonlySet<string>,
+): { score: number; reason: RecoReason } {
+  const id = workIdOf(item);
+  const n = Math.max(1, freq.get(id) ?? 1);
+  const rarity = 1 / n;
+  if (slot === 'cine') {
+    const fid = filmIdOf(item);
+    const isNouveau = Boolean(fid && nouveauIds.has(fid));
+    return {
+      score: rarity * (isNouveau ? 1.6 : 1),
+      reason: { source: isNouveau ? 'nouveaute' : 'popularite' },
+    };
+  }
+  return { score: rarity, reason: { source: 'popularite' } };
+}
+
+export function itemIdentity(item: DayItem): string {
+  return workIdOf(item) || item.key || '';
+}
+
+export function itemIsUntagged(item: DayItem): boolean {
+  return itemClosedSlugs(item).every((s) => !CLOSED_MOODS.has(s));
 }
 
 /** Guest / no profile: soonest cine + theatre + concert. No overlap required. */
@@ -1452,38 +1737,159 @@ export function mergeSlotPicks(
   return out;
 }
 
+function scoreFallbackPool(
+  pool: DayItem[],
+  nouveauIds: ReadonlySet<string>,
+): ScoredDayItem[] {
+  const freq = workFreq(pool);
+  const scored: ScoredDayItem[] = [];
+  for (const item of pool) {
+    const slot = slotFormOfItem(item);
+    if (!slot) continue;
+    const cold = fallbackScore(item, slot, freq, nouveauIds);
+    scored.push({ item, score: cold.score, reason: cold.reason });
+  }
+  return scored;
+}
+
 /**
  * Top 3 = 1 cine + 1 theatre + 1 concert. Cat chips never filter this.
- * Overlap ranks inside a slot; empty only if that form is absent from the pool.
- * No vivant quota / neighbor fill / 2nd theatre.
+ * Guest / empty profile: popularity × living × cine nouveautés, never [].
+ * Profile: overlap only (empty slot if 0 overlap). If every slot is empty, fallback.
  */
 export function recommendForProfile(
   items: DayItem[],
   state: AccountTasteState,
   topN = 3,
+  options?: RecommendOptions,
 ): ScoredDayItem[] {
   if (items.length === 0) return [];
-  const profile = state.profile;
-  if (!profileHasChipWeight(profile)) return [];
+  const now = options?.now ?? new Date();
+  const pool = feasiblePool(items, state.profile, now);
+  if (pool.length === 0) return [];
 
-  const scored: ScoredDayItem[] = [];
-  for (const item of items) {
-    const slot = slotFormOfItem(item);
-    if (!slot) continue;
-    const score = scoreOverlap(item, profile, slot);
-    if (score <= 0) continue;
-    scored.push({ item, score });
+  const nouveauIds = options?.nouveauFilmIds ?? new Set<string>();
+  const fallback = pickBestPerSlot(scoreFallbackPool(pool, nouveauIds));
+  const hasProfile = profileHasChipWeight(state.profile);
+  const limit = Math.max(1, Math.min(topN, 3));
+
+  if (!hasProfile) {
+    return fallback.slice(0, limit).map((s) => ({
+      ...s,
+      reason: s.reason?.source === 'nouveaute'
+        ? s.reason
+        : { source: 'popularite' },
+    }));
   }
 
-  const limit = Math.max(1, topN);
-  const overlap = pickBestPerSlot(scored);
-  const merged = mergeSlotPicks(
-    overlap.map((s) => s.item),
-    pickSoonestPerSlot(items),
+  const idfBySlot = {
+    cine: inverseMoodWeights(pool, 'cine'),
+    theatre: inverseMoodWeights(pool, 'theatre'),
+    concert: inverseMoodWeights(pool, 'concert'),
+  };
+  const stockBySlot = {
+    cine: moodStockInSlot(pool, 'cine'),
+    theatre: moodStockInSlot(pool, 'theatre'),
+    concert: moodStockInSlot(pool, 'concert'),
+  };
+  const neighborKeys = [
+    ...Object.keys(state.profile.moods),
+    ...Object.keys(state.profile.genres),
+  ];
+  const neighborOkBySlot: Record<RecoSlotForm, Map<string, boolean>> = {
+    cine: new Map(),
+    theatre: new Map(),
+    concert: new Map(),
+  };
+  for (const slot of SLOT_ORDER) {
+    for (const key of neighborKeys) {
+      neighborOkBySlot[slot].set(key, neighborBridgeOk(pool, slot, key));
+    }
+  }
+
+  const affinity: ScoredDayItem[] = [];
+  for (const item of pool) {
+    const slot = slotFormOfItem(item);
+    if (!slot) continue;
+    const hit = scoreOverlapHit(item, state.profile, slot, {
+      idf: idfBySlot[slot],
+      stock: stockBySlot[slot],
+      neighborOk: neighborOkBySlot[slot],
+    });
+    if (hit.score <= 0) continue;
+    const reason: RecoReason = { source: 'profile' };
+    if (hit.mood) reason.mood = hit.mood;
+    if (hit.genre) reason.genre = hit.genre;
+    affinity.push({ item, score: 10 + hit.score, reason });
+  }
+
+  const overlap = pickBestPerSlot(affinity);
+  if (overlap.length === 0) {
+    return fallback.slice(0, limit);
+  }
+  return overlap.slice(0, limit);
+}
+
+/**
+ * 6-item row outside top 3: max 2/genre, 1 untagged / 6 (discovery,
+ * 0 personal reason), dedup vs top 3 identities.
+ */
+export function recommendSlice(
+  items: DayItem[],
+  state: AccountTasteState,
+  exclude: DayItem[] = [],
+  limit = 6,
+  options?: RecommendOptions,
+): ScoredDayItem[] {
+  if (items.length === 0 || limit <= 0) return [];
+  const now = options?.now ?? new Date();
+  const blocked = new Set(exclude.map(itemIdentity).filter(Boolean));
+  const pool = feasiblePool(items, state.profile, now).filter(
+    (item) => !blocked.has(itemIdentity(item)),
   );
-  const scoreOf = new Map(overlap.map((s) => [s.item, s.score]));
-  return merged.slice(0, limit).map((item) => ({
-    item,
-    score: scoreOf.get(item) ?? 0,
-  }));
+  if (pool.length === 0) return [];
+
+  const nouveauIds = options?.nouveauFilmIds ?? new Set<string>();
+  const scored = scoreFallbackPool(pool, nouveauIds);
+  scored.sort(compareRank);
+
+  const wantUntagged = pool.some(itemIsUntagged) ? 1 : 0;
+  const cap = Math.max(1, limit);
+  const genreCounts = new Map<string, number>();
+  const seen = new Set<string>();
+  const out: ScoredDayItem[] = [];
+  let untagged = 0;
+
+  const take = (entry: ScoredDayItem, onlyUntagged = false): boolean => {
+    const id = itemIdentity(entry.item);
+    if (id && seen.has(id)) return false;
+    if (onlyUntagged && !itemIsUntagged(entry.item)) return false;
+    const genre = itemPrimaryGenre(entry.item);
+    if (genre && (genreCounts.get(genre) ?? 0) >= 2) return false;
+    if (id) seen.add(id);
+    if (genre) genreCounts.set(genre, (genreCounts.get(genre) ?? 0) + 1);
+    if (itemIsUntagged(entry.item)) untagged += 1;
+    out.push({
+      ...entry,
+      reason: { source: entry.reason?.source === 'nouveaute' ? 'nouveaute' : 'popularite' },
+    });
+    return true;
+  };
+
+  for (const entry of scored) {
+    if (out.length >= cap) break;
+    const slotsLeft = cap - out.length;
+    if (wantUntagged > 0 && untagged < wantUntagged && slotsLeft === 1) {
+      if (!itemIsUntagged(entry.item)) continue;
+    }
+    take(entry);
+  }
+  if (wantUntagged > 0 && untagged < wantUntagged) {
+    if (out.length >= cap) out.pop();
+    for (const entry of scored) {
+      if (out.length >= cap) break;
+      take(entry, true);
+    }
+  }
+  return out.slice(0, cap);
 }
