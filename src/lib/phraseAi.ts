@@ -46,7 +46,7 @@ async function phraseTagsFromAi(
     'Tu convertis une phrase française en tags agenda. JSON strict, pas de prose.',
     'Vocabulaire:',
     'form: cine|theatre|concert|festival|enfants|autre ou null',
-    'moods ⊆ rigolo,intense,tendre,cerveau,sortie',
+    'moods ⊆ rigolo,tendre,intense,angoissant,epique,brutal,festif,cerveau,intimiste,absurde,critique,sombre,poetique,dansant,contemplatif,leger (sortie = search slug, not a goût)',
     'genres: slugs courts (funk,humour,piano,techno,jazz_blues,rock_metal_punk,hiphop_rap,classique_lyrique…) max 4',
     'themes ⊆ feminisme,histoire,politique,guerre,ecologie,science,amour,famille,colonial,immigration,lgbt,religion,sport,mer,voyage',
     'entities: canon minuscule sans accents, max 3 (ex. "de gaulle","zeniter")',

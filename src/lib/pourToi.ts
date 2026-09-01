@@ -3,7 +3,13 @@
  * Phrase mapping uses parsePhraseRules (same dico as the search phrase).
  */
 import type { MainCategoryId } from '@/lib/categories';
-import { normalizePhrase, parsePhraseRules, type PhraseForm } from '@/lib/phraseTags';
+import {
+  isTasteMood,
+  normalizePhrase,
+  parsePhraseRules,
+  tasteMoodsOf,
+  type PhraseForm,
+} from '@/lib/phraseTags';
 import {
   SIGNAL_WEIGHTS,
   cineFicheCount,
@@ -118,6 +124,7 @@ export function profileChips(
     for (const [key, entry] of Object.entries(map ?? {})) {
       const weight = entryWeight(entry);
       if (weight <= 0 || !key || isCatTasteKey(key)) continue;
+      if (bucket === 'moods' && !isTasteMood(key)) continue;
       raw.push({
         bucket,
         key,
@@ -173,7 +180,7 @@ export function phraseToTrackPayload(text: string): TrackPayload | null {
   const tags = parsePhraseRules(raw);
   const cat =
     tags.form && tags.form !== 'autre' ? FORM_TO_CAT[tags.form] : undefined;
-  const moods = [...tags.moods];
+  const moods = tasteMoodsOf(tags.moods);
   const genres = [...new Set([...tags.genres, ...tags.themes])];
   if (!cat && moods.length === 0 && genres.length === 0) return null;
   if (cat && moods.length === 0 && genres.length === 0) {

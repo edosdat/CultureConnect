@@ -52,7 +52,13 @@ import {
   upcomingRange,
   type TimeScopeId,
 } from './timeScope';
-import { mergeSlotPicks, pickSoonestPerSlot, profileHasChipWeight, recommendForProfile } from './reco';
+import {
+  mergeSlotPicks,
+  pickSoonestPerSlot,
+  profileHasChipWeight,
+  recommendForProfile,
+  slotFormOfItem,
+} from './reco';
 import type { TasteEntry, TasteProfile } from './signals';
 import { normalizeDeepLinkId } from './deepLink';
 
@@ -858,18 +864,41 @@ export function queryAgenda(
       input.scope === 'tous'
         ? upcoming.filter((item) => (item.dayIso || '').trim() > paris.iso)
         : windowPool;
-    const profile = input.recoProfile ?? null;
-    const preferred =
-      profile && profileHasChipWeight(profile)
-        ? recommendForProfile(pool, { signalsRecent: [], profile }, 3).map(
-            (s) => s.item,
-          )
-        : pickSoonestPerSlot(pool);
-    const fromPool = mergeSlotPicks(preferred, pickSoonestPerSlot(pool));
-    // tous: fill an empty slot from date>=today only (no skip-past).
+    const profile = input.recoProfile ?? {
+      cats: {},
+      moods: {},
+      genres: {},
+      themes: {},
+      communes: {},
+    };
+    const scored = recommendForProfile(
+      pool,
+      { signalsRecent: [], profile },
+      3,
+      { now, nouveauFilmIds: nouveauFilmIds(data.programmeWithContext, now) },
+    );
+    const preferred = scored.map((s) => s.item);
+    const fromPool = profileHasChipWeight(profile)
+      ? preferred
+      : mergeSlotPicks(preferred, pickSoonestPerSlot(pool));
+    const haveSlots = new Set(
+      fromPool.map((item) => slotFormOfItem(item)).filter(Boolean),
+    );
+    // tous: missing FORM (not 0-overlap) from date>=today.
     const pickedRaw =
-      input.scope === 'tous'
-        ? mergeSlotPicks(fromPool, pickSoonestPerSlot(windowPool))
+      input.scope === 'tous' && haveSlots.size < 3
+        ? mergeSlotPicks(
+            fromPool,
+            recommendForProfile(
+              windowPool,
+              { signalsRecent: [], profile },
+              3,
+              {
+                now,
+                nouveauFilmIds: nouveauFilmIds(data.programmeWithContext, now),
+              },
+            ).map((s) => s.item),
+          )
         : fromPool;
     // Reco never surfaces a seance before today Paris (26/08 and earlier).
     const picked = pickedRaw.filter((item) => isStillUpcomingSeance(item, now));

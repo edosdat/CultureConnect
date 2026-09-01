@@ -250,9 +250,21 @@ export function nouveautesCine(
   return candidates.slice(0, MAX_PACK).map((c) => toDayItem(c.representative));
 }
 
+function minutesOfHeure(raw: string): number | null {
+  const h = (raw || '').trim();
+  if (!/^\d{1,2}:\d{2}/.test(h)) return null;
+  const [hh, mm] = h.slice(0, 5).split(':').map(Number);
+  return (hh ?? 0) * 60 + (mm ?? 0);
+}
+
+function workKeyAussi(item: DayItem): string {
+  return eventKeyOf(item);
+}
+
 /**
- * 1–3 vivant items from tonight's Ce soir list.
- * Same commune if any, else all. Empty → omit the section.
+ * Tonight, living, ≠ opened item.
+ * Sort: rarity (1/freq) then max |Δheure| from the sheet (not the adjacent
+ * séance). Commune if stock else all. Limit 3. Tie-break key. 0 random.
  */
 export function pickAussiCeSoir(
   ceSoirItems: DayItem[],
@@ -266,6 +278,7 @@ export function pickAussiCeSoir(
       ? openItem.programme.event_id || ''
       : openItem.evenement.event_id || '';
   const openCommune = normalizeCommune(openItem.lieu?.commune);
+  const openMin = minutesOfHeure(itemHeure(openItem));
 
   const vivant = ceSoirItems.filter((item) => {
     if (item.key === openKey) return false;
@@ -280,11 +293,23 @@ export function pickAussiCeSoir(
     : [];
   const pool = sameCommune.length > 0 ? sameCommune : vivant;
 
+  const freq = new Map<string, number>();
+  for (const item of pool) {
+    const k = workKeyAussi(item);
+    freq.set(k, (freq.get(k) ?? 0) + 1);
+  }
+
   const sorted = [...pool].sort((a, b) => {
-    const ha = itemHeure(a) || '99:99';
-    const hb = itemHeure(b) || '99:99';
-    const byHeure = ha.localeCompare(hb);
-    if (byHeure !== 0) return byHeure;
+    const ra = 1 / Math.max(1, freq.get(workKeyAussi(a)) ?? 1);
+    const rb = 1 / Math.max(1, freq.get(workKeyAussi(b)) ?? 1);
+    if (rb !== ra) return rb - ra;
+    const ma = minutesOfHeure(itemHeure(a));
+    const mb = minutesOfHeure(itemHeure(b));
+    const da =
+      openMin != null && ma != null ? Math.abs(ma - openMin) : -1;
+    const db =
+      openMin != null && mb != null ? Math.abs(mb - openMin) : -1;
+    if (db !== da) return db - da;
     return a.key.localeCompare(b.key);
   });
 
