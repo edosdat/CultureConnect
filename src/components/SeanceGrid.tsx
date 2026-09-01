@@ -29,6 +29,7 @@ type Props = {
   /** Top 3: always cine | theatre | concert cells; empty slot stays empty. */
   fixedSlots?: boolean;
   variant?: SeanceCardVariant;
+  /** Reco why-line (Ton top 3 / Pour toi only). Catalogue grids omit this. */
   reasonFor?: (item: DayItem) => string | null;
 };
 

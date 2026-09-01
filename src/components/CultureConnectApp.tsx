@@ -1612,7 +1612,6 @@ export default function CultureConnectApp({
             <LiveCarousel
               rows={visibleLiveRows}
               onSelectItem={handleSelectHome}
-              reasonFor={reasonFor}
             />
           </HomeSection>
         ) : null}
@@ -1630,7 +1629,6 @@ export default function CultureConnectApp({
               onSelectItem={handleSelectHome}
               onSelectVenue={handleSelectVenue}
               nouveauFilmIds={nouveauFilmIdSet}
-              reasonFor={reasonFor}
             />
           </HomeSection>
         ) : null}

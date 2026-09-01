@@ -10,7 +10,6 @@ import FavoriteButton from './FavoriteButton';
 type Props = {
   rows: DenseRow[];
   onSelectItem: (key: string) => void;
-  reasonFor?: (item: DenseRow['item']) => string | null;
 };
 
 function imageUrl(row: DenseRow): string {
@@ -24,7 +23,7 @@ function imageUrl(row: DenseRow): string {
   return (item.evenement.image_url || '').trim();
 }
 
-export default function LiveCarousel({ rows, onSelectItem, reasonFor }: Props) {
+export default function LiveCarousel({ rows, onSelectItem }: Props) {
   const stripRef = useRef<HTMLUListElement | null>(null);
 
   function scroll(dir: -1 | 1) {
@@ -43,7 +42,6 @@ export default function LiveCarousel({ rows, onSelectItem, reasonFor }: Props) {
           const image = imageUrl(row);
           const cat = categoryLabelOf(item);
           const when = seanceWhen(item, row.earliestHeure);
-          const reason = reasonFor?.(item);
           return (
             <li
               key={row.groupKey}
@@ -93,9 +91,6 @@ export default function LiveCarousel({ rows, onSelectItem, reasonFor }: Props) {
                     <p className="text-sm font-semibold text-culture-ink">
                       {formatLieuAffiche(item.lieu)}
                     </p>
-                  ) : null}
-                  {reason ? (
-                    <p className="text-xs italic text-culture-terracotta">{reason}</p>
                   ) : null}
                 </div>
               </button>
