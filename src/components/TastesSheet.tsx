@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSession } from 'next-auth/react';
 import { profileChips, resolveSheetProfile, SHEET_BUCKET_TITLES } from '@/lib/pourToi';
@@ -24,6 +24,7 @@ export default function TastesSheet({ open, onClose }: Props) {
   const { wipeKey, addPhrase, tasteState, guestStore, sessionStatus } =
     useSignals();
   const [draft, setDraft] = useState('');
+  const ignoreCloseUntil = useRef(0);
   const cached = readAccountProfileCache(session?.user?.email);
   const resolved = resolveSheetProfile({
     sessionStatus,
@@ -32,6 +33,15 @@ export default function TastesSheet({ open, onClose }: Props) {
     cachedAccount: cached,
   });
   const rows = profileChips(resolved.profile, 64);
+
+  useEffect(() => {
+    if (open) ignoreCloseUntil.current = performance.now() + 400;
+  }, [open]);
+
+  function closeUnlessOpeningClick() {
+    if (performance.now() < ignoreCloseUntil.current) return;
+    onClose();
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -64,7 +74,11 @@ export default function TastesSheet({ open, onClose }: Props) {
         tabIndex={-1}
         aria-label="Fermer Mes goûts"
         className="absolute inset-0 bg-culture-ink/20"
-        onClick={onClose}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onClick={closeUnlessOpeningClick}
       />
       <div
         role="dialog"
