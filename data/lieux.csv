@@ -185,3 +185,14 @@ L213,L'Autruche,Toulouse — L'Autruche,bar_scene,,Toulouse,,,,https://www.insta
 L214,Cacahuète,Toulouse — Cacahuète,bar_scene,,Toulouse,,,,https://www.facebook.com/cacahuete.toulouse/,https://www.facebook.com/cacahuete.toulouse/,URL agent | FB skip
 L215,Les Tilleuls,Toulouse — Les Tilleuls,bar_scene,,Toulouse,,,,https://www.instagram.com/lestilleuls_toulouse/,https://www.instagram.com/lestilleuls_toulouse/,URL agent | IG skip
 L216,La Brasserie du Levant,Toulouse — La Brasserie du Levant,bar,2 ter Rue Paul Charrier,Toulouse,43.5534837,1.3964038,6.9,https://www.labrasseriedulevant.fr/,https://www.labrasseriedulevant.fr/prog,Microbrasserie Thibaud/Saint-Simon. Page officielle /prog : « Pas d'événements pour le moment ». 0 invention. Scrape bars_small 2026-09-02.
+L217,Little O'Clock,Toulouse — Little O'Clock,bar_scene,,Toulouse,,,,https://www.facebook.com/littleOclock,https://www.facebook.com/littleOclock,URL agent 2026-09-02 | FB skip scrape
+L218,Le Repaire Sauvage,Saint-Orens — Le Repaire Sauvage,bar_scene,,Saint-Orens-de-Gameville,,,,https://www.instagram.com/le_repaire_sauvage/,https://www.instagram.com/le_repaire_sauvage/,URL agent | IG skip scrape
+L219,Pub O'Clock,Toulouse — Pub O'Clock,bar_scene,,Toulouse,,,,https://puboclocktoulouse.eatbu.com/,https://puboclocktoulouse.eatbu.com/,URL agent | ≠ L217 Little O'Clock | scraper HTML open mic
+L220,Sauvage Social Pub,Toulouse — Sauvage Social Pub,bar_scene,,Toulouse,,,,https://sauvagesocialpub.fr/,https://sauvagesocialpub.fr/,"URL agent | scraper HTML, peu de dates"
+L221,Kazokoo,Toulouse — Kazokoo,bar_scene,,Toulouse,,,,https://www.kazokoo.fr/,https://www.kazokoo.fr/evenements,URL agent | scraper HTML
+L222,The Four Monkeys,Toulouse — The Four Monkeys,bar_scene,,Toulouse,,,,https://thefourmonkeys.fr/,https://thefourmonkeys.fr/,"URL agent | scraper HTML, 0 grille 2026 possible"
+L223,Le Local Mini Brasserie,Toulouse — Le Local Mini Brasserie,bar_scene,,Toulouse,,,,https://www.facebook.com/LeLocalMiniBrasserie/,https://www.facebook.com/LeLocalMiniBrasserie/,URL agent | FB skip
+L224,Ôbohem,Toulouse — Ôbohem,bar_scene,,Toulouse,,,,https://www.instagram.com/obohem.bar/,https://www.instagram.com/obohem.bar/,URL agent | IG skip
+L225,The Thirsty Monk Pub,Toulouse — The Thirsty Monk,bar_scene,,Toulouse,,,,https://www.instagram.com/thethirstymonktoulouse/,https://www.instagram.com/thethirstymonktoulouse/,URL agent | IG skip
+L226,Breughel l'Ancien,Toulouse — Breughel l'Ancien,bar_scene,,Toulouse,,,,https://www.instagram.com/breughel_lancien/,https://www.instagram.com/breughel_lancien/,URL agent | site 500 | IG skip
+L227,Le Brassin's,Fonbeauzard — Le Brassin's,bar_scene,,Fonbeauzard,,,,https://lebrassins.com/,https://www.instagram.com/lebrassins/,URL agent | prog IG skip
