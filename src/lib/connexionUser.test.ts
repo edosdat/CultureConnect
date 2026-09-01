@@ -19,6 +19,7 @@ import {
   itemIsUntagged,
   workIdOf,
   densifiedCineSeanceCounts,
+  fillEmptyCineSlot,
 } from './reco';
 import {
   applySignalToProfile,
@@ -323,6 +324,61 @@ describe('recommendForProfile — guest never empty, deterministic', () => {
     const cine = out.find((s) => slotFormOfItem(s.item) === 'cine');
     assert.equal(workIdOf(cine!.item), 'f:F-NEW');
     assert.equal(cine?.reason?.source, 'nouveaute');
+  });
+
+  it('classifies cine from film_id even when categorie is not cinema', () => {
+    const filmOnly = item({
+      key: 'fid-only',
+      cat: 'festival',
+      filmId: 'F-ORPHAN',
+    });
+    assert.equal(slotFormOfItem(filmOnly), 'cine');
+  });
+
+  it('fills empty cine from the pool when ≥1 film exists (best score, else earliest)', () => {
+    const st = state({
+      profile: profile({
+        moods: { festif: { weight: 5, pct: 100 } },
+      }),
+    });
+    const laterFilm = item({
+      key: 'cine-late',
+      cat: 'cinema',
+      filmId: 'F-LATE',
+      day: '2026-09-10',
+      heure: '21:00',
+    });
+    const earlyFilm = item({
+      key: 'cine-early',
+      cat: 'cinema',
+      filmId: 'F-EARLY',
+      day: '2026-09-02',
+      heure: '18:00',
+    });
+    const pool = [
+      laterFilm,
+      earlyFilm,
+      item({ key: 'th-fest', cat: 'theatre', moods: 'festif' }),
+      item({ key: 'co-fest', cat: 'musique', moods: 'festif' }),
+    ];
+    const out = recommendForProfile(pool, st, 3, { now: NOW });
+    const cine = out.find((s) => slotFormOfItem(s.item) === 'cine');
+    assert.ok(cine, 'cine slot must fill when the pool has a film');
+    assert.equal(workIdOf(cine!.item), 'f:F-EARLY');
+    assert.ok(out.some((s) => slotFormOfItem(s.item) === 'theatre'));
+    assert.ok(out.some((s) => slotFormOfItem(s.item) === 'concert'));
+  });
+
+  it('fillEmptyCineSlot is a no-op when the upcoming pool has 0 films', () => {
+    const living = [
+      item({ key: 'th-only', cat: 'theatre' }),
+      item({ key: 'co-only', cat: 'musique' }),
+    ];
+    const filled = fillEmptyCineSlot(living, living);
+    assert.equal(
+      filled.some((row) => slotFormOfItem(row) === 'cine'),
+      false,
+    );
   });
 
   it('empty slot if 0 overlap for a signed-in profile (no stretched angoissant)', () => {

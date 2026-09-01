@@ -19,7 +19,7 @@ import { seanceDateIso } from './timeScope';
 import { profileChips } from './pourToi';
 import { isTasteMood, type TasteMood } from './phraseTags';
 import type { RecoSlotForm } from './reco';
-import { slotFormOfItem } from './reco';
+import { fillEmptyCineSlot, slotFormOfItem } from './reco';
 import type { TimeScopeId } from './timeScope';
 import { sortItemsNearestFirst, type GeoPos } from './nearMe';
 
@@ -124,6 +124,41 @@ export function visibleTop3Items(items: DayItem[]): DayItem[] {
     if (hit) out.push(hit);
   }
   return out;
+}
+
+/** Distinct reco buckets present (cine / theatre / concert). */
+export function recoSlotsOf(items: DayItem[]): Set<RecoSlotForm> {
+  const slots = new Set<RecoSlotForm>();
+  for (const item of items) {
+    const slot = slotFormOfItem(item);
+    if (slot) slots.add(slot);
+  }
+  return slots;
+}
+
+/**
+ * Stale `cc.profileReco.v1`: fewer than 3 buckets while the densified
+ * carousel of the same scope still has cine.
+ */
+export function shouldInvalidateProfileRecoCache(
+  cached: DayItem[],
+  densifiedCineCount: number,
+): boolean {
+  if (densifiedCineCount <= 0) return false;
+  return recoSlotsOf(cached).size < 3;
+}
+
+/**
+ * If reco is missing cine and the upcoming pool has ≥1 film, fill that slot.
+ */
+export function fillEmptyCineFromPool(
+  recoItems: DayItem[],
+  filmPool: DayItem[],
+): DayItem[] {
+  if (recoSlotsOf(recoItems).has('cine')) return recoItems;
+  const films = filmPool.filter((item) => slotFormOfItem(item) === 'cine');
+  if (films.length === 0) return recoItems;
+  return fillEmptyCineSlot(recoItems, films);
 }
 
 /** 0 → hide; 1 → full width; 2 → 50/50; 3 → current 3-up. */
