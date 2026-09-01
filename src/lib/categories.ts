@@ -2,7 +2,8 @@
  * Main UI category buckets for CultureConnect filters.
  * Raw CSV `evenements.categorie` and `genres_legend.famille` map into these 6.
  * Option A (Eloi): Expo & patrimoine + Enfants / familles are top-level buckets,
- * NOT music genres. Only guinguette_sorties sits under Musique as a style chip.
+ * NOT music genres. Guinguette + Blind test sit under Musique as style chips.
+ * `blindtest` is a catalogue chip (genre column / titre), not vocab 89.
  */
 
 export type MainCategoryId =
@@ -131,6 +132,8 @@ export const GENRE_SLUG_TO_MAIN: Record<string, MainCategoryId> = {
   musique_autre: 'musique',
   guinguette_sorties: 'musique',
   guinguette_bal: 'musique', // legacy alias
+  // Catalogue chip (evenements.genre and/or titre) — not a 89-tag vocab slug
+  blindtest: 'musique',
 
   // Théâtre & danse
   theatre_contemporain: 'theatre_danse',

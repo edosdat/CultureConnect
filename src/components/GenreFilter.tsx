@@ -74,12 +74,8 @@ export default function GenreFilter({
       return selectedMains.length > 0;
     });
 
-  const selectedExtra = selected
-    .filter((slug) => !availableSlugs.includes(slug))
-    .map(resolve)
-    .filter((g) => belongsToSelectedMains(g, selectedMains));
-
-  const allVisible = [...available, ...selectedExtra];
+  // Never keep a selected chip that has 0 matches in the current scope.
+  const allVisible = available;
 
   const byMain = new Map<string, GenreLegend[]>();
   for (const g of allVisible) {

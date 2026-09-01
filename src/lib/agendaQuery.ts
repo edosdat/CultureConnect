@@ -17,10 +17,10 @@ import { filterItemsByCommune } from './commune';
 import { densifiedCardCount } from './densify';
 import {
   countItemsByDay,
-  genreOfItem,
   itemsForDateRange,
   itemsForDay,
 } from './events';
+import { genreSlugsFromItems } from './genreChipMatch';
 import {
   filmIdOfItem,
   isCinemaDayItem,
@@ -746,16 +746,6 @@ function venuesFromWindow(items: DayItem[], selectedLieuId: string | null): Lieu
     a.nom.localeCompare(b.nom, 'fr'),
   );
 }
-
-function genreSlugsFromItems(items: DayItem[]): string[] {
-  const set = new Set<string>();
-  for (const item of items) {
-    const g = genreOfItem(item);
-    if (g) set.add(g);
-  }
-  return Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'));
-}
-
 
 function withRecoTags(item: DayItem): DayItem {
   const slim = slimDayItem(item);
