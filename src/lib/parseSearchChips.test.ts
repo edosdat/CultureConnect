@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseSearchChips } from './parseSearchChips';
+import { parseSearchChips, searchChipsToUi } from './parseSearchChips';
 
 /** Tuesday 1 September 2026, afternoon Paris. */
 const NOW = new Date('2026-09-01T14:00:00+02:00');
@@ -77,5 +77,42 @@ describe('parseSearchChips', () => {
     assert.equal(p.scope, 'soir');
     assert.deepEqual(p.categories, ['cinema', 'musique']);
     assert.equal(p.titleQuery, '');
+  });
+
+  it('never maps « ce » or « un film ce » to Date…', () => {
+    for (const q of ['ce', 'Ce', 'un film ce']) {
+      const p = parseSearchChips(q, NOW);
+      assert.notEqual(p.scope, 'date', q);
+    }
+    const filmCe = parseSearchChips('un film ce', NOW);
+    assert.deepEqual(filmCe.categories, ['cinema']);
+    assert.equal(filmCe.scope, null);
+  });
+
+  it('maps « ce soir » to Ce soir, never Date…', () => {
+    const p = parseSearchChips('ce soir', NOW);
+    assert.equal(p.scope, 'soir');
+    assert.notEqual(p.scope, 'date');
+    const ui = searchChipsToUi(p, '2026-09-01');
+    assert.equal(ui.scope, 'soir');
+    assert.equal(ui.showMonthPanel, false);
+  });
+
+  it('searchChipsToUi: film ce soir → Cinéma + Ce soir, calendar off', () => {
+    const p = parseSearchChips('un film ce soir', NOW);
+    const ui = searchChipsToUi(p, '2026-09-01');
+    assert.equal(ui.scope, 'soir');
+    assert.deepEqual(ui.categories, ['cinema']);
+    assert.equal(ui.showMonthPanel, false);
+    assert.equal(ui.selectedDate, '2026-09-01');
+    assert.notEqual(ui.scope, 'date');
+  });
+
+  it('searchChipsToUi: concert samedi opens Date… calendar', () => {
+    const p = parseSearchChips('concert samedi', NOW);
+    const ui = searchChipsToUi(p, '2026-09-01');
+    assert.equal(ui.scope, 'date');
+    assert.equal(ui.showMonthPanel, true);
+    assert.deepEqual(ui.categories, ['musique']);
   });
 });

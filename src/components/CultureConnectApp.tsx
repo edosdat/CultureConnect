@@ -53,7 +53,11 @@ import {
   phraseUsesTitleQ,
   type PhraseTags,
 } from '@/lib/phraseTags';
-import { parseSearchChips, type SearchChipParse } from '@/lib/parseSearchChips';
+import {
+  parseSearchChips,
+  searchChipsToUi,
+  type SearchChipParse,
+} from '@/lib/parseSearchChips';
 import { normalizeDeepLinkId } from '@/lib/deepLink';
 import {
   buildAgendaParams,
@@ -214,7 +218,6 @@ function clearProfileRecoCache(): void {
 }
 
 const AGENDA_PAGE_SIZE = 20;
-const SEARCH_DEBOUNCE_MS = 250;
 
 export default function CultureConnectApp({
   initialScope,
@@ -268,6 +271,8 @@ export default function CultureConnectApp({
   const [selectedCommune, setSelectedCommune] = useState<string | null>('Toulouse');
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  /** Leftover title after Enter / submit — never parsed per keystroke. */
+  const [committedTitle, setCommittedTitle] = useState('');
   const [phraseTags, setPhraseTags] = useState<PhraseTags | null>(null);
   const searchDrivenRef = useRef({ scope: false, cat: false });
   const lastSearchChipsRef = useRef({ scope: '', date: '', cat: '' });
@@ -361,8 +366,7 @@ export default function CultureConnectApp({
     setListSlowWhere(null);
   }
 
-  const parsedChips = useMemo(() => parseSearchChips(query), [query]);
-  const titleLeftover = parsedChips.titleQuery;
+  const titleLeftover = committedTitle;
 
   // Client fallback: `?e=` / `?id=` when SSR did not pass a key (client nav).
   useEffect(() => {
@@ -374,11 +378,15 @@ export default function CultureConnectApp({
 
   function applyScopeFromSearch(scope: TimeScopeId, dateIso: string | null) {
     setTimeScope(scope);
-    if (scope === 'date' && dateIso) {
-      setSelectedDay(dateIso);
-      syncMonthFromIso(dateIso);
+    if (scope === 'date') {
+      if (dateIso) {
+        setSelectedDay(dateIso);
+        syncMonthFromIso(dateIso);
+      }
+      setShowMonthPanel(true);
       return;
     }
+    setShowMonthPanel(false);
     if (scope === 'aujourdhui' || scope === 'soir') {
       setSelectedDay(initialParisIso);
       syncMonthFromIso(initialParisIso);
@@ -391,27 +399,18 @@ export default function CultureConnectApp({
     }
   }
 
+  /** Enter / search submit only. Empty raw = vider ≠ décocher (chips stay). */
   function applyParsedChips(parsed: SearchChipParse, raw: string) {
-    if (!raw.trim()) {
-      if (searchDrivenRef.current.scope) {
-        applyScopeFromSearch('tous', null);
-        searchDrivenRef.current.scope = false;
-      }
-      if (searchDrivenRef.current.cat) {
-        setSelectedCategories([]);
-        searchDrivenRef.current.cat = false;
-      }
-      lastSearchChipsRef.current = { scope: '', date: '', cat: '' };
-      return;
-    }
-    const scopeKey = parsed.scope ?? '';
-    const dateKey = parsed.selectedDate ?? '';
-    const catKey = parsed.categories.slice().sort().join(',');
+    if (!raw.trim()) return;
+    const ui = searchChipsToUi(parsed, initialParisIso);
+    const scopeKey = ui.scope ?? '';
+    const dateKey = ui.selectedDate ?? '';
+    const catKey = ui.categories.slice().sort().join(',');
     const prev = lastSearchChipsRef.current;
 
-    if (parsed.scope) {
+    if (ui.scope) {
       if (prev.scope !== scopeKey || prev.date !== dateKey) {
-        applyScopeFromSearch(parsed.scope, parsed.selectedDate);
+        applyScopeFromSearch(ui.scope, ui.selectedDate);
       }
       searchDrivenRef.current.scope = true;
     } else if (searchDrivenRef.current.scope) {
@@ -419,9 +418,9 @@ export default function CultureConnectApp({
       searchDrivenRef.current.scope = false;
     }
 
-    if (parsed.categories.length > 0) {
+    if (ui.categories.length > 0) {
       if (prev.cat !== catKey) {
-        setSelectedCategories(parsed.categories);
+        setSelectedCategories(ui.categories);
       }
       searchDrivenRef.current.cat = true;
     } else if (searchDrivenRef.current.cat) {
@@ -432,33 +431,26 @@ export default function CultureConnectApp({
     lastSearchChipsRef.current = { scope: scopeKey, date: dateKey, cat: catKey };
   }
 
-  // Title leftover: debounce 250ms. Date/category chips apply on the same keystroke.
-  useEffect(() => {
-    if (!titleLeftover) {
-      setDebouncedQuery('');
-      return;
-    }
-    const id = window.setTimeout(
-      () => setDebouncedQuery(titleLeftover),
-      SEARCH_DEBOUNCE_MS,
-    );
-    return () => window.clearTimeout(id);
-  }, [titleLeftover]);
-
   function handleQueryChange(next: string) {
     setQuery(next);
-    applyParsedChips(parseSearchChips(next), next);
     if (next.trim() === '') {
+      setCommittedTitle('');
       setDebouncedQuery('');
       setPhraseTags(null);
     }
   }
 
+  function handleSearchSubmit(raw: string) {
+    const parsed = parseSearchChips(raw);
+    applyParsedChips(parsed, raw);
+    setCommittedTitle(parsed.titleQuery);
+    setDebouncedQuery(parsed.titleQuery);
+  }
+
   const queryTrimmed = query.trim();
   const phraseMode = false;
-  /** Immediate: leftover title only — chip-only phrases are not a title search. */
+  /** Leftover title after submit — chip-only phrases are not a title search. */
   const searchingUi = titleLeftover.length > 0;
-  /** Debounced leftover title. */
   const searching = debouncedQuery.trim().length > 0;
 
   const scopeRange = useMemo(
@@ -1066,7 +1058,7 @@ export default function CultureConnectApp({
     selectedDay,
     year,
     month,
-    query,
+    debouncedQuery,
     selectedCommune,
     selectedLieuId,
     selectedCategories,
@@ -1384,7 +1376,11 @@ export default function CultureConnectApp({
       <h1 className="sr-only">Agenda CultureConnect</h1>
 
       <div className="sticky top-0 z-20 -mx-4 mb-2 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-1.5 backdrop-blur sm:-mx-6 sm:px-6">
-        <SearchOmnibox value={query} onChange={handleQueryChange} />
+        <SearchOmnibox
+          value={query}
+          onChange={handleQueryChange}
+          onSubmit={handleSearchSubmit}
+        />
       </div>
 
       <div className="space-y-2.5 sm:space-y-4">

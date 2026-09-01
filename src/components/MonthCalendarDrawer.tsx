@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode, type SyntheticEvent } from 'react';
 import { createPortal } from 'react-dom';
 
 type Props = {
@@ -11,6 +11,8 @@ type Props = {
 };
 
 const ANIM_MS = 200;
+/** Swallow the mobile ghost click that would hit Connecte-toi / Google. */
+const GHOST_CLICK_MS = 350;
 
 /** Desktop: right slide-in (max-w-md). Mobile: bottom sheet. Close keeps filters. */
 export default function MonthCalendarDrawer({
@@ -38,7 +40,10 @@ export default function MonthCalendarDrawer({
       return () => cancelAnimationFrame(id);
     }
     setVisible(false);
-    const t = window.setTimeout(() => setShouldRender(false), ANIM_MS);
+    const t = window.setTimeout(
+      () => setShouldRender(false),
+      ANIM_MS + GHOST_CLICK_MS,
+    );
     return () => window.clearTimeout(t);
   }, [open, mounted]);
 
@@ -56,19 +61,29 @@ export default function MonthCalendarDrawer({
     };
   }, [open, onClose]);
 
+  function dismiss(e: SyntheticEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (open) onClose();
+  }
+
   if (!mounted || !shouldRender) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-40 h-dvh min-h-dvh overflow-x-hidden" role="presentation">
+    <div
+      className="fixed inset-0 z-50 h-dvh min-h-dvh overflow-x-hidden pointer-events-auto"
+      role="presentation"
+    >
       <button
         type="button"
         tabIndex={-1}
         aria-label="Fermer le calendrier"
         className={
-          'absolute inset-0 bg-culture-ink/20 transition-opacity duration-200 ease-out ' +
+          'absolute inset-0 bg-culture-ink/20 transition-opacity duration-200 ease-out pointer-events-auto ' +
           (visible ? 'opacity-100' : 'opacity-0')
         }
-        onClick={onClose}
+        onPointerDown={dismiss}
+        onClick={dismiss}
       />
       <div
         role="dialog"
@@ -96,7 +111,8 @@ export default function MonthCalendarDrawer({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onPointerDown={dismiss}
+            onClick={dismiss}
             className="shrink-0 rounded-full border border-culture-line bg-culture-cream px-3 py-1.5 text-sm font-medium text-culture-ink hover:bg-white"
           >
             Fermer

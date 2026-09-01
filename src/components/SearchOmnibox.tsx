@@ -5,16 +5,26 @@ import { SEARCH_PLACEHOLDER } from '@/lib/displayHome';
 type Props = {
   value: string;
   onChange: (value: string) => void;
+  /** Chips apply here only — never on each keystroke. */
+  onSubmit?: (value: string) => void;
   placeholder?: string;
 };
 
 export default function SearchOmnibox({
   value,
   onChange,
+  onSubmit,
   placeholder = SEARCH_PLACEHOLDER,
 }: Props) {
   return (
-    <div className="relative w-full">
+    <form
+      role="search"
+      className="relative w-full"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit?.(value);
+      }}
+    >
       <label htmlFor="cc-search" className="sr-only">
         {placeholder}
       </label>
@@ -26,13 +36,14 @@ export default function SearchOmnibox({
       </span>
       <input
         id="cc-search"
-        type="text"
+        type="search"
         inputMode="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         aria-label={placeholder}
         autoComplete="off"
+        enterKeyHint="search"
         className="h-10 w-full rounded-full border border-culture-line bg-culture-surface py-0 pl-9 pr-10 text-sm text-culture-ink shadow-sm placeholder:truncate placeholder:text-culture-muted/70 focus:border-culture-terracotta focus:outline-none focus:ring-2 focus:ring-culture-terracotta/30 [&::-webkit-search-cancel-button]:appearance-none"
       />
       {value && (
@@ -45,6 +56,6 @@ export default function SearchOmnibox({
           ×
         </button>
       )}
-    </div>
+    </form>
   );
 }
