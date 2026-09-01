@@ -1591,7 +1591,7 @@ export default function CultureConnectApp({
               dateFrom={scopeRange.startIso}
               dateTo={scopeRange.endIso}
               soir={timeScope === 'soir'}
-              datePinned={timeScope === 'date' && Boolean(selectedDay)}
+              datePinned={timeScope !== 'tous'}
               hasMore={
                 (!cineExpanded && allCineRows.length > visibleCineRows.length) ||
                 listItems.length < total

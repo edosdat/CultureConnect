@@ -15,6 +15,7 @@ import {
   sortSeances,
   type DisplayFilter,
 } from '@/lib/displayFilter';
+import { seanceDateIso } from '@/lib/timeScope';
 import {
   isLikelyMobile,
   itemPitch,
@@ -35,7 +36,7 @@ type Props = {
   dateFrom?: string | null;
   dateTo?: string | null;
   soir?: boolean;
-  /** Calendar day is on — show horaires inline. Otherwise a séances dropdown. */
+  /** Date or time window is on — short list. Otherwise a séances dropdown. */
   datePinned?: boolean;
   hasMore?: boolean;
   onNeedMore?: () => void;
@@ -115,16 +116,33 @@ function FilmThumb({
   );
 }
 
+function formatDateShort(iso: string): string {
+  if (!iso) return '';
+  const [, m, d] = iso.split('-');
+  if (!m || !d) return formatDateFr(iso);
+  return `${d}/${m}`;
+}
+
+function seanceHeure(rel: DayItem): string {
+  return rel.kind === 'programme'
+    ? formatHeure(rel.programme.heure_debut)
+    : formatHeure(rel.evenement.heure_debut);
+}
+
+function compactVenue(rel: DayItem): string {
+  return (rel.lieu?.nom || '').trim() || formatLieuAffiche(rel.lieu);
+}
+
 function seanceLine(rel: DayItem): string {
-  const date = formatDateFr(
-    rel.kind === 'programme' ? rel.programme.date || rel.dayIso : rel.dayIso,
-  );
-  const heure =
-    rel.kind === 'programme'
-      ? formatHeure(rel.programme.heure_debut)
-      : formatHeure(rel.evenement.heure_debut);
+  const date = formatDateFr(seanceDateIso(rel) || rel.dayIso);
   const venue = formatLieuAffiche(rel.lieu);
-  return [date, heure, venue].filter(Boolean).join(' · ');
+  return [date, seanceHeure(rel), venue].filter(Boolean).join(' · ');
+}
+
+/** Dropdown option: « 01/09 · 10:30 · Pathé Wilson » */
+function seanceOptionLabel(rel: DayItem): string {
+  const date = formatDateShort(seanceDateIso(rel) || rel.dayIso);
+  return [date, seanceHeure(rel), compactVenue(rel)].filter(Boolean).join(' · ');
 }
 
 export default function CinemaCarousel({
@@ -146,8 +164,10 @@ export default function CinemaCarousel({
   onSelectLive,
 }: Props) {
   const [heroIndex, setHeroIndex] = useState(0);
+  const [pickedKey, setPickedKey] = useState<string | null>(null);
   const stripRef = useRef<HTMLDivElement | null>(null);
   const seancesRef = useRef<HTMLDivElement | null>(null);
+  const selectRef = useRef<HTMLSelectElement | null>(null);
   const [related, setRelated] = useState<DayItem[]>([]);
   const [aussi, setAussi] = useState<DayItem[]>([]);
   const [engaged, setEngaged] = useState(false);
@@ -169,6 +189,10 @@ export default function CinemaCarousel({
   }, [heroIndex, rows.length]);
 
   const hero = rows[heroIndex] ?? rows[0];
+
+  useEffect(() => {
+    setPickedKey(null);
+  }, [hero?.item.key]);
   const displayFilter: DisplayFilter = {
     startIso: dateFrom,
     endIso: dateTo,
@@ -233,10 +257,7 @@ export default function CinemaCarousel({
 
   const item = hero.item;
   const image = posterUrl(item);
-  const when = seanceWhen(item, hero.earliestHeure);
-  const venue = formatLieuAffiche(item.lieu);
   const cat = categoryLabelOf(item);
-  const cal = calendarPayloadFromDayItem(item);
   const groupSeances = filterSeancesForActiveFilters(
     hero.seances?.length ? hero.seances : [item],
     displayFilter,
@@ -247,6 +268,14 @@ export default function CinemaCarousel({
     ...groupSeances,
     ...fromApi.filter((s) => !seanceKeys.has(s.key)),
   ]);
+  const active =
+    seances.find((s) => s.key === pickedKey) ??
+    seances.find((s) => s.key === item.key) ??
+    seances[0] ??
+    item;
+  const when = seanceWhen(active);
+  const venue = formatLieuAffiche(active.lieu);
+  const cal = calendarPayloadFromDayItem(active);
   const crossSell = filterSeancesForActiveFilters(
     aussi.length > 0
       ? aussi
@@ -333,24 +362,42 @@ export default function CinemaCarousel({
               </p>
               <ul className="mt-1 space-y-1 text-sm text-culture-ink">
                 {seances.map((rel) => (
-                  <li key={rel.key}>{seanceLine(rel)}</li>
+                  <li key={rel.key}>
+                    <button
+                      type="button"
+                      onClick={() => setPickedKey(rel.key)}
+                      className={
+                        'w-full text-left ' +
+                        (rel.key === active.key
+                          ? 'font-medium text-culture-ink'
+                          : 'text-culture-ink/80 hover:text-culture-ink')
+                      }
+                    >
+                      {seanceLine(rel)}
+                    </button>
+                  </li>
                 ))}
               </ul>
             </>
           ) : (
-            <details className="group rounded-lg border border-culture-line bg-culture-cream/60 px-3 py-2">
-              <summary className="cursor-pointer text-sm font-semibold text-culture-ink">
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-wide text-culture-muted">
                 Séances
-                <span className="ml-1 font-normal text-culture-muted">
-                  ({seances.length})
-                </span>
-              </summary>
-              <ul className="mt-2 space-y-1 text-sm text-culture-ink">
+              </span>
+              <select
+                ref={selectRef}
+                value={active.key}
+                onChange={(e) => setPickedKey(e.target.value)}
+                aria-label="Choisir une séance"
+                className="mt-1 h-11 w-full rounded-lg border border-culture-line bg-culture-surface px-3 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
+              >
                 {seances.map((rel) => (
-                  <li key={rel.key}>{seanceLine(rel)}</li>
+                  <option key={rel.key} value={rel.key}>
+                    {seanceOptionLabel(rel)}
+                  </option>
                 ))}
-              </ul>
-            </details>
+              </select>
+            </label>
           )
         ) : null}
       </div>
@@ -359,8 +406,15 @@ export default function CinemaCarousel({
           type="button"
           onClick={() => {
             const box = seancesRef.current;
-            const details = box?.querySelector('details');
-            if (details) details.open = true;
+            const select = selectRef.current;
+            if (select) {
+              select.focus();
+              try {
+                select.showPicker?.();
+              } catch {
+                /* native picker not available */
+              }
+            }
             box?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           }}
           className="inline-flex min-h-10 items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-semibold text-white hover:bg-culture-clay"
@@ -375,7 +429,7 @@ export default function CinemaCarousel({
               rel="noopener noreferrer"
               onClick={() => {
                 setEngaged(true);
-                onAgenda?.(item);
+                onAgenda?.(active);
               }}
               className="inline-flex min-h-10 items-center rounded-full border border-culture-line bg-white px-3 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
             >
@@ -383,10 +437,10 @@ export default function CinemaCarousel({
             </a>
             {mobileCal ? (
               <a
-                href={webcalHref(item.key)}
+                href={webcalHref(active.key)}
                 onClick={() => {
                   setEngaged(true);
-                  onIcs?.(item);
+                  onIcs?.(active);
                 }}
                 className="inline-flex min-h-10 items-center rounded-full border border-culture-line bg-white px-3 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
               >
@@ -397,7 +451,7 @@ export default function CinemaCarousel({
                 type="button"
                 onClick={() => {
                   setEngaged(true);
-                  onIcs?.(item);
+                  onIcs?.(active);
                   downloadIcs(cal);
                 }}
                 className="inline-flex min-h-10 items-center rounded-full border border-culture-line bg-white px-3 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
@@ -407,7 +461,7 @@ export default function CinemaCarousel({
             )}
           </>
         ) : null}
-        <ShareButton item={item} />
+        <ShareButton item={active} />
       </div>
       {engaged && crossSell.length > 0 ? (
         <div className="border-t border-culture-line pt-2">
