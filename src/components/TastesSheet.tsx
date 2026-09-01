@@ -23,7 +23,6 @@ export default function TastesSheet({ open, onClose }: Props) {
   const { data: session } = useSession();
   const { wipeKey, addPhrase, tasteState, guestStore, sessionStatus } =
     useSignals();
-  const [mounted, setMounted] = useState(false);
   const [draft, setDraft] = useState('');
   const cached = readAccountProfileCache(session?.user?.email);
   const resolved = resolveSheetProfile({
@@ -33,10 +32,6 @@ export default function TastesSheet({ open, onClose }: Props) {
     cachedAccount: cached,
   });
   const rows = profileChips(resolved.profile, 64);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -56,7 +51,7 @@ export default function TastesSheet({ open, onClose }: Props) {
     if (!open) setDraft('');
   }, [open]);
 
-  if (!mounted || !open) return null;
+  if (!open || typeof document === 'undefined') return null;
 
   return createPortal(
     <div
@@ -75,6 +70,7 @@ export default function TastesSheet({ open, onClose }: Props) {
         role="dialog"
         aria-modal="true"
         aria-label="Mes goûts"
+        data-tastes-dialog="1"
         className={
           'absolute inset-x-0 bottom-0 flex max-h-[80dvh] w-full max-w-full min-w-0 flex-col bg-culture-surface shadow-xl ' +
           'rounded-t-3xl border border-culture-line pb-[env(safe-area-inset-bottom,0px)] ' +

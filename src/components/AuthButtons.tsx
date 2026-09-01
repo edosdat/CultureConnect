@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
-import { useTastesUi } from './Providers';
+import { requestOpenTastes, useTastesUi } from './Providers';
 import { useSignals } from './SignalsProvider';
 import MailIdeasCheckbox from './MailIdeasCheckbox';
 
@@ -127,6 +127,14 @@ export default function AuthButtons() {
     };
   }, [menuOpen]);
 
+  function openSheet(e?: { stopPropagation?: () => void; preventDefault?: () => void }) {
+    e?.stopPropagation?.();
+    e?.preventDefault?.();
+    setMenuOpen(false);
+    openTastes();
+    requestOpenTastes();
+  }
+
   const enabled =
     providersOk === true || (providersOk === null && googleAuthEnabled);
 
@@ -146,7 +154,8 @@ export default function AuthButtons() {
       >
         <button
           type="button"
-          onClick={() => openTastes()}
+          onPointerDown={openSheet}
+          onClick={openSheet}
           data-account-control="mes-gouts"
           aria-label="Mes goûts"
           className="shrink-0 rounded-full bg-culture-terracotta px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-culture-clay sm:px-3 sm:text-sm"
@@ -177,10 +186,8 @@ export default function AuthButtons() {
             <button
               type="button"
               role="menuitem"
-              onClick={() => {
-                setMenuOpen(false);
-                openTastes();
-              }}
+              onPointerDown={openSheet}
+              onClick={openSheet}
               className="block w-full px-3 py-2 text-left text-sm font-medium text-culture-ink hover:bg-white"
             >
               Mes goûts
@@ -208,7 +215,8 @@ export default function AuthButtons() {
     return (
       <button
         type="button"
-        onClick={() => openTastes()}
+        onPointerDown={openSheet}
+        onClick={openSheet}
         data-account-control="mes-gouts-pending"
         aria-label="Mes goûts"
         className="shrink-0 rounded-full bg-culture-terracotta px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-culture-clay"
