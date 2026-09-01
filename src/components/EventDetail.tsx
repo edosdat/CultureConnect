@@ -34,6 +34,8 @@ import {
   reservePickForVenueGroup,
   reservePickOf,
 } from '@/lib/reserve';
+import { isCinemaDayItem } from '@/lib/nouveautesCine';
+import VivantComplementLinks from './VivantComplementLinks';
 
 type Props = {
   item: DayItem | null;
@@ -339,13 +341,18 @@ export default function EventDetail({
 
   const cal = calendarPayloadFromDayItem(item);
   const openKey = item.key;
-  const crossSellItems =
-    aussiCeSoirItems.length > 0
+  const cinemaFiche = isCinemaDayItem(item);
+  const crossSellItems = cinemaFiche
+    ? filterItemsByCommune(
+        aussiCeSoirItems,
+        selectedCommune || 'Toulouse',
+      ).slice(0, 3)
+    : aussiCeSoirItems.length > 0
       ? filterItemsByCommune(aussiCeSoirItems, selectedCommune)
       : filterItemsByCommune(fallbackVivant, selectedCommune)
           .filter((it) => it.key !== openKey)
           .slice(0, 2);
-  const showCrossSell = engaged && crossSellItems.length > 0;
+  const showCrossSell = !cinemaFiche && engaged && crossSellItems.length > 0;
 
   if (item.kind === 'programme') {
     const { programme: p, evenement: ev, lieu } = item;
@@ -472,6 +479,14 @@ export default function EventDetail({
                 </div>
               </dl>
             )}
+
+            {cinemaFiche ? (
+              <VivantComplementLinks
+                film={item}
+                items={crossSellItems}
+                onSelect={onSelectItem}
+              />
+            ) : null}
 
             {hasFilmSeances && (
               <section>

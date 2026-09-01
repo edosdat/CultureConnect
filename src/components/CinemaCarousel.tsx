@@ -23,9 +23,11 @@ import {
   seanceWhen,
 } from '@/lib/displayHome';
 import { reservePickOf } from '@/lib/reserve';
+import { filterItemsByCommune } from '@/lib/commune';
 import VisualFallback, { categoryLabelOf } from './VisualFallback';
 import FavoriteButton from './FavoriteButton';
 import ShareButton from './ShareButton';
+import VivantComplementLinks from './VivantComplementLinks';
 
 type Props = {
   rows: DenseRow[];
@@ -191,7 +193,6 @@ export default function CinemaCarousel({
   rows,
   mobile = false,
   focusKey = null,
-  fallbackVivant = [],
   selectedCommune = null,
   selectedLieuId = null,
   dateFrom = null,
@@ -212,7 +213,6 @@ export default function CinemaCarousel({
   const selectRef = useRef<HTMLSelectElement | null>(null);
   const [related, setRelated] = useState<DayItem[]>([]);
   const [aussi, setAussi] = useState<DayItem[]>([]);
-  const [engaged, setEngaged] = useState(false);
   const [mobileCal, setMobileCal] = useState(false);
   const moreLock = useRef(0);
   const moreApi = useRef({ hasMore, onNeedMore });
@@ -262,9 +262,12 @@ export default function CinemaCarousel({
 
   useEffect(() => {
     if (!hero) return;
-    setEngaged(false);
-    setAussi([]);
-    const key = hero.item.key;
+    const groupKeys = new Set(
+      (hero.seances?.length ? hero.seances : [hero.item]).map((s) => s.key),
+    );
+    groupKeys.add(hero.item.key);
+    const key =
+      pickedKey && groupKeys.has(pickedKey) ? pickedKey : hero.item.key;
     let cancelled = false;
     const qs = new URLSearchParams();
     qs.set('id', key);
@@ -281,7 +284,10 @@ export default function CinemaCarousel({
           filterSeancesForActiveFilters(data.relatedItems ?? [], displayFilter),
         );
         setAussi(
-          filterSeancesForActiveFilters(data.aussiCeSoir ?? [], displayFilter),
+          filterItemsByCommune(
+            data.aussiCeSoir ?? [],
+            selectedCommune || 'Toulouse',
+          ),
         );
       })
       .catch(() => undefined);
@@ -290,6 +296,7 @@ export default function CinemaCarousel({
     };
   }, [
     hero?.item.key,
+    pickedKey,
     selectedCommune,
     selectedLieuId,
     dateFrom,
@@ -382,12 +389,10 @@ export default function CinemaCarousel({
   const when = seanceWhen(active);
   const venue = formatLieuAffiche(active.lieu);
   const cal = calendarPayloadFromDayItem(active);
-  const crossSell = filterSeancesForActiveFilters(
-    aussi.length > 0
-      ? aussi
-      : fallbackVivant.filter((it) => it.key !== item.key),
-    displayFilter,
-  ).slice(0, 2);
+  const complements = filterItemsByCommune(
+    aussi,
+    selectedCommune || 'Toulouse',
+  ).slice(0, 3);
 
   const thumbs = (
     <div className="relative">
@@ -445,7 +450,7 @@ export default function CinemaCarousel({
     <div
       className={
         'flex min-h-0 flex-col gap-2 overflow-y-auto p-3 sm:p-4 ' +
-        (mobile ? 'max-h-[16rem]' : 'max-h-[20rem]')
+        (mobile ? 'max-h-[18rem]' : 'max-h-[20rem]')
       }
     >
       <div className="flex items-start justify-between gap-2">
@@ -463,6 +468,11 @@ export default function CinemaCarousel({
       <p className="text-sm text-culture-muted">
         {[venue, when].filter(Boolean).join(' • ')}
       </p>
+      <VivantComplementLinks
+        film={active}
+        items={complements}
+        onSelect={onSelectLive}
+      />
       <div ref={seancesRef} id="cine-seances">
         {seances.length > 0 ? (
           datePinned ? (
@@ -530,7 +540,6 @@ export default function CinemaCarousel({
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => {
-                setEngaged(true);
                 onAgenda?.(active);
               }}
               className="inline-flex min-h-10 items-center rounded-full border border-culture-line bg-white px-3 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
@@ -541,7 +550,6 @@ export default function CinemaCarousel({
               <a
                 href={webcalHref(active.key)}
                 onClick={() => {
-                  setEngaged(true);
                   onIcs?.(active);
                 }}
                 className="inline-flex min-h-10 items-center rounded-full border border-culture-line bg-white px-3 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
@@ -552,7 +560,6 @@ export default function CinemaCarousel({
               <button
                 type="button"
                 onClick={() => {
-                  setEngaged(true);
                   onIcs?.(active);
                   downloadIcs(cal);
                 }}
@@ -565,27 +572,6 @@ export default function CinemaCarousel({
         ) : null}
         <ShareButton item={active} />
       </div>
-      {engaged && crossSell.length > 0 ? (
-        <div className="border-t border-culture-line pt-2">
-          <p className="text-sm font-medium text-culture-ink">
-            C’est noté pour ce soir. Et samedi, il y a ça à 10 min de chez toi.
-          </p>
-          <ul className="mt-1 space-y-1 text-sm">
-            {crossSell.map((it) => (
-              <li key={it.key}>
-                <button
-                  type="button"
-                  onClick={() => onSelectLive?.(it.key)}
-                  className="text-left text-culture-terracotta hover:underline"
-                >
-                  {itemTitle(it)}
-                  {it.dayIso ? ` · ${formatDateFr(it.dayIso)}` : ''}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
     </div>
   );
 

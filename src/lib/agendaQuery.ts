@@ -18,16 +18,15 @@ import { densifiedCardCount } from './densify';
 import {
   countItemsByDay,
   itemsForDateRange,
-  itemsForDay,
 } from './events';
 import { genreSlugsFromItems } from './genreChipMatch';
+import { pickFilmVivantComplements } from './filmVivantComplements';
 import {
   filmIdOfItem,
   isCinemaDayItem,
   isVivantDayItem,
   nouveauFilmIds,
   nouveautesCine,
-  pickAussiCeSoir,
 } from './nouveautesCine';
 import { itemSearchBlob, matchesNormalizedHaystack } from './searchText';
 import {
@@ -44,11 +43,13 @@ import {
   type AgendaListResponse,
 } from './slim';
 import {
+  addDaysIso,
   bootTimeScope,
   filterSeancesForDisplay,
   hideSeancesBeforeToday,
   parisParts,
   resolveScopeRange,
+  seanceDateIso,
   upcomingRange,
   type TimeScopeId,
 } from './timeScope';
@@ -1219,24 +1220,23 @@ export function queryAgendaDetail(
 
   let aussiCeSoir: DayItem[] = [];
   if (isCinemaDayItem(item)) {
-    const cardDay =
-      item.dayIso ||
-      (item.kind === 'programme' ? item.programme.date : '');
-    const tonight = cardDay
-      ? itemsForDay(
-          data.programmeWithContext,
-          data.events,
-          cardDay,
-          [],
-          [],
-          [],
-          true,
-        ).filter(startsAtOrAfter19)
-      : [];
-    aussiCeSoir = filterItemsByCommune(
-      pickAussiCeSoir(tonight, item, 3).map(slimDayItem),
-      commune,
+    const todayIso = parisParts().iso;
+    const filmDay = seanceDateIso(item) || item.dayIso || todayIso;
+    const complementCommune = (commune || '').trim() || 'Toulouse';
+    const rangeEnd = [addDaysIso(todayIso, 21), addDaysIso(filmDay, 14)].sort()[1]!;
+    const pool = itemsForDateRange(
+      data.programmeWithContext,
+      data.events,
+      todayIso,
+      rangeEnd,
+      [],
+      [],
+      [],
+      true,
     );
+    aussiCeSoir = pickFilmVivantComplements(pool, item, {
+      commune: complementCommune,
+    }).map(slimDayItem);
   }
 
   return {
