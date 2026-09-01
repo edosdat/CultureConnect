@@ -23,6 +23,7 @@ import {
   seanceWhen,
 } from '@/lib/displayHome';
 import { reservePickOf } from '@/lib/reserve';
+import { isLandscapeStill } from '@/lib/cinemaPoster';
 import VisualFallback, { categoryLabelOf } from './VisualFallback';
 import FavoriteButton from './FavoriteButton';
 import ShareButton from './ShareButton';
@@ -94,7 +95,7 @@ function FilmThumb({
             src={image}
             alt=""
             loading="lazy"
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover object-top"
           />
         ) : (
           <VisualFallback item={item} compact />
@@ -207,6 +208,7 @@ export default function CinemaCarousel({
 }: Props) {
   const [heroIndex, setHeroIndex] = useState(0);
   const [pickedKey, setPickedKey] = useState<string | null>(null);
+  const [heroLandscape, setHeroLandscape] = useState(false);
   const stripRef = useRef<HTMLDivElement | null>(null);
   const seancesRef = useRef<HTMLDivElement | null>(null);
   const selectRef = useRef<HTMLSelectElement | null>(null);
@@ -251,6 +253,7 @@ export default function CinemaCarousel({
 
   useEffect(() => {
     setPickedKey(null);
+    setHeroLandscape(false);
   }, [hero?.item.key]);
   const displayFilter: DisplayFilter = {
     startIso: dateFrom,
@@ -442,12 +445,7 @@ export default function CinemaCarousel({
   );
 
   const panel = (
-    <div
-      className={
-        'flex min-h-0 flex-col gap-2 overflow-y-auto p-3 sm:p-4 ' +
-        (mobile ? 'max-h-[16rem]' : 'max-h-[20rem]')
-      }
-    >
+    <div className="flex min-h-0 flex-col gap-2 p-3 sm:p-4">
       <div className="flex items-start justify-between gap-2">
         <span className="inline-flex rounded bg-culture-terracotta px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">
           {cat || 'Cinéma'}
@@ -594,20 +592,32 @@ export default function CinemaCarousel({
       <div
         onTouchStart={onHeroTouchStart}
         onTouchEnd={onHeroTouchEnd}
-        className="overflow-hidden rounded-card-lg border border-culture-line bg-culture-surface shadow-card md:grid md:grid-cols-[minmax(0,1.35fr)_minmax(17rem,1fr)]"
+        className="overflow-hidden rounded-card-lg border border-culture-line bg-culture-surface shadow-card md:grid md:grid-cols-[auto_minmax(0,1fr)] md:items-start"
       >
         <div
           className={
             'relative w-full overflow-hidden bg-culture-sand ' +
-            (mobile ? 'aspect-[16/7] max-h-40' : 'aspect-[16/9] max-h-[20rem]')
+            (heroLandscape
+              ? 'aspect-[16/9] md:w-[24rem] lg:w-[28rem]'
+              : 'aspect-[2/3] md:w-[16rem] lg:w-[18rem]')
           }
         >
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
+              key={image}
               src={image}
               alt=""
-              className="absolute inset-0 h-full w-full object-cover"
+              onLoad={(e) => {
+                const el = e.currentTarget;
+                setHeroLandscape(
+                  isLandscapeStill(el.naturalWidth, el.naturalHeight),
+                );
+              }}
+              className={
+                'absolute inset-0 h-full w-full object-cover ' +
+                (heroLandscape ? '' : 'object-top')
+              }
             />
           ) : (
             <div className="absolute inset-0">
