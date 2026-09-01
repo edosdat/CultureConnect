@@ -52,7 +52,7 @@ export default function SiteNav() {
             );
           })}
         </div>
-        <div className="relative z-20 ml-1 shrink-0 overflow-visible">
+        <div className="relative z-[80] ml-1 shrink-0 overflow-visible">
           <AuthButtons />
         </div>
       </div>
