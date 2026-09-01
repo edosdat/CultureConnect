@@ -1271,13 +1271,9 @@ export default function CultureConnectApp({
   }
 
   function handleCategoriesChange(next: string[]) {
-    const added = next.filter((c) => !selectedCategories.includes(c));
     setSelectedCategories(next);
     if (next.length === 0) {
       setSelectedGenres([]);
-    }
-    for (const chip of added) {
-      track({ kind: 'chip_cat', chip, categorie: chip, genres: [], moods: [] });
     }
   }
 

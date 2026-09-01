@@ -107,6 +107,11 @@ export default function TastesSheet({ open, onClose }: Props) {
           Tes goûts, en une ligne. Ça nourrit le top 3.
         </p>
         <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4">
+          {rows.length === 0 ? (
+            <p className="py-6 text-sm text-culture-muted">
+              aucun goût pour l’instant
+            </p>
+          ) : null}
           {SHEET_BUCKET_TITLES.map(({ bucket, title }) => {
             const group = rows.filter((row) => row.bucket === bucket);
             if (group.length === 0) return null;

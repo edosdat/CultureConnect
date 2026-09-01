@@ -493,6 +493,8 @@ export function unionPositiveWeights(
   for (const bucket of TASTE_BUCKETS) {
     for (const [key, entry] of Object.entries(extraC[bucket])) {
       if (!(entry.weight > 0)) continue;
+      if (bucket === 'moods' && !isTasteMood(key)) continue;
+      if (isCatTasteKey(key)) continue;
       if (entryWeight(out[bucket][key]) === 0 && out[bucket][key]) continue;
       out[bucket][key] = {
         weight: Math.max(entryWeight(out[bucket][key]), entry.weight),
@@ -560,15 +562,48 @@ function hasPositiveWeights(map: Record<string, number>): boolean {
   return Object.values(map).some((n) => n > 0);
 }
 
+/** Main cats are grid filters, never goûts — even if leaked into genres. */
+const CAT_TASTE_KEYS = new Set([
+  'cinema',
+  'cine',
+  'ciné',
+  'cinéma',
+  'theatre_danse',
+  'theatre',
+  'théâtre',
+  'musique',
+  'festival',
+  'enfants_famille',
+  'enfants',
+  'expo_patrimoine',
+  'expo',
+]);
+
+export function isCatTasteKey(key: string): boolean {
+  return CAT_TASTE_KEYS.has(key.trim().toLowerCase());
+}
+
+/** Grid filters — never a taste write. */
+export function isTasteWritingSignal(s: Pick<Signal, 'kind'>): boolean {
+  return s.kind !== 'chip_cat' && s.kind !== 'chip_time';
+}
+
 export function applySignalToProfile(profile: TasteProfile, signal: Signal): void {
+  if (!isTasteWritingSignal(signal)) return;
   const w = signal.weight;
   // cats are not tastes — never addWeight on profile.cats
-  for (const g of signal.genres) addWeight(profile.genres, g, w);
+  for (const g of signal.genres) {
+    if (isCatTasteKey(g)) continue;
+    addWeight(profile.genres, g, w);
+  }
   for (const m of signal.moods) {
     if (!isTasteMood(m)) continue;
     addWeight(profile.moods, m, w);
   }
-  for (const th of signal.themes ?? []) addWeight(profile.themes, th, w);
+  for (const th of signal.themes ?? []) {
+    if (isCatTasteKey(th)) continue;
+    addWeight(profile.themes, th, w);
+  }
   if (signal.commune) addCommuneWeight(profile.communes, signal.commune.trim(), w);
 }
 
@@ -585,6 +620,114 @@ export function concatTastesText(
   if (b.includes(a)) return b;
   if (a.includes(b)) return a;
   return `${a}. ${b}`;
+}
+
+/** Drop cats, `sortie`, and any non-biblio mood. 16 TASTE_MOODS only. */
+export function sanitizeTasteProfile(profile: TasteProfile): TasteProfile {
+  const p = coerceProfile(profile);
+  p.cats = {};
+  for (const key of Object.keys(p.moods)) {
+    if (!isTasteMood(key)) delete p.moods[key];
+  }
+  for (const bucket of ['genres', 'themes'] as const) {
+    for (const key of Object.keys(p[bucket])) {
+      if (isCatTasteKey(key)) delete p[bucket][key];
+    }
+  }
+  return recomputeProfilePcts(p);
+}
+
+export function profileHasPositiveTastes(profile?: TasteProfile | null): boolean {
+  if (!profile) return false;
+  const p = sanitizeTasteProfile(profile);
+  return (
+    hasPositiveEntryWeights(p.moods) ||
+    hasPositiveEntryWeights(p.genres) ||
+    hasPositiveEntryWeights(p.themes)
+  );
+}
+
+/** Empty guest / chip_cat-only must not merge over the account. */
+export function guestHasMergeableTastes(
+  events?: Signal[] | null,
+  profile?: TasteProfile | null,
+): boolean {
+  const tasteSignals = (events ?? []).filter(isTasteWritingSignal);
+  if (tasteSignals.length > 0) return true;
+  return profileHasPositiveTastes(profile);
+}
+
+export function pickRicherTasteState(
+  a?: AccountTasteState | null,
+  b?: AccountTasteState | null,
+): AccountTasteState {
+  const aOk = hasScorableState(a);
+  const bOk = hasScorableState(b);
+  if (aOk && !bOk) return a!;
+  if (bOk && !aOk) return b!;
+  if (aOk && bOk) {
+    const tastesText = concatTastesText(a!.tastesText, b!.tastesText);
+    return {
+      signalsRecent: mergeSignalLists(a!.signalsRecent, b!.signalsRecent, ACCOUNT_CAP),
+      profile: sanitizeTasteProfile(unionPositiveWeights(a!.profile, b!.profile)),
+      tastesText,
+      tastesSetAt:
+        tastesText && tastesText !== a!.tastesText ? b!.tastesSetAt : a!.tastesSetAt,
+    };
+  }
+  return a ?? b ?? emptyTasteState();
+}
+
+/**
+ * Login merge: never apply empty guest (or chip_cat-only) onto JWT / store.
+ * wroteGuest=false → caller must not persist a wipe.
+ */
+export function resolveLoginMerge(opts: {
+  stored: AccountTasteState | null;
+  jwt: AccountTasteState;
+  guestSignals: Signal[];
+  guestProfile?: TasteProfile | null;
+  extraText?: string;
+}): { state: AccountTasteState; wroteGuest: boolean } {
+  const base = pickRicherTasteState(opts.stored, opts.jwt);
+  const tasteSignals = opts.guestSignals.filter(isTasteWritingSignal);
+  const guestProfile = opts.guestProfile
+    ? sanitizeTasteProfile(opts.guestProfile)
+    : null;
+  const mergeable = guestHasMergeableTastes(tasteSignals, guestProfile);
+  if (!mergeable && !(opts.extraText || '').trim()) {
+    return { state: { ...base, profile: sanitizeTasteProfile(base.profile) }, wroteGuest: false };
+  }
+  let overlayPrev = base.profile;
+  for (const s of tasteSignals) {
+    overlayPrev = unzeroKeysTouchedBySignal(overlayPrev, s);
+  }
+  const tastesText = concatTastesText(base.tastesText, opts.extraText);
+  const tastesSetAt =
+    tastesText && tastesText !== base.tastesText
+      ? new Date().toISOString()
+      : base.tastesSetAt;
+  let tasteState = rebuildTasteState(
+    mergeSignalLists(base.signalsRecent, tasteSignals, ACCOUNT_CAP),
+    tastesText,
+    tastesSetAt,
+    ACCOUNT_CAP,
+    overlayPrev,
+  );
+  if (mergeable && guestProfile) {
+    tasteState = {
+      ...tasteState,
+      profile: sanitizeTasteProfile(
+        unionPositiveWeights(tasteState.profile, guestProfile),
+      ),
+    };
+  } else {
+    tasteState = {
+      ...tasteState,
+      profile: sanitizeTasteProfile(tasteState.profile),
+    };
+  }
+  return { state: tasteState, wroteGuest: mergeable };
 }
 
 export function recalcProfile(
@@ -620,8 +763,7 @@ export function rebuildTasteState(
   const prev = prevProfile ? coerceProfile(prevProfile) : null;
   const recalc = recalcProfile(signalsRecent, text);
   const kept = unionPositiveWeights(recalc, prev);
-  const profile = overlayZeroWeights(kept, prev);
-  profile.cats = {};
+  const profile = sanitizeTasteProfile(overlayZeroWeights(kept, prev));
   return {
     signalsRecent,
     profile,
@@ -641,7 +783,9 @@ export function parseTasteState(raw: unknown): AccountTasteState | null {
     o.profile && typeof o.profile === 'object'
       ? coerceProfile(o.profile)
       : null;
-  const profile = migrated ?? recalcProfile(signals, o.tastesText);
+  const profile = sanitizeTasteProfile(
+    migrated ?? recalcProfile(signals, o.tastesText),
+  );
   return {
     signalsRecent: signals.slice(-ACCOUNT_CAP),
     profile,

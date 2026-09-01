@@ -17,9 +17,13 @@ import {
   applySignalToProfile,
   emptyProfile,
   emptyTasteState,
+  guestHasMergeableTastes,
   makeSignal,
+  resolveLoginMerge,
+  sanitizeTasteProfile,
   SIGNAL_WEIGHTS,
 } from './signals';
+import { profileChips } from './pourToi';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 import type { AccountTasteState, TasteProfile } from './signals';
 
@@ -520,5 +524,121 @@ describe('displayReasonForItem — reco why-line only', () => {
       assert.ok(line!.startsWith('parce que tu '), mood);
     }
     assert.equal(TASTE_MOODS.length, 16);
+  });
+});
+
+describe('login merge — empty guest must not wipe JWT', () => {
+  const sixteen = Object.fromEntries(
+    TASTE_MOODS.map((m, i) => [m, { weight: i + 1, pct: 0 }]),
+  );
+
+  it('skips empty guest and chip_cat-only', () => {
+    assert.equal(guestHasMergeableTastes([], emptyProfile()), false);
+    assert.equal(
+      guestHasMergeableTastes(
+        [makeSignal({ kind: 'chip_cat', chip: 'cinema', categorie: 'cinema' })],
+        emptyProfile(),
+      ),
+      false,
+    );
+    assert.equal(
+      guestHasMergeableTastes([], {
+        ...emptyProfile(),
+        cats: { cinema: { weight: 3, pct: 100 } },
+        moods: { sortie: { weight: 2, pct: 100 } },
+      }),
+      false,
+    );
+    assert.equal(
+      guestHasMergeableTastes(
+        [makeSignal({ kind: 'chip_genre', genres: ['jazz'], moods: [] })],
+        emptyProfile(),
+      ),
+      true,
+    );
+  });
+
+  it('does not merge empty guest over a 16-mood JWT', () => {
+    const jwt = state({
+      profile: profile({ moods: sixteen }),
+    });
+    const emptyStored = state();
+    const out = resolveLoginMerge({
+      stored: emptyStored,
+      jwt,
+      guestSignals: [
+        makeSignal({ kind: 'chip_cat', chip: 'cinema', categorie: 'cinema' }),
+      ],
+      guestProfile: emptyProfile(),
+    });
+    assert.equal(out.wroteGuest, false);
+    assert.equal(Object.keys(out.state.profile.cats).length, 0);
+    assert.equal(out.state.profile.moods.sortie, undefined);
+    for (const mood of TASTE_MOODS) {
+      assert.ok((out.state.profile.moods[mood]?.weight ?? 0) > 0, mood);
+    }
+    assert.equal(
+      Object.keys(out.state.profile.moods).filter(
+        (k) => (out.state.profile.moods[k]?.weight ?? 0) > 0,
+      ).length,
+      16,
+    );
+  });
+
+  it('cinema chip_cat never writes cats or moods', () => {
+    const p = emptyProfile();
+    applySignalToProfile(
+      p,
+      makeSignal({
+        kind: 'chip_cat',
+        chip: 'cinema',
+        categorie: 'cinema',
+        genres: ['cinema'],
+      }),
+    );
+    assert.deepEqual(p.cats, {});
+    assert.deepEqual(p.moods, {});
+    assert.deepEqual(p.genres, {});
+  });
+
+  it('sanitize drops cats and sortie', () => {
+    const clean = sanitizeTasteProfile({
+      ...emptyProfile(),
+      cats: { cinema: { weight: 4, pct: 100 } },
+      moods: {
+        tendre: { weight: 2, pct: 50 },
+        sortie: { weight: 2, pct: 50 },
+      },
+      genres: { cinema: { weight: 1, pct: 100 } },
+    });
+    assert.deepEqual(clean.cats, {});
+    assert.equal(clean.moods.sortie, undefined);
+    assert.equal(clean.genres.cinema, undefined);
+    assert.ok((clean.moods.tendre?.weight ?? 0) > 0);
+  });
+});
+
+describe('Mes goûts chips — 0 cats, 0 sortie, 16 moods only', () => {
+  it('hides cats and sortie; keeps biblio moods', () => {
+    const chips = profileChips(
+      {
+        ...emptyProfile(),
+        cats: { cinema: { weight: 9, pct: 100 } },
+        moods: {
+          tendre: { weight: 3, pct: 50 },
+          sortie: { weight: 3, pct: 50 },
+          rigolo: { weight: 1, pct: 16 },
+        },
+        genres: { cinema: { weight: 2, pct: 100 } },
+      },
+      64,
+    );
+    assert.equal(chips.some((c) => c.bucket === 'cats'), false);
+    assert.equal(
+      chips.some((c) => c.key === 'sortie' || /ciné|théâtre|festival/i.test(c.label)),
+      false,
+    );
+    assert.ok(chips.some((c) => c.key === 'tendre'));
+    assert.ok(chips.every((c) => c.bucket !== 'moods' || isTasteMood(c.key)));
   });
 });

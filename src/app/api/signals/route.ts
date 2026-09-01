@@ -9,11 +9,12 @@ import {
   ACCOUNT_CAP,
   coerceProfile,
   concatTastesText,
+  isTasteWritingSignal,
   makeSignal,
   mergeSignalLists,
-  unionPositiveWeights,
   parseTasteState,
   rebuildTasteState,
+  resolveLoginMerge,
   unzeroKeysTouchedBySignal,
   wipeProfileKey,
   type AccountTasteState,
@@ -127,31 +128,17 @@ export async function POST(req: Request) {
   const userRef = { id: session.user.id, email: session.user.email };
   const jwtState = stateFromTokenUser(session.user);
   const stored = await readAccountTaste(userRef);
-  // Login merge: 1) account store 2) guest additive 3) overlay 0 last.
-  const current =
-    incoming.merge === true
-      ? (stored ?? jwtState)
-      : hasPersistedTasteState(jwtState)
-        ? jwtState
-        : (stored ?? jwtState);
   const extraText =
     typeof incoming.tastesText === 'string' ? incoming.tastesText : undefined;
-  const tastesText = concatTastesText(current.tastesText, extraText);
-  const tastesSetAt =
-    tastesText && tastesText !== current.tastesText
-      ? new Date().toISOString()
-      : current.tastesSetAt;
   const wipe = isWipe(incoming.wipe) ? incoming.wipe : undefined;
   const guestProfile = parseIncomingProfile(incoming.guestProfile);
 
-  let signals = current.signalsRecent;
   const incomingSignals: Signal[] = [];
 
   if (Array.isArray(incoming.signals)) {
     incomingSignals.push(
       ...incoming.signals.filter(isSignalLike).map(normalizeIncomingSignal),
     );
-    signals = mergeSignalLists(signals, incomingSignals, ACCOUNT_CAP);
   } else if (
     incoming.signal &&
     (isSignalLike(incoming.signal) || isTrackPayload(incoming.signal))
@@ -159,20 +146,69 @@ export async function POST(req: Request) {
     incomingSignals.push(
       normalizeIncomingSignal(incoming.signal as Signal | TrackPayload),
     );
-    signals = mergeSignalLists(signals, incomingSignals, ACCOUNT_CAP);
-  } else if (!extraText && !wipe && !guestProfile) {
+  }
+
+  // Login: empty guest / chip_cat-only must not overwrite JWT or store.
+  if (incoming.merge === true) {
+    const merged = resolveLoginMerge({
+      stored,
+      jwt: jwtState,
+      guestSignals: incomingSignals,
+      guestProfile,
+      extraText,
+    });
+    let tasteState = merged.state;
+    if (wipe) {
+      tasteState = {
+        ...tasteState,
+        profile: wipeProfileKey(tasteState.profile, wipe.bucket, wipe.key),
+      };
+    }
+    if (merged.wroteGuest || wipe || (extraText || '').trim()) {
+      await writeAccountTaste(userRef, tasteState);
+    }
+    const updated = await unstable_update({
+      user: {
+        tastes: tasteState.tastesText ?? '',
+        tastesSetAt: tasteState.tastesSetAt,
+        tasteState,
+      },
+      tasteState,
+    } as never);
+    const nextUser = updated?.user as
+      | { tasteState?: AccountTasteState; tastes?: string; tastesSetAt?: string }
+      | undefined;
+    return NextResponse.json({
+      ok: true,
+      tasteState: nextUser?.tasteState ?? tasteState,
+      tastes: nextUser?.tastes ?? tasteState.tastesText ?? '',
+      tastesSetAt: nextUser?.tastesSetAt ?? tasteState.tastesSetAt,
+    });
+  }
+
+  const current = hasPersistedTasteState(jwtState)
+    ? jwtState
+    : (stored ?? jwtState);
+  const tasteSignals = incomingSignals.filter(isTasteWritingSignal);
+  const tastesText = concatTastesText(current.tastesText, extraText);
+  const tastesSetAt =
+    tastesText && tastesText !== current.tastesText
+      ? new Date().toISOString()
+      : current.tastesSetAt;
+
+  if (!extraText && !wipe && tasteSignals.length === 0) {
     return NextResponse.json(
       { error: 'signal ou signals requis' },
       { status: 400 },
     );
   }
 
+  const signals = mergeSignalLists(current.signalsRecent, tasteSignals, ACCOUNT_CAP);
+
   // Overlay-prev: unzero keys the user is adding back, then keep remaining 0s.
   let overlayPrev = current.profile;
-  if (incomingSignals.length > 0) {
-    for (const s of incomingSignals) {
-      overlayPrev = unzeroKeysTouchedBySignal(overlayPrev, s);
-    }
+  for (const s of tasteSignals) {
+    overlayPrev = unzeroKeysTouchedBySignal(overlayPrev, s);
   }
 
   let tasteState = rebuildTasteState(
@@ -187,14 +223,6 @@ export async function POST(req: Request) {
     tasteState = {
       ...tasteState,
       profile: wipeProfileKey(tasteState.profile, wipe.bucket, wipe.key),
-    };
-  }
-
-  // Login: leftover guest 0s must not wipe the account. Positives only.
-  if (guestProfile) {
-    tasteState = {
-      ...tasteState,
-      profile: unionPositiveWeights(tasteState.profile, guestProfile),
     };
   }
 

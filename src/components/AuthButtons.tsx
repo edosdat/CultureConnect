@@ -1,10 +1,124 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type RefObject,
+  type ReactNode,
+} from 'react';
+import { createPortal } from 'react-dom';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useTastesUi } from './Providers';
 import { useSignals } from './SignalsProvider';
 import MailIdeasCheckbox from './MailIdeasCheckbox';
+
+const AUTH_HINT_KEY = 'cc_auth_hint';
+
+function readAuthHint(): 'in' | 'out' | null {
+  try {
+    const v = sessionStorage.getItem(AUTH_HINT_KEY);
+    if (v === 'in' || v === 'out') return v;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+function writeAuthHint(v: 'in' | 'out') {
+  try {
+    sessionStorage.setItem(AUTH_HINT_KEY, v);
+  } catch {
+    /* ignore */
+  }
+}
+
+function PersonIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className ?? 'h-4 w-4'}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function AccountMenu({
+  anchorRef,
+  children,
+}: {
+  anchorRef: RefObject<HTMLButtonElement | null>;
+  children: ReactNode;
+}) {
+  const [pos, setPos] = useState({ top: 0, right: 8 });
+  const [mounted, setMounted] = useState(false);
+
+  useLayoutEffect(() => {
+    setMounted(true);
+    function place() {
+      const el = anchorRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setPos({
+        top: r.bottom + 4,
+        right: Math.max(8, window.innerWidth - r.right),
+      });
+    }
+    place();
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    return () => {
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [anchorRef]);
+
+  if (!mounted) return null;
+
+  return createPortal(
+    <div
+      role="menu"
+      className="fixed z-[80] min-w-[14rem] overflow-hidden rounded-xl border-[1.5px] border-culture-line bg-culture-cream py-1 shadow-lg"
+      style={{ top: pos.top, right: pos.right }}
+    >
+      {children}
+    </div>,
+    document.body,
+  );
+}
+
+function AvatarFace({
+  image,
+  initial,
+}: {
+  image?: string | null;
+  initial: string;
+}) {
+  if (image) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={image}
+        alt=""
+        className="h-full w-full rounded-full object-cover"
+      />
+    );
+  }
+  return (
+    <span className="flex h-full w-full items-center justify-center rounded-full bg-culture-terracotta/15 text-xs font-semibold text-culture-terracotta">
+      {initial}
+    </span>
+  );
+}
 
 export default function AuthButtons() {
   const { data: session, status } = useSession();
@@ -12,8 +126,35 @@ export default function AuthButtons() {
   const { loginNudgeReady, loginNudgeDismissed, dismissLoginNudge } = useSignals();
   const [providersOk, setProvidersOk] = useState<boolean | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [hint, setHint] = useState<'in' | 'out' | null>(null);
+  const [loadWaited, setLoadWaited] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const showRemember = loginNudgeReady && !loginNudgeDismissed;
+
+  useEffect(() => {
+    setHint(readAuthHint());
+  }, []);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      writeAuthHint('in');
+      setHint('in');
+    }
+    if (status === 'unauthenticated') {
+      writeAuthHint('out');
+      setHint('out');
+    }
+  }, [status]);
+
+  useEffect(() => {
+    if (status !== 'loading') {
+      setLoadWaited(false);
+      return;
+    }
+    const t = window.setTimeout(() => setLoadWaited(true), 1600);
+    return () => window.clearTimeout(t);
+  }, [status]);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,9 +175,9 @@ export default function AuthButtons() {
   useEffect(() => {
     if (!menuOpen) return;
     function onPointerDown(e: PointerEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
+      const t = e.target as Node;
+      if (menuRef.current?.contains(t) || buttonRef.current?.contains(t)) return;
+      setMenuOpen(false);
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') setMenuOpen(false);
@@ -52,58 +193,38 @@ export default function AuthButtons() {
   const enabled =
     providersOk === true || (providersOk === null && googleAuthEnabled);
 
-  if (status === 'loading') {
-    return (
-      <span className="inline-flex h-9 w-9 items-center justify-center text-xs text-culture-muted sm:h-auto sm:w-auto">
-        …
-      </span>
-    );
-  }
+  const user = session?.user;
+  const treatAsSignedIn = Boolean(user) || (status === 'loading' && hint === 'in');
+  const treatAsGuest =
+    status === 'unauthenticated' ||
+    (status === 'loading' && hint === 'out') ||
+    (status === 'loading' && loadWaited && !user && hint !== 'in');
 
-  if (session?.user) {
-    const name = session.user.name?.split(' ')[0] || 'Toi';
-    const image = session.user.image;
+  function SignedInMenu() {
+    const name = user?.name?.split(' ')[0] || 'Toi';
+    const image = user?.image;
     const initial = name.slice(0, 1).toUpperCase();
-    function AvatarFace() {
-      if (image) {
-        return (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={image}
-            alt=""
-            className="h-full w-full rounded-full object-cover"
-          />
-        );
-      }
-      return (
-        <span className="flex h-full w-full items-center justify-center rounded-full bg-culture-terracotta/15 text-xs font-semibold text-culture-terracotta">
-          {initial}
-        </span>
-      );
-    }
-
     return (
-      <div className="relative" ref={menuRef}>
+      <div className="relative shrink-0" ref={menuRef}>
         <button
+          ref={buttonRef}
           type="button"
           onClick={() => setMenuOpen((v) => !v)}
           aria-haspopup="menu"
           aria-expanded={menuOpen}
           aria-label="Menu compte"
-          className="flex min-w-0 items-center gap-1.5 rounded-full"
+          data-account-control="signed-in"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full sm:h-auto sm:w-auto sm:gap-1.5"
         >
           <span className="flex h-9 w-9 shrink-0 overflow-hidden rounded-full border border-culture-line bg-white sm:h-7 sm:w-7">
-            <AvatarFace />
+            <AvatarFace image={image} initial={initial} />
           </span>
           <span className="hidden max-w-[7rem] truncate text-sm text-culture-ink sm:inline">
             {name}
           </span>
         </button>
         {menuOpen ? (
-          <div
-            role="menu"
-            className="absolute right-0 top-full z-20 mt-1 min-w-[14rem] overflow-hidden rounded-xl border-[1.5px] border-culture-line bg-culture-cream py-1 shadow-lg"
-          >
+          <AccountMenu anchorRef={buttonRef}>
             <button
               type="button"
               role="menuitem"
@@ -126,66 +247,90 @@ export default function AuthButtons() {
             >
               Déconnexion
             </button>
-          </div>
+          </AccountMenu>
         ) : null}
       </div>
     );
   }
 
-  if (!enabled) {
+  function PendingAccount() {
     return (
-      <p className="hidden text-right text-xs text-culture-muted sm:block">
-        Connexion Google bientôt disponible
-      </p>
+      <div className="relative shrink-0" ref={menuRef}>
+        <button
+          ref={buttonRef}
+          type="button"
+          onClick={() => setMenuOpen((v) => !v)}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          aria-label="Menu compte"
+          data-account-control="pending"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-culture-line bg-white"
+        >
+          <PersonIcon className="h-4 w-4 text-culture-terracotta" />
+        </button>
+        {menuOpen ? (
+          <AccountMenu anchorRef={buttonRef}>
+            <p className="px-3 py-2 text-sm text-culture-muted">Chargement…</p>
+          </AccountMenu>
+        ) : null}
+      </div>
     );
   }
 
-  return (
-    <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-      {showRemember ? (
-        <span className="flex max-w-[7.5rem] items-center gap-0.5 sm:max-w-none">
-          <button
-            type="button"
-            onClick={() => signIn('google', { callbackUrl: '/' })}
-            className="text-left text-[10px] font-medium leading-tight text-culture-terracotta hover:underline sm:text-xs"
-          >
-            On retient ça&nbsp;?
-          </button>
-          <button
-            type="button"
-            onClick={dismissLoginNudge}
-            className="px-0.5 text-xs leading-none text-culture-muted hover:text-culture-ink"
-            aria-label="Fermer"
-          >
-            ×
-          </button>
-        </span>
-      ) : null}
-      <div className="flex shrink-0 items-center gap-2">
-      <MailIdeasCheckbox className="hidden max-w-[10.5rem] items-start gap-1.5 text-left text-[10px] leading-snug text-culture-ink sm:flex" />
-      <button
-        type="button"
-        title="Connecte-toi pour tes suggestions"
-        aria-label="Connecte-toi pour tes suggestions"
-        onClick={() => signIn('google', { callbackUrl: '/' })}
-        className="flex h-9 w-9 items-center justify-center rounded-full bg-culture-terracotta text-white shadow-sm transition hover:bg-culture-clay sm:h-auto sm:w-auto sm:px-4 sm:py-1.5 sm:text-sm sm:font-semibold"
-      >
-        <svg
-          className="h-4 w-4 sm:hidden"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden
+  function GuestLogin() {
+    if (!enabled) {
+      return (
+        <button
+          type="button"
+          data-account-control="guest-disabled"
+          aria-label="Connexion bientôt disponible"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-culture-line bg-white text-culture-muted"
+          disabled
         >
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-          <circle cx="12" cy="7" r="4" />
-        </svg>
-        <span className="hidden sm:inline">Connecte-toi pour tes suggestions</span>
-      </button>
+          <PersonIcon />
+        </button>
+      );
+    }
+    return (
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        {showRemember ? (
+          <span className="flex max-w-[7.5rem] items-center gap-0.5 sm:max-w-none">
+            <button
+              type="button"
+              onClick={() => signIn('google', { callbackUrl: '/' })}
+              className="text-left text-[10px] font-medium leading-tight text-culture-terracotta hover:underline sm:text-xs"
+            >
+              On retient ça&nbsp;?
+            </button>
+            <button
+              type="button"
+              onClick={dismissLoginNudge}
+              className="px-0.5 text-xs leading-none text-culture-muted hover:text-culture-ink"
+              aria-label="Fermer"
+            >
+              ×
+            </button>
+          </span>
+        ) : null}
+        <div className="flex shrink-0 items-center gap-2">
+          <MailIdeasCheckbox className="hidden max-w-[10.5rem] items-start gap-1.5 text-left text-[10px] leading-snug text-culture-ink sm:flex" />
+          <button
+            type="button"
+            title="Connecte-toi pour tes suggestions"
+            aria-label="Connecte-toi pour tes suggestions"
+            data-account-control="login"
+            onClick={() => signIn('google', { callbackUrl: '/' })}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-culture-terracotta text-white shadow-sm transition hover:bg-culture-clay sm:h-auto sm:w-auto sm:px-4 sm:py-1.5 sm:text-sm sm:font-semibold"
+          >
+            <PersonIcon className="h-4 w-4 sm:hidden" />
+            <span className="hidden sm:inline">Connecte-toi pour tes suggestions</span>
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (treatAsSignedIn) return <SignedInMenu />;
+  if (treatAsGuest) return <GuestLogin />;
+  return <PendingAccount />;
 }

@@ -16,6 +16,7 @@ import { phraseToTrackPayload } from '@/lib/pourToi';
 import {
   LOGIN_NUDGE_DISMISS_KEY,
   emptyGuestStore,
+  guestHasMergeableTastes,
   hasScorableState,
   makeSignal,
   payloadFromDayItem,
@@ -124,8 +125,7 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
     if (status !== 'authenticated' || !session?.user) return;
     if (mergedRef.current) return;
     const guest = readGuestStore();
-    const hasZeros = profileHasZeroWeights(guest.profile);
-    if (guest.events.length === 0 && !hasZeros) {
+    if (!guestHasMergeableTastes(guest.events, guest.profile)) {
       mergedRef.current = true;
       return;
     }
