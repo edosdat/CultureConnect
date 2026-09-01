@@ -23,6 +23,7 @@ import {
   profileHasZeroWeights,
   rebuildTasteState,
   recomputeProfilePcts,
+  sanitizeTasteProfile,
   unionPositiveWeights,
   type AccountTasteState,
 } from '@/lib/signals';
@@ -409,7 +410,7 @@ export async function readAccountTaste(
   if (!stored) return null;
   // read raw → migrate leftover numbers → rebuild (union positives) → overlay 0 LAST.
   // Never union after overlay: a leftover number must not rewrite a wipe 0.
-  const migrated = coerceProfile(stored.profile);
+  const migrated = sanitizeTasteProfile(coerceProfile(stored.profile));
   const rebuilt = rebuildTasteState(
     stored.signalsRecent,
     stored.tastesText,

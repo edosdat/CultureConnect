@@ -793,9 +793,28 @@ export function concatTastesText(
   return `${a}. ${b}`;
 }
 
+/**
+ * One-shot remap of CURRENT profile.moods keys outside the 16.
+ * Same Biblio table as ingest. Does not replay signalsRecent.
+ * Weight 0 / already-dropped keys are not invented.
+ */
+export function migrateStoredMoodKeys(profile: TasteProfile): TasteProfile {
+  const src = coerceProfile(profile);
+  const out = copyProfile(src);
+  for (const [key, entry] of Object.entries(src.moods)) {
+    if (isTasteMood(key)) continue;
+    delete out.moods[key];
+    if (!(entry.weight > 0)) continue;
+    const mapped = mapThenDropTasteTags([key], [], key);
+    for (const m of mapped.moods) addWeight(out.moods, m, entry.weight);
+    for (const g of mapped.genres) addWeight(out.genres, g, entry.weight);
+  }
+  return out;
+}
+
 /** Drop cats, `sortie`, and any non-biblio mood. 16 TASTE_MOODS only. */
 export function sanitizeTasteProfile(profile: TasteProfile): TasteProfile {
-  const p = coerceProfile(profile);
+  const p = migrateStoredMoodKeys(profile);
   p.cats = {};
   for (const key of Object.keys(p.moods)) {
     if (!isTasteMood(key)) delete p.moods[key];
@@ -993,7 +1012,7 @@ export function parseGuestStore(raw: unknown): GuestSignalsStore {
     // Migrate leftover numbers → TasteEntry + bucket pcts first (before any overlay).
     profile:
       o.profile && typeof o.profile === 'object'
-        ? coerceProfile(o.profile)
+        ? sanitizeTasteProfile(coerceProfile(o.profile))
         : recalcProfile(capped),
   };
 }

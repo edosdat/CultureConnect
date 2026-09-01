@@ -12,6 +12,8 @@ import {
   parseGuestStore,
   profileHasZeroWeights,
   recalcProfile,
+  sanitizeTasteProfile,
+  unionPositiveWeights,
   unzeroKeysTouchedBySignal,
   wipeProfileKey,
   type GuestSignalsStore,
@@ -20,6 +22,15 @@ import {
 } from '@/lib/signals';
 
 const COOKIE_BUDGET = 3500;
+
+function persistGuestProfile(
+  events: Signal[],
+  prev: GuestSignalsStore['profile'],
+): GuestSignalsStore['profile'] {
+  return sanitizeTasteProfile(
+    overlayZeroWeights(unionPositiveWeights(recalcProfile(events), prev), prev),
+  );
+}
 
 function canUseDom(): boolean {
   return typeof window !== 'undefined' && typeof document !== 'undefined';
@@ -64,13 +75,13 @@ function compactForCookie(store: GuestSignalsStore): string {
     events.shift();
     const next = storeToJson({
       events,
-      profile: overlayZeroWeights(recalcProfile(events), store.profile),
+      profile: persistGuestProfile(events, store.profile),
     });
     if (next.length <= COOKIE_BUDGET) return next;
   }
   return storeToJson({
     events: events.slice(-1),
-    profile: overlayZeroWeights(recalcProfile(events.slice(-1)), store.profile),
+    profile: persistGuestProfile(events.slice(-1), store.profile),
   });
 }
 
@@ -110,7 +121,7 @@ export function writeGuestStore(store: GuestSignalsStore): GuestSignalsStore {
   const events = store.events.slice(-GUEST_CAP);
   const next: GuestSignalsStore = {
     events,
-    profile: overlayZeroWeights(recalcProfile(events), store.profile),
+    profile: persistGuestProfile(events, store.profile),
   };
   if (!canUseDom()) return next;
   const json = storeToJson(next);

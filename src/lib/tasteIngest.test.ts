@@ -8,7 +8,10 @@ import {
   ingestMapSignal,
   makeSignal,
   mapThenDropTasteTags,
+  parseTasteState,
   payloadFromDayItem,
+  rebuildTasteState,
+  sanitizeTasteProfile,
   shouldMapTasteIngest,
   TASTE_GENRE_SLUGS,
 } from './signals';
@@ -307,5 +310,110 @@ describe('taste ingest — MAP then DROP', () => {
     assert.deepEqual(twice.genres, once.genres);
     assert.equal(twice.moods.length, 1);
     assert.ok(twice.moods.every((m) => (TASTE_MOODS as readonly string[]).includes(m)));
+  });
+});
+
+describe('taste profile — one-shot migrate of stored mood keys', () => {
+  it('moves moods.comedie → rigolo + genres.comedie and drops the comedie mood key', () => {
+    const clean = sanitizeTasteProfile({
+      ...emptyProfile(),
+      moods: { comedie: { weight: 4, pct: 100 } },
+    });
+    assert.equal(clean.moods.comedie, undefined);
+    assert.ok((clean.moods.rigolo?.weight ?? 0) > 0);
+    assert.ok((clean.genres.comedie?.weight ?? 0) > 0);
+    assert.equal(clean.moods.rigolo?.pct, 100);
+    assert.equal(clean.genres.comedie?.pct, 100);
+  });
+
+  it('moves horreur / epouvante → angoissant + genres.horreur', () => {
+    const horror = sanitizeTasteProfile({
+      ...emptyProfile(),
+      moods: { horreur: { weight: 3, pct: 100 } },
+    });
+    assert.equal(horror.moods.horreur, undefined);
+    assert.ok((horror.moods.angoissant?.weight ?? 0) > 0);
+    assert.ok((horror.genres.horreur?.weight ?? 0) > 0);
+
+    const fright = sanitizeTasteProfile({
+      ...emptyProfile(),
+      moods: { epouvante: { weight: 2, pct: 100 } },
+    });
+    assert.equal(fright.moods.epouvante, undefined);
+    assert.ok((fright.moods.angoissant?.weight ?? 0) > 0);
+    assert.ok((fright.genres.horreur?.weight ?? 0) > 0);
+  });
+
+  it('moves animation and patrimoine as genres only', () => {
+    const anim = sanitizeTasteProfile({
+      ...emptyProfile(),
+      moods: { animation: { weight: 5, pct: 100 } },
+    });
+    assert.equal(anim.moods.animation, undefined);
+    assert.equal(Object.keys(anim.moods).length, 0);
+    assert.ok((anim.genres.animation?.weight ?? 0) > 0);
+
+    const retro = sanitizeTasteProfile({
+      ...emptyProfile(),
+      moods: { patrimoine: { weight: 2, pct: 100 } },
+    });
+    assert.equal(retro.moods.patrimoine, undefined);
+    assert.equal(Object.keys(retro.moods).length, 0);
+    assert.ok((retro.genres.patrimoine?.weight ?? 0) > 0);
+  });
+
+  it('does not invent moods that were already dropped (weight 0 or absent)', () => {
+    const wiped = sanitizeTasteProfile({
+      ...emptyProfile(),
+      moods: { comedie: { weight: 0, pct: 0 }, rigolo: { weight: 1, pct: 100 } },
+    });
+    assert.equal(wiped.moods.comedie, undefined);
+    assert.equal(wiped.moods.rigolo?.weight, 1);
+    assert.equal(wiped.genres.comedie, undefined);
+
+    const parsed = parseTasteState({
+      signalsRecent: [
+        makeSignal({ kind: 'open_card', moods: ['comedie'], genres: [] }),
+      ],
+      profile: {
+        ...emptyProfile(),
+        moods: { rigolo: { weight: 1, pct: 100 } },
+      },
+    });
+    assert.ok(parsed);
+    assert.equal(parsed!.profile.moods.comedie, undefined);
+    assert.equal(parsed!.profile.moods.rigolo?.weight, 1);
+    assert.equal(parsed!.profile.genres.comedie, undefined);
+  });
+
+  it('is a no-op when moods are already the 16 (edosdat-like rigolo:1)', () => {
+    const clean = sanitizeTasteProfile({
+      ...emptyProfile(),
+      moods: { rigolo: { weight: 1, pct: 100 } },
+    });
+    assert.deepEqual(Object.keys(clean.moods), ['rigolo']);
+    assert.equal(clean.moods.rigolo?.weight, 1);
+    assert.deepEqual(clean.genres, {});
+  });
+
+  it('does not replay signalsRecent when rebuilding', () => {
+    const old = makeSignal({
+      kind: 'open_card',
+      moods: ['comedie', 'sortie'],
+      genres: [],
+    });
+    // Force a dirty stored signal (pre-ingest) without remapping it here.
+    const dirty = { ...old, moods: ['comedie', 'sortie'], genres: [] };
+    const rebuilt = rebuildTasteState(
+      [dirty],
+      undefined,
+      undefined,
+      40,
+      { ...emptyProfile(), moods: { rigolo: { weight: 1, pct: 100 } } },
+    );
+    assert.equal(rebuilt.profile.moods.comedie, undefined);
+    assert.equal(rebuilt.profile.moods.sortie, undefined);
+    assert.equal(rebuilt.profile.moods.rigolo?.weight, 1);
+    assert.equal(rebuilt.profile.genres.comedie, undefined);
   });
 });
