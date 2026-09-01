@@ -1480,7 +1480,7 @@ export default function CultureConnectApp({
               empty={null}
               nouveauFilmIds={nouveauFilmIdSet}
               fixedSlots
-              reasonFor={isGuestReco ? undefined : reasonFor}
+              reasonFor={reasonFor}
             />
           )}
         </section>

@@ -369,7 +369,7 @@ export function displayReasonForItem(
   },
 ): string | null {
   if (opts.guest || !opts.tasteState) {
-    return null;
+    return guestReasonLine(opts.scope, opts.commune);
   }
   const itemLocked = new Set(
     [...itemMoods(item), ...itemGenreSlugs(item)].filter(isTasteMood),
