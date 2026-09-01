@@ -31,7 +31,13 @@ import {
   sanitizeTasteProfile,
   SIGNAL_WEIGHTS,
 } from './signals';
-import { profileChips, resolveSheetProfile } from './pourToi';
+import {
+  labelProfileChip,
+  labelTasteMood,
+  profileChips,
+  resolveSheetProfile,
+  TASTE_MOOD_LABELS_FR,
+} from './pourToi';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 import type { AccountTasteState, TasteProfile } from './signals';
 
@@ -575,7 +581,7 @@ describe('displayReasonForItem — reco why-line only', () => {
       /ambiance\s+(festif|angoissant|contemplatif|epique|poetique|leger|tiré|tendre|rigolo)\b/;
     const english = /\b(because|like|mood|you)\b/i;
     const rawSlugs =
-      /\b(epique|poetique|leger|festif|dansant|contemplatif|angoissant)\b/;
+      /\b(epique|poetique|leger|festif|dansant|contemplatif|angoissant|critique|rigolo)\b/;
     for (const mood of TASTE_MOODS) {
       const line = recoWhyForMood(mood);
       assert.ok(line, mood);
@@ -583,8 +589,60 @@ describe('displayReasonForItem — reco why-line only', () => {
       assert.ok(!english.test(line!), mood);
       assert.ok(!rawSlugs.test(line!), mood);
       assert.ok(line!.startsWith('parce que tu '), mood);
+      assert.ok(!/Rigolo/.test(line!), mood);
     }
     assert.equal(TASTE_MOODS.length, 16);
+    assert.equal(recoWhyForMood('critique'), 'parce que tu aimes le satirique');
+    assert.equal(recoWhyForMood('rigolo'), 'parce que tu aimes rire');
+  });
+});
+
+describe('display-only mood labels — overlay + why-lines', () => {
+  it('locks exactly the 16 moods with the FR display map', () => {
+    assert.deepEqual(Object.keys(TASTE_MOOD_LABELS_FR), [...TASTE_MOODS]);
+    assert.equal(Object.keys(TASTE_MOOD_LABELS_FR).length, 16);
+    assert.equal(labelTasteMood('sortie'), null);
+    assert.equal(labelTasteMood('tiré'), null);
+    assert.equal(isTasteMood('sortie'), false);
+  });
+
+  it('uses locked FR labels, never Rigolo', () => {
+    assert.equal(labelTasteMood('rigolo'), 'Rire');
+    assert.equal(labelProfileChip('moods', 'rigolo'), 'Rire');
+    assert.notEqual(labelTasteMood('rigolo'), 'Rigolo');
+    assert.equal(labelTasteMood('critique'), 'Satirique');
+    assert.equal(labelTasteMood('leger'), 'Léger');
+    assert.equal(labelTasteMood('epique'), 'Épique');
+    assert.equal(labelTasteMood('poetique'), 'Poétique');
+    assert.equal(labelTasteMood('tendre'), 'Tendre');
+    assert.equal(labelTasteMood('intense'), 'Intense');
+    assert.equal(labelTasteMood('angoissant'), 'Angoissant');
+    assert.equal(labelTasteMood('brutal'), 'Brutal');
+    assert.equal(labelTasteMood('festif'), 'Festif');
+    assert.equal(labelTasteMood('cerveau'), 'Cerveau');
+    assert.equal(labelTasteMood('intimiste'), 'Intimiste');
+    assert.equal(labelTasteMood('absurde'), 'Absurde');
+    assert.equal(labelTasteMood('sombre'), 'Sombre');
+    assert.equal(labelTasteMood('dansant'), 'Dansant');
+    assert.equal(labelTasteMood('contemplatif'), 'Contemplatif');
+  });
+
+  it('keeps slugs on overlay chips and only swaps the display label', () => {
+    const chips = profileChips(
+      {
+        ...emptyProfile(),
+        moods: {
+          rigolo: { weight: 4, pct: 40 },
+          critique: { weight: 3, pct: 30 },
+        },
+      },
+      64,
+    );
+    const byKey = Object.fromEntries(chips.map((c) => [c.key, c.label]));
+    assert.equal(byKey.rigolo, 'Rire');
+    assert.equal(byKey.critique, 'Satirique');
+    assert.ok(!chips.some((c) => c.key === 'Rire' || c.key === 'Satirique'));
+    assert.ok(!chips.some((c) => c.label === 'Rigolo' || c.label === 'Critique'));
   });
 });
 

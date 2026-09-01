@@ -12,6 +12,7 @@ import {
   isPublishableEvent,
   isPublishableProgrammeName,
 } from './publishable';
+import { slotFormOfItem } from './reco';
 import { addDaysIso, parisParts } from './timeScope';
 import type { DayItem, ProgrammeWithContext } from './types';
 
@@ -115,6 +116,39 @@ export function isVivantDayItem(item: DayItem): boolean {
   if (filmIdOfItem(item)) return false;
   const main = mainOfDayItem(item);
   return main != null && VIVANT_MAINS.has(main);
+}
+
+/**
+ * Théâtre / danse / spectacle vivant — not films, not concerts.
+ * Festival rows with a theatre/danse/humour/cirque genre follow slotFormOfItem.
+ */
+export function isTheatreDayItem(item: DayItem): boolean {
+  if (isCinemaDayItem(item)) return false;
+  const slot = slotFormOfItem(item);
+  if (slot === 'theatre') return true;
+  if (slot === 'concert' || slot === 'cine') return false;
+  return mainOfDayItem(item) === 'theatre_danse';
+}
+
+/**
+ * Concerts, bars / guinguettes, fest music — not films, not théâtre.
+ * Festival rows with a music genre follow slotFormOfItem.
+ */
+export function isMusiqueDayItem(item: DayItem): boolean {
+  if (isCinemaDayItem(item)) return false;
+  const slot = slotFormOfItem(item);
+  if (slot === 'concert') return true;
+  if (slot === 'theatre' || slot === 'cine') return false;
+  return mainOfDayItem(item) === 'musique';
+}
+
+export type HomePackId = 'cine' | 'theatre' | 'musique';
+
+export function homePackOfItem(item: DayItem): HomePackId | null {
+  if (isCinemaDayItem(item)) return 'cine';
+  if (isTheatreDayItem(item)) return 'theatre';
+  if (isMusiqueDayItem(item)) return 'musique';
+  return null;
 }
 
 function itemHeure(item: DayItem): string {

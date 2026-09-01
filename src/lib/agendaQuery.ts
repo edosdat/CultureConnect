@@ -24,6 +24,8 @@ import { pickFilmVivantComplements } from './filmVivantComplements';
 import {
   filmIdOfItem,
   isCinemaDayItem,
+  isMusiqueDayItem,
+  isTheatreDayItem,
   isVivantDayItem,
   nouveauFilmIds,
   nouveautesCine,
@@ -934,10 +936,17 @@ export function queryAgenda(
 
   const vivantAll = items.filter(isVivantDayItem);
   const cineAll = items.filter(isCinemaDayItem);
+  const theatreAll = items.filter(isTheatreDayItem);
+  const musiqueAll = items.filter(isMusiqueDayItem);
   const vivantCap = dayPage ? pageMax : 40;
   const vivantItems =
     !searching && offset === 0
-      ? vivantAll.slice(0, vivantCap).map(slimDayItem)
+      ? [
+          ...theatreAll.slice(0, vivantCap),
+          ...musiqueAll.slice(0, vivantCap),
+        ]
+          .filter((item, i, all) => all.findIndex((x) => x.key === item.key) === i)
+          .map(slimDayItem)
       : [];
   const vivantTotal = densifiedCardCount(vivantAll);
   const cineTotal = densifiedCardCount(cineAll);

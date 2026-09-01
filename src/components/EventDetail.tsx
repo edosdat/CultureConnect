@@ -402,13 +402,9 @@ export default function EventDetail({
           </div>
 
           {cinemaFiche ? (
-            <div className="flex flex-row items-start gap-3 px-5 pt-4 md:gap-4">
-              <FilmPoster
-                src={itemImageUrl(item)}
-                item={item}
-                className="h-[10.5rem] w-[7rem] shrink-0 md:h-[20rem] md:w-[13.35rem]"
-              />
-              <div className="min-w-0 flex-1 break-words">
+            <div>
+              <FilmPoster src={itemImageUrl(item)} item={item} />
+              <div className="min-w-0 break-words px-5 pt-3">
                 <div className="flex flex-wrap gap-2">
                   {categorie && (
                     <span className="rounded-full bg-white px-2.5 py-0.5 text-xs text-culture-terracotta">
@@ -728,13 +724,9 @@ export default function EventDetail({
         </div>
 
         {cinemaFiche ? (
-          <div className="flex flex-row items-start gap-3 px-5 pt-4 md:gap-4">
-            <FilmPoster
-              src={itemImageUrl(item)}
-              item={item}
-              className="h-[10.5rem] w-[7rem] shrink-0 md:h-[20rem] md:w-[13.35rem]"
-            />
-            <div className="min-w-0 flex-1 break-words">
+          <div>
+            <FilmPoster src={itemImageUrl(item)} item={item} />
+            <div className="min-w-0 break-words px-5 pt-3">
               <span className="rounded-full bg-white px-2.5 py-0.5 text-xs text-culture-terracotta">
                 {labelCategorie(event.categorie)}
               </span>

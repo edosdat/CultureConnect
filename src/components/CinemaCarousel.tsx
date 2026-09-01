@@ -31,8 +31,35 @@ import FavoriteButton from './FavoriteButton';
 import ShareButton from './ShareButton';
 import VivantComplementLinks from './VivantComplementLinks';
 
+export type CinemaCarouselPack = 'cine' | 'theatre' | 'musique';
+
+const PACK_COPY: Record<
+  CinemaCarouselPack,
+  { more: string; prev: string; next: string; fallbackCat: string }
+> = {
+  cine: {
+    more: 'Plus de films',
+    prev: 'Films précédents',
+    next: 'Films suivants',
+    fallbackCat: 'Cinéma',
+  },
+  theatre: {
+    more: 'Plus de spectacles',
+    prev: 'Spectacles précédents',
+    next: 'Spectacles suivants',
+    fallbackCat: 'Théâtre',
+  },
+  musique: {
+    more: 'Plus de concerts',
+    prev: 'Concerts précédents',
+    next: 'Concerts suivants',
+    fallbackCat: 'Musique',
+  },
+};
+
 type Props = {
   rows: DenseRow[];
+  pack?: CinemaCarouselPack;
   mobile?: boolean;
   focusKey?: string | null;
   fallbackVivant?: DayItem[];
@@ -208,6 +235,7 @@ function SeanceReserveLink({
 
 export default function CinemaCarousel({
   rows,
+  pack = 'cine',
   mobile = false,
   focusKey = null,
   selectedCommune = null,
@@ -224,6 +252,8 @@ export default function CinemaCarousel({
   onSelectLive,
   origin = null,
 }: Props) {
+  const copy = PACK_COPY[pack];
+  const seancesDomId = `${pack}-seances`;
   const [heroIndex, setHeroIndex] = useState(0);
   const [pickedKey, setPickedKey] = useState<string | null>(null);
   const stripRef = useRef<HTMLDivElement | null>(null);
@@ -443,7 +473,7 @@ export default function CinemaCarousel({
             onClick={onNeedMore}
             className="flex w-[7.5rem] shrink-0 flex-col items-center justify-center rounded-lg border border-dashed border-culture-line bg-culture-surface text-sm font-medium text-culture-terracotta sm:w-[8.5rem]"
           >
-            Plus de films
+            {copy.more}
           </button>
         ) : null}
       </div>
@@ -451,7 +481,7 @@ export default function CinemaCarousel({
         <>
           <button
             type="button"
-            aria-label="Films précédents"
+            aria-label={copy.prev}
             onClick={() => scrollStrip(-1)}
             className="absolute left-0 top-1/3 hidden h-10 w-10 -translate-x-1 items-center justify-center rounded-full border border-culture-line bg-culture-surface/95 text-culture-ink shadow-sm md:flex"
           >
@@ -459,7 +489,7 @@ export default function CinemaCarousel({
           </button>
           <button
             type="button"
-            aria-label="Films suivants"
+            aria-label={copy.next}
             onClick={() => scrollStrip(1)}
             className="absolute right-0 top-1/3 hidden h-10 w-10 translate-x-1 items-center justify-center rounded-full border border-culture-line bg-culture-surface/95 text-culture-ink shadow-sm md:flex"
           >
@@ -474,7 +504,7 @@ export default function CinemaCarousel({
     <>
       <div className="flex items-start justify-between gap-2">
         <span className="inline-flex rounded bg-culture-terracotta px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">
-          {cat || 'Cinéma'}
+          {cat || copy.fallbackCat}
         </span>
         <FavoriteButton itemKey={item.key} />
       </div>
@@ -487,43 +517,30 @@ export default function CinemaCarousel({
     </>
   );
 
-  const reserveWide = (
-    <div className="md:hidden">
-      <SeanceReserveLink item={active} onReserve={onReserve} wide />
-    </div>
-  );
-
   return (
     <div className="space-y-3">
       <div
         onTouchStart={onHeroTouchStart}
         onTouchEnd={onHeroTouchEnd}
-        className="flex flex-col overflow-hidden rounded-card-lg border border-culture-line bg-culture-surface shadow-card md:flex-row md:items-start"
+        className="overflow-hidden rounded-card-lg border border-culture-line bg-culture-surface shadow-card"
       >
-        <div className="flex items-start gap-3 p-3 md:contents md:p-0">
-          <FilmPoster
-            src={image}
-            item={item}
-            className="h-[10.5rem] w-[7rem] shrink-0 md:h-[20rem] md:w-[13.35rem]"
-          />
-          <div className="flex min-w-0 flex-1 flex-col gap-1 md:hidden">
-            {titleBlock}
-          </div>
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-2 px-3 pb-3 md:p-4">
-          <div className="hidden flex-col gap-2 md:flex">{titleBlock}</div>
+        <FilmPoster src={image} item={item} />
+        <div className="flex min-w-0 flex-col gap-2 p-3 md:p-4">
+          {titleBlock}
           {itemPitch(item) ? (
             <p className="hidden text-sm leading-relaxed text-culture-ink md:block">
               {itemPitch(item)}
             </p>
           ) : null}
-          {reserveWide}
+          <div className="md:hidden">
+            <SeanceReserveLink item={active} onReserve={onReserve} wide />
+          </div>
           <VivantComplementLinks
             film={active}
             items={complements}
             onSelect={onSelectLive}
           />
-          <div ref={seancesRef} id="cine-seances">
+          <div ref={seancesRef} id={seancesDomId}>
             {seances.length > 0 ? (
               datePinned ? (
                 <>

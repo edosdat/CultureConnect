@@ -59,6 +59,15 @@ export function resolveNearMeResult(
   return nearMeOnDenied(currentCommune);
 }
 
+/**
+ * Landing / first load: grant → sort by km in memory.
+ * Deny, error, insecure, no API → Toulouse default, no persist.
+ */
+export function nearMeFromBoot(result: NearMeRequestResult): NearMeUiState {
+  if (result.ok) return nearMeOnGranted(result.pos);
+  return nearMeOnDenied(TOULOUSE_CHIP_DEFAULT);
+}
+
 /** Secure context (HTTPS / localhost). Never invent a fallback city from GPS. */
 export function canUseBrowserGeolocation(
   loc: Pick<Location, 'protocol' | 'hostname'> | null | undefined,

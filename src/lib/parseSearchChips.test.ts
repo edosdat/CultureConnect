@@ -1,6 +1,10 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseSearchChips, searchChipsToUi } from './parseSearchChips';
+import {
+  parseSearchChips,
+  searchChipsToUi,
+  searchSubmitAppliesChips,
+} from './parseSearchChips';
 
 /** Tuesday 1 September 2026, afternoon Paris. */
 const NOW = new Date('2026-09-01T14:00:00+02:00');
@@ -114,5 +118,15 @@ describe('parseSearchChips', () => {
     assert.equal(ui.scope, 'date');
     assert.equal(ui.showMonthPanel, true);
     assert.deepEqual(ui.categories, ['musique']);
+  });
+
+  it('emptying the bar never applies / unchecks chips', () => {
+    const empty = parseSearchChips('', NOW);
+    assert.equal(searchSubmitAppliesChips('', empty), false);
+    assert.equal(searchSubmitAppliesChips('   ', empty), false);
+    const dune = parseSearchChips('Dune', NOW);
+    assert.equal(searchSubmitAppliesChips('Dune', dune), false);
+    const film = parseSearchChips('un film ce soir', NOW);
+    assert.equal(searchSubmitAppliesChips('un film ce soir', film), true);
   });
 });
