@@ -16,7 +16,7 @@ import {
   mainFromGenreSlug,
   type MainCategoryId,
 } from '@/lib/categories';
-import { isTasteMood, TASTE_MOODS } from '@/lib/phraseTags';
+import { isTasteMood, recoWhyForMood, TASTE_MOODS } from '@/lib/phraseTags';
 import {
   cinemaActionShare,
   cineFicheCount,
@@ -798,6 +798,12 @@ export type RecoReason = {
   mood?: string;
   genre?: string;
 };
+
+/** Reco WHY copy from a scored reason. Unmapped slug / `sortie` / non-profile → null. */
+export function recoWhyCopy(reason?: RecoReason | null): string | null {
+  if (!reason || reason.source !== 'profile') return null;
+  return recoWhyForMood(reason.mood);
+}
 
 export type ScoredDayItem = {
   item: DayItem;
@@ -1854,7 +1860,7 @@ export function recommendForProfile(
     });
     if (hit.score <= 0) continue;
     const reason: RecoReason = { source: 'profile' };
-    if (hit.mood) reason.mood = hit.mood;
+    if (hit.mood && recoWhyForMood(hit.mood)) reason.mood = hit.mood;
     if (hit.genre) reason.genre = hit.genre;
     affinity.push({ item, score: 10 + hit.score, reason });
   }

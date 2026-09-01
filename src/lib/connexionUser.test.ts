@@ -1,11 +1,18 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { parsePhraseRules, isTasteMood, TASTE_MOODS } from './phraseTags';
-import { displayReasonForItem, recoWhyForMood } from './displayHome';
+import {
+  parsePhraseRules,
+  isTasteMood,
+  recoWhyForMood,
+  RECO_WHY_FR,
+  TASTE_MOODS,
+} from './phraseTags';
+import { displayReasonForItem } from './displayHome';
 import { pickAussiCeSoir } from './nouveautesCine';
 import {
   recommendForProfile,
   recommendSlice,
+  recoWhyCopy,
   slotFormOfItem,
   SLOT_ORDER,
   itemIdentity,
@@ -343,6 +350,8 @@ describe('recommendForProfile — guest never empty, deterministic', () => {
     assert.equal(out.length, 3);
     for (const row of out) {
       assert.notEqual(row.reason?.source, 'profile');
+      assert.notEqual(row.reason?.mood, 'sortie');
+      assert.equal(recoWhyCopy(row.reason), null);
     }
   });
 });
@@ -511,6 +520,10 @@ describe('displayReasonForItem — reco why-line only', () => {
     const rawAfterAmbiance = /ambiance\s+(festif|angoissant|contemplatif|epique|poetique|leger|tiré|tendre|rigolo)\b/;
     const english = /\b(because|like|mood|you)\b/i;
     const rawSlugs = /\b(epique|poetique|leger|festif|dansant|contemplatif|angoissant)\b/;
+    const mapKeys = Object.keys(RECO_WHY_FR);
+    assert.deepEqual(mapKeys.slice().sort(), TASTE_MOODS.slice().sort());
+    assert.equal(mapKeys.length, 16);
+    assert.equal('sortie' in RECO_WHY_FR, false);
     for (const mood of TASTE_MOODS) {
       const line = recoWhyForMood(mood);
       assert.ok(line, mood);
@@ -520,5 +533,23 @@ describe('displayReasonForItem — reco why-line only', () => {
       assert.ok(line!.startsWith('parce que tu '), mood);
     }
     assert.equal(TASTE_MOODS.length, 16);
+  });
+
+  it('shows no why-line for sortie or an unmapped slug', () => {
+    assert.equal(recoWhyForMood('sortie'), null);
+    assert.equal(recoWhyForMood('Sortie'), null);
+    assert.equal(recoWhyCopy({ source: 'profile', mood: 'sortie' }), null);
+    assert.equal(recoWhyCopy({ source: 'profile', mood: 'tiré' }), null);
+    assert.equal(recoWhyCopy({ source: 'popularite', mood: 'tendre' }), null);
+    const row = item({ key: 'so', cat: 'theatre', moods: 'sortie' });
+    assert.equal(
+      displayReasonForItem(row, {
+        ...opts,
+        tasteState: state({
+          profile: profile({ moods: { sortie: { weight: 9, pct: 100 } } }),
+        }),
+      }),
+      null,
+    );
   });
 });

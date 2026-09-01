@@ -54,7 +54,6 @@ const MOOD_CHIP_LABELS: Record<string, string> = {
   rigolo: 'Rire',
   intense: 'Intense',
   tendre: 'Tendre',
-  sortie: 'Sortie',
   cerveau: 'Cerveau',
 };
 

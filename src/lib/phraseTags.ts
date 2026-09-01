@@ -64,6 +64,37 @@ export function tasteMoodsOf(
   return out;
 }
 
+/**
+ * Reco WHY copy (Ton top 3 / Pour toi only). Closed 16 — no 17th, no `sortie`.
+ * Grammatical French; never « ambiance » + raw slug. No map entry → no line.
+ */
+export const RECO_WHY_FR = {
+  rigolo: 'parce que tu aimes rire',
+  tendre: 'parce que tu aimes le tendre',
+  intense: 'parce que tu aimes l’intense',
+  angoissant: 'parce que tu aimes l’ambiance angoissante',
+  epique: 'parce que tu aimes l’épique',
+  brutal: 'parce que tu aimes le brutal',
+  festif: 'parce que tu aimes l’ambiance festive',
+  cerveau: 'parce que tu aimes le cerveau',
+  intimiste: 'parce que tu aimes l’intimiste',
+  absurde: 'parce que tu aimes l’absurde',
+  critique: 'parce que tu aimes l’esprit critique',
+  sombre: 'parce que tu aimes le sombre',
+  poetique: 'parce que tu aimes le poétique',
+  dansant: 'parce que tu as envie de danser',
+  contemplatif: 'parce que tu aimes l’ambiance contemplative',
+  leger: 'parce que tu aimes le léger',
+} as const satisfies Record<TasteMood, string>;
+
+/** Locked-mood why-line, or null. Never interpolates a slug. `sortie` → null. */
+export function recoWhyForMood(slug: string | null | undefined): string | null {
+  if (!slug) return null;
+  const key = slug.trim().toLowerCase();
+  if (key === 'sortie' || !isTasteMood(key)) return null;
+  return RECO_WHY_FR[key as TasteMood] ?? null;
+}
+
 export type PhraseTags = {
   form?: PhraseForm;
   moods: PhraseMood[];

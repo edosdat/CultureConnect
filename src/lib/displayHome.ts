@@ -15,10 +15,12 @@ import {
 import { formatDateFr, formatHeure, formatLieuAffiche } from './labels';
 import { seanceDateIso } from './timeScope';
 import { profileChips } from './pourToi';
-import { isTasteMood, type TasteMood } from './phraseTags';
+import { isTasteMood, recoWhyForMood } from './phraseTags';
 import type { RecoSlotForm } from './reco';
 import { slotFormOfItem } from './reco';
 import type { TimeScopeId } from './timeScope';
+
+export { recoWhyForMood };
 
 /** Living-led visual order for Top 3 (scoring order in reco.ts is unchanged). */
 export const DISPLAY_SLOT_ORDER: RecoSlotForm[] = [
@@ -328,37 +330,10 @@ export function guestReasonLine(
 
 /**
  * Reco why-line only (Ton top 3 / Pour toi).
- * Logged-in: 16 locked moods, grammatical French, never a raw slug.
+ * Logged-in: phraseTags map (16 moods). No map entry → no line.
  * Guest: place/time line — never « parce que tu aimes ».
  * Catalogue cards must not call this.
  */
-const RECO_WHY_FR: Record<TasteMood, string> = {
-  rigolo: 'parce que tu aimes rire',
-  tendre: 'parce que tu aimes le tendre',
-  intense: 'parce que tu aimes l’intense',
-  angoissant: 'parce que tu aimes l’ambiance angoissante',
-  epique: 'parce que tu aimes l’épique',
-  brutal: 'parce que tu aimes le brutal',
-  festif: 'parce que tu aimes l’ambiance festive',
-  cerveau: 'parce que tu aimes le cerveau',
-  intimiste: 'parce que tu aimes l’intimiste',
-  absurde: 'parce que tu aimes l’absurde',
-  critique: 'parce que tu aimes l’esprit critique',
-  sombre: 'parce que tu aimes le sombre',
-  poetique: 'parce que tu aimes le poétique',
-  dansant: 'parce que tu as envie de danser',
-  contemplatif: 'parce que tu aimes l’ambiance contemplative',
-  leger: 'parce que tu aimes le léger',
-};
-
-/** Locked-mood why-line, or null. Never interpolates a slug. */
-export function recoWhyForMood(slug: string | null | undefined): string | null {
-  if (!slug) return null;
-  const key = slug.trim().toLowerCase();
-  if (!isTasteMood(key)) return null;
-  return RECO_WHY_FR[key as TasteMood] ?? null;
-}
-
 export function displayReasonForItem(
   item: DayItem,
   opts: {
