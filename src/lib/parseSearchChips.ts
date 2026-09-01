@@ -12,8 +12,8 @@ export type SearchChipParse = {
   scope: TimeScopeId | null;
   /** YYYY-MM-DD when scope is `date`. */
   selectedDate: string | null;
-  /** Category chip; null = no category intent. */
-  category: MainCategoryId | null;
+  /** QUOI chips; empty = no category intent. Multi is OK. */
+  categories: MainCategoryId[];
   /** Leftover for title search. Empty when the phrase was only chips. */
   titleQuery: string;
 };
@@ -186,14 +186,42 @@ type DateHit = {
   phrases: string[];
 };
 
-function extractDate(norm: string, raw: string, now: Date): DateHit | null {
-  const { iso, weekday, year } = parisParts(now);
-
+function datePhrasesPresent(norm: string, raw: string): string[] {
+  const out: string[] = [];
+  if (hasPhrase(norm, 'ce soir')) out.push('ce soir');
+  else if (hasPhrase(norm, 'soir')) out.push('soir');
+  if (hasPhrase(norm, 'aujourdhui') || hasPhrase(norm, 'aujourd hui')) {
+    out.push('aujourdhui', "aujourd'hui", 'aujourd hui');
+  }
+  if (hasPhrase(norm, 'ce jour')) out.push('ce jour');
+  if (hasPhrase(norm, 'ce week end')) out.push('ce week end');
+  if (hasPhrase(norm, 'ce weekend')) out.push('ce weekend');
+  if (hasPhrase(norm, 'ce we')) out.push('ce we');
+  if (hasPhrase(norm, 'week end')) out.push('week end');
+  if (hasPhrase(norm, 'weekend')) out.push('weekend');
+  if (hasPhrase(norm, 'cette semaine')) out.push('cette semaine');
+  else if (hasPhrase(norm, 'semaine')) out.push('semaine');
+  if (hasPhrase(norm, 'demain')) out.push('demain');
+  for (const name of Object.keys(WEEKDAYS)) {
+    if (hasPhrase(norm, `ce ${name}`)) out.push(`ce ${name}`);
+    if (hasPhrase(norm, name)) out.push(name);
+  }
   const named = raw.match(
-    new RegExp(
-      `\\b(\\d{1,2})\\s+(${MONTH_ALT})(?:\\s+(\\d{4}))?\\b`,
-      'i',
-    ),
+    new RegExp(`\\b(\\d{1,2})\\s+(${MONTH_ALT})(?:\\s+(\\d{4}))?\\b`, 'i'),
+  );
+  if (named) out.push(named[0]);
+  const slash = raw.match(/\b(\d{1,2})[/.](\d{1,2})(?:[/.](\d{2,4}))?\b/);
+  if (slash) out.push(slash[0]);
+  return out;
+}
+
+function extractCalendarDate(
+  raw: string,
+  year: number,
+  todayIso: string,
+): { iso: string; phrase: string } | null {
+  const named = raw.match(
+    new RegExp(`\\b(\\d{1,2})\\s+(${MONTH_ALT})(?:\\s+(\\d{4}))?\\b`, 'i'),
   );
   if (named) {
     const d = Number(named[1]);
@@ -202,13 +230,10 @@ function extractDate(norm: string, raw: string, now: Date): DateHit | null {
     if (m) {
       const dateIso = named[3]
         ? isoFromYmd(y, m, d)
-        : upcomingMonthDay(year, m, d, iso);
-      if (dateIso) {
-        return { scope: 'date', selectedDate: dateIso, phrases: [named[0]] };
-      }
+        : upcomingMonthDay(year, m, d, todayIso);
+      if (dateIso) return { iso: dateIso, phrase: named[0] };
     }
   }
-
   const slash = raw.match(/\b(\d{1,2})[/.](\d{1,2})(?:[/.](\d{2,4}))?\b/);
   if (slash) {
     const d = Number(slash[1]);
@@ -218,43 +243,32 @@ function extractDate(norm: string, raw: string, now: Date): DateHit | null {
       y = Number(slash[3]);
       if (y < 100) y += 2000;
     }
-    const dateIso = slash[3] ? isoFromYmd(y, m, d) : upcomingMonthDay(year, m, d, iso);
-    if (dateIso) {
-      return { scope: 'date', selectedDate: dateIso, phrases: [slash[0]] };
-    }
+    const dateIso = slash[3]
+      ? isoFromYmd(y, m, d)
+      : upcomingMonthDay(year, m, d, todayIso);
+    if (dateIso) return { iso: dateIso, phrase: slash[0] };
   }
+  return null;
+}
 
-  for (const [name, wd] of Object.entries(WEEKDAYS)) {
-    if (hasPhrase(norm, name) || hasPhrase(norm, `ce ${name}`)) {
-      const phrases = hasPhrase(norm, `ce ${name}`) ? [`ce ${name}`, name] : [name];
-      if (hasPhrase(norm, 'ce soir')) phrases.push('ce soir');
-      else if (hasPhrase(norm, 'soir')) phrases.push('soir');
-      return {
-        scope: 'date',
-        selectedDate: nextWeekdayIso(iso, weekday, wd),
-        phrases,
-      };
-    }
-  }
-
-  if (hasPhrase(norm, 'demain')) {
-    return { scope: 'date', selectedDate: addDaysIso(iso, 1), phrases: ['demain'] };
-  }
+/**
+ * One QUAND chip, most specific first:
+ * Ce soir > Aujourd'hui > Ce WE > Cette semaine > Date…
+ */
+function extractDate(norm: string, raw: string, now: Date): DateHit | null {
+  const { iso, weekday, year } = parisParts(now);
+  const extra = datePhrasesPresent(norm, raw);
 
   if (hasPhrase(norm, 'ce soir') || hasPhrase(norm, 'soir')) {
-    const phrases = hasPhrase(norm, 'ce soir') ? ['ce soir'] : ['soir'];
-    return { scope: 'soir', selectedDate: iso, phrases };
+    return { scope: 'soir', selectedDate: iso, phrases: extra };
   }
-
   if (
     hasPhrase(norm, 'aujourdhui') ||
     hasPhrase(norm, 'aujourd hui') ||
     hasPhrase(norm, 'ce jour')
   ) {
-    const phrases = ['aujourdhui', "aujourd'hui", 'aujourd hui', 'ce jour'];
-    return { scope: 'aujourdhui', selectedDate: iso, phrases };
+    return { scope: 'aujourdhui', selectedDate: iso, phrases: extra };
   }
-
   if (
     hasPhrase(norm, 'ce week end') ||
     hasPhrase(norm, 'ce weekend') ||
@@ -262,35 +276,45 @@ function extractDate(norm: string, raw: string, now: Date): DateHit | null {
     hasPhrase(norm, 'week end') ||
     hasPhrase(norm, 'weekend')
   ) {
-    return {
-      scope: 'weekend',
-      selectedDate: null,
-      phrases: ['ce week end', 'ce weekend', 'ce we', 'week end', 'weekend', 'we'],
-    };
+    return { scope: 'weekend', selectedDate: null, phrases: extra };
   }
-
   if (hasPhrase(norm, 'cette semaine') || hasPhrase(norm, 'semaine')) {
-    const phrases = hasPhrase(norm, 'cette semaine')
-      ? ['cette semaine']
-      : ['semaine'];
-    return { scope: 'semaine', selectedDate: null, phrases };
+    return { scope: 'semaine', selectedDate: null, phrases: extra };
   }
 
+  for (const [name, wd] of Object.entries(WEEKDAYS)) {
+    if (hasPhrase(norm, name) || hasPhrase(norm, `ce ${name}`)) {
+      return {
+        scope: 'date',
+        selectedDate: nextWeekdayIso(iso, weekday, wd),
+        phrases: extra,
+      };
+    }
+  }
+  if (hasPhrase(norm, 'demain')) {
+    return { scope: 'date', selectedDate: addDaysIso(iso, 1), phrases: extra };
+  }
+  const cal = extractCalendarDate(raw, year, iso);
+  if (cal) {
+    return { scope: 'date', selectedDate: cal.iso, phrases: extra };
+  }
   return null;
 }
 
-function extractCategory(norm: string): { category: MainCategoryId; words: string[] } | null {
+function extractCategories(norm: string): { categories: MainCategoryId[]; words: string[] } {
   const tokens = norm.match(/[a-z0-9]+/g) ?? [];
   const words: string[] = [];
-  let category: MainCategoryId | null = null;
+  const categories: MainCategoryId[] = [];
+  const seen = new Set<MainCategoryId>();
   for (const t of tokens) {
     const cat = CATEGORY_WORDS[t];
     if (!cat) continue;
-    if (!category) category = cat;
     words.push(t);
+    if (seen.has(cat)) continue;
+    seen.add(cat);
+    categories.push(cat);
   }
-  if (!category) return null;
-  return { category, words };
+  return { categories, words };
 }
 
 function stripConsumed(norm: string, phrases: string[]): string {
@@ -309,24 +333,24 @@ function stripConsumed(norm: string, phrases: string[]): string {
 export function parseSearchChips(query: string, now = new Date()): SearchChipParse {
   const raw = (query || '').trim();
   if (!raw) {
-    return { scope: null, selectedDate: null, category: null, titleQuery: '' };
+    return { scope: null, selectedDate: null, categories: [], titleQuery: '' };
   }
   const norm = normalizePhrase(raw);
   const dateHit = extractDate(norm, raw, now);
-  const catHit = extractCategory(norm);
+  const catHit = extractCategories(norm);
 
-  if (!dateHit && !catHit) {
-    return { scope: null, selectedDate: null, category: null, titleQuery: raw };
+  if (!dateHit && catHit.categories.length === 0) {
+    return { scope: null, selectedDate: null, categories: [], titleQuery: raw };
   }
 
-  const consumed = [...(dateHit?.phrases ?? []), ...(catHit?.words ?? [])];
+  const consumed = [...(dateHit?.phrases ?? []), ...catHit.words];
   const leftover = stripConsumed(norm, consumed);
   const titleTokens = leftover.split(/\s+/).filter((t) => t && !GLUE.has(t));
 
   return {
     scope: dateHit?.scope ?? null,
     selectedDate: dateHit?.selectedDate ?? null,
-    category: catHit?.category ?? null,
+    categories: catHit.categories,
     titleQuery: titleTokens.join(' '),
   };
 }

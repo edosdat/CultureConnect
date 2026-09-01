@@ -433,7 +433,7 @@ export default function CultureConnectApp({
     }
     const scopeKey = parsed.scope ?? '';
     const dateKey = parsed.selectedDate ?? '';
-    const catKey = parsed.category ?? '';
+    const catKey = parsed.categories.slice().sort().join(',');
     const prev = lastSearchChipsRef.current;
 
     if (parsed.scope) {
@@ -446,9 +446,9 @@ export default function CultureConnectApp({
       searchDrivenRef.current.scope = false;
     }
 
-    if (parsed.category) {
+    if (parsed.categories.length > 0) {
       if (prev.cat !== catKey) {
-        setSelectedCategories([parsed.category]);
+        setSelectedCategories(parsed.categories);
       }
       searchDrivenRef.current.cat = true;
     } else if (searchDrivenRef.current.cat) {
