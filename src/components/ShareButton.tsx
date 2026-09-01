@@ -28,12 +28,31 @@ export default function ShareButton({ item, className = '' }: Props) {
         /* cancelled or unsupported — fall through */
       }
     }
+    const payload = `${prefill.text}\n${prefill.url}`;
+    let copiedOk = false;
     try {
-      await navigator.clipboard.writeText(`${prefill.text}\n${prefill.url}`);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(payload);
+      copiedOk = true;
     } catch {
-      window.prompt('Copier le lien', `${prefill.text}\n${prefill.url}`);
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = payload;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        copiedOk = document.execCommand('copy');
+        ta.remove();
+      } catch {
+        copiedOk = false;
+      }
+    }
+    if (copiedOk) {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2200);
+    } else {
+      window.prompt('Copier le lien', payload);
     }
   }
 
