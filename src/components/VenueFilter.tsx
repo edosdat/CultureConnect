@@ -107,6 +107,9 @@ export default function VenueFilter({
       className="overflow-hidden rounded-xl border border-culture-line bg-culture-surface shadow-card"
     >
       <div className="border-b border-culture-line p-2">
+        <p className="px-1 pb-1.5 text-xs font-semibold uppercase tracking-wide text-culture-muted">
+          Salles
+        </p>
         <input
           ref={inputRef}
           type="search"
