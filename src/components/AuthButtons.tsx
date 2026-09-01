@@ -193,7 +193,7 @@ export default function AuthButtons() {
         {menuOpen ? (
           <div
             role="menu"
-            className="absolute right-0 top-full z-[80] mt-1 min-w-[14rem] overflow-hidden rounded-xl border-[1.5px] border-culture-line bg-culture-cream py-1 shadow-lg"
+            className="absolute right-0 top-full z-[90] mt-1 min-w-[14rem] overflow-hidden rounded-xl border-[1.5px] border-culture-line bg-culture-cream py-1 shadow-lg"
           >
             <button
               type="button"
