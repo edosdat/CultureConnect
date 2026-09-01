@@ -48,11 +48,11 @@ export default function CategoryFilter({
           ? EXTRA_CATEGORY_CHIPS
           : MAIN_CATEGORIES;
     return (
-      <div className="relative min-w-0">
+      <div className="relative min-w-0 flex-1">
         <div
           role="group"
           aria-label="Catégories"
-          className="flex flex-nowrap gap-1.5 overflow-x-auto overscroll-x-contain pe-4 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex flex-nowrap gap-1.5 overflow-x-auto overscroll-x-contain scroll-px-3 pe-4 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {chips.map(({ id, label }) => {
             const active = selected.includes(id);
@@ -88,7 +88,7 @@ export default function CategoryFilter({
         </div>
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-culture-cream to-transparent sm:hidden"
+          className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-culture-cream to-transparent sm:hidden"
         />
       </div>
     );

@@ -1307,20 +1307,32 @@ export default function CultureConnectApp({
       </div>
 
       <div className="space-y-2.5 sm:space-y-4">
-        <TimeScopeBar
-          scope={timeScope}
-          onChange={handleScopeChange}
-        />
-
-        <div className="min-w-0 border-t border-culture-line/80 pt-2.5">
-          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
-            Quoi
-          </p>
-          <CategoryFilter
-            selected={selectedCategories}
-            onChange={handleCategoriesChange}
-            variant="home"
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5">
+            <p className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
+              Quand
+            </p>
+            <TimeScopeBar
+              scope={timeScope}
+              onChange={handleScopeChange}
+              hideLabel
+            />
+          </div>
+          <div
+            role="separator"
+            aria-hidden
+            className="h-7 w-px shrink-0 bg-culture-line"
           />
+          <div className="flex min-w-0 flex-[1.2] items-center gap-1.5">
+            <p className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
+              Quoi
+            </p>
+            <CategoryFilter
+              selected={selectedCategories}
+              onChange={handleCategoriesChange}
+              variant="home"
+            />
+          </div>
         </div>
 
         <div className="md:hidden">
