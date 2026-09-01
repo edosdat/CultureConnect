@@ -133,18 +133,18 @@ describe('taste ingest — MAP then DROP', () => {
     }
   });
 
-  it('maps horreur and épouvante to angoissant + horreur', () => {
+  it('maps horreur to angoissant + horreur; épouvante is mood-only', () => {
     assert.deepEqual(mapThenDropTasteTags(['horreur'], []), {
       moods: ['angoissant'],
       genres: ['horreur'],
     });
     assert.deepEqual(mapThenDropTasteTags(['epouvante'], []), {
       moods: ['angoissant'],
-      genres: ['horreur'],
+      genres: [],
     });
     assert.deepEqual(mapThenDropTasteTags([], [], 'épouvante'), {
       moods: ['angoissant'],
-      genres: ['horreur'],
+      genres: [],
     });
   });
 
@@ -158,6 +158,12 @@ describe('taste ingest — MAP then DROP', () => {
       assert.deepEqual(mapped.moods, [], token);
       assert.deepEqual(mapped.genres, ['patrimoine'], token);
     }
+    const offAnim = mapThenDropTasteTags([], ['animation_jeune_public']);
+    assert.deepEqual(offAnim.moods, []);
+    assert.deepEqual(offAnim.genres, ['animation']);
+    const offRetro = mapThenDropTasteTags([], ['patrimoine_retro']);
+    assert.deepEqual(offRetro.moods, []);
+    assert.deepEqual(offRetro.genres, ['patrimoine']);
   });
 
   it('drops moods outside the 16 and drops sortie', () => {
@@ -269,6 +275,7 @@ describe('taste ingest — MAP then DROP', () => {
     assert.deepEqual(horror.moods.filter((m) => m === 'angoissant'), ['angoissant']);
     assert.ok(horror.genres.includes('horreur'));
     assert.equal(horror.moods.includes('horreur'), false);
+    assert.equal(horror.genres.includes('epouvante'), false);
 
     const anim = makeSignal(
       payloadFromDayItem(
@@ -284,6 +291,7 @@ describe('taste ingest — MAP then DROP', () => {
     assert.ok(anim.moods.includes('rigolo'));
     assert.equal(anim.moods.includes('animation'), false);
     assert.ok(anim.genres.includes('animation'));
+    assert.equal(anim.genres.includes('animation_jeune_public'), false);
 
     const retro = makeSignal(
       payloadFromDayItem(
@@ -297,6 +305,7 @@ describe('taste ingest — MAP then DROP', () => {
     );
     assert.equal(retro.moods.includes('patrimoine'), false);
     assert.ok(retro.genres.includes('patrimoine'));
+    assert.equal(retro.genres.includes('patrimoine_retro'), false);
   });
 
   it('ingestMapSignal is idempotent and does not invent a 17th mood', () => {
@@ -326,7 +335,7 @@ describe('taste profile — one-shot migrate of stored mood keys', () => {
     assert.equal(clean.genres.comedie?.pct, 100);
   });
 
-  it('moves horreur / epouvante → angoissant + genres.horreur', () => {
+  it('moves horreur → angoissant + genres.horreur; epouvante → angoissant only', () => {
     const horror = sanitizeTasteProfile({
       ...emptyProfile(),
       moods: { horreur: { weight: 3, pct: 100 } },
@@ -341,7 +350,8 @@ describe('taste profile — one-shot migrate of stored mood keys', () => {
     });
     assert.equal(fright.moods.epouvante, undefined);
     assert.ok((fright.moods.angoissant?.weight ?? 0) > 0);
-    assert.ok((fright.genres.horreur?.weight ?? 0) > 0);
+    assert.equal(fright.genres.horreur, undefined);
+    assert.equal(fright.genres.epouvante, undefined);
   });
 
   it('moves animation and patrimoine as genres only', () => {

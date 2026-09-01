@@ -726,8 +726,8 @@ export function mapThenDropTasteTags(
     nextGenres.push('horreur');
   }
   if (tokens.has('epouvante')) {
+    // Biblio: épouvante is not a 89 slug — mood only.
     nextMoods.push('angoissant');
-    nextGenres.push('horreur');
   }
   if (tokens.has('animation') || tokens.has('animations')) {
     nextGenres.push('animation');
@@ -739,7 +739,11 @@ export function mapThenDropTasteTags(
   return {
     moods: uniqueSlugs(nextMoods).filter((m) => isTasteMood(m)),
     genres: uniqueSlugs(nextGenres).filter(
-      (g) => TASTE_GENRE_SET.has(g) && !isCatTasteKey(g),
+      (g) =>
+        TASTE_GENRE_SET.has(g) &&
+        !isCatTasteKey(g) &&
+        g !== 'animation_jeune_public' &&
+        g !== 'patrimoine_retro',
     ),
   };
 }
