@@ -23,6 +23,7 @@ import {
 import {
   filmIdOfItem,
   isCinemaDayItem,
+  isVivantDayItem,
   nouveauFilmIds,
   nouveautesCine,
   pickAussiCeSoir,
@@ -119,7 +120,15 @@ export function parseRecoProfile(raw: unknown): TasteProfile | null {
 
 function emptyRecoExtras(): Pick<
   AgendaListResponse,
-  'nouveautes' | 'communes' | 'venues' | 'genreSlugs' | 'genresLegend' | 'nouveauFilmIds'
+  | 'nouveautes'
+  | 'communes'
+  | 'venues'
+  | 'genreSlugs'
+  | 'genresLegend'
+  | 'nouveauFilmIds'
+  | 'vivantItems'
+  | 'vivantTotal'
+  | 'cineTotal'
 > {
   return {
     nouveautes: [],
@@ -128,6 +137,9 @@ function emptyRecoExtras(): Pick<
     genreSlugs: [],
     genresLegend: [],
     nouveauFilmIds: [],
+    vivantItems: [],
+    vivantTotal: 0,
+    cineTotal: 0,
   };
 }
 
@@ -875,6 +887,15 @@ export function queryAgenda(
   const cap = Math.min(Math.max(requested, 0), AGENDA_PAGE_MAX);
   const page = items.slice(offset, offset + cap).map(slimDayItem);
 
+  const vivantAll = items.filter(isVivantDayItem);
+  const cineAll = items.filter(isCinemaDayItem);
+  const vivantItems =
+    !searching && offset === 0
+      ? vivantAll.slice(0, 40).map(slimDayItem)
+      : [];
+  const vivantTotal = densifiedCardCount(vivantAll);
+  const cineTotal = densifiedCardCount(cineAll);
+
   let counts: Record<string, number> | undefined;
   if (input.includeCounts) {
     const lieuIds = resolveLieuIds(input.commune, input.lieuId, searching);
@@ -919,6 +940,9 @@ export function queryAgenda(
     weekday: paris.weekday,
     genresLegend: input.includeListMeta ? data.genresLegend : [],
     nouveauFilmIds: Array.from(nouveauFilmIds(data.programmeWithContext, now)),
+    vivantItems,
+    vivantTotal,
+    cineTotal,
   };
 }
 
@@ -934,6 +958,9 @@ export type ScopeListSnapshot = {
   densifiedTotal: number;
   nouveautes: DayItem[];
   venues: Lieu[];
+  vivantItems?: DayItem[];
+  vivantTotal?: number;
+  cineTotal?: number;
 };
 
 export type ListByScope = Record<RecoBootScope, ScopeListSnapshot>;
@@ -984,6 +1011,9 @@ function listSnapshotForScope(scope: RecoBootScope, now: Date): ScopeListSnapsho
     densifiedTotal: res.densifiedTotal,
     nouveautes: res.nouveautes,
     venues: res.venues,
+    vivantItems: res.vivantItems,
+    vivantTotal: res.vivantTotal,
+    cineTotal: res.cineTotal,
   };
 }
 

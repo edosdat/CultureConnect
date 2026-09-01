@@ -1,6 +1,8 @@
 'use client';
 
 import {
+  EXTRA_CATEGORY_CHIPS,
+  HOME_CATEGORY_CHIPS,
   MAIN_CATEGORIES,
   type MainCategoryId,
 } from '@/lib/categories';
@@ -9,7 +11,7 @@ type Props = {
   selected: string[];
   onChange: (next: string[]) => void;
   /** Horizontal chips (home P0) vs stacked sidebar list */
-  variant?: 'chips' | 'list';
+  variant?: 'chips' | 'list' | 'home' | 'extra';
 };
 
 /** Same --cc-cat-* hex as card bar / pastille. */
@@ -38,7 +40,13 @@ export default function CategoryFilter({
     }
   }
 
-  if (variant === 'chips') {
+  if (variant === 'chips' || variant === 'home' || variant === 'extra') {
+    const chips =
+      variant === 'home'
+        ? HOME_CATEGORY_CHIPS
+        : variant === 'extra'
+          ? EXTRA_CATEGORY_CHIPS
+          : MAIN_CATEGORIES;
     return (
       <div className="relative">
         <div
@@ -46,7 +54,7 @@ export default function CategoryFilter({
           aria-label="Catégories"
           className="flex flex-nowrap gap-1.5 overflow-x-auto pe-4 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          {MAIN_CATEGORIES.map(({ id, label }) => {
+          {chips.map(({ id, label }) => {
             const active = selected.includes(id);
             const tint = `var(${CHIP_VAR[id]})`;
             return (

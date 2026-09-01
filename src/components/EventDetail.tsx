@@ -1,13 +1,16 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { DayItem } from '@/lib/types';
 import {
   calendarPayloadFromDayItem,
   downloadIcs,
   googleCalendarUrl,
 } from '@/lib/calendar';
+import { isLikelyMobile } from '@/lib/displayHome';
 import SeanceCard from './SeanceCard';
+import ShareButton from './ShareButton';
+import FavoriteButton from './FavoriteButton';
 import {
   formatDateRange,
   formatHeure,
@@ -138,7 +141,7 @@ function ReserveControl({
       rel="noopener noreferrer"
       onClick={() => onReserve?.()}
       className={
-        'inline-flex items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-medium text-white hover:bg-culture-clay' +
+          'inline-flex min-h-10 items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-medium text-white hover:bg-culture-clay' +
         width
       }
     >
@@ -281,9 +284,9 @@ function AussiCeSoirSection({
   if (items.length === 0 || !onSelectItem) return null;
   return (
     <section>
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
-        Aussi ce soir
-      </h3>
+      <p className="text-sm font-medium text-culture-ink">
+        C’est noté pour ce soir. Et samedi, il y a ça à 10 min de chez toi.
+      </p>
       <ul className="mt-2 space-y-2">
         {items.map((it) => (
           <li key={it.key}>
@@ -293,6 +296,14 @@ function AussiCeSoirSection({
       </ul>
     </section>
   );
+}
+
+function webcalHref(itemKey: string): string {
+  if (typeof window === 'undefined') return '';
+  const host = window.location.host;
+  const path = `/api/calendar/${encodeURIComponent(itemKey)}`;
+  if (window.location.protocol === 'https:') return `webcal://${host}${path}`;
+  return `${window.location.origin}${path}`;
 }
 
 function looksLikeTicket(url: string): boolean {
@@ -387,10 +398,25 @@ export default function EventDetail({
   selectedLieuId,
 }: Props) {
   useEscapeClose(Boolean(item), onClose);
+  const [engaged, setEngaged] = useState(false);
+  const [mobileCal, setMobileCal] = useState(false);
+
+  useEffect(() => {
+    setEngaged(false);
+  }, [item?.key]);
+
+  useEffect(() => {
+    setMobileCal(isLikelyMobile());
+  }, []);
+
+  function markEngaged() {
+    setEngaged(true);
+  }
 
   if (!item) return null;
 
   const cal = calendarPayloadFromDayItem(item);
+  const showCrossSell = engaged && aussiCeSoirItems.length > 0;
 
   if (item.kind === 'programme') {
     const { programme: p, evenement: ev, lieu } = item;
@@ -522,7 +548,10 @@ export default function EventDetail({
                         }
                       : undefined
                   }
-                  onReserve={onReserve}
+                  onReserve={() => {
+                    markEngaged();
+                    onReserve?.();
+                  }}
                   selectedCommune={selectedCommune}
                   selectedLieuId={selectedLieuId}
                 />
@@ -591,17 +620,15 @@ export default function EventDetail({
               </section>
             )}
 
-            <AussiCeSoirSection
-              items={aussiCeSoirItems}
-              onSelectItem={onSelectItem}
-            />
-
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {!hasFilmSeances && (
                 <ReserveControl
                   url={reserveUrlOf(item)}
                   soldOut={reserveSoldOut(item)}
-                  onReserve={onReserve}
+                  onReserve={() => {
+                    markEngaged();
+                    onReserve?.();
+                  }}
                 />
               )}
               {cal && (
@@ -610,34 +637,60 @@ export default function EventDetail({
                     href={googleCalendarUrl(cal)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() => onAgenda?.()}
-                    className="inline-flex items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
+                    onClick={() => {
+                      markEngaged();
+                      onAgenda?.();
+                    }}
+                    className="inline-flex min-h-10 items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
                   >
                     Google Agenda
                   </a>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onIcs?.();
-                      downloadIcs(cal);
-                    }}
-                    className="inline-flex items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
-                  >
-                    Télécharger (.ics)
-                  </button>
+                  {mobileCal ? (
+                    <a
+                      href={webcalHref(item.key)}
+                      onClick={() => {
+                        markEngaged();
+                        onIcs?.();
+                      }}
+                      className="inline-flex min-h-10 items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
+                    >
+                      S’abonner au calendrier
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        markEngaged();
+                        onIcs?.();
+                        downloadIcs(cal);
+                      }}
+                      className="inline-flex min-h-10 items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
+                    >
+                      Télécharger (.ics)
+                    </button>
+                  )}
                 </>
               )}
+              <ShareButton item={item} />
+              <FavoriteButton itemKey={item.key} />
               {sourceUrlOf(item) && (
                 <a
                   href={sourceUrlOf(item)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
+                  className="inline-flex min-h-10 items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
                 >
                   Voir la source
                 </a>
               )}
             </div>
+
+            {showCrossSell ? (
+              <AussiCeSoirSection
+                items={aussiCeSoirItems}
+                onSelectItem={onSelectItem}
+              />
+            ) : null}
           </div>
         </div>
       </div>
@@ -768,16 +821,14 @@ export default function EventDetail({
             </section>
           )}
 
-          <AussiCeSoirSection
-            items={aussiCeSoirItems}
-            onSelectItem={onSelectItem}
-          />
-
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <ReserveControl
               url={reserveUrlOf(item)}
               soldOut={reserveSoldOut(item)}
-              onReserve={onReserve}
+              onReserve={() => {
+                markEngaged();
+                onReserve?.();
+              }}
             />
             {cal && (
               <>
@@ -785,34 +836,60 @@ export default function EventDetail({
                   href={googleCalendarUrl(cal)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() => onAgenda?.()}
-                  className="inline-flex items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
+                  onClick={() => {
+                    markEngaged();
+                    onAgenda?.();
+                  }}
+                  className="inline-flex min-h-10 items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
                 >
                   Google Agenda
                 </a>
-                <button
-                  type="button"
-                  onClick={() => {
+                {mobileCal ? (
+                  <a
+                    href={webcalHref(item.key)}
+                    onClick={() => {
+                      markEngaged();
+                      onIcs?.();
+                    }}
+                    className="inline-flex min-h-10 items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
+                  >
+                    S’abonner au calendrier
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      markEngaged();
                       onIcs?.();
                       downloadIcs(cal);
                     }}
-                  className="inline-flex items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
-                >
-                  Télécharger (.ics)
-                </button>
+                    className="inline-flex min-h-10 items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
+                  >
+                    Télécharger (.ics)
+                  </button>
+                )}
               </>
             )}
+            <ShareButton item={item} />
+            <FavoriteButton itemKey={item.key} />
             {sourceUrlOf(item) && (
               <a
                 href={sourceUrlOf(item)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
+                className="inline-flex min-h-10 items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
               >
                 Voir la source
               </a>
             )}
           </div>
+
+          {showCrossSell ? (
+            <AussiCeSoirSection
+              items={aussiCeSoirItems}
+              onSelectItem={onSelectItem}
+            />
+          ) : null}
         </div>
       </div>
     </div>

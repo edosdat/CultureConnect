@@ -25,6 +25,25 @@ export const MAIN_CATEGORIES: ReadonlyArray<{
   { id: 'enfants_famille', label: 'Enfants / familles' },
 ] as const;
 
+/** Home primary axis — living vs cinema (other buckets stay in Filtres). */
+export const HOME_CATEGORY_CHIPS: ReadonlyArray<{
+  id: MainCategoryId;
+  label: string;
+}> = [
+  { id: 'musique', label: 'Musique' },
+  { id: 'theatre_danse', label: 'Théâtre' },
+  { id: 'cinema', label: 'Cinéma' },
+] as const;
+
+export const EXTRA_CATEGORY_CHIPS: ReadonlyArray<{
+  id: MainCategoryId;
+  label: string;
+}> = [
+  { id: 'festival', label: 'Festival' },
+  { id: 'expo_patrimoine', label: 'Expo & patrimoine' },
+  { id: 'enfants_famille', label: 'Enfants / familles' },
+] as const;
+
 export const MAIN_CATEGORY_LABELS: Record<MainCategoryId, string> = {
   musique: 'Musique',
   theatre_danse: 'Théâtre & danse',

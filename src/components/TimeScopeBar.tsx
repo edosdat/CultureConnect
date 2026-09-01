@@ -14,7 +14,10 @@ type Props = {
 export default function TimeScopeBar({ scope, onChange }: Props) {
   const none = scope == null || scope === 'tous';
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
+        Quand
+      </p>
       <div className="relative">
         <div
           role="group"

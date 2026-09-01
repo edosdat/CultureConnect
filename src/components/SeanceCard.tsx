@@ -12,24 +12,24 @@ import {
 } from '@/lib/labels';
 import { MAIN_CATEGORY_LABELS, mainFromCategorie, mainFromGenreSlug } from '@/lib/categories';
 import { catCssVar, catGradient } from '@/lib/categoryColor';
+import VisualFallback from './VisualFallback';
+import FavoriteButton from './FavoriteButton';
+
+export type SeanceCardVariant = 'default' | 'rail' | 'live' | 'compact';
 
 type Props = {
   item: DayItem;
   showDate?: boolean;
   onSelect: (key: string) => void;
   onSelectVenue?: (lieuId: string) => void;
-  /** Soft-collapse: extra créneaux / séances sharing group key */
   extraSlots?: number;
-  /** Soft-collapse film: nombre total de salles distinctes */
   salleCount?: number;
-  /** Soft-collapse film: earliest screening time (HH:MM) */
   earliestHeure?: string;
-  /** Soft-collapse film: short cities summary */
   citiesSummary?: string;
-  /** Tighter card for in-modal suggestions (Aussi ce soir). */
   compact?: boolean;
-  /** 1re séance mercredi de la semaine Paris, encore à venir. */
   nouveau?: boolean;
+  variant?: SeanceCardVariant;
+  reason?: string | null;
 };
 
 function cardPitch(item: DayItem): string {
@@ -60,16 +60,18 @@ function CategoryPill({ label }: { label: string }) {
   const cssVar = catCssVar(label);
   return (
     <span
-      className="inline-flex w-fit rounded-full border px-2.5 py-0.5 text-[11px] font-semibold"
-      style={{
-        backgroundColor: `color-mix(in srgb, var(${cssVar}) 18%, #fffcf8)`,
-        borderColor: `color-mix(in srgb, var(${cssVar}) 42%, #e7e0d8)`,
-        color: '#1c1917',
-      }}
+      className="inline-flex w-fit rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white"
+      style={{ backgroundColor: `var(${cssVar})` }}
     >
       {label}
     </span>
   );
+}
+
+function imageUrlOf(item: DayItem): string {
+  return item.kind === 'programme'
+    ? item.programme.image_url || item.evenement?.image_url || ''
+    : item.evenement.image_url || '';
 }
 
 export default function SeanceCard({
@@ -83,16 +85,14 @@ export default function SeanceCard({
   citiesSummary = '',
   compact = false,
   nouveau = false,
+  variant,
+  reason = null,
 }: Props) {
+  const resolved: SeanceCardVariant = variant ?? (compact ? 'compact' : 'default');
   const catLabel = categoryLabelFor(item);
-  const imageUrl =
-    item.kind === 'programme'
-      ? item.programme.image_url || item.evenement?.image_url || ''
-      : item.evenement.image_url || '';
-
+  const imageUrl = imageUrlOf(item);
   const title =
     item.kind === 'programme' ? item.programme.nom_item : item.evenement.titre;
-
   const singleTime =
     item.kind === 'programme'
       ? formatHeure(item.programme.heure_debut) +
@@ -103,18 +103,15 @@ export default function SeanceCard({
         (item.evenement.heure_fin
           ? ` – ${formatHeure(item.evenement.heure_fin)}`
           : '');
-
   const price =
     item.kind === 'programme'
       ? formatItemPrix(item.programme.prix_item, item.evenement)
       : formatPrix(item.evenement);
-
   const lieu = item.lieu;
   const isPeriod = item.kind === 'fallback';
   const isFilmGroup = salleCount > 0;
   const cssVar = catCssVar(catLabel);
   const accentStyle = { borderLeftColor: `var(${cssVar})` } as CSSProperties;
-
   const desHeure = earliestHeure
     ? formatHeure(earliestHeure)
     : singleTime
@@ -137,121 +134,170 @@ export default function SeanceCard({
   }
 
   const showVenueLine = Boolean(lieu) && (!isFilmGroup || salleCount === 1);
-  const showCities =
-    isFilmGroup && salleCount > 1 && Boolean(citiesSummary);
+  const showCities = isFilmGroup && salleCount > 1 && Boolean(citiesSummary);
+  const pitch = cardPitch(item);
+
+  const media = (
+    <div
+      className={
+        'relative overflow-hidden ' +
+        catGradient(catLabel) +
+        (resolved === 'rail'
+          ? ' h-full min-h-[6.5rem] w-[7.25rem] shrink-0 sm:w-[8.5rem]'
+          : resolved === 'live'
+            ? ' aspect-[4/3] w-full'
+            : resolved === 'compact'
+              ? ' h-16 w-full'
+              : ' h-28 w-full')
+      }
+    >
+      {imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageUrl}
+          alt=""
+          loading="lazy"
+          className="h-full w-full object-cover transition duration-200 ease-out group-hover:scale-[1.03]"
+        />
+      ) : (
+        <VisualFallback item={item} compact={resolved !== 'live'} />
+      )}
+      {catLabel && resolved !== 'rail' ? (
+        <span className="absolute left-3 top-3">
+          <CategoryPill label={catLabel} />
+        </span>
+      ) : null}
+      {nouveau ? (
+        <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-culture-terracotta px-2 py-0.5 text-[11px] font-medium leading-none text-culture-cream">
+          Nouveau
+        </span>
+      ) : isPeriod && resolved !== 'rail' ? (
+        <span className="absolute right-3 top-3 rounded-full bg-culture-surface/95 px-2 py-0.5 text-[10px] uppercase tracking-wide text-culture-muted">
+          Sur la période
+        </span>
+      ) : null}
+    </div>
+  );
+
+  const venueNode =
+    showVenueLine && lieu ? (
+      <p
+        className={
+          resolved === 'live'
+            ? 'mt-auto pt-1 text-sm font-semibold text-culture-ink'
+            : 'mt-auto pt-1 text-sm text-culture-muted'
+        }
+      >
+        <span
+          role={onSelectVenue ? 'link' : undefined}
+          tabIndex={onSelectVenue ? 0 : undefined}
+          onClick={
+            onSelectVenue
+              ? (e) => {
+                  e.stopPropagation();
+                  onSelectVenue(lieu.lieu_id);
+                }
+              : undefined
+          }
+          onKeyDown={
+            onSelectVenue
+              ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onSelectVenue(lieu.lieu_id);
+                  }
+                }
+              : undefined
+          }
+          className={
+            onSelectVenue
+              ? 'cursor-pointer hover:text-culture-terracotta hover:underline'
+              : undefined
+          }
+          title={onSelectVenue ? 'Filtrer sur ce lieu' : undefined}
+        >
+          {formatLieuAffiche(lieu)}
+        </span>
+      </p>
+    ) : null;
+
+  const body = (
+    <div
+      className={
+        'flex min-w-0 flex-1 flex-col gap-1 ' +
+        (resolved === 'compact'
+          ? 'p-2.5 sm:p-3 '
+          : resolved === 'rail'
+            ? 'p-3 '
+            : 'p-3.5 sm:p-4 ')
+      }
+    >
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        {resolved === 'rail' && catLabel ? <CategoryPill label={catLabel} /> : null}
+        {showDate && (
+          <span className="text-xs font-medium text-culture-terracotta">
+            {formatDateFr(item.dayIso)}
+          </span>
+        )}
+        {resolved !== 'compact' ? (
+          <span
+            className="ml-auto"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            <FavoriteButton itemKey={item.key} className="h-9 w-9" />
+          </span>
+        ) : null}
+      </div>
+      <h3
+        className={
+          'font-display leading-snug text-culture-ink line-clamp-2 ' +
+          (resolved === 'compact'
+            ? 'text-base'
+            : resolved === 'live'
+              ? 'text-xl sm:text-2xl'
+              : 'text-lg')
+        }
+      >
+        {title}
+      </h3>
+      {pitch ? (
+        <p
+          className={
+            'text-sm leading-snug text-culture-ink ' +
+            (resolved === 'compact' || resolved === 'rail'
+              ? 'line-clamp-2'
+              : 'line-clamp-3')
+          }
+        >
+          {pitch}
+        </p>
+      ) : null}
+      {metaLine ? <p className="text-sm text-culture-muted">{metaLine}</p> : null}
+      {showCities ? (
+        <p className="text-xs text-culture-muted">{citiesSummary}</p>
+      ) : null}
+      {venueNode}
+      {reason ? (
+        <p className="text-xs italic text-culture-terracotta">{reason}</p>
+      ) : null}
+    </div>
+  );
 
   return (
     <button
       type="button"
       onClick={() => onSelect(item.key)}
       className={
-        'group flex w-full min-w-0 flex-col overflow-hidden rounded-card border border-culture-line border-l-4 bg-culture-surface text-left shadow-card transition duration-200 ease-out ' +
-        (compact ? 'hover:shadow-md' : 'hover:-translate-y-0.5 hover:shadow-md')
+        'group flex w-full min-w-0 overflow-hidden rounded-card border border-culture-line border-l-4 bg-culture-surface text-left shadow-card transition duration-200 ease-out ' +
+        (resolved === 'rail' ? 'flex-row ' : 'flex-col ') +
+        (resolved === 'compact' ? 'hover:shadow-md' : 'hover:-translate-y-0.5 hover:shadow-md')
       }
       style={accentStyle}
     >
-      {imageUrl || nouveau ? (
-        <div
-          className={
-            (compact ? 'relative h-16 w-full overflow-hidden ' : 'relative h-24 w-full overflow-hidden ') +
-            catGradient(catLabel)
-          }
-        >
-          {imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={imageUrl}
-              alt=""
-              loading="lazy"
-              className="h-full w-full object-cover transition duration-200 ease-out group-hover:scale-[1.03]"
-            />
-          ) : null}
-          {catLabel && (
-            <span className="absolute left-3 top-3">
-              <CategoryPill label={catLabel} />
-            </span>
-          )}
-          {nouveau ? (
-            <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-culture-terracotta px-2 py-0.5 text-[11px] font-medium leading-none text-culture-cream">
-              Nouveau
-            </span>
-          ) : isPeriod ? (
-            <span className="absolute right-3 top-3 rounded-full bg-culture-surface/95 px-2 py-0.5 text-[10px] uppercase tracking-wide text-culture-muted">
-              Sur la période
-            </span>
-          ) : null}
-        </div>
-      ) : null}
-
-      <div
-        className={
-          'flex min-w-0 flex-1 flex-col gap-1 ' +
-          (compact ? 'p-2.5 sm:p-3 ' : 'p-3.5 sm:p-4 ')
-        }
-      >
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          {showDate && (
-            <span className="text-xs font-medium text-culture-terracotta">
-              {formatDateFr(item.dayIso)}
-            </span>
-          )}
-          {!imageUrl && isPeriod && (
-            <span className="rounded-full bg-culture-cream px-2 py-0.5 text-[10px] uppercase tracking-wide text-culture-muted">
-              Sur la période
-            </span>
-          )}
-        </div>
-        <h3 className={'font-display leading-snug text-culture-ink line-clamp-2 ' + (compact ? 'text-base' : 'text-lg')}>
-          {title}
-        </h3>
-        {!imageUrl && catLabel ? <CategoryPill label={catLabel} /> : null}
-        {cardPitch(item) ? (
-          <p className={'text-sm leading-snug text-culture-ink ' + (compact ? 'line-clamp-2' : 'line-clamp-3')}>
-            {cardPitch(item)}
-          </p>
-        ) : null}
-        {metaLine ? (
-          <p className="text-sm text-culture-muted">{metaLine}</p>
-        ) : null}
-        {showCities ? (
-          <p className="text-xs text-culture-muted">{citiesSummary}</p>
-        ) : null}
-        {showVenueLine && lieu && (
-          <p className="mt-auto pt-1 text-sm text-culture-muted">
-            <span
-              role={onSelectVenue ? 'link' : undefined}
-              tabIndex={onSelectVenue ? 0 : undefined}
-              onClick={
-                onSelectVenue
-                  ? (e) => {
-                      e.stopPropagation();
-                      onSelectVenue(lieu.lieu_id);
-                    }
-                  : undefined
-              }
-              onKeyDown={
-                onSelectVenue
-                  ? (e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onSelectVenue(lieu.lieu_id);
-                      }
-                    }
-                  : undefined
-              }
-              className={
-                onSelectVenue
-                  ? 'cursor-pointer hover:text-culture-terracotta hover:underline'
-                  : undefined
-              }
-              title={onSelectVenue ? 'Filtrer sur ce lieu' : undefined}
-            >
-              {formatLieuAffiche(lieu)}
-            </span>
-          </p>
-        )}
-      </div>
+      {media}
+      {body}
     </button>
   );
 }

@@ -58,6 +58,9 @@ function slimEvenement(
     genre: ev.genre,
     image_url: ev.image_url || '',
     publication: ev.publication || '',
+    form: ev.form || '',
+    moods: ev.moods || '',
+    genres_mood: ev.genres_mood || '',
   };
 }
 
@@ -80,6 +83,9 @@ function slimProgramme(p: ProgrammeItem): ProgrammeItem {
     film_id: p.film_id || '',
     image_url: p.image_url || '',
     description_item: clipListPitch(p.description_item),
+    form: p.form || '',
+    moods: p.moods || '',
+    genres_mood: p.genres_mood || '',
   };
 }
 
@@ -257,6 +263,10 @@ export type AgendaListResponse = {
   nouveauFilmIds?: string[];
   date_from?: string;
   date_to?: string;
+  /** All living-arts cards in the window (display sections). */
+  vivantItems?: DayItem[];
+  vivantTotal?: number;
+  cineTotal?: number;
 };
 
 export type AgendaDetailResponse = {

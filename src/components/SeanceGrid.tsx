@@ -10,8 +10,9 @@ import {
 import type { DayItem } from '@/lib/types';
 import { densify, densifiedCardCount } from '@/lib/densify';
 import { filmIdOfItem } from '@/lib/nouveautesCine';
-import { SLOT_ORDER, slotFormOfItem, type RecoSlotForm } from '@/lib/reco';
-import SeanceCard from './SeanceCard';
+import { slotFormOfItem, type RecoSlotForm } from '@/lib/reco';
+import { DISPLAY_SLOT_ORDER } from '@/lib/displayHome';
+import SeanceCard, { type SeanceCardVariant } from './SeanceCard';
 
 type Props = {
   items: DayItem[];
@@ -27,6 +28,8 @@ type Props = {
   nouveauFilmIds?: ReadonlySet<string>;
   /** Top 3: always cine | theatre | concert cells; empty slot stays empty. */
   fixedSlots?: boolean;
+  variant?: SeanceCardVariant;
+  reasonFor?: (item: DayItem) => string | null;
 };
 
 export { densifiedCardCount };
@@ -51,9 +54,15 @@ function FixedSlotsGrid({
   onSelectItem,
   onSelectVenue,
   nouveauFilmIds,
+  reasonFor,
 }: Pick<
   Props,
-  'items' | 'showDate' | 'onSelectItem' | 'onSelectVenue' | 'nouveauFilmIds'
+  | 'items'
+  | 'showDate'
+  | 'onSelectItem'
+  | 'onSelectVenue'
+  | 'nouveauFilmIds'
+  | 'reasonFor'
 >) {
   const bySlot = new Map<RecoSlotForm, DayItem>();
   for (const item of items) {
@@ -62,11 +71,11 @@ function FixedSlotsGrid({
   }
   return (
     <div className="space-y-4">
-      <ul className={GRID_CLASS}>
-        {SLOT_ORDER.map((slot) => {
+      <ul className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+        {DISPLAY_SLOT_ORDER.map((slot) => {
           const item = bySlot.get(slot);
           return (
-            <li key={slot} className={item ? 'min-w-0' : 'min-w-0 min-h-[7.5rem]'}>
+            <li key={slot} className={item ? 'min-w-0' : 'min-w-0 min-h-[6.5rem]'}>
               {item ? (
                 <SeanceCard
                   item={item}
@@ -74,6 +83,8 @@ function FixedSlotsGrid({
                   onSelect={onSelectItem}
                   onSelectVenue={onSelectVenue}
                   nouveau={cardNouveau(item, nouveauFilmIds)}
+                  variant="rail"
+                  reason={reasonFor?.(item) ?? null}
                 />
               ) : null}
             </li>
@@ -95,6 +106,8 @@ export default function SeanceGrid({
   hasMoreRemote = false,
   nouveauFilmIds,
   fixedSlots = false,
+  variant,
+  reasonFor,
 }: Props) {
   if (fixedSlots) {
     return (
@@ -104,6 +117,7 @@ export default function SeanceGrid({
         onSelectItem={onSelectItem}
         onSelectVenue={onSelectVenue}
         nouveauFilmIds={nouveauFilmIds}
+        reasonFor={reasonFor}
       />
     );
   }
@@ -119,6 +133,8 @@ export default function SeanceGrid({
       onLoadMore={onLoadMore}
       hasMoreRemote={hasMoreRemote}
       nouveauFilmIds={nouveauFilmIds}
+      variant={variant}
+      reasonFor={reasonFor}
     />
   );
 }
@@ -133,6 +149,8 @@ function DensifiedGrid({
   onLoadMore,
   hasMoreRemote = false,
   nouveauFilmIds,
+  variant,
+  reasonFor,
 }: Omit<Props, 'fixedSlots'>) {
   const rows = useMemo(() => densify(items), [items]);
   const limited =
@@ -205,6 +223,8 @@ function DensifiedGrid({
                 earliestHeure={earliestHeure}
                 citiesSummary={citiesSummary}
                 nouveau={cardNouveau(item, nouveauFilmIds)}
+                variant={variant}
+                reason={reasonFor?.(item) ?? null}
               />
             </li>
           ),

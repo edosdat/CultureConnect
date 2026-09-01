@@ -20,6 +20,20 @@ export const metadata: Metadata = {
   title: 'CultureConnect — Agenda culturel Toulouse',
   description:
     'Calendrier des évènements culturels autour de Toulouse : expositions, concerts, théâtre, festivals et plus.',
+  openGraph: {
+    title: 'CultureConnect — Agenda culturel Toulouse',
+    description:
+      'Concerts, théâtre et cinéma autour de Toulouse. Qu’est-ce qui te ferait vibrer ?',
+    locale: 'fr_FR',
+    type: 'website',
+    siteName: 'CultureConnect',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'CultureConnect — Agenda culturel Toulouse',
+    description:
+      'Concerts, théâtre et cinéma autour de Toulouse. Qu’est-ce qui te ferait vibrer ?',
+  },
 };
 
 export default function RootLayout({

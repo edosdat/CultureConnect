@@ -28,7 +28,7 @@ export default function SiteNav() {
       <div className="relative mx-auto flex max-w-7xl min-w-0 items-center gap-1 px-4 py-3 pr-[4.25rem] sm:px-6 sm:pr-6">
         <Link
           href="/"
-          className="mr-2 shrink-0 font-display text-lg text-culture-ink hover:text-culture-terracotta sm:mr-3"
+          className="mr-2 shrink-0 font-display text-lg text-culture-terracotta hover:text-culture-clay sm:mr-3"
         >
           CultureConnect
         </Link>

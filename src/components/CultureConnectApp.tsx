@@ -7,9 +7,18 @@ import { profileHasChipWeight } from '@/lib/reco';
 import { extractMoods, profileHasZeroWeights } from '@/lib/signals';
 import { signIn } from 'next-auth/react';
 import { useSignals } from './SignalsProvider';
-import { densifiedCardCount } from '@/lib/densify';
+import { densify, densifiedCardCount } from '@/lib/densify';
 import { filmIdOfItem } from '@/lib/nouveautesCine';
 import { catsAllowCinemaPack, genreBelongsToMains, mainFromGenreSlug } from '@/lib/categories';
+import {
+  capCineRows,
+  cineRows,
+  dedupAgainstTop3,
+  displayReasonForItem,
+  editorialRows,
+  liveRows,
+  top3IdentitySet,
+} from '@/lib/displayHome';
 import { MONTH_NAMES_FR } from '@/lib/labels';
 import {
   resolveScopeRange,
@@ -26,9 +35,13 @@ import SeanceGrid from './SeanceGrid';
 import Top3Skeleton from './Top3Skeleton';
 import TimeScopeBar from './TimeScopeBar';
 import SearchOmnibox from './SearchOmnibox';
+import SearchExamples from './SearchExamples';
 import ListWaitDots from './ListWaitDots';
 import EventDetail from './EventDetail';
 import LoginNudge from './LoginNudge';
+import HomeSection from './HomeSection';
+import CinemaCarousel from './CinemaCarousel';
+import SeanceCard from './SeanceCard';
 import {
   emptyPhraseTags,
   hasPhraseSignal,
@@ -64,6 +77,9 @@ type Props = {
         densifiedTotal: number;
         nouveautes: DayItem[];
         venues: Lieu[];
+        vivantItems?: DayItem[];
+        vivantTotal?: number;
+        cineTotal?: number;
       }
     >
   >;
@@ -72,6 +88,9 @@ type Props = {
   initialOpenItem?: DayItem | null;
   initialRelatedItems?: DayItem[];
   initialAussiCeSoir?: DayItem[];
+  initialVivantItems?: DayItem[];
+  initialVivantTotal?: number;
+  initialCineTotal?: number;
 };
 
 function evenementWord(n: number): string {
@@ -264,6 +283,9 @@ export default function CultureConnectApp({
   initialOpenItem = null,
   initialRelatedItems = [],
   initialAussiCeSoir = [],
+  initialVivantItems = [],
+  initialVivantTotal = 0,
+  initialCineTotal = 0,
 }: Props) {
   const { track, trackItem, tasteState, sessionStatus } = useSignals();
   const [year, setYear] = useState(initialYear);
@@ -310,6 +332,20 @@ export default function CultureConnectApp({
   const [aussiCeSoirItems, setAussiCeSoirItems] = useState<DayItem[]>(
     initialAussiCeSoir,
   );
+  const [vivantItems, setVivantItems] = useState<DayItem[]>(initialVivantItems);
+  const [vivantTotal, setVivantTotal] = useState(initialVivantTotal);
+  const [cineTotal, setCineTotal] = useState(initialCineTotal);
+  const [cineExpanded, setCineExpanded] = useState(false);
+  const [liveExpanded, setLiveExpanded] = useState(false);
+  const [narrowHome, setNarrowHome] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)');
+    const apply = () => setNarrowHome(mq.matches);
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
 
   const skipListFetch = useRef(true);
   const listFetchGen = useRef(0);
@@ -469,6 +505,9 @@ export default function CultureConnectApp({
     setListItems((prev) => (append ? [...prev, ...data.items] : data.items));
     if (!append) {
       setNouveautesItems(data.nouveautes ?? []);
+      setVivantItems(data.vivantItems ?? []);
+      if (typeof data.vivantTotal === 'number') setVivantTotal(data.vivantTotal);
+      if (typeof data.cineTotal === 'number') setCineTotal(data.cineTotal);
       setTotal(data.total);
       setDensifiedTotalApi(data.densifiedTotal);
       setVenueOptions(data.venues ?? []);
@@ -842,6 +881,87 @@ export default function CultureConnectApp({
     !searchingUi &&
     catsAllowCinemaPack(selectedCategories);
   const visiblePackCount = showCinemaPack ? packCardCount : 0;
+
+  const top3Set = useMemo(() => top3IdentitySet(pourToiItems), [pourToiItems]);
+  const cineSource = useMemo(() => {
+    const seen = new Set<string>();
+    const out: DayItem[] = [];
+    for (const item of [...nouveautesItems, ...listItems]) {
+      const fid = filmIdOfItem(item) || item.key;
+      if (seen.has(fid)) continue;
+      seen.add(fid);
+      out.push(item);
+    }
+    return out;
+  }, [nouveautesItems, listItems]);
+  const allCineRows = useMemo(
+    () => cineRows(cineSource, top3Set),
+    [cineSource, top3Set],
+  );
+  const visibleCineRows = useMemo(
+    () => (cineExpanded ? allCineRows : capCineRows(allCineRows, narrowHome)),
+    [allCineRows, cineExpanded, narrowHome],
+  );
+  const allLiveRows = useMemo(() => {
+    const pool = vivantItems.length > 0 ? vivantItems : listItems;
+    return liveRows(pool, top3Set);
+  }, [vivantItems, listItems, top3Set]);
+  const visibleLiveRows = useMemo(
+    () => (liveExpanded ? allLiveRows : allLiveRows),
+    [allLiveRows, liveExpanded],
+  );
+  const editorial = useMemo(
+    () => editorialRows(listItems, nouveautesItems, top3Set, nouveauFilmIdSet),
+    [listItems, nouveautesItems, top3Set, nouveauFilmIdSet],
+  );
+
+  const livingCatOn = selectedCategories.some(
+    (c) =>
+      c === 'musique' ||
+      c === 'theatre_danse' ||
+      c === 'festival' ||
+      c === 'enfants_famille',
+  );
+  const cineCatOn = selectedCategories.includes('cinema');
+  const hideCineSection =
+    selectedCategories.length > 0 && !cineCatOn;
+  const hideLiveSection =
+    selectedCategories.length > 0 && !livingCatOn;
+
+  const isGuestReco = recoKind === 'guest';
+  const reasonFor = useCallback(
+    (item: DayItem) =>
+      displayReasonForItem(item, {
+        guest: isGuestReco,
+        tasteState,
+        scope: timeScope,
+        commune: selectedCommune,
+      }),
+    [isGuestReco, tasteState, timeScope, selectedCommune],
+  );
+
+  const cineCount = cineTotal || allCineRows.length;
+  const liveCount = vivantTotal || allLiveRows.length;
+  const showCineBlock =
+    !hideCineSection &&
+    visibleCineRows.length > 0 &&
+    !phraseDateClash;
+  const showLiveBlock =
+    !hideLiveSection &&
+    visibleLiveRows.length > 0;
+  const showEditorial =
+    editorial.length > 0 &&
+    !phraseMode &&
+    !searchingUi;
+  const leftoverRows = useMemo(() => {
+    if (!hideCineSection || !hideLiveSection) return [];
+    return densify(dedupAgainstTop3(listItems, top3Set));
+  }, [hideCineSection, hideLiveSection, listItems, top3Set]);
+  const listEmpty =
+    listItems.length === 0 &&
+    allCineRows.length === 0 &&
+    allLiveRows.length === 0 &&
+    leftoverRows.length === 0;
   const gridCardCount = useMemo(
     () => densifiedCardCount(gridItems),
     [gridItems],
@@ -854,6 +974,8 @@ export default function CultureConnectApp({
   // Reset infinite-scroll window when scope / filters / query change.
   useEffect(() => {
     setVisibleCount(AGENDA_PAGE_SIZE);
+    setCineExpanded(false);
+    setLiveExpanded(false);
   }, [
     timeScope,
     selectedDay,
@@ -993,6 +1115,9 @@ export default function CultureConnectApp({
       if (snap) {
         setListItems(snap.items);
         setNouveautesItems(snap.nouveautes);
+        setVivantItems(snap.vivantItems ?? []);
+        if (typeof snap.vivantTotal === 'number') setVivantTotal(snap.vivantTotal);
+        if (typeof snap.cineTotal === 'number') setCineTotal(snap.cineTotal);
         setTotal(snap.total);
         setDensifiedTotalApi(snap.densifiedTotal);
         setVenueOptions(snap.venues ?? []);
@@ -1011,6 +1136,9 @@ export default function CultureConnectApp({
       if (reuseBoot && !applySnapshot()) {
         setListItems(initialItems);
         setNouveautesItems(initialNouveautes);
+        setVivantItems(initialVivantItems);
+        setVivantTotal(initialVivantTotal);
+        setCineTotal(initialCineTotal);
         setTotal(initialTotal);
         setDensifiedTotalApi(initialDensifiedTotal);
         setVenueOptions(initialVenues);
@@ -1156,17 +1284,18 @@ export default function CultureConnectApp({
 
   return (
     <div className="mx-auto max-w-7xl min-w-0 overflow-x-hidden px-4 pb-16 pt-3 sm:px-6 sm:pt-6">
-      <header className="mb-2 sm:mb-4">
-        <p className="hidden text-xs font-medium uppercase tracking-[0.2em] text-culture-terracotta sm:block">
+      <header className="mb-2 hidden sm:mb-4 sm:block">
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-culture-terracotta">
           Toulouse & alentours
         </p>
-        <h1 className="font-display text-2xl text-culture-ink sm:mt-1 sm:text-4xl">
+        <h1 className="font-display mt-1 text-4xl text-culture-ink">
           Agenda
         </h1>
-        <p className="mt-2 hidden max-w-2xl text-sm text-culture-muted sm:block sm:text-base">
+        <p className="mt-2 max-w-2xl text-base text-culture-muted">
           Qu&apos;est-ce qu&apos;on fait ce soir ou ce week-end dans la région toulousaine&nbsp;?
         </p>
       </header>
+      <h1 className="sr-only">Agenda CultureConnect</h1>
 
       <div className="sticky top-0 z-20 -mx-4 mb-3 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:mb-5 sm:px-6">
         <SearchOmnibox
@@ -1174,6 +1303,7 @@ export default function CultureConnectApp({
           onChange={handleQueryChange}
           placeholder="Qu’est-ce qui te ferait vibrer ?"
         />
+        <SearchExamples onPick={handleQueryChange} activeQuery={query} />
       </div>
 
       <div className="space-y-2.5 sm:space-y-4">
@@ -1182,11 +1312,16 @@ export default function CultureConnectApp({
           onChange={handleScopeChange}
         />
 
-        <CategoryFilter
-          selected={selectedCategories}
-          onChange={handleCategoriesChange}
-          variant="chips"
-        />
+        <div className="border-t border-culture-line/80 pt-2.5">
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
+            Quoi
+          </p>
+          <CategoryFilter
+            selected={selectedCategories}
+            onChange={handleCategoriesChange}
+            variant="home"
+          />
+        </div>
 
         <div className="md:hidden">
           <button
@@ -1214,6 +1349,11 @@ export default function CultureConnectApp({
             ' flex-col gap-2.5 md:flex md:gap-4'
           }
         >
+          <CategoryFilter
+            selected={selectedCategories}
+            onChange={handleCategoriesChange}
+            variant="extra"
+          />
           <GenreFilter
             availableSlugs={availableGenreSlugs}
             legend={genresLegend}
@@ -1307,112 +1447,191 @@ export default function CultureConnectApp({
               empty={null}
               nouveauFilmIds={nouveauFilmIdSet}
               fixedSlots
+              reasonFor={reasonFor}
             />
           )}
         </section>
 
-        {showCinemaPack ? (
-          <section className="space-y-2">
-            <h2 className="text-sm font-medium text-culture-terracotta">
-              Sorties cette semaine
-            </h2>
-            <SeanceGrid
-              items={nouveautesItems}
-              showDate={false}
-              onSelectItem={setSelectedItemKey}
-              onSelectVenue={handleSelectVenue}
-              empty={null}
-              nouveauFilmIds={nouveauFilmIdSet}
-            />
-          </section>
-        ) : null}
-
-        <SeanceGrid
-          items={gridItems}
-          showDate={showDateLabels}
-          onSelectItem={setSelectedItemKey}
-          onSelectVenue={handleSelectVenue}
-          visibleCount={visibleCount}
-          onLoadMore={handleLoadMore}
-          hasMoreRemote={listItems.length < total}
-          nouveauFilmIds={nouveauFilmIdSet}
-          empty={
-            showCinemaPack || pourToiItems.length > 0 ? null : phraseMode ? (
-              <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-6 py-12 text-center">
-                <p className="font-display text-xl text-culture-ink">
-                  Aucun résultat
-                </p>
-                <p className="mt-2 text-sm text-culture-muted">
-                  {phraseDateClash
-                    ? 'Rien sur cette période — élargis les dates.'
-                    : 'Essaie une autre phrase, ou efface le champ.'}
-                </p>
+        {listEmpty && !showCineBlock && !showLiveBlock ? (
+          phraseMode || searchingUi ? (
+            <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-6 py-8 text-center">
+              <p className="font-display text-xl text-culture-ink">
+                {phraseDateClash
+                  ? 'Rien sur cette période'
+                  : `Aucun résultat pour « ${queryTrimmed} »`}
+              </p>
+              <p className="mt-2 text-sm text-culture-muted">
+                La page reste pleine : même ambiance un autre jour, ou une autre
+                forme.
+              </p>
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                {timeScope !== 'tous' ? (
+                  <button
+                    type="button"
+                    onClick={() => handleScopeChange('tous')}
+                    className="min-h-10 rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-white hover:bg-culture-clay"
+                  >
+                    Même ambiance, une autre date
+                  </button>
+                ) : null}
+                {phraseTags?.form ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPhraseTags({ ...phraseTags, form: undefined })
+                    }
+                    className="min-h-10 rounded-full border border-culture-terracotta bg-white px-5 py-2.5 text-sm font-semibold text-culture-terracotta hover:bg-culture-soft"
+                  >
+                    Autre forme, même ambiance
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => handleQueryChange('')}
-                  className="mt-5 rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-culture-clay"
+                  className="min-h-10 rounded-full border border-culture-line bg-culture-surface px-5 py-2.5 text-sm font-medium text-culture-ink hover:border-culture-terracotta/50"
                 >
                   Effacer
                 </button>
               </div>
-            ) : searchingUi ? (
-              <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-6 py-12 text-center">
-                <p className="font-display text-xl text-culture-ink">
-                  Aucun résultat pour « {queryTrimmed} »
-                </p>
-                <p className="mt-2 text-sm text-culture-muted">
-                  Rien sur les dates à venir. Essaie un autre mot, ou efface la
-                  recherche.
-                </p>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-6 py-8 text-center">
+              <p className="font-display text-xl text-culture-ink">
+                Rien {emptyScopeHint}
+                {selectedCategories.length > 0 ? ' pour cette catégorie' : ''}
+              </p>
+              <p className="mt-2 text-sm text-culture-muted">
+                Le top 3 reste visible. Essaie une autre période.
+              </p>
+              {timeScope === 'soir' && (
                 <button
                   type="button"
-                  onClick={() => handleQueryChange('')}
-                  className="mt-5 rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-culture-clay"
+                  onClick={() => handleScopeChange('aujourdhui')}
+                  className="mt-5 mr-2 min-h-10 rounded-full border border-culture-terracotta bg-white px-5 py-2.5 text-sm font-semibold text-culture-terracotta hover:bg-culture-soft"
                 >
-                  Effacer la recherche
+                  Voir aujourd&apos;hui
                 </button>
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-6 py-12 text-center">
-                <p className="font-display text-xl text-culture-ink">
-                  Rien {emptyScopeHint}
-                  {selectedCategories.length > 0 ? ' pour cette catégorie' : ''}
-                </p>
-                <p className="mt-2 text-sm text-culture-muted">
-                  Essaie une autre période, une autre catégorie, ou élargis la
-                  recherche.
-                </p>
-                {timeScope === 'soir' && (
-                  <button
-                    type="button"
-                    onClick={() => handleScopeChange('aujourdhui')}
-                    className="mt-5 mr-2 rounded-full border border-culture-terracotta bg-white px-5 py-2.5 text-sm font-semibold text-culture-terracotta shadow-sm transition hover:bg-culture-soft"
-                  >
-                    Voir aujourd&apos;hui
-                  </button>
-                )}
-                {timeScope !== 'weekend' && (
-                  <button
-                    type="button"
-                    onClick={fallbackToWeekend}
-                    className="mt-5 rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-culture-clay"
-                  >
-                    Voir ce week-end
-                  </button>
-                )}
-                {timeScope === 'weekend' && selectedCategories.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => handleCategoriesChange([])}
-                    className="mt-5 rounded-full border border-culture-line bg-culture-surface px-5 py-2.5 text-sm font-medium text-culture-ink hover:border-culture-terracotta/50"
-                  >
-                    Toutes les catégories
-                  </button>
-                )}
-              </div>
-            )
-          }
-        />
+              )}
+              {timeScope !== 'weekend' && (
+                <button
+                  type="button"
+                  onClick={fallbackToWeekend}
+                  className="mt-5 min-h-10 rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-white hover:bg-culture-clay"
+                >
+                  Voir ce week-end
+                </button>
+              )}
+            </div>
+          )
+        ) : null}
+
+        {showCineBlock ? (
+          <HomeSection
+            id="cine"
+            title="Ciné"
+            count={cineCount}
+            shown={visibleCineRows.length}
+            expanded={cineExpanded}
+            onSeeAll={() => {
+              setCineExpanded(true);
+              if (listItems.length < total) handleLoadMore();
+            }}
+          >
+            <CinemaCarousel
+              rows={visibleCineRows}
+              onSelectItem={setSelectedItemKey}
+              mobile={narrowHome}
+            />
+          </HomeSection>
+        ) : null}
+
+        {showLiveBlock ? (
+          <HomeSection
+            id="en-live"
+            title="En live"
+            count={liveCount}
+            shown={visibleLiveRows.length}
+            expanded={liveExpanded}
+            onSeeAll={() => setLiveExpanded(true)}
+          >
+            <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {visibleLiveRows.map((row) => (
+                <li key={row.groupKey} className="min-w-0">
+                  <SeanceCard
+                    item={row.item}
+                    showDate={showDateLabels}
+                    onSelect={setSelectedItemKey}
+                    onSelectVenue={handleSelectVenue}
+                    extraSlots={row.isFilmGroup ? 0 : row.extraSlots}
+                    salleCount={row.salleCount}
+                    earliestHeure={row.earliestHeure}
+                    citiesSummary={row.citiesSummary}
+                    nouveau={
+                      Boolean(
+                        filmIdOfItem(row.item) &&
+                          nouveauFilmIdSet.has(filmIdOfItem(row.item)),
+                      )
+                    }
+                    variant="live"
+                    reason={reasonFor(row.item)}
+                  />
+                </li>
+              ))}
+            </ul>
+          </HomeSection>
+        ) : null}
+
+        {leftoverRows.length > 0 ? (
+          <HomeSection
+            id="autres"
+            title="Aussi"
+            count={leftoverRows.length}
+            shown={leftoverRows.length}
+          >
+            <SeanceGrid
+              items={leftoverRows.map((r) => r.item)}
+              showDate={showDateLabels}
+              onSelectItem={setSelectedItemKey}
+              onSelectVenue={handleSelectVenue}
+              nouveauFilmIds={nouveauFilmIdSet}
+              reasonFor={reasonFor}
+            />
+          </HomeSection>
+        ) : null}
+
+        {showEditorial ? (
+          <HomeSection
+            id="a-ne-pas-manquer"
+            title="À ne pas manquer"
+            count={editorial.length}
+            shown={editorial.length}
+          >
+            <ul className="flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {editorial.map((row) => (
+                <li key={row.groupKey} className="w-[16.5rem] shrink-0 sm:w-[18rem]">
+                  <SeanceCard
+                    item={row.item}
+                    showDate
+                    onSelect={setSelectedItemKey}
+                    onSelectVenue={handleSelectVenue}
+                    extraSlots={row.isFilmGroup ? 0 : row.extraSlots}
+                    salleCount={row.salleCount}
+                    earliestHeure={row.earliestHeure}
+                    citiesSummary={row.citiesSummary}
+                    nouveau={
+                      Boolean(
+                        filmIdOfItem(row.item) &&
+                          nouveauFilmIdSet.has(filmIdOfItem(row.item)),
+                      )
+                    }
+                    variant="rail"
+                    reason={reasonFor(row.item)}
+                  />
+                </li>
+              ))}
+            </ul>
+          </HomeSection>
+        ) : null}
 
         {listSlowWhere === 'bottom' ? (
           <div
