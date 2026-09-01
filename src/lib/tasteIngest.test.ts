@@ -360,6 +360,18 @@ describe('taste profile — one-shot migrate of stored mood keys', () => {
     assert.equal(retro.moods.patrimoine, undefined);
     assert.equal(Object.keys(retro.moods).length, 0);
     assert.ok((retro.genres.patrimoine?.weight ?? 0) > 0);
+
+    // NOT 0 rétro — stored rétro/retro mood keys move to genres.patrimoine
+    for (const key of ['retro', 'rétro']) {
+      const row = sanitizeTasteProfile({
+        ...emptyProfile(),
+        moods: { [key]: { weight: 3, pct: 100 } },
+      });
+      assert.equal(row.moods[key], undefined, key);
+      assert.equal(Object.keys(row.moods).length, 0, key);
+      assert.ok((row.genres.patrimoine?.weight ?? 0) > 0, key);
+      assert.equal(row.genres.patrimoine_retro, undefined, key);
+    }
   });
 
   it('does not invent moods that were already dropped (weight 0 or absent)', () => {
