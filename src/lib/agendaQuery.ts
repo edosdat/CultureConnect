@@ -1005,6 +1005,7 @@ export type HomeWindow = AgendaListResponse & {
 };
 
 function guestRecoForScope(scope: RecoBootScope, now: Date): DayItem[] {
+  const { year, month } = parisParts(now);
   return queryAgenda(
     {
       scope,
@@ -1014,8 +1015,8 @@ function guestRecoForScope(scope: RecoBootScope, now: Date): DayItem[] {
       genres: [],
       lieuId: null,
       selectedDate: null,
-      year: 2026,
-      month: 8,
+      year,
+      month,
       recoUpcoming: true,
       recoProfile: null,
     },
@@ -1024,6 +1025,7 @@ function guestRecoForScope(scope: RecoBootScope, now: Date): DayItem[] {
 }
 
 function listSnapshotForScope(scope: RecoBootScope, now: Date): ScopeListSnapshot {
+  const { year, month } = parisParts(now);
   const res = queryAgenda(
     {
       scope,
@@ -1033,8 +1035,8 @@ function listSnapshotForScope(scope: RecoBootScope, now: Date): ScopeListSnapsho
       genres: [],
       lieuId: null,
       selectedDate: null,
-      year: 2026,
-      month: 8,
+      year,
+      month,
       recoUpcoming: false,
     },
     now,
@@ -1053,6 +1055,7 @@ function listSnapshotForScope(scope: RecoBootScope, now: Date): ScopeListSnapsho
 
 function computeHomeWindow(now = new Date()): HomeWindow {
   const scope = bootTimeScope();
+  const { year, month } = parisParts(now);
   const boot = queryAgenda(
     {
       scope,
@@ -1062,8 +1065,8 @@ function computeHomeWindow(now = new Date()): HomeWindow {
       genres: [],
       lieuId: null,
       selectedDate: null,
-      year: 2026,
-      month: 8,
+      year,
+      month,
       includeListMeta: true,
     },
     now,

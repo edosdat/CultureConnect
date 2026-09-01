@@ -104,8 +104,8 @@ export default async function HomePage({
         initialGenreSlugs={boot.genreSlugs}
         communes={boot.communes}
         genresLegend={boot.genresLegend}
-        initialYear={2026}
-        initialMonth={8}
+        initialYear={Number(boot.parisIso.slice(0, 4))}
+        initialMonth={Number(boot.parisIso.slice(5, 7))}
         initialNouveauFilmIds={boot.nouveauFilmIds ?? []}
         initialRecoByScope={boot.recoByScope}
         initialListByScope={boot.listByScope}
