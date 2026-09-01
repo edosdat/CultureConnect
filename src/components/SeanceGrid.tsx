@@ -66,6 +66,9 @@ function FixedSlotsGrid({
 >) {
   const visible = visibleTop3Items(items);
   if (visible.length === 0) return null;
+  // 3-up keeps the compact rail. 1–2 cards use the stacked tile so they
+  // actually fill the row (full width / 50-50) instead of a left-aligned strip.
+  const cardVariant = visible.length === 3 ? 'rail' : 'default';
   return (
     <div className="space-y-4">
       <ul
@@ -73,14 +76,14 @@ function FixedSlotsGrid({
         data-top3-count={visible.length}
       >
         {visible.map((item) => (
-          <li key={item.key} className="min-w-0">
+          <li key={item.key} className="min-w-0 w-full">
             <SeanceCard
               item={item}
               showDate={showDate}
               onSelect={onSelectItem}
               onSelectVenue={onSelectVenue}
               nouveau={cardNouveau(item, nouveauFilmIds)}
-              variant="rail"
+              variant={cardVariant}
               reason={reasonFor?.(item) ?? null}
             />
           </li>
