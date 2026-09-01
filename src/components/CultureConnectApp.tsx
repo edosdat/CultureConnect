@@ -1312,7 +1312,7 @@ export default function CultureConnectApp({
           onChange={handleScopeChange}
         />
 
-        <div className="border-t border-culture-line/80 pt-2.5">
+        <div className="min-w-0 border-t border-culture-line/80 pt-2.5">
           <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
             Quoi
           </p>
@@ -1342,18 +1342,13 @@ export default function CultureConnectApp({
           </button>
         </div>
 
-        {/* Genre (and not categories): collapsed behind Filtres on mobile; always on md+ */}
+        {/* Genres only: collapsed behind Filtres on mobile; always on md+ */}
         <div
           className={
             (showFiltersMobile ? 'flex' : 'hidden') +
             ' flex-col gap-2.5 md:flex md:gap-4'
           }
         >
-          <CategoryFilter
-            selected={selectedCategories}
-            onChange={handleCategoriesChange}
-            variant="extra"
-          />
           <GenreFilter
             availableSlugs={availableGenreSlugs}
             legend={genresLegend}

@@ -43,16 +43,16 @@ export default function CategoryFilter({
   if (variant === 'chips' || variant === 'home' || variant === 'extra') {
     const chips =
       variant === 'home'
-        ? HOME_CATEGORY_CHIPS
+        ? [...HOME_CATEGORY_CHIPS, ...EXTRA_CATEGORY_CHIPS]
         : variant === 'extra'
           ? EXTRA_CATEGORY_CHIPS
           : MAIN_CATEGORIES;
     return (
-      <div className="relative">
+      <div className="relative min-w-0">
         <div
           role="group"
           aria-label="Catégories"
-          className="flex flex-nowrap gap-1.5 overflow-x-auto pe-4 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex flex-nowrap gap-1.5 overflow-x-auto overscroll-x-contain pe-4 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {chips.map(({ id, label }) => {
             const active = selected.includes(id);
@@ -63,7 +63,7 @@ export default function CategoryFilter({
                 type="button"
                 onClick={() => toggle(id)}
                 aria-pressed={active}
-                className="shrink-0 rounded-full px-3 py-1.5 text-sm transition"
+                className="shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-sm transition"
                 style={{
                   borderWidth: 1.5,
                   borderStyle: 'solid',
