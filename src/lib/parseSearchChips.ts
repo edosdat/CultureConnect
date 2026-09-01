@@ -1,6 +1,7 @@
 /**
  * Search omnibox → existing QUAND / QUOI chips.
- * Client-side only. No LLM. Title leftover keeps current title search.
+ * Client-side only. No LLM, no chat, no tastes writes.
+ * Title leftover keeps current title search.
  */
 
 import type { MainCategoryId } from './categories';

@@ -472,17 +472,6 @@ export default function CultureConnectApp({
     return () => window.clearTimeout(id);
   }, [titleLeftover]);
 
-  useEffect(() => {
-    const q = debouncedQuery.trim();
-    if (!q) return;
-    track({
-      kind: 'search',
-      query: q,
-      moods: extractMoods(q),
-      genres: [],
-    });
-  }, [debouncedQuery]); // eslint-disable-line react-hooks/exhaustive-deps
-
   function handleQueryChange(next: string) {
     setQuery(next);
     applyParsedChips(parseSearchChips(next), next);
