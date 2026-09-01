@@ -13,8 +13,8 @@ import { densify, densifiedCardCount } from '@/lib/densify';
 import { filmIdOfItem, isCinemaDayItem } from '@/lib/nouveautesCine';
 import { catsAllowCinemaPack, genreBelongsToMains, mainFromGenreSlug } from '@/lib/categories';
 import {
-  capCineRows,
   capLiveRows,
+  cineFirstPaint,
   cineRows,
   dedupAgainstTop3,
   displayReasonForItem,
@@ -340,6 +340,7 @@ export default function CultureConnectApp({
   const [vivantTotal, setVivantTotal] = useState(initialVivantTotal);
   const [cineTotal, setCineTotal] = useState(initialCineTotal);
   const [cineExpanded, setCineExpanded] = useState(false);
+  const [cineLimit, setCineLimit] = useState(() => cineFirstPaint(false));
   const [liveExpanded, setLiveExpanded] = useState(false);
   const [narrowHome, setNarrowHome] = useState(false);
 
@@ -350,6 +351,10 @@ export default function CultureConnectApp({
     mq.addEventListener('change', apply);
     return () => mq.removeEventListener('change', apply);
   }, []);
+
+  useEffect(() => {
+    if (!cineExpanded) setCineLimit(cineFirstPaint(narrowHome));
+  }, [narrowHome, cineExpanded]);
 
   const skipListFetch = useRef(true);
   const listFetchGen = useRef(0);
@@ -926,8 +931,8 @@ export default function CultureConnectApp({
     [cineSource, top3Set],
   );
   const visibleCineRows = useMemo(
-    () => (cineExpanded ? allCineRows : capCineRows(allCineRows, narrowHome)),
-    [allCineRows, cineExpanded, narrowHome],
+    () => allCineRows.slice(0, cineLimit),
+    [allCineRows, cineLimit],
   );
   const allLiveRows = useMemo(() => {
     const pool = vivantItems.length > 0 ? vivantItems : listItems;
@@ -1020,6 +1025,7 @@ export default function CultureConnectApp({
   useEffect(() => {
     setVisibleCount(AGENDA_PAGE_SIZE);
     setCineExpanded(false);
+    setCineLimit(cineFirstPaint(narrowHome));
     setLiveExpanded(false);
   }, [
     timeScope,
@@ -1576,9 +1582,12 @@ export default function CultureConnectApp({
             title="Ciné"
             count={cineCount}
             shown={visibleCineRows.length}
-            expanded={cineExpanded}
+            expanded={
+              cineLimit >= cineCount && listItems.length >= total
+            }
             onSeeAll={() => {
               setCineExpanded(true);
+              setCineLimit(Number.POSITIVE_INFINITY);
               if (listItems.length < total) handleLoadMore();
             }}
           >
@@ -1593,11 +1602,11 @@ export default function CultureConnectApp({
               soir={timeScope === 'soir'}
               datePinned={timeScope !== 'tous'}
               hasMore={
-                (!cineExpanded && allCineRows.length > visibleCineRows.length) ||
-                listItems.length < total
+                cineLimit < allCineRows.length || listItems.length < total
               }
               onNeedMore={() => {
                 setCineExpanded(true);
+                setCineLimit((n) => n + cineFirstPaint(narrowHome));
                 if (listItems.length < total) handleLoadMore();
               }}
               fallbackVivant={allLiveRows.map((row) => row.item)}

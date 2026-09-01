@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type TouchEvent } from 'react';
 import type { DayItem } from '@/lib/types';
 import type { AgendaDetailResponse } from '@/lib/slim';
 import type { DenseRow } from '@/lib/densify';
@@ -173,6 +173,23 @@ export default function CinemaCarousel({
   const [engaged, setEngaged] = useState(false);
   const [mobileCal, setMobileCal] = useState(false);
   const moreLock = useRef(0);
+  const moreApi = useRef({ hasMore, onNeedMore });
+  moreApi.current = { hasMore, onNeedMore };
+  const userMoved = useRef(false);
+  const pendingAdvance = useRef(false);
+  const touchX = useRef<number | null>(null);
+
+  function markMoved() {
+    userMoved.current = true;
+  }
+
+  function requestMore() {
+    const { hasMore: more, onNeedMore: load } = moreApi.current;
+    if (!load || !more || !userMoved.current) return;
+    if (Date.now() < moreLock.current) return;
+    moreLock.current = Date.now() + 700;
+    load();
+  }
 
   useEffect(() => {
     setMobileCal(isLikelyMobile());
@@ -238,19 +255,65 @@ export default function CinemaCarousel({
     soir,
   ]);
 
+  useEffect(() => {
+    if (!pendingAdvance.current) return;
+    if (heroIndex < rows.length - 1) {
+      pendingAdvance.current = false;
+      setHeroIndex((i) => Math.min(i + 1, rows.length - 1));
+    } else if (!hasMore) {
+      pendingAdvance.current = false;
+    }
+  }, [rows.length, heroIndex, hasMore]);
+
   function scrollStrip(dir: -1 | 1) {
     const el = stripRef.current;
     if (!el) return;
+    markMoved();
+    if (dir === 1) {
+      const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 24;
+      if (atEnd || heroIndex >= rows.length - 1) {
+        if (heroIndex >= rows.length - 1) pendingAdvance.current = true;
+        requestMore();
+      }
+    }
     el.scrollBy({ left: dir * 220, behavior: 'smooth' });
   }
 
   function onStripScroll() {
     const el = stripRef.current;
-    if (!el || !onNeedMore || !hasMore) return;
+    if (!el) return;
+    markMoved();
     if (el.scrollLeft + el.clientWidth < el.scrollWidth - 96) return;
-    if (Date.now() < moreLock.current) return;
-    moreLock.current = Date.now() + 800;
-    onNeedMore();
+    requestMore();
+  }
+
+  function onHeroTouchStart(e: TouchEvent) {
+    if (e.target instanceof Element && e.target.closest('button, a, select, input, textarea, label')) {
+      touchX.current = null;
+      return;
+    }
+    touchX.current = e.changedTouches[0]?.clientX ?? null;
+  }
+
+  function onHeroTouchEnd(e: TouchEvent) {
+    if (touchX.current == null) return;
+    const x = e.changedTouches[0]?.clientX;
+    const start = touchX.current;
+    touchX.current = null;
+    if (x == null) return;
+    const dx = x - start;
+    if (Math.abs(dx) < 40) return;
+    markMoved();
+    if (dx < 0) {
+      if (heroIndex < rows.length - 1) {
+        setHeroIndex(heroIndex + 1);
+      } else {
+        pendingAdvance.current = true;
+        requestMore();
+      }
+    } else {
+      setHeroIndex(Math.max(0, heroIndex - 1));
+    }
   }
 
   if (!hero) return null;
@@ -294,7 +357,11 @@ export default function CinemaCarousel({
           <FilmThumb
             key={row.groupKey}
             row={row}
-            onSelect={() => setHeroIndex(i)}
+            onSelect={() => {
+              markMoved();
+              setHeroIndex(i);
+              if (i >= rows.length - 1) requestMore();
+            }}
             active={i === heroIndex}
           />
         ))}
@@ -489,7 +556,11 @@ export default function CinemaCarousel({
 
   return (
     <div className="space-y-3">
-      <div className="overflow-hidden rounded-card-lg border border-culture-line bg-culture-surface shadow-card md:grid md:grid-cols-[minmax(0,1.35fr)_minmax(17rem,1fr)]">
+      <div
+        onTouchStart={onHeroTouchStart}
+        onTouchEnd={onHeroTouchEnd}
+        className="overflow-hidden rounded-card-lg border border-culture-line bg-culture-surface shadow-card md:grid md:grid-cols-[minmax(0,1.35fr)_minmax(17rem,1fr)]"
+      >
         <div
           className={
             'relative w-full overflow-hidden bg-culture-sand ' +

@@ -195,9 +195,12 @@ export function liveRows(items: DayItem[], top3: ReadonlySet<string>): DenseRow[
   return densify(displayShuffle(live));
 }
 
+export function cineFirstPaint(mobile: boolean): number {
+  return mobile ? HOME_CINE_MOBILE : HOME_CINE_DESKTOP;
+}
+
 export function capCineRows(rows: DenseRow[], mobile: boolean): DenseRow[] {
-  const cap = mobile ? HOME_CINE_MOBILE : HOME_CINE_DESKTOP;
-  return rows.slice(0, cap);
+  return rows.slice(0, cineFirstPaint(mobile));
 }
 
 export function capLiveRows(rows: DenseRow[]): DenseRow[] {
