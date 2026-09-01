@@ -94,10 +94,6 @@ type Props = {
   initialCineTotal?: number;
 };
 
-function evenementWord(n: number): string {
-  return n <= 1 ? 'événement' : 'événements';
-}
-
 type RecoKind = 'guest' | 'profile' | 'wiped' | 'pending';
 
 const RECO_BOOT_SCOPES = ['tous', 'soir', 'aujourdhui', 'weekend', 'semaine'] as const;
@@ -973,13 +969,6 @@ export default function CultureConnectApp({
   /** Same unique-film set as the Ciné strip — never Toulouse-wide cineTotal. */
   const cineCount = allCineRows.length;
   const liveCount = allLiveRows.length;
-  const filteredListCount = useMemo(
-    () =>
-      densifiedCardCount(
-        filterSeancesForActiveFilters(listItems, activeFilter),
-      ),
-    [listItems, activeFilter],
-  );
   const showCineBlock =
     !hideCineSection &&
     visibleCineRows.length > 0 &&
@@ -1308,32 +1297,6 @@ export default function CultureConnectApp({
   }
 
   const monthLabel = `${MONTH_NAMES_FR[month - 1]} ${year}`;
-  const n = hideLiveSection && !hideCineSection
-    ? cineCount
-    : hideCineSection && !hideLiveSection
-      ? liveCount
-      : hideCineSection && hideLiveSection
-        ? leftoverRows.length
-        : filteredListCount;
-  const shown = hideLiveSection && !hideCineSection
-    ? visibleCineRows.length
-    : hideCineSection && !hideLiveSection
-      ? visibleLiveRows.length
-      : hideCineSection && hideLiveSection
-        ? leftoverRows.length
-        : Math.min(
-            (showCineBlock ? visibleCineRows.length : 0) +
-              (showLiveBlock ? visibleLiveRows.length : 0) +
-              leftoverRows.length,
-            n,
-          );
-  const countLabel =
-    n === 0
-      ? `0 ${evenementWord(0)}`
-      : shown < n
-        ? `${shown} sur ${n} ${evenementWord(n)}`
-        : `${n} ${evenementWord(n)}`;
-  const rangeLabel = searchingUi ? 'toutes dates' : contextLabel;
   const emptyScopeHint =
     timeScope === 'tous'
       ? 'à venir'
@@ -1441,16 +1404,9 @@ export default function CultureConnectApp({
           />
         </div>
 
-        {/* Count + Venue chip on one row (Venue also gated by Filtres on mobile) */}
+        {/* Toulouse + Salles + month (Venue gated by Filtres on mobile) */}
         <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 pt-0.5 sm:pt-1">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <p className="text-sm text-culture-muted">
-              <span className="font-medium text-culture-ink">
-                {countLabel}
-              </span>
-              {rangeLabel ? ` · ${rangeLabel}` : ''}
-              {queryTrimmed ? ` · « ${queryTrimmed} »` : ''}
-            </p>
             <div
               className={
                 (showFiltersMobile ? 'flex' : 'hidden') +
