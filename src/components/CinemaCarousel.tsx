@@ -24,7 +24,6 @@ import {
 } from '@/lib/displayHome';
 import { itemKmLabel, minKmLabel, type GeoPos } from '@/lib/nearMe';
 import { reservePickOf } from '@/lib/reserve';
-import { isLandscapeStill } from '@/lib/cinemaPoster';
 import { filterItemsByCommune } from '@/lib/commune';
 import VisualFallback, { categoryLabelOf } from './VisualFallback';
 import FavoriteButton from './FavoriteButton';
@@ -219,7 +218,6 @@ export default function CinemaCarousel({
 }: Props) {
   const [heroIndex, setHeroIndex] = useState(0);
   const [pickedKey, setPickedKey] = useState<string | null>(null);
-  const [heroLandscape, setHeroLandscape] = useState(false);
   const stripRef = useRef<HTMLDivElement | null>(null);
   const seancesRef = useRef<HTMLDivElement | null>(null);
   const selectRef = useRef<HTMLSelectElement | null>(null);
@@ -263,7 +261,6 @@ export default function CinemaCarousel({
 
   useEffect(() => {
     setPickedKey(null);
-    setHeroLandscape(false);
   }, [hero?.item.key]);
   const displayFilter: DisplayFilter = {
     startIso: dateFrom,
@@ -466,23 +463,20 @@ export default function CinemaCarousel({
   );
 
   const panel = (
-    <div
-      className={
-        'flex min-h-0 flex-col gap-2 overflow-y-auto p-3 sm:p-4 ' +
-        (mobile ? 'max-h-[18rem]' : 'max-h-[20rem]')
-      }
-    >
+    <div className="flex min-w-0 flex-1 flex-col gap-2 p-3 sm:p-4">
       <div className="flex items-start justify-between gap-2">
         <span className="inline-flex rounded bg-culture-terracotta px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">
           {cat || 'Cinéma'}
         </span>
         <FavoriteButton itemKey={item.key} />
       </div>
-      <h3 className="font-display text-xl leading-snug text-culture-ink sm:text-2xl">
+      <h3 className="font-display text-lg leading-snug text-culture-ink md:text-2xl">
         {itemTitle(item)}
       </h3>
       {itemPitch(item) ? (
-        <p className="text-sm leading-relaxed text-culture-ink">{itemPitch(item)}</p>
+        <p className="line-clamp-3 text-sm leading-relaxed text-culture-ink md:line-clamp-none">
+          {itemPitch(item)}
+        </p>
       ) : null}
       <p className="text-sm text-culture-muted">
         {[venue, km, when].filter(Boolean).join(' • ')}
@@ -599,38 +593,24 @@ export default function CinemaCarousel({
       <div
         onTouchStart={onHeroTouchStart}
         onTouchEnd={onHeroTouchEnd}
-        className="overflow-hidden rounded-card-lg border border-culture-line bg-culture-surface shadow-card md:grid md:grid-cols-[auto_minmax(0,1fr)] md:items-start"
+        className="flex flex-col overflow-hidden rounded-card-lg border border-culture-line bg-culture-surface shadow-card md:flex-row md:items-start"
       >
-        <div
-          className={
-            'relative w-full overflow-hidden bg-culture-sand ' +
-            (heroLandscape
-              ? 'aspect-[16/9] md:w-[24rem] lg:w-[28rem]'
-              : 'aspect-[2/3] md:w-[16rem] lg:w-[18rem]')
-          }
-        >
-          {image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={image}
-              src={image}
-              alt=""
-              onLoad={(e) => {
-                const el = e.currentTarget;
-                setHeroLandscape(
-                  isLandscapeStill(el.naturalWidth, el.naturalHeight),
-                );
-              }}
-              className={
-                'absolute inset-0 h-full w-full object-cover ' +
-                (heroLandscape ? '' : 'object-top')
-              }
-            />
-          ) : (
-            <div className="absolute inset-0">
-              <VisualFallback item={item} />
-            </div>
-          )}
+        <div className="shrink-0 px-3 pt-3 md:p-0">
+          <div className="relative mx-auto aspect-[2/3] h-[17.5rem] w-[11.625rem] overflow-hidden bg-culture-sand md:mx-0 md:h-[20rem] md:w-[13.35rem]">
+            {image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={image}
+                src={image}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover object-top"
+              />
+            ) : (
+              <div className="absolute inset-0">
+                <VisualFallback item={item} />
+              </div>
+            )}
+          </div>
         </div>
         {panel}
       </div>
