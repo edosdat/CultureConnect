@@ -64,6 +64,13 @@ import {
   buildAgendaParams,
   listFetchShouldSkipBoot,
 } from '@/lib/agendaParams';
+import {
+  requestBrowserPosition,
+  resolveNearMeResult,
+  nearMeOnToggleOff,
+  type GeoPos,
+} from '@/lib/nearMe';
+import NearMeChip from './NearMeChip';
 
 type Props = {
   initialScope: TimeScopeId;
@@ -270,6 +277,9 @@ export default function CultureConnectApp({
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedLieuId, setSelectedLieuId] = useState<string | null>(null);
   const [selectedCommune, setSelectedCommune] = useState<string | null>('Toulouse');
+  const [nearMeActive, setNearMeActive] = useState(false);
+  const [nearMePending, setNearMePending] = useState(false);
+  const [userPos, setUserPos] = useState<GeoPos | null>(null);
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   /** Leftover title after Enter / submit — never parsed per keystroke. */
@@ -946,9 +956,10 @@ export default function CultureConnectApp({
     const seen = new Set(fromList.map((item) => item.key));
     return [...fromList, ...fromNouv.filter((item) => !seen.has(item.key))];
   }, [listItems, nouveautesItems, activeFilter]);
+  const gpsOrigin = nearMeActive ? userPos : null;
   const allCineRows = useMemo(
-    () => cineRows(cineSource, top3Set),
-    [cineSource, top3Set],
+    () => cineRows(cineSource, top3Set, gpsOrigin ? { origin: gpsOrigin } : undefined),
+    [cineSource, top3Set, gpsOrigin],
   );
   const visibleCineRows = useMemo(
     () => allCineRows.slice(0, cineLimit),
@@ -965,8 +976,9 @@ export default function CultureConnectApp({
     return liveRows(
       filterSeancesForActiveFilters(pool, activeFilter),
       top3Set,
+      gpsOrigin ? { origin: gpsOrigin } : undefined,
     );
-  }, [vivantItems, listItems, top3Set, activeFilter]);
+  }, [vivantItems, listItems, top3Set, activeFilter, gpsOrigin]);
   const visibleLiveRows = useMemo(() => {
     if (liveExpanded || timeScope !== 'tous') return allLiveRows;
     return capLiveRows(allLiveRows).slice(0, 9);
@@ -1013,8 +1025,16 @@ export default function CultureConnectApp({
         filterSeancesForActiveFilters(listItems, activeFilter),
         top3Set,
       ),
+      gpsOrigin ? { origin: gpsOrigin } : undefined,
     );
-  }, [hideCineSection, hideLiveSection, listItems, activeFilter, top3Set]);
+  }, [
+    hideCineSection,
+    hideLiveSection,
+    listItems,
+    activeFilter,
+    top3Set,
+    gpsOrigin,
+  ]);
 
   function handleSelectHome(key: string) {
     const found =
@@ -1064,6 +1084,7 @@ export default function CultureConnectApp({
     selectedLieuId,
     selectedCategories,
     selectedGenres,
+    nearMeActive,
   ]);
 
   const handleLoadMore = useCallback(() => {
@@ -1291,7 +1312,32 @@ export default function CultureConnectApp({
     setSelectedLieuId(lieuId);
   }
 
+  function applyNearMeState(next: {
+    active: boolean;
+    pos: GeoPos | null;
+    commune: string | null;
+  }) {
+    setNearMeActive(next.active);
+    setUserPos(next.pos);
+    setSelectedCommune(next.commune);
+  }
+
+  function handleNearMeToggle() {
+    if (nearMePending) return;
+    if (nearMeActive) {
+      applyNearMeState(nearMeOnToggleOff());
+      return;
+    }
+    setNearMePending(true);
+    void requestBrowserPosition().then((result) => {
+      setNearMePending(false);
+      applyNearMeState(resolveNearMeResult(result, selectedCommune));
+    });
+  }
+
   function handleCommuneChange(next: string | null) {
+    setNearMeActive(false);
+    setUserPos(null);
     setSelectedCommune(next);
     if (selectedLieuId) {
       const lieu = venueOptions.find((l) => l.lieu_id === selectedLieuId);
@@ -1373,7 +1419,8 @@ export default function CultureConnectApp({
   const filterBadge =
     selectedGenres.length +
     (selectedLieuId ? 1 : 0) +
-    (selectedCommune !== 'Toulouse' ? 1 : 0);
+    (selectedCommune !== 'Toulouse' ? 1 : 0) +
+    (nearMeActive ? 1 : 0);
 
   return (
     <div className="mx-auto max-w-7xl min-w-0 overflow-x-hidden px-4 pb-16 pt-3 sm:px-6 sm:pt-6">
@@ -1477,6 +1524,21 @@ export default function CultureConnectApp({
                 variant="inline"
                 inactive={searchingUi}
               />
+              {nearMeActive ? (
+                <button
+                  type="button"
+                  onClick={() => applyNearMeState(nearMeOnToggleOff())}
+                  aria-pressed={false}
+                  className="shrink-0 rounded-full border border-culture-line bg-culture-surface px-3 py-1.5 text-sm font-medium text-culture-ink hover:border-culture-terracotta/50"
+                >
+                  Toulouse
+                </button>
+              ) : null}
+              <NearMeChip
+                active={nearMeActive}
+                pending={nearMePending}
+                onToggle={handleNearMeToggle}
+              />
               <VenueFilter
                 lieux={venueOptions}
                 selectedLieuId={selectedLieuId}
@@ -1543,6 +1605,7 @@ export default function CultureConnectApp({
               nouveauFilmIds={nouveauFilmIdSet}
               fixedSlots
               reasonFor={reasonFor}
+              origin={gpsOrigin}
             />
           )}
         </section>
@@ -1662,6 +1725,7 @@ export default function CultureConnectApp({
               onIcs={(item) => trackItem(item, 'ics')}
               onReserve={(item) => trackItem(item, 'reserve')}
               onSelectLive={handleSelectHome}
+              origin={gpsOrigin}
             />
           </HomeSection>
         ) : null}
@@ -1679,6 +1743,7 @@ export default function CultureConnectApp({
             <LiveCarousel
               rows={visibleLiveRows}
               onSelectItem={handleSelectHome}
+              origin={gpsOrigin}
             />
           </HomeSection>
         ) : null}
@@ -1697,6 +1762,7 @@ export default function CultureConnectApp({
               onSelectItem={handleSelectHome}
               onSelectVenue={handleSelectVenue}
               nouveauFilmIds={nouveauFilmIdSet}
+              origin={gpsOrigin}
             />
           </HomeSection>
         ) : null}

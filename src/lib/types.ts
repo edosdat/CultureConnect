@@ -9,6 +9,9 @@ export type Lieu = {
   dist_km_capitole: string;
   site_web: string;
   notes: string;
+  /** OSM coords from lieux.csv. Empty → skip km label; haversine only when both set. */
+  lat?: string;
+  lng?: string;
 };
 
 export type Evenement = {

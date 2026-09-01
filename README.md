@@ -45,7 +45,7 @@ Les fichiers CSV sont dans `data/` :
 
 Schéma attendu :
 
-- **lieux** : `lieu_id`, `nom`, `type`, `adresse`, `commune`, `dist_km_capitole`, `site_web`, `notes`
+- **lieux** : `lieu_id`, `nom`, `type`, `adresse`, `commune`, `lat`, `lng`, `dist_km_capitole`, `site_web`, `notes`
 - **evenements** : `event_id`, `lieu_id`, `titre`, `categorie`, `date_debut`, `date_fin`, `heure_debut`, `heure_fin`, `prix`, `gratuit`, `url_source`, `description_courte`, `statut`
 - **programme** : `programme_id`, `event_id`, `lieu_id`, `nom_item`, `type_item`, `date`, `heure_debut`, `heure_fin`, `scene_salle`, `prix_item`, `url`, `notes`
 

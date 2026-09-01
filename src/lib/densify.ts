@@ -1,5 +1,6 @@
 import type { DayItem } from './types';
 import { seanceDateIso } from './timeScope';
+import { itemSortKm, type GeoPos } from './nearMe';
 
 export type DenseRow = {
   item: DayItem;
@@ -29,7 +30,18 @@ function hasImage(item: DayItem): boolean {
 }
 
 /** Earliest Paris calendar séance in the group — never a later day with a nicer poster. */
-function pickRepresentative(g: DayItem[]): DayItem {
+function pickRepresentative(g: DayItem[], origin?: GeoPos | null): DayItem {
+  if (origin) {
+    const ranked = [...g].sort((a, b) => {
+      const da = itemSortKm(a, origin);
+      const db = itemSortKm(b, origin);
+      if (da !== db) return da - db;
+      const day = seanceDateIso(a).localeCompare(seanceDateIso(b));
+      if (day !== 0) return day;
+      return heureKey(a).localeCompare(heureKey(b));
+    });
+    return ranked[0];
+  }
   const ranked = [...g].sort((a, b) => {
     const da = seanceDateIso(a);
     const db = seanceDateIso(b);
@@ -82,10 +94,14 @@ export function densifyGroupKey(item: DayItem): string {
   return item.key;
 }
 
-export function densify(items: DayItem[]): DenseRow[] {
+export function densify(
+  items: DayItem[],
+  opts?: { origin?: GeoPos | null },
+): DenseRow[] {
   const groups = new Map<string, DayItem[]>();
   const order: string[] = [];
   const filmFlags = new Map<string, boolean>();
+  const origin = opts?.origin ?? null;
 
   for (const item of items) {
     const groupKey = densifyGroupKey(item);
@@ -98,16 +114,18 @@ export function densify(items: DayItem[]): DenseRow[] {
     groups.get(groupKey)!.push(item);
   }
 
-  return order.map((k) => {
+  const rows = order.map((k) => {
     const g = groups.get(k)!;
     const isFilmGroup = filmFlags.get(k) === true;
     const item = isFilmGroup
-      ? pickRepresentative(g)
-      : [...g].sort((a, b) => {
-          const da = seanceDateIso(a).localeCompare(seanceDateIso(b));
-          if (da !== 0) return da;
-          return heureKey(a).localeCompare(heureKey(b));
-        })[0];
+      ? pickRepresentative(g, origin)
+      : origin
+        ? pickRepresentative(g, origin)
+        : [...g].sort((a, b) => {
+            const da = seanceDateIso(a).localeCompare(seanceDateIso(b));
+            if (da !== 0) return da;
+            return heureKey(a).localeCompare(heureKey(b));
+          })[0];
     const venues = new Set(
       g.map((i) => i.lieu?.lieu_id).filter((id): id is string => Boolean(id)),
     );
@@ -121,6 +139,12 @@ export function densify(items: DayItem[]): DenseRow[] {
       citiesSummary: isFilmGroup ? citiesSummaryOf(g) : '',
       isFilmGroup,
     };
+  });
+  if (!origin) return rows;
+  return [...rows].sort((a, b) => {
+    const da = Math.min(...a.seances.map((s) => itemSortKm(s, origin)));
+    const db = Math.min(...b.seances.map((s) => itemSortKm(s, origin)));
+    return da - db;
   });
 }
 

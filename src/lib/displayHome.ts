@@ -19,6 +19,7 @@ import { isTasteMood, type TasteMood } from './phraseTags';
 import type { RecoSlotForm } from './reco';
 import { slotFormOfItem } from './reco';
 import type { TimeScopeId } from './timeScope';
+import { sortItemsNearestFirst, type GeoPos } from './nearMe';
 
 /** Living-led visual order for Top 3 (scoring order in reco.ts is unchanged). */
 export const DISPLAY_SLOT_ORDER: RecoSlotForm[] = [
@@ -225,14 +226,36 @@ function countTailRun(
   return n;
 }
 
-export function cineRows(items: DayItem[], top3: ReadonlySet<string>): DenseRow[] {
+export function cineRows(
+  items: DayItem[],
+  top3: ReadonlySet<string>,
+  opts?: { origin?: GeoPos | null },
+): DenseRow[] {
   const cine = dedupAgainstTop3(items.filter(isCinemaDayItem), top3);
+  const origin = opts?.origin ?? null;
+  if (origin) return densify(cine, { origin });
   return densify(displayShuffle(cine));
 }
 
-export function liveRows(items: DayItem[], top3: ReadonlySet<string>): DenseRow[] {
+export function liveRows(
+  items: DayItem[],
+  top3: ReadonlySet<string>,
+  opts?: { origin?: GeoPos | null },
+): DenseRow[] {
   const live = dedupAgainstTop3(items.filter(isVivantDayItem), top3);
+  const origin = opts?.origin ?? null;
+  if (origin) return densify(live, { origin });
   return densify(displayShuffle(live));
+}
+
+/** Keep the 1+1+1 slot picks, then nearest-first when GPS is on. */
+export function visibleTop3Nearest(
+  items: DayItem[],
+  origin: GeoPos | null | undefined,
+): DayItem[] {
+  const slots = visibleTop3Items(items);
+  if (!origin) return slots;
+  return sortItemsNearestFirst(slots, origin);
 }
 
 export function cineFirstPaint(mobile: boolean): number {

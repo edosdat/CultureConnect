@@ -47,6 +47,8 @@ export function loadLieux(): Lieu[] {
   return readCsv<Lieu>('lieux.csv').map((r) => ({
     ...r,
     label_affiche: r.label_affiche ?? '',
+    lat: r.lat ?? '',
+    lng: r.lng ?? '',
   }));
 }
 

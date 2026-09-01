@@ -31,6 +31,8 @@ type Props = {
   nouveau?: boolean;
   variant?: SeanceCardVariant;
   reason?: string | null;
+  /** Crow-flies label, e.g. « 2,3 km ». Omit when venue coords are missing. */
+  distanceKm?: string | null;
 };
 
 function cardPitch(item: DayItem): string {
@@ -88,6 +90,7 @@ export default function SeanceCard({
   nouveau = false,
   variant,
   reason = null,
+  distanceKm = null,
 }: Props) {
   const resolved: SeanceCardVariant = variant ?? (compact ? 'compact' : 'default');
   const catLabel = categoryLabelFor(item);
@@ -220,6 +223,9 @@ export default function SeanceCard({
         >
           {formatLieuAffiche(lieu)}
         </span>
+        {distanceKm ? (
+          <span className="text-culture-terracotta"> · {distanceKm}</span>
+        ) : null}
       </p>
     ) : null;
 
@@ -277,7 +283,13 @@ export default function SeanceCard({
       ) : null}
       {metaLine ? <p className="text-sm text-culture-muted">{metaLine}</p> : null}
       {showCities ? (
-        <p className="text-xs text-culture-muted">{citiesSummary}</p>
+        <p className="text-xs text-culture-muted">
+          {citiesSummary}
+          {distanceKm ? ` · ${distanceKm}` : ''}
+        </p>
+      ) : null}
+      {!showVenueLine && !showCities && distanceKm ? (
+        <p className="text-xs text-culture-terracotta">{distanceKm}</p>
       ) : null}
       {venueNode}
       {reason ? (
