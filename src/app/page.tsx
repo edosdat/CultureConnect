@@ -87,7 +87,9 @@ export default async function HomePage({
   const initialOpenKey = normalizeDeepLinkId(
     firstParam(params?.e) || firstParam(params?.id),
   );
-  const openDetail = initialOpenKey ? queryAgendaDetail(initialOpenKey) : null;
+  const openDetail = initialOpenKey
+    ? queryAgendaDetail(initialOpenKey, 'Toulouse')
+    : null;
 
   return (
     <main>

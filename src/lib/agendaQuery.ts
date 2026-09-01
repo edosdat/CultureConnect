@@ -13,6 +13,7 @@ import type {
 } from './types';
 import { loadCultureData } from './data';
 import { catsAllowCinemaPack, formFromCategorieAndForm, mainFromForm } from './categories';
+import { filterItemsByCommune } from './commune';
 import { densifiedCardCount } from './densify';
 import {
   countItemsByDay,
@@ -835,9 +836,12 @@ export function queryAgenda(
       input.scope === 'aujourdhui' ||
       input.scope === 'soir' ||
       input.scope === 'semaine');
-  const nouveautes = hideSeancesBeforeToday(
-    showNouveautes ? nouveautesCine(data.programmeWithContext, now) : [],
-    paris.iso,
+  const nouveautes = filterItemsByCommune(
+    hideSeancesBeforeToday(
+      showNouveautes ? nouveautesCine(data.programmeWithContext, now) : [],
+      paris.iso,
+    ),
+    input.commune,
   );
 
   const total = items.length;
@@ -1120,6 +1124,7 @@ function withCredits(item: DayItem, artistes: Artiste[]): DayItem {
 
 export function queryAgendaDetail(
   id: string,
+  commune?: string | null,
 ): AgendaDetailResponse | null {
   const data = loadCultureData();
   const item = findItemByKey(id);
@@ -1148,9 +1153,9 @@ export function queryAgendaDetail(
           );
         })
         .map(relatedSeanceDayItem);
-      relatedItems = hideSeancesBeforeToday(
-        relatedItems,
-        parisParts().iso,
+      relatedItems = filterItemsByCommune(
+        hideSeancesBeforeToday(relatedItems, parisParts().iso),
+        commune,
       );
     }
   }
@@ -1171,7 +1176,10 @@ export function queryAgendaDetail(
           true,
         ).filter(startsAtOrAfter19)
       : [];
-    aussiCeSoir = pickAussiCeSoir(tonight, item, 3).map(slimDayItem);
+    aussiCeSoir = filterItemsByCommune(
+      pickAussiCeSoir(tonight, item, 3).map(slimDayItem),
+      commune,
+    );
   }
 
   return {

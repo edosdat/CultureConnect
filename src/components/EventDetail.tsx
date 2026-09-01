@@ -7,6 +7,7 @@ import {
   downloadIcs,
   googleCalendarUrl,
 } from '@/lib/calendar';
+import { filterItemsByCommune, normalizeCommune } from '@/lib/commune';
 import { isLikelyMobile } from '@/lib/displayHome';
 import SeanceCard from './SeanceCard';
 import ShareButton from './ShareButton';
@@ -57,10 +58,6 @@ function useEscapeClose(active: boolean, onClose: () => void) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [active, onClose]);
-}
-
-function normalizeCommune(c: string | null | undefined): string {
-  return (c || '').trim().toLocaleLowerCase('fr');
 }
 
 const NOWEB_THEATER_CODES = new Set(['W3161', 'P0235', 'P2235']);
@@ -218,7 +215,7 @@ function filterVenueGroups(
     const target = normalizeCommune(selectedCommune);
     filtered = groups.filter((g) => normalizeCommune(g.commune) === target);
   }
-  return filtered.length > 0 ? filtered : groups;
+  return filtered;
 }
 
 function FilmSeancesList({
@@ -237,6 +234,7 @@ function FilmSeancesList({
   const allGroups = groupSeancesByVenue(items);
   if (allGroups.length === 0) return null;
   const groups = filterVenueGroups(allGroups, selectedCommune, selectedLieuId);
+  if (groups.length === 0) return null;
   return (
     <ul className="mt-2 space-y-3 text-sm text-culture-ink">
       {groups.map((g) => (
@@ -422,8 +420,10 @@ export default function EventDetail({
   const openKey = item.key;
   const crossSellItems =
     aussiCeSoirItems.length > 0
-      ? aussiCeSoirItems
-      : fallbackVivant.filter((it) => it.key !== openKey).slice(0, 2);
+      ? filterItemsByCommune(aussiCeSoirItems, selectedCommune)
+      : filterItemsByCommune(fallbackVivant, selectedCommune)
+          .filter((it) => it.key !== openKey)
+          .slice(0, 2);
   const showCrossSell = engaged && crossSellItems.length > 0;
 
   if (item.kind === 'programme') {
@@ -432,9 +432,9 @@ export default function EventDetail({
       formatHeure(p.heure_debut) +
       (p.heure_fin ? ` – ${formatHeure(p.heure_fin)}` : '');
     const categorie = ev?.categorie ?? '';
-    const upcomingRelated = hideSeancesBeforeToday(
-      relatedItems,
-      parisParts().iso,
+    const upcomingRelated = filterItemsByCommune(
+      hideSeancesBeforeToday(relatedItems, parisParts().iso),
+      selectedCommune,
     );
     const hasFilmSeances = upcomingRelated.length > 0;
 

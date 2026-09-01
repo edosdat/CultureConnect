@@ -7,6 +7,7 @@ import { profileHasChipWeight } from '@/lib/reco';
 import { extractMoods, profileHasZeroWeights } from '@/lib/signals';
 import { signIn } from 'next-auth/react';
 import { useSignals } from './SignalsProvider';
+import { filterItemsByCommune, itemMatchesCommune, normalizeCommune } from '@/lib/commune';
 import { densify, densifiedCardCount } from '@/lib/densify';
 import { filmIdOfItem, isCinemaDayItem } from '@/lib/nouveautesCine';
 import { catsAllowCinemaPack, genreBelongsToMains, mainFromGenreSlug } from '@/lib/categories';
@@ -94,10 +95,6 @@ type Props = {
 
 function evenementWord(n: number): string {
   return n <= 1 ? 'événement' : 'événements';
-}
-
-function normalizeCommune(c: string | null | undefined): string {
-  return (c || '').trim().toLocaleLowerCase('fr');
 }
 
 type RecoKind = 'guest' | 'profile' | 'wiped' | 'pending';
@@ -510,8 +507,10 @@ export default function CultureConnectApp({
     }
     setListItems((prev) => (append ? [...prev, ...data.items] : data.items));
     if (!append) {
-      setNouveautesItems(data.nouveautes ?? []);
-      setVivantItems(data.vivantItems ?? []);
+      setNouveautesItems(
+        filterItemsByCommune(data.nouveautes ?? [], selectedCommune),
+      );
+      setVivantItems(filterItemsByCommune(data.vivantItems ?? [], selectedCommune));
       if (typeof data.vivantTotal === 'number') setVivantTotal(data.vivantTotal);
       if (typeof data.cineTotal === 'number') setCineTotal(data.cineTotal);
       setTotal(data.total);
@@ -830,8 +829,11 @@ export default function CultureConnectApp({
   /** Signed-in / loading: |profile or [] (skeleton). Never the guest trio. */
   const pourToiItems = useMemo(() => {
     if (recoWiped) return [];
-    return recoPoolByKey[visibleRecoKey] ?? [];
-  }, [recoPoolByKey, visibleRecoKey, recoWiped]);
+    return filterItemsByCommune(
+      recoPoolByKey[visibleRecoKey] ?? [],
+      selectedCommune,
+    );
+  }, [recoPoolByKey, visibleRecoKey, recoWiped, selectedCommune]);
 
   const pourToiKeys = useMemo(
     () => new Set(pourToiItems.map((item) => item.key)),
@@ -893,13 +895,14 @@ export default function CultureConnectApp({
     const seen = new Set<string>();
     const out: DayItem[] = [];
     for (const item of [...nouveautesItems, ...listItems]) {
+      if (!itemMatchesCommune(item, selectedCommune)) continue;
       const fid = filmIdOfItem(item) || item.key;
       if (seen.has(fid)) continue;
       seen.add(fid);
       out.push(item);
     }
     return out;
-  }, [nouveautesItems, listItems]);
+  }, [nouveautesItems, listItems, selectedCommune]);
   const allCineRows = useMemo(
     () => cineRows(cineSource, top3Set),
     [cineSource, top3Set],
@@ -910,8 +913,8 @@ export default function CultureConnectApp({
   );
   const allLiveRows = useMemo(() => {
     const pool = vivantItems.length > 0 ? vivantItems : listItems;
-    return liveRows(pool, top3Set);
-  }, [vivantItems, listItems, top3Set]);
+    return liveRows(filterItemsByCommune(pool, selectedCommune), top3Set);
+  }, [vivantItems, listItems, top3Set, selectedCommune]);
   const visibleLiveRows = useMemo(() => {
     if (liveExpanded || timeScope !== 'tous') return allLiveRows;
     return capLiveRows(allLiveRows).slice(0, 9);
@@ -952,8 +955,10 @@ export default function CultureConnectApp({
     visibleLiveRows.length > 0;
   const leftoverRows = useMemo(() => {
     if (!hideCineSection || !hideLiveSection) return [];
-    return densify(dedupAgainstTop3(listItems, top3Set));
-  }, [hideCineSection, hideLiveSection, listItems, top3Set]);
+    return densify(
+      dedupAgainstTop3(filterItemsByCommune(listItems, selectedCommune), top3Set),
+    );
+  }, [hideCineSection, hideLiveSection, listItems, selectedCommune, top3Set]);
 
   function handleSelectHome(key: string) {
     const found =
@@ -1084,15 +1089,22 @@ export default function CultureConnectApp({
     let cancelled = false;
     (async () => {
       try {
+        const communeQ = selectedCommune
+          ? `&commune=${encodeURIComponent(selectedCommune)}`
+          : '';
         const res = await fetch(
-          `/api/agenda?id=${encodeURIComponent(selectedItemKey)}`,
+          `/api/agenda?id=${encodeURIComponent(selectedItemKey)}${communeQ}`,
         );
         if (!res.ok) return;
         const data = (await res.json()) as AgendaDetailResponse;
         if (cancelled || gen !== detailFetchGen.current) return;
         setDetailItem(data.item);
-        setRelatedFilmItems(data.relatedItems ?? []);
-        setAussiCeSoirItems(data.aussiCeSoir ?? []);
+        setRelatedFilmItems(
+          filterItemsByCommune(data.relatedItems ?? [], selectedCommune),
+        );
+        setAussiCeSoirItems(
+          filterItemsByCommune(data.aussiCeSoir ?? [], selectedCommune),
+        );
         if (!slim) trackItem(data.item, 'open_card');
       } catch {
         /* slim already shown + tracked; keep fiche as-is */
@@ -1102,7 +1114,7 @@ export default function CultureConnectApp({
       cancelled = true;
     };
     // track by key so reopening the same fiche dedups in 30 min
-  }, [selectedItemKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedItemKey, selectedCommune]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const showDateLabels = !searching && scopeRange.days.length > 1;
 
@@ -1548,6 +1560,7 @@ export default function CultureConnectApp({
               rows={visibleCineRows}
               mobile={narrowHome}
               focusKey={cineFocusKey}
+              selectedCommune={selectedCommune}
               fallbackVivant={allLiveRows.map((row) => row.item)}
               onAgenda={(item) => trackItem(item, 'agenda_add')}
               onIcs={(item) => trackItem(item, 'ics')}

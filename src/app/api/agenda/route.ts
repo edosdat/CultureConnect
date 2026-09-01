@@ -43,7 +43,7 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const id = (url.searchParams.get('id') || '').trim();
   if (id) {
-    const detail = queryAgendaDetail(id);
+    const detail = queryAgendaDetail(id, url.searchParams.get('commune'));
     if (!detail) {
       return NextResponse.json({ error: 'Introuvable' }, { status: 404 });
     }

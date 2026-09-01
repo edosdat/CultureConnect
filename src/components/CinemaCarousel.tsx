@@ -10,6 +10,7 @@ import {
   googleCalendarUrl,
 } from '@/lib/calendar';
 import { formatDateFr, formatHeure, formatLieuAffiche } from '@/lib/labels';
+import { filterItemsByCommune, itemMatchesCommune } from '@/lib/commune';
 import {
   isLikelyMobile,
   itemPitch,
@@ -26,6 +27,7 @@ type Props = {
   mobile?: boolean;
   focusKey?: string | null;
   fallbackVivant?: DayItem[];
+  selectedCommune?: string | null;
   onAgenda?: (item: DayItem) => void;
   onIcs?: (item: DayItem) => void;
   onReserve?: (item: DayItem) => void;
@@ -119,6 +121,7 @@ export default function CinemaCarousel({
   mobile = false,
   focusKey = null,
   fallbackVivant = [],
+  selectedCommune = null,
   onAgenda,
   onIcs,
   onReserve,
@@ -155,18 +158,21 @@ export default function CinemaCarousel({
     setAussi([]);
     const key = hero.item.key;
     let cancelled = false;
-    void fetch(`/api/agenda?id=${encodeURIComponent(key)}`)
+    const communeQ = selectedCommune
+      ? `&commune=${encodeURIComponent(selectedCommune)}`
+      : '';
+    void fetch(`/api/agenda?id=${encodeURIComponent(key)}${communeQ}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data: AgendaDetailResponse | null) => {
         if (cancelled || !data) return;
-        setRelated(data.relatedItems ?? []);
-        setAussi(data.aussiCeSoir ?? []);
+        setRelated(filterItemsByCommune(data.relatedItems ?? [], selectedCommune));
+        setAussi(filterItemsByCommune(data.aussiCeSoir ?? [], selectedCommune));
       })
       .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [hero?.item.key]);
+  }, [hero?.item.key, selectedCommune]);
 
   function scrollStrip(dir: -1 | 1) {
     const el = stripRef.current;
@@ -182,12 +188,24 @@ export default function CinemaCarousel({
   const venue = formatLieuAffiche(item.lieu);
   const cat = categoryLabelOf(item);
   const cal = calendarPayloadFromDayItem(item);
-  const upcoming = hideSeancesBeforeToday(related, parisParts().iso);
-  const seances = upcoming.length > 0 ? upcoming : [item];
+  const upcoming = filterItemsByCommune(
+    hideSeancesBeforeToday(related, parisParts().iso),
+    selectedCommune,
+  );
+  const seances =
+    upcoming.length > 0
+      ? upcoming
+      : itemMatchesCommune(item, selectedCommune)
+        ? [item]
+        : [];
   const crossSell =
     aussi.length > 0
       ? aussi
-      : fallbackVivant.filter((it) => it.key !== item.key).slice(0, 2);
+      : fallbackVivant
+          .filter(
+            (it) => it.key !== item.key && itemMatchesCommune(it, selectedCommune),
+          )
+          .slice(0, 2);
 
   const thumbs = (
     <div className="relative">
@@ -250,14 +268,18 @@ export default function CinemaCarousel({
         {[venue, when].filter(Boolean).join(' • ')}
       </p>
       <div ref={seancesRef} id="cine-seances">
-        <p className="text-xs font-semibold uppercase tracking-wide text-culture-muted">
-          Séances
-        </p>
-        <ul className="mt-1 space-y-1 text-sm text-culture-ink">
-          {seances.map((rel) => (
-            <li key={rel.key}>{seanceLine(rel)}</li>
-          ))}
-        </ul>
+        {seances.length > 0 ? (
+          <>
+            <p className="text-xs font-semibold uppercase tracking-wide text-culture-muted">
+              Séances
+            </p>
+            <ul className="mt-1 space-y-1 text-sm text-culture-ink">
+              {seances.map((rel) => (
+                <li key={rel.key}>{seanceLine(rel)}</li>
+              ))}
+            </ul>
+          </>
+        ) : null}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <button
