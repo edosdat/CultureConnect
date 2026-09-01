@@ -61,8 +61,11 @@ import {
 } from './reco';
 import type { TasteEntry, TasteProfile } from './signals';
 import { normalizeDeepLinkId } from './deepLink';
+import { agendaListCacheKeyParts } from './agendaParams';
 
 export const AGENDA_PAGE_MAX = 50;
+/** Single calendar day: show the day's matching séances, not the upcoming-50 cap. */
+export const AGENDA_DAY_PAGE_MAX = 150;
 
 export type AgendaQueryInput = {
   scope: TimeScopeId;
@@ -928,15 +931,19 @@ export function queryAgenda(
   }
 
   const offset = Math.max(0, input.offset ?? 0);
-  const requested = input.limit ?? AGENDA_PAGE_MAX;
-  const cap = Math.min(Math.max(requested, 0), AGENDA_PAGE_MAX);
+  const dayPage =
+    input.scope === 'date' && Boolean((input.selectedDate || '').trim());
+  const pageMax = dayPage ? AGENDA_DAY_PAGE_MAX : AGENDA_PAGE_MAX;
+  const requested = input.limit ?? pageMax;
+  const cap = Math.min(Math.max(requested, 0), pageMax);
   const page = items.slice(offset, offset + cap).map(slimDayItem);
 
   const vivantAll = items.filter(isVivantDayItem);
   const cineAll = items.filter(isCinemaDayItem);
+  const vivantCap = dayPage ? pageMax : 40;
   const vivantItems =
     !searching && offset === 0
-      ? vivantAll.slice(0, 40).map(slimDayItem)
+      ? vivantAll.slice(0, vivantCap).map(slimDayItem)
       : [];
   const vivantTotal = densifiedCardCount(vivantAll);
   const cineTotal = densifiedCardCount(cineAll);
@@ -1280,25 +1287,22 @@ export async function queryAgendaListCached(
     return queryAgenda(input, now);
   }
   const day = parisParts(now).iso;
-  const catKey = [...input.cats].map((c) => c.trim().toLowerCase()).filter(Boolean).sort().join(',');
-  const commune = (input.commune || '').trim();
-  const lieu = (input.lieuId || '').trim();
-  const genreKey = [...input.genres].map((g) => g.trim()).filter(Boolean).sort().join(',');
   return unstable_cache(
     async () => queryAgenda(input, new Date()),
-    [
-      'agenda-list',
-      'commune-exact-v1',
-      day,
-      input.scope,
-      catKey,
-      commune,
-      lieu,
-      genreKey,
-      String(input.offset ?? 0),
-      String(input.limit ?? ''),
-      input.includeListMeta ? '1' : '0',
-    ],
+    agendaListCacheKeyParts({
+      scope: input.scope,
+      selectedDate: input.selectedDate,
+      year: input.year,
+      month: input.month,
+      cats: input.cats,
+      commune: input.commune,
+      lieuId: input.lieuId,
+      genres: input.genres,
+      offset: input.offset,
+      limit: input.limit,
+      includeListMeta: input.includeListMeta,
+      parisDay: day,
+    }),
     { revalidate: 300 },
   )();
 }
