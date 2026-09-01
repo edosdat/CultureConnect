@@ -29,7 +29,7 @@ export default function HomeSection({
   const canSeeAll = Boolean(onSeeAll) && count > shown && !expanded;
   const showMeta = !hideCount || canSeeAll;
   return (
-    <section id={id} className={'space-y-3 ' + className}>
+    <section id={id} className={'scroll-mt-16 space-y-3 ' + className}>
       <div className="flex flex-wrap items-end justify-between gap-2">
         <h2 className="font-display text-xl text-culture-ink sm:text-2xl">
           <span className="border-b-2 border-culture-terracotta pb-0.5">

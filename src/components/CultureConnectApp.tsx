@@ -14,16 +14,17 @@ import { useSignals } from './SignalsProvider';
 import { filterItemsByCommune, normalizeCommune } from '@/lib/commune';
 import { filterSeancesForActiveFilters } from '@/lib/displayFilter';
 import { densify, densifiedCardCount } from '@/lib/densify';
-import { filmIdOfItem, isCinemaDayItem } from '@/lib/nouveautesCine';
+import { filmIdOfItem, homePackOfItem } from '@/lib/nouveautesCine';
 import { catsAllowCinemaPack, genreBelongsToMains, mainFromGenreSlug } from '@/lib/categories';
 import {
-  capLiveRows,
   cineFirstPaint,
   cineRows,
   dedupAgainstTop3,
   displayReasonForItem,
-  liveRows,
+  homeSectionsVisible,
+  musiqueRows,
   shouldShowTop3Section,
+  theatreRows,
   top3IdentitySet,
   visibleTop3Items,
 } from '@/lib/displayHome';
@@ -48,7 +49,6 @@ import EventDetail from './EventDetail';
 import LoginNudge from './LoginNudge';
 import HomeSection from './HomeSection';
 import CinemaCarousel from './CinemaCarousel';
-import LiveCarousel from './LiveCarousel';
 import {
   phraseUsesTitleQ,
   type PhraseTags,
@@ -253,11 +253,23 @@ export default function CultureConnectApp({
   const [timeScope, setTimeScope] = useState<TimeScopeId>(initialScope);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedItemKey, setSelectedItemKey] = useState<string | null>(() => {
-    if (initialOpenItem && isCinemaDayItem(initialOpenItem)) return null;
+    if (initialOpenItem && homePackOfItem(initialOpenItem)) return null;
     return initialOpenKey ?? null;
   });
   const [cineFocusKey, setCineFocusKey] = useState<string | null>(() => {
-    if (initialOpenItem && isCinemaDayItem(initialOpenItem)) {
+    if (initialOpenItem && homePackOfItem(initialOpenItem) === 'cine') {
+      return initialOpenKey ?? null;
+    }
+    return null;
+  });
+  const [theatreFocusKey, setTheatreFocusKey] = useState<string | null>(() => {
+    if (initialOpenItem && homePackOfItem(initialOpenItem) === 'theatre') {
+      return initialOpenKey ?? null;
+    }
+    return null;
+  });
+  const [musiqueFocusKey, setMusiqueFocusKey] = useState<string | null>(() => {
+    if (initialOpenItem && homePackOfItem(initialOpenItem) === 'musique') {
       return initialOpenKey ?? null;
     }
     return null;
@@ -308,7 +320,10 @@ export default function CultureConnectApp({
   const [cineTotal, setCineTotal] = useState(initialCineTotal);
   const [cineExpanded, setCineExpanded] = useState(false);
   const [cineLimit, setCineLimit] = useState(() => cineFirstPaint(false));
-  const [liveExpanded, setLiveExpanded] = useState(false);
+  const [theatreExpanded, setTheatreExpanded] = useState(false);
+  const [theatreLimit, setTheatreLimit] = useState(() => cineFirstPaint(false));
+  const [musiqueExpanded, setMusiqueExpanded] = useState(false);
+  const [musiqueLimit, setMusiqueLimit] = useState(() => cineFirstPaint(false));
   const [narrowHome, setNarrowHome] = useState(false);
 
   useEffect(() => {
@@ -321,7 +336,9 @@ export default function CultureConnectApp({
 
   useEffect(() => {
     if (!cineExpanded) setCineLimit(cineFirstPaint(narrowHome));
-  }, [narrowHome, cineExpanded]);
+    if (!theatreExpanded) setTheatreLimit(cineFirstPaint(narrowHome));
+    if (!musiqueExpanded) setMusiqueLimit(cineFirstPaint(narrowHome));
+  }, [narrowHome, cineExpanded, theatreExpanded, musiqueExpanded]);
 
   const skipListFetch = useRef(true);
   const listFetchGen = useRef(0);
@@ -961,7 +978,7 @@ export default function CultureConnectApp({
     () => allCineRows.slice(0, cineLimit),
     [allCineRows, cineLimit],
   );
-  const allLiveRows = useMemo(() => {
+  const vivantPool = useMemo(() => {
     const seen = new Set<string>();
     const pool: DayItem[] = [];
     for (const item of [...vivantItems, ...listItems]) {
@@ -969,27 +986,25 @@ export default function CultureConnectApp({
       seen.add(item.key);
       pool.push(item);
     }
-    return liveRows(
-      filterSeancesForActiveFilters(pool, activeFilter),
-      top3Set,
-    );
-  }, [vivantItems, listItems, top3Set, activeFilter]);
-  const visibleLiveRows = useMemo(() => {
-    if (liveExpanded || timeScope !== 'tous') return allLiveRows;
-    return capLiveRows(allLiveRows).slice(0, 9);
-  }, [allLiveRows, liveExpanded, timeScope]);
-  const livingCatOn = selectedCategories.some(
-    (c) =>
-      c === 'musique' ||
-      c === 'theatre_danse' ||
-      c === 'festival' ||
-      c === 'enfants_famille',
+    return filterSeancesForActiveFilters(pool, activeFilter);
+  }, [vivantItems, listItems, activeFilter]);
+  const allTheatreRows = useMemo(
+    () => theatreRows(vivantPool, top3Set),
+    [vivantPool, top3Set],
   );
-  const cineCatOn = selectedCategories.includes('cinema');
-  const hideCineSection =
-    selectedCategories.length > 0 && !cineCatOn;
-  const hideLiveSection =
-    selectedCategories.length > 0 && !livingCatOn;
+  const visibleTheatreRows = useMemo(
+    () => allTheatreRows.slice(0, theatreLimit),
+    [allTheatreRows, theatreLimit],
+  );
+  const allMusiqueRows = useMemo(
+    () => musiqueRows(vivantPool, top3Set),
+    [vivantPool, top3Set],
+  );
+  const visibleMusiqueRows = useMemo(
+    () => allMusiqueRows.slice(0, musiqueLimit),
+    [allMusiqueRows, musiqueLimit],
+  );
+  const sectionVis = homeSectionsVisible(selectedCategories);
 
   const isGuestReco = recoKind === 'guest';
   const reasonFor = useCallback(
@@ -1005,23 +1020,45 @@ export default function CultureConnectApp({
 
   /** Same unique-film set as the Ciné strip — never Toulouse-wide cineTotal. */
   const cineCount = allCineRows.length;
-  const liveCount = allLiveRows.length;
+  const theatreCount = allTheatreRows.length;
+  const musiqueCount = allMusiqueRows.length;
   const showCineBlock =
-    !hideCineSection &&
+    sectionVis.cine &&
     visibleCineRows.length > 0 &&
     !phraseDateClash;
-  const showLiveBlock =
-    !hideLiveSection &&
-    visibleLiveRows.length > 0;
+  const showTheatreBlock =
+    sectionVis.theatre &&
+    visibleTheatreRows.length > 0 &&
+    !phraseDateClash;
+  const showMusiqueBlock =
+    sectionVis.musique &&
+    visibleMusiqueRows.length > 0 &&
+    !phraseDateClash;
   const leftoverRows = useMemo(() => {
-    if (!hideCineSection || !hideLiveSection) return [];
+    if (showCineBlock || showTheatreBlock || showMusiqueBlock) return [];
     return densify(
       dedupAgainstTop3(
-        filterSeancesForActiveFilters(listItems, activeFilter),
+        filterSeancesForActiveFilters(listItems, activeFilter).filter(
+          (item) => !homePackOfItem(item),
+        ),
         top3Set,
       ),
     );
-  }, [hideCineSection, hideLiveSection, listItems, activeFilter, top3Set]);
+  }, [
+    showCineBlock,
+    showTheatreBlock,
+    showMusiqueBlock,
+    listItems,
+    activeFilter,
+    top3Set,
+  ]);
+  const crossSellPool = useMemo(
+    () => [
+      ...allTheatreRows.map((row) => row.item),
+      ...allMusiqueRows.map((row) => row.item),
+    ],
+    [allTheatreRows, allMusiqueRows],
+  );
 
   function handleSelectHome(key: string) {
     const found =
@@ -1031,11 +1068,28 @@ export default function CultureConnectApp({
       vivantItems.find((i) => i.key === key) ??
       leftoverRows.find((r) => r.item.key === key)?.item ??
       null;
-    if (found && isCinemaDayItem(found)) {
+    const pack = found ? homePackOfItem(found) : null;
+    if (pack === 'cine') {
       setCineFocusKey(key);
       setSelectedItemKey(null);
       document
         .getElementById('cine')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    if (pack === 'theatre') {
+      setTheatreFocusKey(key);
+      setSelectedItemKey(null);
+      document
+        .getElementById('theatre')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    if (pack === 'musique') {
+      setMusiqueFocusKey(key);
+      setSelectedItemKey(null);
+      document
+        .getElementById('musique')
         ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
@@ -1044,7 +1098,8 @@ export default function CultureConnectApp({
   const listEmpty =
     listItems.length === 0 &&
     allCineRows.length === 0 &&
-    allLiveRows.length === 0 &&
+    allTheatreRows.length === 0 &&
+    allMusiqueRows.length === 0 &&
     leftoverRows.length === 0;
   const gridCardCount = useMemo(
     () => densifiedCardCount(gridItems),
@@ -1060,7 +1115,10 @@ export default function CultureConnectApp({
     setVisibleCount(AGENDA_PAGE_SIZE);
     setCineExpanded(false);
     setCineLimit(cineFirstPaint(narrowHome));
-    setLiveExpanded(false);
+    setTheatreExpanded(false);
+    setTheatreLimit(cineFirstPaint(narrowHome));
+    setMusiqueExpanded(false);
+    setMusiqueLimit(cineFirstPaint(narrowHome));
   }, [
     timeScope,
     selectedDay,
@@ -1548,7 +1606,10 @@ export default function CultureConnectApp({
         </section>
         ) : null}
 
-        {listEmpty && !showCineBlock && !showLiveBlock ? (
+        {listEmpty &&
+        !showCineBlock &&
+        !showTheatreBlock &&
+        !showMusiqueBlock ? (
           phraseMode || searchingUi ? (
             <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-6 py-8 text-center">
               <p className="font-display text-xl text-culture-ink">
@@ -1641,6 +1702,7 @@ export default function CultureConnectApp({
           >
             <CinemaCarousel
               rows={visibleCineRows}
+              pack="cine"
               mobile={narrowHome}
               focusKey={cineFocusKey}
               selectedCommune={selectedCommune}
@@ -1657,7 +1719,7 @@ export default function CultureConnectApp({
                 setCineLimit((n) => n + cineFirstPaint(narrowHome));
                 if (listItems.length < total) handleLoadMore();
               }}
-              fallbackVivant={allLiveRows.map((row) => row.item)}
+              fallbackVivant={crossSellPool}
               onAgenda={(item) => trackItem(item, 'agenda_add')}
               onIcs={(item) => trackItem(item, 'ics')}
               onReserve={(item) => trackItem(item, 'reserve')}
@@ -1666,19 +1728,92 @@ export default function CultureConnectApp({
           </HomeSection>
         ) : null}
 
-        {showLiveBlock ? (
+        {showTheatreBlock ? (
           <HomeSection
-            id="en-live"
-            title="En live"
-            count={liveCount}
+            id="theatre"
+            title="Théâtre & spectacle vivant"
+            count={theatreCount}
             hideCount={!showAdminCounts}
-            shown={visibleLiveRows.length}
-            expanded={liveExpanded}
-            onSeeAll={() => setLiveExpanded(true)}
+            shown={visibleTheatreRows.length}
+            expanded={
+              theatreLimit >= theatreCount && listItems.length >= total
+            }
+            onSeeAll={() => {
+              setTheatreExpanded(true);
+              setTheatreLimit(Number.POSITIVE_INFINITY);
+              if (listItems.length < total) handleLoadMore();
+            }}
           >
-            <LiveCarousel
-              rows={visibleLiveRows}
-              onSelectItem={handleSelectHome}
+            <CinemaCarousel
+              rows={visibleTheatreRows}
+              pack="theatre"
+              mobile={narrowHome}
+              focusKey={theatreFocusKey}
+              selectedCommune={selectedCommune}
+              selectedLieuId={selectedLieuId}
+              dateFrom={scopeRange.startIso}
+              dateTo={scopeRange.endIso}
+              soir={timeScope === 'soir'}
+              datePinned={timeScope !== 'tous'}
+              hasMore={
+                theatreLimit < allTheatreRows.length ||
+                listItems.length < total
+              }
+              onNeedMore={() => {
+                setTheatreExpanded(true);
+                setTheatreLimit((n) => n + cineFirstPaint(narrowHome));
+                if (listItems.length < total) handleLoadMore();
+              }}
+              fallbackVivant={allMusiqueRows.map((row) => row.item)}
+              onAgenda={(item) => trackItem(item, 'agenda_add')}
+              onIcs={(item) => trackItem(item, 'ics')}
+              onReserve={(item) => trackItem(item, 'reserve')}
+              onSelectLive={handleSelectHome}
+            />
+          </HomeSection>
+        ) : null}
+
+        {showMusiqueBlock ? (
+          <HomeSection
+            id="musique"
+            title="Musique"
+            count={musiqueCount}
+            hideCount={!showAdminCounts}
+            shown={visibleMusiqueRows.length}
+            expanded={
+              musiqueLimit >= musiqueCount && listItems.length >= total
+            }
+            onSeeAll={() => {
+              setMusiqueExpanded(true);
+              setMusiqueLimit(Number.POSITIVE_INFINITY);
+              if (listItems.length < total) handleLoadMore();
+            }}
+          >
+            <CinemaCarousel
+              rows={visibleMusiqueRows}
+              pack="musique"
+              mobile={narrowHome}
+              focusKey={musiqueFocusKey}
+              selectedCommune={selectedCommune}
+              selectedLieuId={selectedLieuId}
+              dateFrom={scopeRange.startIso}
+              dateTo={scopeRange.endIso}
+              soir={timeScope === 'soir'}
+              datePinned={timeScope !== 'tous'}
+              hasMore={
+                musiqueLimit < allMusiqueRows.length ||
+                listItems.length < total
+              }
+              onNeedMore={() => {
+                setMusiqueExpanded(true);
+                setMusiqueLimit((n) => n + cineFirstPaint(narrowHome));
+                if (listItems.length < total) handleLoadMore();
+              }}
+              fallbackVivant={allTheatreRows.map((row) => row.item)}
+              onAgenda={(item) => trackItem(item, 'agenda_add')}
+              onIcs={(item) => trackItem(item, 'ics')}
+              onReserve={(item) => trackItem(item, 'reserve')}
+              onSelectLive={handleSelectHome}
             />
           </HomeSection>
         ) : null}
@@ -1715,7 +1850,7 @@ export default function CultureConnectApp({
 
       <EventDetail
         item={
-          selectedItem && !isCinemaDayItem(selectedItem) ? selectedItem : null
+          selectedItem && !homePackOfItem(selectedItem) ? selectedItem : null
         }
         onClose={() => setSelectedItemKey(null)}
         onSelectVenue={handleSelectVenue}
@@ -1727,7 +1862,7 @@ export default function CultureConnectApp({
         onReserve={() => selectedItem && trackItem(selectedItem, 'reserve')}
         selectedCommune={selectedCommune}
         selectedLieuId={selectedLieuId}
-        fallbackVivant={allLiveRows.map((row) => row.item)}
+        fallbackVivant={crossSellPool}
       />
     </div>
   );
