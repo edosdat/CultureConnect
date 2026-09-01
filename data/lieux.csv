@@ -143,3 +143,5 @@ L171,Le Chorus,Toulouse — Le Chorus,bar_scene,,Toulouse,,https://www.facebook.
 L172,Pirouette,Toulouse — Pirouette,bar_scene,,Toulouse,,https://www.instagram.com/pirouette.bar/,https://www.instagram.com/pirouette.bar/,URL agent 2026-09-01 | IG only → skip scrape
 L173,L'Impro,Toulouse — L'Impro,bar_scene,,Toulouse,,https://www.facebook.com/limprotoulouse/,https://www.facebook.com/limprotoulouse/,URL agent 2026-09-01 | FB only → skip scrape
 L174,The Black Lion,Toulouse — The Black Lion,bar_scene,,Toulouse,,https://theblacklion.fr/,https://theblacklion.fr/,URL agent 2026-09-01 | site officiel ; IG secondaire skip
+L175,Les Marins d'Eau Douce,Ramonville — Les Marins d'Eau Douce,bar_scene,,Ramonville-Saint-Agne,,https://www.marins-eau-douce.com/,https://www.marins-eau-douce.com/evenements/,URL agent 2026-09-01 lot3 | scraper HTML daté
+L176,Café l'Astronef,Toulouse — Café l'Astronef,bar_scene,,Toulouse,,https://cafe-lastronef.fr/,https://cafe-lastronef.fr/programme/,URL agent 2026-09-01 lot3 | scraper HTML daté
