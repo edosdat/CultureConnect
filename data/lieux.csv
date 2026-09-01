@@ -199,3 +199,16 @@ L227,Le Brassin's,Fonbeauzard — Le Brassin's,bar_scene,,Fonbeauzard,,,,https:/
 L228,Flashback Café,Toulouse — Flashback Café,bar_scene,,Toulouse,,,,https://toulouse.flashbackcafe.fr/,https://toulouse.flashbackcafe.fr/soirees-et-spectacles/,URL agent 2026-09-02 | scraper HTML
 L229,Le Refuge by The Roof,Toulouse — Le Refuge,bar_scene,,Toulouse,,,,https://toulouse.theroof.fr/le_refuge.html,https://toulouse.theroof.fr/news/sous-les-bananiers-1099.html,URL agent | ≠ L080 La Cabane | slam /news/scene-ouverte-declame-882.html | scraper HTML
 L230,L'Usine à Musique,Toulouse — L'Usine à Musique,bar_scene,,Toulouse,,,,https://www.lusineamusique.fr/,https://www.lusineamusique.fr/,URL agent | Sept Deniers | scraper HTML home 2026
+L231,Taverne Heidelberg (B99),Blagnac — Taverne Heidelberg,bar_scene,,Blagnac,,,,https://lataverne-blagnac.eatbu.com/,https://www.facebook.com/taverne.heidelberg/,URL agent | FB skip
+L232,Dream O'Clock,Toulouse — Dream O'Clock,bar_scene,,Toulouse,,,,https://www.instagram.com/dreamoclocktoulouse/,https://www.instagram.com/dreamoclocktoulouse/,URL agent | ≠ L219 Pub O'Clock ≠ L217 Little O'Clock | IG skip
+L233,Brennan's Bar,Castelginest — Brennan's Bar,bar_scene,,Castelginest,,,,https://www.instagram.com/brennansbarcastelginest/,https://www.instagram.com/brennansbarcastelginest/,URL agent | IG skip
+L234,Brasserie Hectare,Toulouse — Brasserie Hectare,bar_scene,,Toulouse,,,,https://www.instagram.com/brasseriehectare/,https://www.instagram.com/brasseriehectare/,URL agent | IG skip
+L235,La Sainte Dynamo,Toulouse — La Sainte Dynamo,bar_scene,,Toulouse,,,,https://www.facebook.com/lasaintedynamo/,https://www.instagram.com/lasaintedynamo/,URL agent | IG/FB skip
+L236,Gloria (ex Bar Champagne),Toulouse — Gloria,bar_scene,,Toulouse,,,,https://www.facebook.com/p/Gloria-Bar-61551362206305/,https://www.facebook.com/p/Gloria-Bar-61551362206305/,URL agent | FB skip
+L237,Cabaret La Vénus,Toulouse — Cabaret La Vénus,bar_scene,,Toulouse,,,,https://lavenus-toulouse.com/,https://lavenus-toulouse.com/,URL agent | scraper HTML
+L238,Cabaret Le Kalinka,Toulouse — Cabaret Le Kalinka,bar_scene,,Toulouse,,,,https://www.lekalinka.com/,https://www.lekalinka.com/reservez-votre-soiree/,URL agent | scraper HTML
+L239,Puerto Habana,Toulouse — Puerto Habana,bar_scene,,Toulouse,,,,https://www.puerto-habana.com/fr/,https://www.instagram.com/puertotoulouse/,URL agent | IG skip | 1 live 27/01 hors fenêtre
+L240,Le Delicatessen,Toulouse — Le Delicatessen,bar_scene,,Toulouse,,,,https://www.instagram.com/le_delicatessen_toulouse/,https://www.instagram.com/le_delicatessen_toulouse/,URL agent | IG skip
+L241,Le 9,Toulouse — Le 9,bar_scene,,Toulouse,,,,https://www.reservationsle9.fr/,https://www.reservationsle9.fr/,URL agent | scraper home HTML ; IG secondaire skip
+L242,Mulligans Irish Pub,Toulouse — Mulligans,bar_scene,,Toulouse,,,,https://www.facebook.com/MulligansToulouse/,https://www.facebook.com/MulligansToulouse/,URL agent | FB skip
+L243,La Loupiote,Toulouse — La Loupiote,bar_scene,,Toulouse,,,,https://www.facebook.com/laloupiote/,https://www.facebook.com/laloupiote/,URL agent | FB skip
