@@ -970,8 +970,16 @@ export default function CultureConnectApp({
     [isGuestReco, tasteState, timeScope, selectedCommune],
   );
 
-  const cineCount = cineTotal || allCineRows.length;
-  const liveCount = vivantTotal || allLiveRows.length;
+  /** Same unique-film set as the Ciné strip — never Toulouse-wide cineTotal. */
+  const cineCount = allCineRows.length;
+  const liveCount = allLiveRows.length;
+  const filteredListCount = useMemo(
+    () =>
+      densifiedCardCount(
+        filterSeancesForActiveFilters(listItems, activeFilter),
+      ),
+    [listItems, activeFilter],
+  );
   const showCineBlock =
     !hideCineSection &&
     visibleCineRows.length > 0 &&
@@ -1300,8 +1308,25 @@ export default function CultureConnectApp({
   }
 
   const monthLabel = `${MONTH_NAMES_FR[month - 1]} ${year}`;
-  const n = densifiedTotal;
-  const shown = pourToiCardCount + visiblePackCount + Math.min(visibleCount, gridCardCount);
+  const n = hideLiveSection && !hideCineSection
+    ? cineCount
+    : hideCineSection && !hideLiveSection
+      ? liveCount
+      : hideCineSection && hideLiveSection
+        ? leftoverRows.length
+        : filteredListCount;
+  const shown = hideLiveSection && !hideCineSection
+    ? visibleCineRows.length
+    : hideCineSection && !hideLiveSection
+      ? visibleLiveRows.length
+      : hideCineSection && hideLiveSection
+        ? leftoverRows.length
+        : Math.min(
+            (showCineBlock ? visibleCineRows.length : 0) +
+              (showLiveBlock ? visibleLiveRows.length : 0) +
+              leftoverRows.length,
+            n,
+          );
   const countLabel =
     n === 0
       ? `0 ${evenementWord(0)}`
