@@ -25,7 +25,7 @@ export default function SiteNav() {
       aria-label="Navigation principale"
       className="overflow-x-hidden border-b border-culture-line/80 bg-culture-cream/80 backdrop-blur"
     >
-      <div className="relative mx-auto flex max-w-7xl min-w-0 items-center gap-1 overflow-x-hidden px-4 py-3 pr-[4.25rem] sm:px-6 sm:pr-6">
+      <div className="relative mx-auto flex max-w-7xl min-w-0 items-center gap-1 overflow-x-hidden px-4 py-3 sm:px-6">
         <Link
           href="/"
           className="mr-1.5 shrink-0 font-display text-base text-culture-terracotta hover:text-culture-clay sm:mr-3 sm:text-lg"
