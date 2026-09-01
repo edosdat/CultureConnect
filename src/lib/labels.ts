@@ -1,6 +1,7 @@
 import type { Lieu } from './types';
 
 import { MAIN_CATEGORY_LABELS, mainFromCategorie } from './categories';
+import { EXTRA_GENRE_CHIP_LABELS } from './genreChipMatch';
 
 export const CATEGORIE_LABELS: Record<string, string> = {
   atelier: 'Atelier',
@@ -113,6 +114,8 @@ export function labelTypeItem(type: string): string {
 
 /** Humanize a genre slug when not in legend (replace _ with space, capitalize). */
 export function humanizeGenreSlug(slug: string): string {
+  const extra = EXTRA_GENRE_CHIP_LABELS[slug.trim().toLowerCase()];
+  if (extra) return extra;
   return humanizeSlug(slug);
 }
 

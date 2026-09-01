@@ -7,6 +7,13 @@ import type {
 } from './types';
 import { matchesMainCategories } from './categories';
 import {
+  genreFieldsFromEvent,
+  genreFieldsFromProgramme,
+  genreSlugsFromItems,
+  matchesSelectedGenres,
+  type GenreMatchFields,
+} from './genreChipMatch';
+import {
   isCinemaPeriodAggregate,
   isPublishableEvent,
   isPublishableProgrammeName,
@@ -94,20 +101,21 @@ function isProgrammePublishable(p: ProgrammeWithContext): boolean {
 }
 
 /**
- * Filter by main UI categories (mapped from categorie + genre), lieu, and genre slug.
- * `categories` is an array of MainCategoryId (6 UI buckets).
+ * Filter by main UI categories (mapped from categorie + genre), lieu, and genre chip.
+ * Genre chips match the genre column and, for catalogue extras like blindtest,
+ * titre/pitch — not only vocab-89 tag slugs.
  */
 function matchesFilters(
   categorie: string,
   lieuId: string,
-  genre: string,
+  fields: GenreMatchFields,
   categories: string[],
   lieuIds: string[],
   genres: string[],
 ): boolean {
-  if (!matchesMainCategories(categorie, genre, categories)) return false;
+  if (!matchesMainCategories(categorie, fields.genre, categories)) return false;
   if (lieuIds.length > 0 && !lieuIds.includes(lieuId)) return false;
-  if (genres.length > 0 && !genres.includes(genre)) return false;
+  if (!matchesSelectedGenres(fields, genres)) return false;
   return true;
 }
 
@@ -203,7 +211,7 @@ export function itemsForDay(
       matchesFilters(
         categorieOf(p),
         lieuIdOf(p),
-        genreOfProgramme(p),
+        genreFieldsFromProgramme(p),
         categories,
         lieuIds,
         genres,
@@ -228,7 +236,7 @@ export function itemsForDay(
       return matchesFilters(
         ev.categorie,
         lieuId,
-        ev.genre || '',
+        genreFieldsFromEvent(ev),
         categories,
         lieuIds,
         genres,
@@ -295,7 +303,7 @@ export function itemsForMonth(
       matchesFilters(
         categorieOf(p),
         lieuIdOf(p),
-        genreOfProgramme(p),
+        genreFieldsFromProgramme(p),
         categories,
         lieuIds,
         genres,
@@ -328,7 +336,7 @@ export function itemsForMonth(
       !matchesFilters(
         ev.categorie,
         lieuId,
-        ev.genre || '',
+        genreFieldsFromEvent(ev),
         categories,
         lieuIds,
         genres,
@@ -390,7 +398,7 @@ export function itemsForDateRange(
       matchesFilters(
         categorieOf(p),
         lieuIdOf(p),
-        genreOfProgramme(p),
+        genreFieldsFromProgramme(p),
         categories,
         lieuIds,
         genres,
@@ -423,7 +431,7 @@ export function itemsForDateRange(
       !matchesFilters(
         ev.categorie,
         lieuId,
-        ev.genre || '',
+        genreFieldsFromEvent(ev),
         categories,
         lieuIds,
         genres,
@@ -492,7 +500,7 @@ export function itemsForRangeFromPool(
       !matchesFilters(
         categorieOf(p),
         lieuIdOf(p),
-        genreOfProgramme(p),
+        genreFieldsFromProgramme(p),
         categories,
         lieuIds,
         genres,
@@ -520,7 +528,7 @@ export function itemsForRangeFromPool(
       !matchesFilters(
         ev.categorie,
         lieuId,
-        ev.genre || '',
+        genreFieldsFromEvent(ev),
         categories,
         lieuIds,
         genres,
@@ -626,7 +634,7 @@ export function lieuxForDay(
         )
       )
         continue;
-      if (genres.length > 0 && !genres.includes(genreOfProgramme(p))) continue;
+      if (!matchesSelectedGenres(genreFieldsFromProgramme(p), genres)) continue;
       map.set(p.lieu.lieu_id, p.lieu);
     }
     for (const ev of events) {
@@ -634,7 +642,7 @@ export function lieuxForDay(
       if (!isPublishableEvent(ev)) continue;
       if (!matchesMainCategories(ev.categorie, ev.genre || '', categories))
         continue;
-      if (genres.length > 0 && !genres.includes(ev.genre || '')) continue;
+      if (!matchesSelectedGenres(genreFieldsFromEvent(ev), genres)) continue;
       map.set(ev.lieu.lieu_id, ev.lieu);
     }
     return Array.from(map.values()).sort((a, b) =>
@@ -680,12 +688,7 @@ export function genresForSelection(
   } else {
     return [];
   }
-  const set = new Set<string>();
-  for (const item of items) {
-    const g = genreOfItem(item);
-    if (g) set.add(g);
-  }
-  return Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'));
+  return genreSlugsFromItems(items);
 }
 
 /** @deprecated Use itemsForDay */
