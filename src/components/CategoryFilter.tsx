@@ -48,11 +48,11 @@ export default function CategoryFilter({
           ? EXTRA_CATEGORY_CHIPS
           : MAIN_CATEGORIES;
     return (
-      <div className="cc-axes__track relative">
+      <div className="cc-axes__track">
         <div
           role="group"
           aria-label="Quoi"
-          className="cc-axes__chips scroll-px-2 pe-3 pb-0.5"
+          className="cc-axes__chips"
         >
           {chips.map(({ id, label }) => {
             const active = selected.includes(id);
@@ -63,7 +63,7 @@ export default function CategoryFilter({
                 type="button"
                 onClick={() => toggle(id)}
                 aria-pressed={active}
-                className="shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-sm transition"
+                className="cc-axes__chip shrink-0 whitespace-nowrap rounded-full transition"
                 style={{
                   borderWidth: 1.5,
                   borderStyle: 'solid',
@@ -80,16 +80,12 @@ export default function CategoryFilter({
             <button
               type="button"
               onClick={() => onChange([])}
-              className="shrink-0 rounded-full px-2.5 py-1.5 text-sm text-culture-terracotta hover:underline"
+              className="cc-axes__chip shrink-0 rounded-full text-culture-terracotta hover:underline"
             >
               Tout effacer
             </button>
           )}
         </div>
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-culture-cream to-transparent sm:hidden"
-        />
       </div>
     );
   }

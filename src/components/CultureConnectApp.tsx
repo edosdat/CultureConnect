@@ -1376,51 +1376,55 @@ export default function CultureConnectApp({
       </div>
 
       <div className="space-y-2.5 sm:space-y-4">
-        <div className="cc-axes">
-          <div className="cc-axes__col">
-            <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
-              Quand
-            </p>
-            <TimeScopeBar
-              scope={timeScope}
-              onChange={handleScopeChange}
-              hideLabel
-            />
+        <div className="cc-axes-row">
+          <div className="cc-axes-scroll">
+            <div className="cc-axes">
+              <div className="cc-axes__col">
+                <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
+                  Quand
+                </p>
+                <TimeScopeBar
+                  scope={timeScope}
+                  onChange={handleScopeChange}
+                  hideLabel
+                />
+              </div>
+              <div
+                role="separator"
+                aria-hidden
+                className="cc-axes__rule"
+              />
+              <div className="cc-axes__col">
+                <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
+                  Quoi
+                </p>
+                <CategoryFilter
+                  selected={selectedCategories}
+                  onChange={handleCategoriesChange}
+                  variant="home"
+                />
+              </div>
+            </div>
+            <div aria-hidden className="cc-axes-fade" />
           </div>
-          <div
-            role="separator"
-            aria-hidden
-            className="cc-axes__rule"
-          />
-          <div className="cc-axes__col">
-            <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
-              Quoi
-            </p>
-            <CategoryFilter
-              selected={selectedCategories}
-              onChange={handleCategoriesChange}
-              variant="home"
-            />
-          </div>
-        </div>
-
-        <div className="md:hidden">
-          <button
-            type="button"
-            onClick={() => setShowFiltersMobile((v) => !v)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-culture-line bg-culture-surface px-3 py-1.5 text-sm font-medium text-culture-ink hover:border-culture-terracotta/50"
-            aria-expanded={showFiltersMobile}
-          >
-            Filtres
-            {filterBadge > 0 ? (
-              <span className="rounded-full bg-culture-terracotta px-1.5 text-xs text-white">
-                {filterBadge}
+          <div className="cc-axes__more md:hidden">
+            <button
+              type="button"
+              onClick={() => setShowFiltersMobile((v) => !v)}
+              className="cc-axes__chip inline-flex items-center gap-1 rounded-full border border-culture-line bg-culture-surface font-medium text-culture-ink hover:border-culture-terracotta/50"
+              aria-expanded={showFiltersMobile}
+            >
+              Filtres
+              {filterBadge > 0 ? (
+                <span className="rounded-full bg-culture-terracotta px-1.5 text-xs text-white">
+                  {filterBadge}
+                </span>
+              ) : null}
+              <span aria-hidden className="text-culture-muted">
+                {showFiltersMobile ? '▴' : '▾'}
               </span>
-            ) : null}
-            <span aria-hidden className="text-culture-muted">
-              {showFiltersMobile ? '▴' : '▾'}
-            </span>
-          </button>
+            </button>
+          </div>
         </div>
 
         {/* Genres only: collapsed behind Filtres on mobile; always on md+ */}
