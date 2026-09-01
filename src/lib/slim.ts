@@ -254,6 +254,10 @@ export type AgendaListResponse = {
   items: DayItem[];
   total: number;
   densifiedTotal: number;
+  /** Raw evenements.csv rows (unfiltered). Cheap .length from the loaded catalogue. */
+  csvEvents: number;
+  /** Raw programme.csv rows (unfiltered). */
+  csvProgramme: number;
   nouveautes: DayItem[];
   communes: string[];
   venues: Lieu[];

@@ -100,6 +100,8 @@ export default async function HomePage({
         initialNouveautes={boot.nouveautes}
         initialTotal={boot.total}
         initialDensifiedTotal={boot.densifiedTotal}
+        initialCsvEvents={boot.csvEvents}
+        initialCsvProgramme={boot.csvProgramme}
         initialVenues={boot.venues}
         initialGenreSlugs={boot.genreSlugs}
         communes={boot.communes}
