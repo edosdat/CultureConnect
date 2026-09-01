@@ -14,7 +14,60 @@ export type PhraseForm =
   | 'enfants'
   | 'autre';
 
-export type PhraseMood = 'rigolo' | 'intense' | 'tendre' | 'cerveau' | 'sortie';
+/**
+ * Taste / scoring / inverse-frequency / « parce que tu as aimé » — 16 only.
+ * Do not invent mood strings. `sortie` is not a goût (form + date chips cover it).
+ */
+export const TASTE_MOODS = [
+  'rigolo',
+  'tendre',
+  'intense',
+  'angoissant',
+  'epique',
+  'brutal',
+  'festif',
+  'cerveau',
+  'intimiste',
+  'absurde',
+  'critique',
+  'sombre',
+  'poetique',
+  'dansant',
+  'contemplatif',
+  'leger',
+] as const;
+
+/** Phrase/search may see this catalog slug; it is never a goût. */
+export const NON_TASTE_CATALOG_MOODS = ['sortie'] as const;
+
+/** Closed catalog for phrase/search — TASTE_MOODS + kept event slugs. */
+export const CATALOG_MOODS = [
+  ...TASTE_MOODS,
+  ...NON_TASTE_CATALOG_MOODS,
+] as const;
+
+export type TasteMood = (typeof TASTE_MOODS)[number];
+export type PhraseMood = (typeof CATALOG_MOODS)[number];
+
+const TASTE_MOOD_SET = new Set<string>(TASTE_MOODS);
+
+export function isTasteMood(slug: string | null | undefined): boolean {
+  return Boolean(slug && TASTE_MOOD_SET.has(slug.trim().toLowerCase()));
+}
+
+/** Drop `sortie` and any non-taste slug before profile / scoring. */
+export function tasteMoodsOf(moods: readonly string[] | undefined | null): string[] {
+  if (!moods) return [];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of moods) {
+    const s = raw.trim().toLowerCase();
+    if (!isTasteMood(s) || seen.has(s)) continue;
+    seen.add(s);
+    out.push(s);
+  }
+  return out;
+}
 
 export type PhraseTags = {
   form?: PhraseForm;
@@ -35,7 +88,7 @@ const FORMS: PhraseForm[] = [
   'enfants',
   'autre',
 ];
-const MOODS: PhraseMood[] = ['rigolo', 'intense', 'tendre', 'cerveau', 'sortie'];
+const MOODS: readonly PhraseMood[] = CATALOG_MOODS;
 
 const STOPWORDS = new Set([
   'je',
@@ -131,7 +184,6 @@ const STOPWORDS = new Set([
   'qu',
 ]);
 
-/** philosophique / leger are intentionally absent (force AI on that phrase). */
 const FORM_PHRASES: Array<{ phrase: string; form: PhraseForm }> = [
   { phrase: 'live musical', form: 'concert' },
   { phrase: 'stand up', form: 'theatre' },
@@ -171,6 +223,9 @@ const MOOD_PHRASES: Array<{ phrase: string; mood: PhraseMood }> = [
   { phrase: 'stand up', mood: 'rigolo' },
   { phrase: 'feel good', mood: 'tendre' },
   { phrase: 'entre potes', mood: 'sortie' },
+  { phrase: 'envie de danser', mood: 'dansant' },
+  { phrase: 'un truc intimiste', mood: 'intimiste' },
+  { phrase: 'truc intimiste', mood: 'intimiste' },
 ];
 
 const MOOD_WORDS: Record<string, PhraseMood> = {
@@ -188,32 +243,60 @@ const MOOD_WORDS: Record<string, PhraseMood> = {
   comedie: 'rigolo',
   standup: 'rigolo',
   sketch: 'rigolo',
-  intense: 'intense',
-  violent: 'intense',
-  tension: 'intense',
-  thriller: 'intense',
-  horreur: 'intense',
-  epouvante: 'intense',
-  metal: 'intense',
-  techno: 'intense',
-  sombre: 'intense',
-  dark: 'intense',
   tendre: 'tendre',
   doux: 'tendre',
   douce: 'tendre',
   romantique: 'tendre',
-  calme: 'tendre',
-  intimiste: 'tendre',
   feelgood: 'tendre',
-  cerveau: 'cerveau',
-  intellect: 'cerveau',
-  intellectuel: 'cerveau',
-  reflexion: 'cerveau',
+  intense: 'intense',
+  tension: 'intense',
+  thriller: 'intense',
+  metal: 'intense',
+  techno: 'intense',
+  angoissant: 'angoissant',
+  angoisse: 'angoissant',
+  horreur: 'angoissant',
+  epouvante: 'angoissant',
+  peur: 'angoissant',
+  epique: 'epique',
+  epic: 'epique',
+  grandiose: 'epique',
+  brutal: 'brutal',
+  violent: 'brutal',
+  violence: 'brutal',
   sortie: 'sortie',
   sorties: 'sortie',
   verre: 'sortie',
   guinguette: 'sortie',
   bal: 'sortie',
+  festif: 'festif',
+  festive: 'festif',
+  fete: 'festif',
+  cerveau: 'cerveau',
+  intellect: 'cerveau',
+  intellectuel: 'cerveau',
+  reflexion: 'cerveau',
+  philosophique: 'cerveau',
+  intimiste: 'intimiste',
+  intimite: 'intimiste',
+  absurde: 'absurde',
+  kafka: 'absurde',
+  ubuesque: 'absurde',
+  critique: 'critique',
+  sombre: 'sombre',
+  dark: 'sombre',
+  poetique: 'poetique',
+  poesie: 'poetique',
+  dansant: 'dansant',
+  dansante: 'dansant',
+  danser: 'dansant',
+  dancing: 'dansant',
+  contemplatif: 'contemplatif',
+  contemplative: 'contemplatif',
+  contempler: 'contemplatif',
+  calme: 'contemplatif',
+  leger: 'leger',
+  legere: 'leger',
 };
 
 /** Comedy tokens also feed genre humour (rire → rigolo + humour). */

@@ -3,7 +3,14 @@
  * Phrase mapping uses parsePhraseRules (same dico as the search phrase).
  */
 import type { MainCategoryId } from '@/lib/categories';
-import { normalizePhrase, parsePhraseRules, type PhraseForm } from '@/lib/phraseTags';
+import {
+  isTasteMood,
+  normalizePhrase,
+  parsePhraseRules,
+  tasteMoodsOf,
+  type PhraseForm,
+} from '@/lib/phraseTags';
+import type { RecoReason } from '@/lib/reco';
 import {
   SIGNAL_WEIGHTS,
   cineFicheCount,
@@ -46,10 +53,21 @@ const CAT_REASON_LABELS: Record<string, string> = {
 
 const MOOD_CHIP_LABELS: Record<string, string> = {
   rigolo: 'Rire',
-  intense: 'Intense',
   tendre: 'Tendre',
-  sortie: 'Sortie',
+  intense: 'Intense',
+  angoissant: 'Angoissant',
+  epique: 'Épique',
+  brutal: 'Brutal',
+  festif: 'Festif',
   cerveau: 'Cerveau',
+  intimiste: 'Intimiste',
+  absurde: 'Absurde',
+  critique: 'Critique',
+  sombre: 'Sombre',
+  poetique: 'Poétique',
+  dansant: 'Dansant',
+  contemplatif: 'Contemplatif',
+  leger: 'Léger',
 };
 
 const GENRE_CHIP_LABELS: Record<string, string> = {
@@ -118,6 +136,7 @@ export function profileChips(
     for (const [key, entry] of Object.entries(map ?? {})) {
       const weight = entryWeight(entry);
       if (weight <= 0 || !key || isCatTasteKey(key)) continue;
+      if (bucket === 'moods' && !isTasteMood(key)) continue;
       raw.push({
         bucket,
         key,
@@ -173,7 +192,7 @@ export function phraseToTrackPayload(text: string): TrackPayload | null {
   const tags = parsePhraseRules(raw);
   const cat =
     tags.form && tags.form !== 'autre' ? FORM_TO_CAT[tags.form] : undefined;
-  const moods = [...tags.moods];
+  const moods = tasteMoodsOf(tags.moods);
   const genres = [...new Set([...tags.genres, ...tags.themes])];
   if (!cat && moods.length === 0 && genres.length === 0) return null;
   if (cat && moods.length === 0 && genres.length === 0) {
@@ -206,6 +225,27 @@ function strongestSignal(signals: Signal[]): Signal | null {
     }
   }
   return best;
+}
+
+/**
+ * Copy for a reco reason. Guest never gets « tu as aimé ».
+ * Profile hits expose mood/genre slugs for the UI; else popularité / nouveauté.
+ */
+export function reasonCopy(
+  reason: RecoReason | undefined,
+  opts?: { guest?: boolean },
+): string {
+  if (!reason) return 'Popularité';
+  const guest = Boolean(opts?.guest);
+  if (guest || reason.source !== 'profile') {
+    if (reason.source === 'nouveaute') return 'Nouveauté';
+    return 'Popularité';
+  }
+  if (reason.mood && isTasteMood(reason.mood)) {
+    return MOOD_CHIP_LABELS[reason.mood] ?? reason.mood;
+  }
+  if (reason.genre) return GENRE_CHIP_LABELS[reason.genre] ?? reason.genre;
+  return 'Popularité';
 }
 
 export function reasonLineForState(

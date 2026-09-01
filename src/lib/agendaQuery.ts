@@ -49,7 +49,13 @@ import {
   upcomingRange,
   type TimeScopeId,
 } from './timeScope';
-import { mergeSlotPicks, pickSoonestPerSlot, profileHasChipWeight, recommendForProfile } from './reco';
+import {
+  mergeSlotPicks,
+  pickSoonestPerSlot,
+  profileHasChipWeight,
+  recommendForProfile,
+  type RecoReason,
+} from './reco';
 import type { TasteEntry, TasteProfile } from './signals';
 import { normalizeDeepLinkId } from './deepLink';
 
@@ -519,6 +525,36 @@ export function itemMatchesPhraseTags(
   return true;
 }
 
+/** Data helper only — same mood, other date (zero-result search fallback). */
+export function sameMoodOtherDate(
+  items: DayItem[],
+  moods: string[],
+  excludeDate?: string,
+): DayItem[] {
+  const want = new Set(moods.map((m) => m.trim().toLowerCase()).filter(Boolean));
+  if (want.size === 0) return [];
+  const skip = (excludeDate || '').trim();
+  return items.filter((item) => {
+    if (skip && (item.dayIso || '').trim() === skip) return false;
+    return moodsOfItem(item).some((m) => want.has(m));
+  });
+}
+
+/** Data helper only — other form, same mood (zero-result search fallback). */
+export function otherFormSameMood(
+  items: DayItem[],
+  moods: string[],
+  excludeForm?: string,
+): DayItem[] {
+  const want = new Set(moods.map((m) => m.trim().toLowerCase()).filter(Boolean));
+  if (want.size === 0) return [];
+  const skip = (excludeForm || '').trim().toLowerCase();
+  return items.filter((item) => {
+    if (skip && formOfItem(item) === skip) return false;
+    return moodsOfItem(item).some((m) => want.has(m));
+  });
+}
+
 function hasPhraseFilters(input: AgendaQueryInput): boolean {
   return Boolean(
     (input.form && input.form.trim()) ||
@@ -841,13 +877,25 @@ export function queryAgenda(
       input.scope === 'tous'
         ? upcoming.filter((item) => (item.dayIso || '').trim() > paris.iso)
         : windowPool;
-    const profile = input.recoProfile ?? null;
-    const preferred =
-      profile && profileHasChipWeight(profile)
-        ? recommendForProfile(pool, { signalsRecent: [], profile }, 3).map(
-            (s) => s.item,
-          )
-        : pickSoonestPerSlot(pool);
+    const profile = input.recoProfile ?? {
+      cats: {},
+      moods: {},
+      genres: {},
+      themes: {},
+      communes: {},
+    };
+    const nouveauIds = nouveauFilmIds(data.programmeWithContext, now);
+    const scored = recommendForProfile(
+      pool,
+      { signalsRecent: [], profile },
+      3,
+      {
+        now,
+        nouveauFilmIds: nouveauIds,
+        programme: data.programmeWithContext,
+      },
+    );
+    const preferred = scored.map((s) => s.item);
     const fromPool = mergeSlotPicks(preferred, pickSoonestPerSlot(pool));
     // tous: fill an empty slot from date>=today only (no skip-past).
     const pickedRaw =
@@ -856,12 +904,20 @@ export function queryAgenda(
         : fromPool;
     // Reco never surfaces a seance before today Paris (26/08 and earlier).
     const picked = pickedRaw.filter((item) => isStillUpcomingSeance(item, now));
+    const reasonByItem = new Map(scored.map((s) => [s.item, s.reason]));
+    const recoReasons: Record<string, RecoReason> = {};
+    for (const item of picked) {
+      const reason =
+        reasonByItem.get(item) ?? ({ source: 'popularite' } as RecoReason);
+      if (reason) recoReasons[item.key] = reason;
+    }
     return {
       scope: input.scope,
       commune: input.commune,
       items: picked.map(slimDayItem),
       total: picked.length,
       densifiedTotal: densifiedCardCount(picked),
+      recoReasons,
       ...emptyRecoExtras(),
       parisIso: paris.iso,
       weekday: paris.weekday,

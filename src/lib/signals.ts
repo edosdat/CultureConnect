@@ -7,6 +7,11 @@ import {
   mainFromGenreSlug,
   type MainCategoryId,
 } from '@/lib/categories';
+import {
+  isTasteMood,
+  parsePhraseRules,
+  type PhraseForm,
+} from '@/lib/phraseTags';
 import type { DayItem } from '@/lib/types';
 
 export type SignalKind =
@@ -69,6 +74,7 @@ export const ACCOUNT_CAP = 40;
 export const DEDUP_MS = 30 * 60 * 1000;
 export const COOKIE_MAX_AGE_SEC = 14 * 24 * 60 * 60;
 
+/** Reservation / agenda / ics outrank a fiche open when both exist. */
 export const SIGNAL_WEIGHTS: Record<SignalKind, number> = {
   reserve: 5,
   ics: 5,
@@ -80,6 +86,30 @@ export const SIGNAL_WEIGHTS: Record<SignalKind, number> = {
   chip_time: 0.5,
   tastes_text: 0.5,
 };
+
+const SEARCH_FORM_TO_CAT: Record<Exclude<PhraseForm, 'autre'>, string> = {
+  cine: 'cinema',
+  theatre: 'theatre_danse',
+  concert: 'musique',
+  festival: 'festival',
+  enfants: 'enfants_famille',
+};
+
+/** Search / free-text → closed form / moods / themes / genres (session path). */
+export function tagsFromSearchQuery(query: string): {
+  form?: PhraseForm;
+  moods: string[];
+  genres: string[];
+  themes: string[];
+} {
+  const tags = parsePhraseRules(query);
+  return {
+    form: tags.form,
+    moods: [...tags.moods],
+    genres: [...tags.genres],
+    themes: [...tags.themes],
+  };
+}
 
 const ACTION_KINDS: ReadonlySet<SignalKind> = new Set([
   'open_card',
@@ -249,11 +279,18 @@ function wordSet(norm: string): Set<string> {
 
 /** Extract moods by whole-word / phrase match (never short substring). */
 export function extractMoods(...parts: Array<string | undefined | null>): string[] {
-  const norm = normalizeFr(parts.filter(Boolean).join(' '));
+  const joined = parts.filter(Boolean).join(' ');
+  const norm = normalizeFr(joined);
   if (!norm) return [];
   const words = wordSet(norm);
   const out: string[] = [];
   const seen = new Set<string>();
+  for (const mood of tagsFromSearchQuery(joined).moods) {
+    if (!seen.has(mood)) {
+      seen.add(mood);
+      out.push(mood);
+    }
+  }
   for (const phrase of MOOD_PHRASES) {
     const pn = normalizeFr(phrase);
     const re = new RegExp(`(?:^|[^a-z0-9])${pn.replace(/ /g, '[\\s-]+')}(?:[^a-z0-9]|$)`);
@@ -293,21 +330,38 @@ export function makeSignal(payload: TrackPayload): Signal {
   const kind = payload.kind;
   const weight =
     typeof payload.weight === 'number' ? payload.weight : SIGNAL_WEIGHTS[kind];
+  let genres = [
+    ...new Set((payload.genres ?? []).map((g) => g.trim().toLowerCase()).filter(Boolean)),
+  ];
+  let moods = [...new Set(payload.moods ?? [])];
+  let themes = [
+    ...new Set((payload.themes ?? []).map((g) => g.trim().toLowerCase()).filter(Boolean)),
+  ];
+  let categorie = payload.categorie;
+  if ((kind === 'search' || kind === 'tastes_text') && payload.query) {
+    const tags = tagsFromSearchQuery(payload.query);
+    moods = [...new Set([...moods, ...tags.moods])];
+    genres = [...new Set([...genres, ...tags.genres])];
+    themes = [...new Set([...themes, ...tags.themes])];
+    if (!categorie && tags.form && tags.form !== 'autre') {
+      categorie = SEARCH_FORM_TO_CAT[tags.form];
+    }
+  }
   const signal: Signal = {
     id: newId(),
     ts: new Date().toISOString(),
     kind,
     weight,
-    genres: [...new Set((payload.genres ?? []).map((g) => g.trim().toLowerCase()).filter(Boolean))],
-    moods: [...new Set(payload.moods ?? [])],
-    themes: [...new Set((payload.themes ?? []).map((g) => g.trim().toLowerCase()).filter(Boolean))],
+    genres,
+    moods,
+    themes,
   };
   if (payload.event_id) signal.event_id = payload.event_id;
   if (payload.programme_id) signal.programme_id = payload.programme_id;
   if (payload.film_id) signal.film_id = payload.film_id;
   if (payload.lieu_id) signal.lieu_id = payload.lieu_id;
   if (payload.commune) signal.commune = payload.commune;
-  if (payload.categorie) signal.categorie = payload.categorie;
+  if (categorie) signal.categorie = categorie;
   if (payload.query) signal.query = payload.query;
   if (payload.chip) signal.chip = payload.chip;
   if (payload.dayIso) signal.dayIso = payload.dayIso;
@@ -502,7 +556,10 @@ export function unzeroKeysTouchedBySignal(
   let next = profile;
   // chip_cat is a grid filter, not a goût — do not unzero cats.
   for (const g of signal.genres) next = unzeroProfileKey(next, 'genres', g);
-  for (const m of signal.moods) next = unzeroProfileKey(next, 'moods', m);
+  for (const m of signal.moods) {
+    if (!isTasteMood(m)) continue;
+    next = unzeroProfileKey(next, 'moods', m);
+  }
   for (const th of signal.themes ?? []) next = unzeroProfileKey(next, 'themes', th);
   return next;
 }
@@ -528,7 +585,10 @@ export function applySignalToProfile(profile: TasteProfile, signal: Signal): voi
   const w = signal.weight;
   // cats are not tastes — never addWeight on profile.cats
   for (const g of signal.genres) addWeight(profile.genres, g, w);
-  for (const m of signal.moods) addWeight(profile.moods, m, w);
+  for (const m of signal.moods) {
+    if (!isTasteMood(m)) continue;
+    addWeight(profile.moods, m, w);
+  }
   for (const th of signal.themes ?? []) addWeight(profile.themes, th, w);
   if (signal.commune) addCommuneWeight(profile.communes, signal.commune.trim(), w);
 }
@@ -558,11 +618,10 @@ export function recalcProfile(
   if (text) {
     const virtual = makeSignal({
       kind: 'tastes_text',
+      query: text,
       genres: [],
       moods: extractMoods(text),
     });
-    // Genres/cats from free text are applied in reco via the existing pipeline.
-    // Still fold moods + obvious tokens into the profile (additive, weight 0.5).
     applySignalToProfile(profile, virtual);
   }
   return profile;
@@ -828,8 +887,11 @@ export function hasScorableState(state: AccountTasteState | null | undefined): b
   if (!state) return false;
   const p = state.profile;
   if ((state.tastesText || '').trim()) return true;
+  const hasTasteMood = Object.entries(p.moods).some(
+    ([key, e]) => isTasteMood(key) && entryWeight(e) > 0,
+  );
   return (
-    hasPositiveEntryWeights(p.moods) ||
+    hasTasteMood ||
     hasPositiveEntryWeights(p.genres) ||
     hasPositiveEntryWeights(p.themes) ||
     hasPositiveWeights(p.communes)
