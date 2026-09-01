@@ -12,15 +12,20 @@ import {
 import { SessionProvider } from 'next-auth/react';
 import SignalsProvider from './SignalsProvider';
 import FavoritesProvider from './FavoritesProvider';
-import TastesSheet from './TastesSheet';
 import FirstLoginModal from './FirstLoginModal';
+import {
+  CLOSE_TASTES_EVENT,
+  OPEN_TASTES_EVENT,
+  requestCloseTastes,
+  requestOpenTastes,
+} from './tastesUiEvents';
 
-export const OPEN_TASTES_EVENT = 'cc-open-tastes';
-
-export function requestOpenTastes() {
-  if (typeof window === 'undefined') return;
-  window.dispatchEvent(new Event(OPEN_TASTES_EVENT));
-}
+export {
+  CLOSE_TASTES_EVENT,
+  OPEN_TASTES_EVENT,
+  requestCloseTastes,
+  requestOpenTastes,
+} from './tastesUiEvents';
 
 type TastesUiValue = {
   googleAuthEnabled: boolean;
@@ -46,15 +51,30 @@ type Props = {
 };
 
 export default function Providers({ children, googleAuthEnabled }: Props) {
+  // Overlay visibility is owned by TastesOverlayHost (CultureConnectApp /
+  // SiteNav), not by this tree and never by the avatar menu.
   const [tastesOpen, setTastesOpen] = useState(false);
-  const openTastes = useCallback(() => setTastesOpen(true), []);
-  const closeTastes = useCallback(() => setTastesOpen(false), []);
+  const openTastes = useCallback(() => {
+    setTastesOpen(true);
+    requestOpenTastes();
+  }, []);
+  const closeTastes = useCallback(() => {
+    setTastesOpen(false);
+    requestCloseTastes();
+  }, []);
   useEffect(() => {
     function onOpen() {
       setTastesOpen(true);
     }
+    function onClose() {
+      setTastesOpen(false);
+    }
     window.addEventListener(OPEN_TASTES_EVENT, onOpen);
-    return () => window.removeEventListener(OPEN_TASTES_EVENT, onOpen);
+    window.addEventListener(CLOSE_TASTES_EVENT, onClose);
+    return () => {
+      window.removeEventListener(OPEN_TASTES_EVENT, onOpen);
+      window.removeEventListener(CLOSE_TASTES_EVENT, onClose);
+    };
   }, []);
   const value = useMemo(
     () => ({ googleAuthEnabled, tastesOpen, openTastes, closeTastes }),
@@ -67,7 +87,6 @@ export default function Providers({ children, googleAuthEnabled }: Props) {
         <FavoritesProvider>
           <TastesUiContext.Provider value={value}>
             {children}
-            <TastesSheet open={tastesOpen} onClose={closeTastes} />
             <FirstLoginModal />
           </TastesUiContext.Provider>
         </FavoritesProvider>

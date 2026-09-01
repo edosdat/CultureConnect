@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
-import { requestOpenTastes, useTastesUi } from './Providers';
+import { useTastesUi } from './Providers';
+import { requestOpenTastes } from './tastesUiEvents';
 import { useSignals } from './SignalsProvider';
 import MailIdeasCheckbox from './MailIdeasCheckbox';
 
@@ -127,12 +128,23 @@ export default function AuthButtons() {
     };
   }, [menuOpen]);
 
-  function openSheet(e?: { stopPropagation?: () => void; preventDefault?: () => void }) {
-    e?.stopPropagation?.();
-    e?.preventDefault?.();
-    setMenuOpen(false);
+  /** Keep the menu mounted through pointerdown so click can still fire. */
+  function holdMenu(e: { stopPropagation: () => void }) {
+    e.stopPropagation();
+  }
+
+  /**
+   * Open the tastes overlay on *click only*.
+   * Opening on pointerdown (31cae3a) mounted the dialog before this click
+   * finished; the leftover click hit the new backdrop and closed it (0 dialog).
+   * Overlay state lives on TastesOverlayHost, not in this menu.
+   */
+  function openSheetFromClick(e: { stopPropagation: () => void; preventDefault: () => void }) {
+    e.stopPropagation();
+    e.preventDefault();
     openTastes();
     requestOpenTastes();
+    window.setTimeout(() => setMenuOpen(false), 0);
   }
 
   const enabled =
@@ -154,8 +166,8 @@ export default function AuthButtons() {
       >
         <button
           type="button"
-          onPointerDown={openSheet}
-          onClick={openSheet}
+          onPointerDown={holdMenu}
+          onClick={openSheetFromClick}
           data-account-control="mes-gouts"
           aria-label="Mes goûts"
           className="shrink-0 rounded-full bg-culture-terracotta px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-culture-clay sm:px-3 sm:text-sm"
@@ -186,8 +198,9 @@ export default function AuthButtons() {
             <button
               type="button"
               role="menuitem"
-              onPointerDown={openSheet}
-              onClick={openSheet}
+              data-account-control="mes-gouts-menu"
+              onPointerDown={holdMenu}
+              onClick={openSheetFromClick}
               className="block w-full px-3 py-2 text-left text-sm font-medium text-culture-ink hover:bg-white"
             >
               Mes goûts
@@ -215,8 +228,8 @@ export default function AuthButtons() {
     return (
       <button
         type="button"
-        onPointerDown={openSheet}
-        onClick={openSheet}
+        onPointerDown={holdMenu}
+        onClick={openSheetFromClick}
         data-account-control="mes-gouts-pending"
         aria-label="Mes goûts"
         className="shrink-0 rounded-full bg-culture-terracotta px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-culture-clay"

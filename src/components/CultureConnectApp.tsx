@@ -47,6 +47,7 @@ import TimeScopeBar from './TimeScopeBar';
 import SearchOmnibox from './SearchOmnibox';
 import ListWaitDots from './ListWaitDots';
 import EventDetail from './EventDetail';
+import TastesOverlayHost from './TastesOverlayHost';
 import LoginNudge from './LoginNudge';
 import HomeSection from './HomeSection';
 import CinemaCarousel from './CinemaCarousel';
@@ -1922,6 +1923,8 @@ export default function CultureConnectApp({
 
         <LoginNudge />
       </div>
+
+      <TastesOverlayHost />
 
       <EventDetail
         item={
