@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "npx --yes tsx --test src/lib/connexionUser.test.ts src/lib/homeEventsCounter.test.ts src/lib/genreChipMatch.test.ts src/lib/agendaDateList.test.ts src/lib/parseSearchChips.test.ts src/lib/cinemaPoster.test.ts src/lib/filmVivantComplements.test.ts src/lib/geo.test.ts"
+    "test": "npx --yes tsx --test src/lib/connexionUser.test.ts src/lib/homeEventsCounter.test.ts src/lib/genreChipMatch.test.ts src/lib/agendaDateList.test.ts src/lib/parseSearchChips.test.ts src/lib/cinemaPoster.test.ts src/lib/filmVivantComplements.test.ts src/lib/geo.test.ts src/lib/displayHome.test.ts"
   },
   "dependencies": {
     "@vercel/postgres": "^0.10.0",

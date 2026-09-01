@@ -9,6 +9,8 @@ import { densify, densifyGroupKey, type DenseRow } from './densify';
 import {
   filmIdOfItem,
   isCinemaDayItem,
+  isMusiqueDayItem,
+  isTheatreDayItem,
   isVivantDayItem,
   mainOfDayItem,
 } from './nouveautesCine';
@@ -237,6 +239,29 @@ export function cineRows(
   return densify(displayShuffle(cine));
 }
 
+export function theatreRows(
+  items: DayItem[],
+  top3: ReadonlySet<string>,
+  opts?: { origin?: GeoPos | null },
+): DenseRow[] {
+  const theatre = dedupAgainstTop3(items.filter(isTheatreDayItem), top3);
+  const origin = opts?.origin ?? null;
+  if (origin) return densify(theatre, { origin });
+  return densify(displayShuffle(theatre));
+}
+
+export function musiqueRows(
+  items: DayItem[],
+  top3: ReadonlySet<string>,
+  opts?: { origin?: GeoPos | null },
+): DenseRow[] {
+  const musique = dedupAgainstTop3(items.filter(isMusiqueDayItem), top3);
+  const origin = opts?.origin ?? null;
+  if (origin) return densify(musique, { origin });
+  return densify(displayShuffle(musique));
+}
+
+/** @deprecated Home no longer collapses living arts into one strip. */
 export function liveRows(
   items: DayItem[],
   top3: ReadonlySet<string>,
@@ -256,6 +281,30 @@ export function visibleTop3Nearest(
   const slots = visibleTop3Items(items);
   if (!origin) return slots;
   return sortItemsNearestFirst(slots, origin);
+}
+
+/**
+ * QUOI / search home chips hide catalogue sections.
+ * Only Cinéma / Théâtre / Musique count. Extra chips (festival, expo,
+ * enfants) filter the item pool via the API — they do not hide the three
+ * packs. No home chip → all three. Cats never apply to Top 3.
+ */
+export function homeSectionsVisible(cats: readonly string[]): {
+  cine: boolean;
+  theatre: boolean;
+  musique: boolean;
+} {
+  const home = cats.filter(
+    (c) => c === 'cinema' || c === 'theatre_danse' || c === 'musique',
+  );
+  if (home.length === 0) {
+    return { cine: true, theatre: true, musique: true };
+  }
+  return {
+    cine: home.includes('cinema'),
+    theatre: home.includes('theatre_danse'),
+    musique: home.includes('musique'),
+  };
 }
 
 export function cineFirstPaint(mobile: boolean): number {
@@ -485,4 +534,9 @@ export function isLikelyMobile(): boolean {
   return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
-export { isCinemaDayItem, isVivantDayItem };
+export {
+  isCinemaDayItem,
+  isMusiqueDayItem,
+  isTheatreDayItem,
+  isVivantDayItem,
+};
