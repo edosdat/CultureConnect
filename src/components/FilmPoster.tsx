@@ -10,25 +10,18 @@ type Props = {
 };
 
 /**
- * Compact landscape cine hero (16:7 mobile / 16:9 md+).
+ * Compact landscape cine hero (16:7 / 16:9, height-capped).
  * Full affiche via object-contain — letterbox OK. Never crop.
  */
 export default function FilmPoster({ src, item, className = '' }: Props) {
   return (
     <div
-      className={
-        'relative aspect-[16/7] w-full overflow-hidden bg-culture-sand md:aspect-[16/9] ' +
-        className
-      }
+      data-cine-hero="1"
+      className={'cine-hero-frame ' + className}
     >
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img
-          key={src}
-          src={src}
-          alt=""
-          className="absolute inset-0 h-full w-full object-contain"
-        />
+        <img key={src} src={src} alt="" />
       ) : item ? (
         <div className="absolute inset-0">
           <VisualFallback item={item} />
