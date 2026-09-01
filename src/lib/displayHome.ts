@@ -15,6 +15,7 @@ import {
 import { formatDateFr, formatHeure, formatLieuAffiche } from './labels';
 import { seanceDateIso } from './timeScope';
 import { profileChips } from './pourToi';
+import { isTasteMood, type TasteMood } from './phraseTags';
 import type { RecoSlotForm } from './reco';
 import { slotFormOfItem } from './reco';
 import type { TimeScopeId } from './timeScope';
@@ -84,15 +85,19 @@ export function itemVenue(item: DayItem): string {
   return formatLieuAffiche(item.lieu);
 }
 
+function splitTagField(raw: string): string[] {
+  return raw
+    .split(/[|,\s]+/)
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 export function itemMoods(item: DayItem): string[] {
   const raw =
     item.kind === 'programme'
       ? `${item.programme.moods || ''} ${item.evenement?.moods || ''}`
       : item.evenement.moods || '';
-  return raw
-    .split(/[|,]/)
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
+  return splitTagField(raw);
 }
 
 export function itemGenreSlugs(item: DayItem): string[] {
@@ -100,10 +105,39 @@ export function itemGenreSlugs(item: DayItem): string[] {
     item.kind === 'programme'
       ? `${item.programme.genre || ''} ${item.programme.genres_mood || ''} ${item.evenement?.genre || ''} ${item.evenement?.genres_mood || ''}`
       : `${item.evenement.genre || ''} ${item.evenement.genres_mood || ''}`;
-  return raw
-    .split(/[|,]/)
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
+  return splitTagField(raw);
+}
+
+/** Reco cards that actually exist (1 ciné + 1 théâtre + 1 concert). Omit empty slots. */
+export function visibleTop3Items(items: DayItem[]): DayItem[] {
+  const bySlot = new Map<RecoSlotForm, DayItem>();
+  for (const item of items) {
+    const slot = slotFormOfItem(item);
+    if (slot && !bySlot.has(slot)) bySlot.set(slot, item);
+  }
+  const out: DayItem[] = [];
+  for (const slot of DISPLAY_SLOT_ORDER) {
+    const hit = bySlot.get(slot);
+    if (hit) out.push(hit);
+  }
+  return out;
+}
+
+/** 0 → hide; 1 → full width; 2 → 50/50; 3 → current 3-up. */
+export function top3GridClass(count: number): string {
+  if (count <= 1) return 'grid grid-cols-1 gap-3';
+  if (count === 2) return 'grid grid-cols-1 gap-3 sm:grid-cols-2';
+  return 'grid grid-cols-1 gap-3 lg:grid-cols-3';
+}
+
+export function shouldShowTop3Section(opts: {
+  ready: boolean;
+  wiped: boolean;
+  cardCount: number;
+}): boolean {
+  if (opts.wiped) return false;
+  if (!opts.ready) return true;
+  return opts.cardCount > 0;
 }
 
 export function eventIdOf(item: DayItem): string {
@@ -325,9 +359,37 @@ export function guestReasonLine(
 }
 
 /**
- * Reason under a card. Guest never says « tu as aimé ».
- * Uses existing profile chips / item tags only — no reco rewrite.
+ * Reco why-line only (Ton top 3). Signed-in: 16 locked moods, grammatical
+ * French, never a raw slug. Guest: no « parce que tu aimes ».
+ * Ciné / En live / grille must not call this.
  */
+const RECO_WHY_FR: Record<TasteMood, string> = {
+  rigolo: 'parce que tu aimes rire',
+  tendre: 'parce que tu aimes le tendre',
+  intense: 'parce que tu aimes l’intense',
+  angoissant: 'parce que tu aimes l’ambiance angoissante',
+  epique: 'parce que tu aimes l’épique',
+  brutal: 'parce que tu aimes le brutal',
+  festif: 'parce que tu aimes l’ambiance festive',
+  cerveau: 'parce que tu aimes le cerveau',
+  intimiste: 'parce que tu aimes l’intimiste',
+  absurde: 'parce que tu aimes l’absurde',
+  critique: 'parce que tu aimes l’esprit critique',
+  sombre: 'parce que tu aimes le sombre',
+  poetique: 'parce que tu aimes le poétique',
+  dansant: 'parce que tu as envie de danser',
+  contemplatif: 'parce que tu aimes l’ambiance contemplative',
+  leger: 'parce que tu aimes le léger',
+};
+
+/** Locked-mood why-line, or null. Never interpolates a slug. */
+export function recoWhyForMood(slug: string | null | undefined): string | null {
+  if (!slug) return null;
+  const key = slug.trim().toLowerCase();
+  if (!isTasteMood(key)) return null;
+  return RECO_WHY_FR[key as TasteMood] ?? null;
+}
+
 export function displayReasonForItem(
   item: DayItem,
   opts: {
@@ -340,20 +402,16 @@ export function displayReasonForItem(
   if (opts.guest || !opts.tasteState) {
     return null;
   }
-  const chips = profileChips(opts.tasteState.profile, 12);
-  if (chips.length === 0) return null;
-  const tags = new Set([...itemMoods(item), ...itemGenreSlugs(item)]);
-  const hit = chips.find((c) => tags.has(c.key) || tags.has(c.label.toLowerCase()));
-  const chip = hit ?? chips[0];
-  if (!chip) return null;
-  const label = chip.label.toLocaleLowerCase('fr');
-  if (chip.bucket === 'moods') {
-    return `parce que tu aimes l’ambiance ${label}`;
-  }
-  if (/s$/.test(label) || label.endsWith('ies')) {
-    return `parce que tu as aimé les ${label}`;
-  }
-  return `parce que tu as aimé ${label.startsWith('le ') || label.startsWith('la ') || label.startsWith('l’') ? label : `les ${label}`}`;
+  const itemLocked = new Set(
+    [...itemMoods(item), ...itemGenreSlugs(item)].filter(isTasteMood),
+  );
+  if (itemLocked.size === 0) return null;
+  const chips = profileChips(opts.tasteState.profile, 16).filter(
+    (c) => c.bucket === 'moods' && itemLocked.has(c.key),
+  );
+  const hit = chips[0];
+  if (!hit) return null;
+  return recoWhyForMood(hit.key);
 }
 
 const MOOD_HEX: Record<string, string> = {
