@@ -196,3 +196,6 @@ L224,Ôbohem,Toulouse — Ôbohem,bar_scene,,Toulouse,,,,https://www.instagram.c
 L225,The Thirsty Monk Pub,Toulouse — The Thirsty Monk,bar_scene,,Toulouse,,,,https://www.instagram.com/thethirstymonktoulouse/,https://www.instagram.com/thethirstymonktoulouse/,URL agent | IG skip
 L226,Breughel l'Ancien,Toulouse — Breughel l'Ancien,bar_scene,,Toulouse,,,,https://www.instagram.com/breughel_lancien/,https://www.instagram.com/breughel_lancien/,URL agent | site 500 | IG skip
 L227,Le Brassin's,Fonbeauzard — Le Brassin's,bar_scene,,Fonbeauzard,,,,https://lebrassins.com/,https://www.instagram.com/lebrassins/,URL agent | prog IG skip
+L228,Flashback Café,Toulouse — Flashback Café,bar_scene,,Toulouse,,,,https://toulouse.flashbackcafe.fr/,https://toulouse.flashbackcafe.fr/soirees-et-spectacles/,URL agent 2026-09-02 | scraper HTML
+L229,Le Refuge by The Roof,Toulouse — Le Refuge,bar_scene,,Toulouse,,,,https://toulouse.theroof.fr/le_refuge.html,https://toulouse.theroof.fr/news/sous-les-bananiers-1099.html,URL agent | ≠ L080 La Cabane | slam /news/scene-ouverte-declame-882.html | scraper HTML
+L230,L'Usine à Musique,Toulouse — L'Usine à Musique,bar_scene,,Toulouse,,,,https://www.lusineamusique.fr/,https://www.lusineamusique.fr/,URL agent | Sept Deniers | scraper HTML home 2026
