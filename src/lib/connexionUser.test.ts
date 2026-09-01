@@ -30,7 +30,7 @@ import {
   sanitizeTasteProfile,
   SIGNAL_WEIGHTS,
 } from './signals';
-import { profileChips } from './pourToi';
+import { profileChips, resolveSheetProfile } from './pourToi';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 import type { AccountTasteState, TasteProfile } from './signals';
 
@@ -722,5 +722,46 @@ describe('Mes goûts chips — 0 cats, 0 sortie, 16 moods only', () => {
     );
     assert.ok(chips.some((c) => c.key === 'tendre'));
     assert.ok(chips.every((c) => c.bucket !== 'moods' || isTasteMood(c.key)));
+  });
+
+  it('lists all 16 locked moods when weight>0; empty only if truly 0', () => {
+    const sixteen = Object.fromEntries(
+      TASTE_MOODS.map((m, i) => [m, { weight: i + 1, pct: 0 }]),
+    );
+    const chips = profileChips({ ...emptyProfile(), moods: sixteen }, 64);
+    assert.equal(chips.filter((c) => c.bucket === 'moods').length, 16);
+    assert.ok(chips.every((c) => isTasteMood(c.key) && c.weight > 0));
+
+    const jwtShow = resolveSheetProfile({
+      sessionStatus: 'authenticated',
+      accountProfile: { ...emptyProfile(), moods: sixteen },
+      guestProfile: emptyProfile(),
+    });
+    assert.equal(jwtShow.pending, false);
+    assert.equal(profileChips(jwtShow.profile, 64).length, 16);
+
+    const loadingNoCache = resolveSheetProfile({
+      sessionStatus: 'loading',
+      accountProfile: null,
+      guestProfile: emptyProfile(),
+    });
+    assert.equal(loadingNoCache.pending, true);
+
+    const loadingCache = resolveSheetProfile({
+      sessionStatus: 'loading',
+      accountProfile: null,
+      guestProfile: emptyProfile(),
+      cachedAccount: { ...emptyProfile(), moods: sixteen },
+    });
+    assert.equal(loadingCache.pending, false);
+    assert.equal(profileChips(loadingCache.profile, 64).length, 16);
+
+    const trulyEmpty = resolveSheetProfile({
+      sessionStatus: 'authenticated',
+      accountProfile: emptyProfile(),
+      guestProfile: emptyProfile(),
+    });
+    assert.equal(trulyEmpty.pending, false);
+    assert.equal(profileChips(trulyEmpty.profile, 64).length, 0);
   });
 });

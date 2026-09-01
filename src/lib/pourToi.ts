@@ -153,6 +153,44 @@ export const SHEET_BUCKET_TITLES: { bucket: ProfileBucket; title: string }[] = [
   { bucket: 'themes', title: 'Thèmes' },
 ];
 
+export type SheetProfileSource = {
+  profile: TasteProfile | null;
+  pending: boolean;
+};
+
+/**
+ * Overlay rows: JWT/account first (16 moods with weight>0), then display cache,
+ * then guest. Empty only when truly 0 chips — not while session is loading.
+ */
+export function resolveSheetProfile(opts: {
+  sessionStatus: 'loading' | 'authenticated' | 'unauthenticated';
+  accountProfile?: TasteProfile | null;
+  guestProfile?: TasteProfile | null;
+  cachedAccount?: TasteProfile | null;
+}): SheetProfileSource {
+  const accountRows = profileChips(opts.accountProfile, 64).length;
+  const cachedRows = profileChips(opts.cachedAccount, 64).length;
+  if (opts.sessionStatus === 'authenticated') {
+    if (accountRows > 0) {
+      return { profile: opts.accountProfile ?? null, pending: false };
+    }
+    if (cachedRows > 0) {
+      return { profile: opts.cachedAccount ?? null, pending: false };
+    }
+    return { profile: opts.accountProfile ?? opts.guestProfile ?? null, pending: false };
+  }
+  if (opts.sessionStatus === 'loading') {
+    if (cachedRows > 0) {
+      return { profile: opts.cachedAccount ?? null, pending: false };
+    }
+    if (accountRows > 0) {
+      return { profile: opts.accountProfile ?? null, pending: false };
+    }
+    return { profile: null, pending: true };
+  }
+  return { profile: opts.guestProfile ?? null, pending: false };
+}
+
 const CINEMA_EXACT = new Set(['cinema', 'cine', 'ciné', 'cinéma']);
 
 /** Same phrase dico → chip signal. Unknown word → null (no invented chip). */

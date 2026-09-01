@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { profileChips, SHEET_BUCKET_TITLES } from '@/lib/pourToi';
+import { useSession } from 'next-auth/react';
+import { profileChips, resolveSheetProfile, SHEET_BUCKET_TITLES } from '@/lib/pourToi';
+import { readAccountProfileCache } from '@/lib/tastesCache';
 import { useSignals } from './SignalsProvider';
 import MailIdeasCheckbox from './MailIdeasCheckbox';
 
@@ -11,8 +13,6 @@ type Props = {
   onClose: () => void;
 };
 
-const ANIM_MS = 200;
-
 function formatPct(n: number): string {
   const rounded = Math.round(n * 10) / 10;
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
@@ -20,37 +20,18 @@ function formatPct(n: number): string {
 
 /** Bottom sheet Mes goûts — lines label + % + ×. Not a questionnaire. */
 export default function TastesSheet({ open, onClose }: Props) {
+  const { data: session } = useSession();
   const { wipeKey, addPhrase, tasteState, guestStore, sessionStatus } =
     useSignals();
-  const [mounted, setMounted] = useState(false);
-  const [shouldRender, setShouldRender] = useState(false);
-  const [visible, setVisible] = useState(false);
   const [draft, setDraft] = useState('');
-  // Logged-out sheet = guest store. Signed-in uses JWT (or guest fallback).
-  const sheetProfile =
-    sessionStatus === 'authenticated'
-      ? tasteState?.profile
-      : guestStore.profile;
-  const rows = profileChips(sheetProfile, 64);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
-    if (open) {
-      setShouldRender(true);
-      setVisible(false);
-      const id = requestAnimationFrame(() => {
-        requestAnimationFrame(() => setVisible(true));
-      });
-      return () => cancelAnimationFrame(id);
-    }
-    setVisible(false);
-    const t = window.setTimeout(() => setShouldRender(false), ANIM_MS);
-    return () => window.clearTimeout(t);
-  }, [open, mounted]);
+  const cached = readAccountProfileCache(session?.user?.email);
+  const resolved = resolveSheetProfile({
+    sessionStatus,
+    accountProfile: tasteState?.profile,
+    guestProfile: guestStore.profile,
+    cachedAccount: cached,
+  });
+  const rows = profileChips(resolved.profile, 64);
 
   useEffect(() => {
     if (!open) return;
@@ -70,30 +51,30 @@ export default function TastesSheet({ open, onClose }: Props) {
     if (!open) setDraft('');
   }, [open]);
 
-  if (!mounted || !shouldRender) return null;
+  if (!open || typeof document === 'undefined') return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-40 h-dvh min-h-dvh overflow-x-hidden" role="presentation">
+    <div
+      className="fixed inset-0 z-[100] h-dvh min-h-dvh"
+      role="presentation"
+      data-tastes-overlay="1"
+    >
       <button
         type="button"
         tabIndex={-1}
         aria-label="Fermer Mes goûts"
-        className={
-          'absolute inset-0 bg-culture-ink/20 transition-opacity duration-200 ease-out ' +
-          (visible ? 'opacity-100' : 'opacity-0')
-        }
+        className="absolute inset-0 bg-culture-ink/20"
         onClick={onClose}
       />
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Mes goûts"
+        data-tastes-dialog="1"
         className={
-          'absolute inset-x-0 bottom-0 flex max-h-[80dvh] w-full max-w-full min-w-0 flex-col overflow-x-hidden bg-culture-surface shadow-xl ' +
+          'absolute inset-x-0 bottom-0 flex max-h-[80dvh] w-full max-w-full min-w-0 flex-col bg-culture-surface shadow-xl ' +
           'rounded-t-3xl border border-culture-line pb-[env(safe-area-inset-bottom,0px)] ' +
-          'sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:w-full sm:max-w-[420px] sm:-translate-x-1/2 sm:rounded-2xl ' +
-          'transition-transform duration-200 ease-out ' +
-          (visible ? 'translate-y-0' : 'translate-y-full')
+          'sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:w-full sm:max-w-[420px] sm:-translate-x-1/2 sm:rounded-2xl'
         }
       >
         <div className="flex min-w-0 shrink-0 items-center justify-between gap-3 px-4 pt-3">
@@ -112,8 +93,11 @@ export default function TastesSheet({ open, onClose }: Props) {
         <p className="shrink-0 px-4 pb-3 pt-1 text-sm text-culture-muted">
           Tes goûts, en une ligne. Ça nourrit le top 3.
         </p>
-        <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4">
-          {rows.length === 0 ? (
+        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4">
+          {resolved.pending && rows.length === 0 ? (
+            <p className="py-6 text-sm text-culture-muted">Chargement…</p>
+          ) : null}
+          {!resolved.pending && rows.length === 0 ? (
             <p className="py-6 text-sm text-culture-muted">
               aucun goût pour l’instant
             </p>

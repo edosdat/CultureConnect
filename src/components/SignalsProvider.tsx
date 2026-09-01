@@ -39,6 +39,7 @@ import {
   wipeGuestProfileKey,
 } from '@/lib/signalsStore';
 import { notifyTasteCookieOnce } from './TasteCookieNotice';
+import { writeAccountProfileCache } from '@/lib/tastesCache';
 
 type SignalsValue = {
   track: (payload: TrackPayload) => void;
@@ -273,8 +274,6 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
         : null;
     if (status === 'authenticated') {
       const account = session?.user?.tasteState ?? null;
-      // Account not scorable (empty JWT / first login): keep guest events
-      // or zeros as fallback so « Ton top 3 du moment » does not vanish.
       if (hasScorableState(account)) {
         return account;
       }
@@ -282,6 +281,14 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
     }
     return fromGuest;
   }, [status, session?.user?.tasteState, guestStore]);
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    const account = session?.user?.tasteState;
+    if (account && hasScorableState(account)) {
+      writeAccountProfileCache(session.user?.email, account.profile);
+    }
+  }, [status, session?.user?.email, session?.user?.tasteState]);
   const loginNudgeReady =
     status !== 'authenticated' && shouldPromptLogin(guestStore.events);
 

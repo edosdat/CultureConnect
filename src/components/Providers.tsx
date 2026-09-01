@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -13,6 +14,13 @@ import SignalsProvider from './SignalsProvider';
 import FavoritesProvider from './FavoritesProvider';
 import TastesSheet from './TastesSheet';
 import FirstLoginModal from './FirstLoginModal';
+
+export const OPEN_TASTES_EVENT = 'cc-open-tastes';
+
+export function requestOpenTastes() {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new Event(OPEN_TASTES_EVENT));
+}
 
 type TastesUiValue = {
   googleAuthEnabled: boolean;
@@ -41,6 +49,13 @@ export default function Providers({ children, googleAuthEnabled }: Props) {
   const [tastesOpen, setTastesOpen] = useState(false);
   const openTastes = useCallback(() => setTastesOpen(true), []);
   const closeTastes = useCallback(() => setTastesOpen(false), []);
+  useEffect(() => {
+    function onOpen() {
+      setTastesOpen(true);
+    }
+    window.addEventListener(OPEN_TASTES_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_TASTES_EVENT, onOpen);
+  }, []);
   const value = useMemo(
     () => ({ googleAuthEnabled, tastesOpen, openTastes, closeTastes }),
     [googleAuthEnabled, tastesOpen, openTastes, closeTastes],
