@@ -47,45 +47,53 @@ export default function CategoryFilter({
         : variant === 'extra'
           ? EXTRA_CATEGORY_CHIPS
           : MAIN_CATEGORIES;
-    return (
-      <div className="cc-axes__track">
-        <div
-          role="group"
-          aria-label="Quoi"
-          className="cc-axes__chips"
-        >
-          {chips.map(({ id, label }) => {
-            const active = selected.includes(id);
-            const tint = `var(${CHIP_VAR[id]})`;
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => toggle(id)}
-                aria-pressed={active}
-                className="cc-axes__chip shrink-0 whitespace-nowrap rounded-full transition"
-                style={{
-                  borderWidth: 1.5,
-                  borderStyle: 'solid',
-                  borderColor: tint,
-                  backgroundColor: active ? tint : 'var(--cc-surface)',
-                  color: active ? '#fff' : 'var(--cc-ink)',
-                }}
-              >
-                {label}
-              </button>
-            );
-          })}
-          {selected.length > 0 && (
+    const buttons = (
+      <>
+        {chips.map(({ id, label }) => {
+          const active = selected.includes(id);
+          const tint = `var(${CHIP_VAR[id]})`;
+          return (
             <button
+              key={id}
               type="button"
-              onClick={() => onChange([])}
-              className="cc-axes__chip shrink-0 rounded-full text-culture-terracotta hover:underline"
+              onClick={() => toggle(id)}
+              aria-pressed={active}
+              className="cc-axes__chip shrink-0 whitespace-nowrap rounded-full transition"
+              style={{
+                borderWidth: 1.5,
+                borderStyle: 'solid',
+                borderColor: tint,
+                backgroundColor: active ? tint : 'var(--cc-surface)',
+                color: active ? '#fff' : 'var(--cc-ink)',
+              }}
             >
-              Tout effacer
+              {label}
             </button>
-          )}
-        </div>
+          );
+        })}
+        {selected.length > 0 && (
+          <button
+            key="clear"
+            type="button"
+            onClick={() => onChange([])}
+            className="cc-axes__chip shrink-0 rounded-full text-culture-terracotta hover:underline"
+          >
+            Tout effacer
+          </button>
+        )}
+      </>
+    );
+
+    /* Home: no wrapper — parent `.cc-axes` is the only overflow-x. */
+    if (variant === 'home') return buttons;
+
+    return (
+      <div
+        role="group"
+        aria-label="Quoi"
+        className="flex flex-nowrap gap-1.5"
+      >
+        {buttons}
       </div>
     );
   }
