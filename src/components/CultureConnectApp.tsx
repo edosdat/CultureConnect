@@ -5,7 +5,11 @@ import type { DayItem, GenreLegend, Lieu } from '@/lib/types';
 import type { AgendaDetailResponse, AgendaListResponse } from '@/lib/slim';
 import { profileHasChipWeight } from '@/lib/reco';
 import { extractMoods, profileHasZeroWeights } from '@/lib/signals';
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
+import {
+  formatHomeEventsCounter,
+  showHomeEventsCounter,
+} from '@/lib/homeEventsCounter';
 import { useSignals } from './SignalsProvider';
 import { filterItemsByCommune, normalizeCommune } from '@/lib/commune';
 import { filterSeancesForActiveFilters } from '@/lib/displayFilter';
@@ -59,6 +63,8 @@ type Props = {
   initialNouveautes: DayItem[];
   initialTotal: number;
   initialDensifiedTotal: number;
+  initialCsvEvents?: number;
+  initialCsvProgramme?: number;
   initialVenues: Lieu[];
   initialGenreSlugs: string[];
   communes: string[];
@@ -263,6 +269,8 @@ export default function CultureConnectApp({
   initialNouveautes,
   initialTotal,
   initialDensifiedTotal,
+  initialCsvEvents = 0,
+  initialCsvProgramme = 0,
   initialVenues,
   initialGenreSlugs,
   communes,
@@ -281,6 +289,11 @@ export default function CultureConnectApp({
   initialCineTotal = 0,
 }: Props) {
   const { track, trackItem, tasteState, sessionStatus } = useSignals();
+  const { data: session, status: authStatus } = useSession();
+  // Session email only — never searchParams / analytics / page copy.
+  const showAdminCounts =
+    authStatus === 'authenticated' &&
+    showHomeEventsCounter(session?.user?.email);
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
   const [timeScope, setTimeScope] = useState<TimeScopeId>(initialScope);
@@ -319,6 +332,8 @@ export default function CultureConnectApp({
   const [densifiedTotalApi, setDensifiedTotalApi] = useState(
     initialDensifiedTotal,
   );
+  const [csvEvents, setCsvEvents] = useState(initialCsvEvents);
+  const [csvProgramme, setCsvProgramme] = useState(initialCsvProgramme);
   const [venueOptions, setVenueOptions] = useState<Lieu[]>(initialVenues);
   const [availableGenreSlugs, setAvailableGenreSlugs] =
     useState<string[]>(initialGenreSlugs);
@@ -517,11 +532,15 @@ export default function CultureConnectApp({
       if (typeof data.cineTotal === 'number') setCineTotal(data.cineTotal);
       setTotal(data.total);
       setDensifiedTotalApi(data.densifiedTotal);
+      if (typeof data.csvEvents === 'number') setCsvEvents(data.csvEvents);
+      if (typeof data.csvProgramme === 'number') setCsvProgramme(data.csvProgramme);
       setVenueOptions(data.venues ?? []);
       setAvailableGenreSlugs(data.genreSlugs ?? []);
     } else {
       setTotal(data.total);
       setDensifiedTotalApi(data.densifiedTotal);
+      if (typeof data.csvEvents === 'number') setCsvEvents(data.csvEvents);
+      if (typeof data.csvProgramme === 'number') setCsvProgramme(data.csvProgramme);
     }
     if (data.counts) {
       setCounts(new Map(Object.entries(data.counts)));
@@ -1297,6 +1316,14 @@ export default function CultureConnectApp({
   }
 
   const monthLabel = `${MONTH_NAMES_FR[month - 1]} ${year}`;
+  const adminRangeLabel = searchingUi ? 'toutes dates' : contextLabel;
+  const adminCountLine = formatHomeEventsCounter({
+    cards: densifiedTotalApi,
+    seances: total,
+    csvEvents,
+    csvProgramme,
+    rangeLabel: adminRangeLabel,
+  });
   const emptyScopeHint =
     timeScope === 'tous'
       ? 'à venir'
@@ -1318,6 +1345,7 @@ export default function CultureConnectApp({
       month={month}
       selectedDay={timeScope === 'date' ? selectedDay : null}
       counts={counts}
+      showDayCounts={showAdminCounts}
       onSelectDay={handleSelectDay}
       onPrevMonth={goPrevMonth}
       onNextMonth={goNextMonth}
@@ -1407,6 +1435,14 @@ export default function CultureConnectApp({
         {/* Toulouse + Salles + month (Venue gated by Filtres on mobile) */}
         <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 pt-0.5 sm:pt-1">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
+            {showAdminCounts ? (
+              <p
+                className="text-[11px] tabular-nums leading-tight text-culture-muted"
+                aria-label="Totaux agenda (debug)"
+              >
+                {adminCountLine}
+              </p>
+            ) : null}
             <div
               className={
                 (showFiltersMobile ? 'flex' : 'hidden') +
@@ -1563,6 +1599,7 @@ export default function CultureConnectApp({
             id="cine"
             title="Ciné"
             count={cineCount}
+            hideCount={!showAdminCounts}
             shown={visibleCineRows.length}
             expanded={
               cineLimit >= cineCount && listItems.length >= total
@@ -1605,6 +1642,7 @@ export default function CultureConnectApp({
             id="en-live"
             title="En live"
             count={liveCount}
+            hideCount={!showAdminCounts}
             shown={visibleLiveRows.length}
             expanded={liveExpanded}
             onSeeAll={() => setLiveExpanded(true)}
@@ -1621,6 +1659,7 @@ export default function CultureConnectApp({
             id="autres"
             title="Aussi"
             count={leftoverRows.length}
+            hideCount={!showAdminCounts}
             shown={leftoverRows.length}
           >
             <SeanceGrid

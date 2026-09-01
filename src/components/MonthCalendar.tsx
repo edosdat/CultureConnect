@@ -14,6 +14,8 @@ type Props = {
   onNextMonth: () => void;
   /** Inside MonthCalendarDrawer: drop card chrome, tighter mobile cells. */
   embedded?: boolean;
+  /** Public: no per-day event numbers. Admin debug keeps them. */
+  showDayCounts?: boolean;
 };
 
 function toIso(year: number, month: number, day: number): string {
@@ -29,6 +31,7 @@ export default function MonthCalendar({
   onPrevMonth,
   onNextMonth,
   embedded = false,
+  showDayCounts = false,
 }: Props) {
   const first = new Date(year, month - 1, 1);
   // Monday-first: JS getDay() Sun=0 .. Sat=6 -> Mon=0 .. Sun=6
@@ -109,7 +112,7 @@ export default function MonthCalendar({
               }
             >
               <span className="font-medium leading-none">{day}</span>
-              {count > 0 && (
+              {showDayCounts && count > 0 && (
                 <span
                   className={
                     'mt-0.5 text-[10px] leading-none ' +

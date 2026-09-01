@@ -126,6 +126,14 @@ export function parseRecoProfile(raw: unknown): TasteProfile | null {
   return profileHasChipWeight(profile) ? profile : null;
 }
 
+function csvRowCounts(): Pick<AgendaListResponse, 'csvEvents' | 'csvProgramme'> {
+  const data = loadCultureData();
+  return {
+    csvEvents: data.evenements.length,
+    csvProgramme: data.programme.length,
+  };
+}
+
 function emptyRecoExtras(): Pick<
   AgendaListResponse,
   | 'nouveautes'
@@ -137,6 +145,8 @@ function emptyRecoExtras(): Pick<
   | 'vivantItems'
   | 'vivantTotal'
   | 'cineTotal'
+  | 'csvEvents'
+  | 'csvProgramme'
 > {
   return {
     nouveautes: [],
@@ -148,6 +158,7 @@ function emptyRecoExtras(): Pick<
     vivantItems: [],
     vivantTotal: 0,
     cineTotal: 0,
+    ...csvRowCounts(),
   };
 }
 
@@ -963,6 +974,7 @@ export function queryAgenda(
     items: page,
     total,
     densifiedTotal,
+    ...csvRowCounts(),
     nouveautes: nouveautes.map(slimDayItem),
     communes: input.includeListMeta
       ? collectCommunes(lieuxByIdFromData().values())
