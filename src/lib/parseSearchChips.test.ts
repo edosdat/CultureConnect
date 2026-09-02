@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  emptyDraftClearsTitle,
   leftoverTitleAfterDraftChange,
   parseSearchChips,
   searchChipsToUi,
@@ -135,6 +136,12 @@ describe('parseSearchChips', () => {
     assert.equal(leftoverTitleAfterDraftChange('', 'taquin'), '');
     assert.equal(leftoverTitleAfterDraftChange('   ', 'taquin'), '');
     assert.equal(leftoverTitleAfterDraftChange('taqui', 'taquin'), 'taquin');
+    assert.equal(emptyDraftClearsTitle(''), true);
+    assert.equal(emptyDraftClearsTitle('   '), true);
+    assert.equal(emptyDraftClearsTitle('taqui'), false);
+    // Apply empty unconditionally — even when leftover looks already empty.
+    assert.equal(leftoverTitleAfterDraftChange('', ''), '');
     assert.equal(searchSubmitAppliesChips('', parseSearchChips('', NOW)), false);
+    assert.equal(parseSearchChips('', NOW).titleQuery, '');
   });
 });
