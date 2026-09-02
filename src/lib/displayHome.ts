@@ -165,9 +165,9 @@ export function fillEmptyCineFromPool(
 
 /** 0 → hide; 1 → full width; 2 → 50/50; 3 → current 3-up. */
 export function top3GridClass(count: number): string {
-  if (count <= 1) return 'grid w-full grid-cols-1 gap-3';
-  if (count === 2) return 'grid w-full grid-cols-1 gap-3 sm:grid-cols-2';
-  return 'grid w-full grid-cols-1 gap-3 lg:grid-cols-3';
+  if (count <= 1) return 'grid w-full grid-cols-1 items-start gap-3';
+  if (count === 2) return 'grid w-full grid-cols-1 items-start gap-3 sm:grid-cols-2';
+  return 'grid w-full grid-cols-1 items-start gap-3 lg:grid-cols-3';
 }
 
 export function shouldShowTop3Section(opts: {

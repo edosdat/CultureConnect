@@ -77,9 +77,9 @@ function FixedSlotsGrid({
     ? visibleTop3Nearest(items, origin)
     : visibleTop3Items(items);
   if (visible.length === 0) return null;
-  // 3-up keeps the compact rail. 1–2 cards use the stacked tile so they
-  // actually fill the row (full width / 50-50) instead of a left-aligned strip.
-  const cardVariant = visible.length === 3 ? 'rail' : 'default';
+  // Compact horizontal rail for every Top 3 count (1–3). Stacked default
+  // tiles are catalogue-only — they are taller than these reco thumbs.
+  const cardVariant = 'rail';
   return (
     <div className="space-y-4">
       <ul

@@ -538,6 +538,9 @@ describe('top 3 adaptive layout', () => {
     assert.ok(top3GridClass(2).includes('sm:grid-cols-2'));
     assert.ok(!top3GridClass(2).includes('lg:grid-cols-3'));
     assert.ok(top3GridClass(3).includes('lg:grid-cols-3'));
+    assert.ok(top3GridClass(1).includes('items-start'));
+    assert.ok(top3GridClass(2).includes('items-start'));
+    assert.ok(top3GridClass(3).includes('items-start'));
   });
 
   it('H2 says Ton top N du moment for 1 / 2 / 3 cards', () => {
