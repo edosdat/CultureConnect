@@ -36,7 +36,9 @@ import {
   reservePickOf,
 } from '@/lib/reserve';
 import { isCinemaDayItem } from '@/lib/nouveautesCine';
+import type { GeoPos } from '@/lib/nearMe';
 import VivantComplementLinks from './VivantComplementLinks';
+import { CineFilmSeances } from './CineSeancePicker';
 
 type Props = {
   item: DayItem | null;
@@ -56,6 +58,8 @@ type Props = {
   selectedLieuId?: string | null;
   /** Display fallback when pickAussiCeSoir is empty (tomorrow / weekend vivant). */
   fallbackVivant?: DayItem[];
+  /** Tab GPS for cine km; Toulouse/Capitole when null. */
+  origin?: GeoPos | null;
 };
 
 function useEscapeClose(active: boolean, onClose: () => void) {
@@ -321,6 +325,7 @@ export default function EventDetail({
   selectedCommune,
   selectedLieuId,
   fallbackVivant = [],
+  origin = null,
 }: Props) {
   useEscapeClose(Boolean(item), onClose);
   const [engaged, setEngaged] = useState(false);
@@ -433,6 +438,25 @@ export default function EventDetail({
                     {ev.titre}
                   </p>
                 )}
+                {hasFilmSeances ? (
+                  <div className="mt-3">
+                    <CineFilmSeances
+                      items={seancesForList}
+                      origin={origin}
+                      onReserve={() => {
+                        markEngaged();
+                        onReserve?.();
+                      }}
+                    />
+                  </div>
+                ) : null}
+                <div className="mt-3">
+                  <VivantComplementLinks
+                    film={item}
+                    items={crossSellItems}
+                    onSelect={onSelectItem}
+                  />
+                </div>
               </div>
             </div>
           ) : (
@@ -511,7 +535,7 @@ export default function EventDetail({
               </dl>
             )}
 
-            {hasFilmSeances && (
+            {hasFilmSeances && !cinemaFiche ? (
               <dl className="grid gap-3 text-sm sm:grid-cols-2">
                 <div>
                   <dt className="text-culture-muted">Prix</dt>
@@ -520,17 +544,9 @@ export default function EventDetail({
                   </dd>
                 </div>
               </dl>
-            )}
-
-            {cinemaFiche ? (
-              <VivantComplementLinks
-                film={item}
-                items={crossSellItems}
-                onSelect={onSelectItem}
-              />
             ) : null}
 
-            {hasFilmSeances && (
+            {hasFilmSeances && !cinemaFiche ? (
               <section>
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
                   Séances
@@ -553,7 +569,7 @@ export default function EventDetail({
                   selectedLieuId={selectedLieuId}
                 />
               </section>
-            )}
+            ) : null}
 
             {!hasFilmSeances && lieu && (
               <section>

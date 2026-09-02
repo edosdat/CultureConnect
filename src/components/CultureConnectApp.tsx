@@ -2029,6 +2029,7 @@ export default function CultureConnectApp({
         selectedCommune={selectedCommune}
         selectedLieuId={selectedLieuId}
         fallbackVivant={crossSellPool}
+        origin={gpsOrigin}
       />
     </div>
   );
