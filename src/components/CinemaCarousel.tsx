@@ -225,7 +225,7 @@ function CineSeancePicker({
           <span className="truncate text-xs text-culture-muted">{meta}</span>
         ) : null}
       </div>
-      <div className="mt-1 flex flex-wrap items-center gap-2">
+      <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <select
           value={groups.some((g) => g.lieuId === cinemaId) ? cinemaId : groups[0]!.lieuId}
           onChange={(e) => {
@@ -233,7 +233,7 @@ function CineSeancePicker({
             if (next) onPick(next.key);
           }}
           aria-label="Choisir un cinéma"
-          className="h-11 min-w-0 flex-1 basis-28 rounded-lg border border-culture-line bg-culture-surface px-2.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
+          className="h-11 w-full min-w-0 rounded-lg border border-culture-line bg-culture-surface px-2.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta sm:flex-1 sm:basis-28"
         >
           {groups.map((g) => (
             <option key={g.lieuId} value={g.lieuId}>
@@ -241,7 +241,7 @@ function CineSeancePicker({
             </option>
           ))}
         </select>
-        <div className="flex min-w-0 flex-1 basis-36 items-center gap-2">
+        <div className="flex w-full min-w-0 items-center gap-2 sm:flex-1 sm:basis-36">
           <select
             value={
               times.some((s) => s.key === active.key)
