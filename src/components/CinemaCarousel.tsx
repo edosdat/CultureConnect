@@ -23,6 +23,7 @@ import {
   seanceWhen,
 } from '@/lib/displayHome';
 import { itemKmLabel, minKmLabel, type GeoPos } from '@/lib/nearMe';
+import { defaultCineDistanceKm, pickCineSeance } from '@/lib/cineSeances';
 import { reservePickOf } from '@/lib/reserve';
 import { filterItemsByCommune } from '@/lib/commune';
 import VisualFallback, { categoryLabelOf } from './VisualFallback';
@@ -30,6 +31,7 @@ import FilmPoster from './FilmPoster';
 import FavoriteButton from './FavoriteButton';
 import ShareButton from './ShareButton';
 import VivantComplementLinks from './VivantComplementLinks';
+import CineSeanceSelects from './CineSeanceSelects';
 
 export type CinemaCarouselPack = 'cine' | 'theatre' | 'musique';
 
@@ -429,7 +431,10 @@ export default function CinemaCarousel({
     ...groupSeances.map((s) => apiByKey.get(s.key) ?? s),
     ...fromApi.filter((s) => !seanceKeys.has(s.key)),
   ]);
+  const cinePick =
+    pack === 'cine' ? pickCineSeance(seances, { origin, seanceKey: pickedKey }) : null;
   const active =
+    cinePick?.active ??
     seances.find((s) => s.key === pickedKey) ??
     seances.find((s) => s.key === item.key) ??
     seances[0] ??
@@ -437,8 +442,11 @@ export default function CinemaCarousel({
   const when = seanceWhen(active);
   const venue = formatLieuAffiche(active.lieu);
   const km =
-    minKmLabel(seances.length ? seances : [active], origin) ??
-    itemKmLabel(active, origin);
+    pack === 'cine'
+      ? cinePick?.venues[0]?.distanceKm ??
+        defaultCineDistanceKm(seances.length ? seances : [active], origin)
+      : minKmLabel(seances.length ? seances : [active], origin) ??
+        itemKmLabel(active, origin);
   const cal = calendarPayloadFromDayItem(active);
   const complements = filterItemsByCommune(
     aussi,
@@ -463,7 +471,10 @@ export default function CinemaCarousel({
             }}
             active={i === heroIndex}
             distanceKm={
-              minKmLabel(row.seances, origin) ?? itemKmLabel(row.item, origin)
+              pack === 'cine'
+                ? defaultCineDistanceKm(row.seances, origin)
+                : minKmLabel(row.seances, origin) ??
+                  itemKmLabel(row.item, origin)
             }
           />
         ))}
@@ -532,16 +543,33 @@ export default function CinemaCarousel({
               {itemPitch(item)}
             </p>
           ) : null}
-          <div className="md:hidden">
-            <SeanceReserveLink item={active} onReserve={onReserve} wide />
-          </div>
+          {pack !== 'cine' ? (
+            <div className="md:hidden">
+              <SeanceReserveLink item={active} onReserve={onReserve} wide />
+            </div>
+          ) : null}
           <VivantComplementLinks
             film={active}
             items={complements}
             onSelect={onSelectLive}
           />
           <div ref={seancesRef} id={seancesDomId}>
-            {seances.length > 0 ? (
+            {pack === 'cine' && cinePick?.venue && cinePick.active ? (
+              <CineSeanceSelects
+                venues={cinePick.venues}
+                venueId={cinePick.venue.id}
+                onVenueChange={(id) => {
+                  const next = cinePick.venues.find((v) => v.id === id);
+                  setPickedKey(next?.seances[0]?.key ?? null);
+                }}
+                horaires={cinePick.horaires}
+                seanceKey={cinePick.active.key}
+                onSeanceChange={(key) => setPickedKey(key)}
+                reserve={
+                  <SeanceReserveLink item={cinePick.active} onReserve={onReserve} />
+                }
+              />
+            ) : seances.length > 0 ? (
               datePinned ? (
                 <>
                   <p className="text-xs font-semibold uppercase tracking-wide text-culture-muted">

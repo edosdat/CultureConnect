@@ -36,7 +36,15 @@ import {
   reservePickOf,
 } from '@/lib/reserve';
 import { isCinemaDayItem } from '@/lib/nouveautesCine';
+import {
+  cataloguePriceLabel,
+  pickCineSeance,
+  seanceLangueOf,
+  seanceVersionLabel,
+} from '@/lib/cineSeances';
+import type { GeoPos } from '@/lib/nearMe';
 import VivantComplementLinks from './VivantComplementLinks';
+import CineSeanceSelects from './CineSeanceSelects';
 
 type Props = {
   item: DayItem | null;
@@ -56,6 +64,8 @@ type Props = {
   selectedLieuId?: string | null;
   /** Display fallback when pickAussiCeSoir is empty (tomorrow / weekend vivant). */
   fallbackVivant?: DayItem[];
+  /** Tab GPS; cinema seances fall back to Toulouse when null. */
+  origin?: GeoPos | null;
 };
 
 function useEscapeClose(active: boolean, onClose: () => void) {
@@ -321,13 +331,16 @@ export default function EventDetail({
   selectedCommune,
   selectedLieuId,
   fallbackVivant = [],
+  origin = null,
 }: Props) {
   useEscapeClose(Boolean(item), onClose);
   const [engaged, setEngaged] = useState(false);
   const [mobileCal, setMobileCal] = useState(false);
+  const [pickedSeanceKey, setPickedSeanceKey] = useState<string | null>(null);
 
   useEffect(() => {
     setEngaged(false);
+    setPickedSeanceKey(null);
   }, [item?.key]);
 
   useEffect(() => {
@@ -377,6 +390,18 @@ export default function EventDetail({
           ? [item]
           : [];
     const hasFilmSeances = seancesForList.length > 0;
+    const cinePick = cinemaFiche
+      ? pickCineSeance(seancesForList, {
+          origin,
+          seanceKey: pickedSeanceKey,
+        })
+      : null;
+    const ficheItem = cinePick?.active ?? item;
+    const ficheCal = calendarPayloadFromDayItem(ficheItem);
+    const cinePrice = cinemaFiche ? cataloguePriceLabel(ficheItem) : null;
+    const cineVersion = cinemaFiche
+      ? seanceVersionLabel(seanceLangueOf(ficheItem))
+      : null;
 
     return (
       <div
@@ -511,7 +536,7 @@ export default function EventDetail({
               </dl>
             )}
 
-            {hasFilmSeances && (
+            {hasFilmSeances && !cinemaFiche && (
               <dl className="grid gap-3 text-sm sm:grid-cols-2">
                 <div>
                   <dt className="text-culture-muted">Prix</dt>
@@ -521,6 +546,11 @@ export default function EventDetail({
                 </div>
               </dl>
             )}
+            {cinemaFiche && (cinePrice || cineVersion) ? (
+              <p className="text-sm text-culture-ink">
+                {[cineVersion, cinePrice].filter(Boolean).join(' · ')}
+              </p>
+            ) : null}
 
             {cinemaFiche ? (
               <VivantComplementLinks
@@ -530,7 +560,33 @@ export default function EventDetail({
               />
             ) : null}
 
-            {hasFilmSeances && (
+            {hasFilmSeances && cinemaFiche && cinePick?.venue && cinePick.active ? (
+              <section>
+                <CineSeanceSelects
+                  venues={cinePick.venues}
+                  venueId={cinePick.venue.id}
+                  onVenueChange={(id) => {
+                    const next = cinePick.venues.find((v) => v.id === id);
+                    setPickedSeanceKey(next?.seances[0]?.key ?? null);
+                  }}
+                  horaires={cinePick.horaires}
+                  seanceKey={cinePick.active.key}
+                  onSeanceChange={(key) => setPickedSeanceKey(key)}
+                  reserve={
+                    <ReserveControl
+                      url={reserveUrlOf(cinePick.active)}
+                      soldOut={reserveSoldOut(cinePick.active)}
+                      onReserve={() => {
+                        markEngaged();
+                        onReserve?.();
+                      }}
+                      shrink
+                    />
+                  }
+                />
+              </section>
+            ) : null}
+            {hasFilmSeances && !cinemaFiche && (
               <section>
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
                   Séances
@@ -620,18 +676,18 @@ export default function EventDetail({
             <div className="flex flex-wrap items-center gap-2">
               {!hasFilmSeances && (
                 <ReserveControl
-                  url={reserveUrlOf(item)}
-                  soldOut={reserveSoldOut(item)}
+                  url={reserveUrlOf(ficheItem)}
+                  soldOut={reserveSoldOut(ficheItem)}
                   onReserve={() => {
                     markEngaged();
                     onReserve?.();
                   }}
                 />
               )}
-              {cal && (
+              {ficheCal && (
                 <>
                   <a
-                    href={googleCalendarUrl(cal)}
+                    href={googleCalendarUrl(ficheCal)}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => {
@@ -644,7 +700,7 @@ export default function EventDetail({
                   </a>
                   {mobileCal ? (
                     <a
-                      href={webcalHref(item.key)}
+                      href={webcalHref(ficheItem.key)}
                       onClick={() => {
                         markEngaged();
                         onIcs?.();
@@ -659,7 +715,7 @@ export default function EventDetail({
                       onClick={() => {
                         markEngaged();
                         onIcs?.();
-                        downloadIcs(cal);
+                        downloadIcs(ficheCal);
                       }}
                       className="inline-flex min-h-10 items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
                     >
@@ -668,7 +724,7 @@ export default function EventDetail({
                   )}
                 </>
               )}
-              <ShareButton item={item} />
+              <ShareButton item={ficheItem} />
               <FavoriteButton itemKey={item.key} />
               {sourceUrlOf(item) && (
                 <a

@@ -5,6 +5,9 @@
 
 export type GeoPos = { lat: number; lng: number };
 
+/** Place du Capitole — distance origin when GPS is off (cinema seances only). */
+export const TOULOUSE_ORIGIN: GeoPos = { lat: 43.6045, lng: 1.444 };
+
 const EARTH_KM = 6371;
 
 export function parseCoord(raw: string | number | null | undefined): number | null {
