@@ -206,16 +206,42 @@ body {
   overflow: hidden;
   background: var(--cc-sand);
 }
-.cine-hero-frame > img {
+.cine-hero-frame > img:not(.cine-hero-letterbox),
+.cine-hero-frame > .cine-hero-poster {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
   object-position: center;
+  z-index: 1;
+}
+/* Same poster, CSS-blurred, fills the landscape frame (not a solid bar). */
+.cine-hero-frame--blur {
+  height: 12.5rem;
+  max-height: 12.5rem;
+  aspect-ratio: auto;
+}
+.cine-hero-letterbox {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: blur(28px);
+  transform: scale(1.2);
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
 }
 @media (min-width: 768px) {
   .cine-hero-frame {
+    aspect-ratio: 16 / 9;
+    max-height: 16rem;
+  }
+  .cine-hero-frame--blur {
+    height: auto;
     aspect-ratio: 16 / 9;
     max-height: 16rem;
   }

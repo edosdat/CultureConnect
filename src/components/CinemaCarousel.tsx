@@ -524,7 +524,11 @@ export default function CinemaCarousel({
         onTouchEnd={onHeroTouchEnd}
         className="overflow-hidden rounded-card-lg border border-culture-line bg-culture-surface shadow-card"
       >
-        <FilmPoster src={image} item={item} />
+        <FilmPoster
+          src={image}
+          item={item}
+          blurLetterbox={pack === 'cine'}
+        />
         <div className="flex min-w-0 flex-col gap-2 p-3 md:p-4">
           {titleBlock}
           {itemPitch(item) ? (
