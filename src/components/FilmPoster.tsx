@@ -7,28 +7,36 @@ type Props = {
   src: string;
   item?: DayItem;
   className?: string;
+  /** YouTube-style blurred full-bleed. Cinema fiche / film-card hero only. */
+  blurBackdrop?: boolean;
 };
 
 /**
  * Compact landscape cine hero (16:7 / 16:9, height-capped).
- * Same affiche twice: blurred full-bleed cover behind a sharp
- * object-contain portrait. Never crop the foreground. No analysis.
+ * Cinema: same affiche twice — blurred cover behind a sharp contain poster.
+ * Theatre/music: contain only (letterbox). Never crop the foreground.
  */
-export default function FilmPoster({ src, item, className = '' }: Props) {
+export default function FilmPoster({
+  src,
+  item,
+  className = '',
+  blurBackdrop = false,
+}: Props) {
   return (
     <div
       data-cine-hero="1"
-      className={'cine-hero-frame ' + className}
+      className={
+        'cine-hero-frame ' +
+        (blurBackdrop ? 'cine-hero-frame--blur ' : '') +
+        className
+      }
     >
       {src ? (
         <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            className="cine-hero-blur"
-            src={src}
-            alt=""
-            aria-hidden
-          />
+          {blurBackdrop ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="cine-hero-blur" src={src} alt="" aria-hidden />
+          ) : null}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="cine-hero-poster" src={src} alt="" />
         </>

@@ -197,13 +197,17 @@ body {
 .cc-axes__more {
   flex: 0 0 auto;
 }
-/* Cine hero/fiche: compact landscape. Blurred cover + sharp contain poster. */
+/* Compact landscape hero. Cinema: blurred cover + sharp contain. Else letterbox. */
 .cine-hero-frame {
   position: relative;
+  isolation: isolate;
   width: 100%;
   aspect-ratio: 16 / 7;
   max-height: 11rem;
   overflow: hidden;
+  background: var(--cc-sand);
+}
+.cine-hero-frame--blur {
   background: var(--cc-ink);
 }
 .cine-hero-blur {
@@ -212,19 +216,20 @@ body {
   z-index: 0;
   width: 100%;
   height: 100%;
+  max-width: none;
   object-fit: cover;
   object-position: center;
   pointer-events: none;
   user-select: none;
-  filter: blur(28px);
-  transform: scale(1.18);
+  filter: blur(20px) saturate(1.15) brightness(0.78);
+  transform: scale(1.2);
 }
-.cine-hero-frame::after {
+.cine-hero-frame--blur::after {
   content: "";
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: rgba(28, 25, 23, 0.38);
+  background: rgba(28, 25, 23, 0.22);
   pointer-events: none;
 }
 .cine-hero-poster {
@@ -233,6 +238,7 @@ body {
   z-index: 2;
   width: 100%;
   height: 100%;
+  max-width: none;
   object-fit: contain;
   object-position: center;
 }

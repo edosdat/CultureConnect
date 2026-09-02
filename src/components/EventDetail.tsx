@@ -403,7 +403,7 @@ export default function EventDetail({
 
           {cinemaFiche ? (
             <div>
-              <FilmPoster src={itemImageUrl(item)} item={item} />
+              <FilmPoster src={itemImageUrl(item)} item={item} blurBackdrop />
               <div className="min-w-0 break-words px-5 pt-3">
                 <div className="flex flex-wrap gap-2">
                   {categorie && (
@@ -725,7 +725,7 @@ export default function EventDetail({
 
         {cinemaFiche ? (
           <div>
-            <FilmPoster src={itemImageUrl(item)} item={item} />
+            <FilmPoster src={itemImageUrl(item)} item={item} blurBackdrop />
             <div className="min-w-0 break-words px-5 pt-3">
               <span className="rounded-full bg-white px-2.5 py-0.5 text-xs text-culture-terracotta">
                 {labelCategorie(event.categorie)}
