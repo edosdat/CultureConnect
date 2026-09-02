@@ -5,8 +5,10 @@ import { itemMatchesCommune } from './commune';
 import {
   cineRows,
   fillEmptyCineFromPool,
+  findDayItemByKey,
   homeSectionsVisible,
   musiqueRows,
+  resolveHomeCardOpen,
   shouldInvalidateProfileRecoCache,
   theatreRows,
   visibleTop3Items,
@@ -324,5 +326,47 @@ describe('pack rows + date filter', () => {
       musiqueRows(onDay, emptyTop3).map((r) => r.item.key),
       ['mu-5'],
     );
+  });
+});
+
+describe('top 3 click opens fiche outside QUOI grid', () => {
+  const theatre = item({ key: 'p:P1847', cat: 'theatre' });
+  const concert = item({ key: 'p:P99', cat: 'concert' });
+  const cine = item({ key: 'p:P12', cat: 'cinema', filmId: 'F12' });
+  const cinemaGrid = [cine];
+  const top3 = [cine, theatre, concert];
+
+  it('finds a theatre in Top 3 even when the filtered cinema list lacks it', () => {
+    assert.equal(findDayItemByKey(theatre.key, cinemaGrid), null);
+    assert.equal(findDayItemByKey(theatre.key, cinemaGrid, top3), theatre);
+    assert.equal(homeSectionsVisible(['cinema']).theatre, false);
+  });
+
+  it('Top 3 click always opens the fiche, including theatre / concert', () => {
+    assert.deepEqual(resolveHomeCardOpen(theatre.key, theatre, 'top3'), {
+      mode: 'fiche',
+      key: theatre.key,
+    });
+    assert.deepEqual(resolveHomeCardOpen(concert.key, concert, 'top3'), {
+      mode: 'fiche',
+      key: concert.key,
+    });
+    assert.deepEqual(resolveHomeCardOpen(cine.key, cine, 'top3'), {
+      mode: 'fiche',
+      key: cine.key,
+    });
+  });
+
+  it('grid pack cards still focus their strip', () => {
+    assert.deepEqual(resolveHomeCardOpen(theatre.key, theatre, 'grid'), {
+      mode: 'pack',
+      pack: 'theatre',
+      key: theatre.key,
+    });
+    assert.deepEqual(resolveHomeCardOpen(cine.key, cine, 'grid'), {
+      mode: 'pack',
+      pack: 'cine',
+      key: cine.key,
+    });
   });
 });

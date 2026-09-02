@@ -22,14 +22,17 @@ import {
   dedupAgainstTop3,
   displayReasonForItem,
   fillEmptyCineFromPool,
+  findDayItemByKey,
   homeSectionsVisible,
   musiqueRows,
+  resolveHomeCardOpen,
   shouldInvalidateProfileRecoCache,
   shouldShowTop3Section,
   top3Heading,
   theatreRows,
   top3IdentitySet,
   visibleTop3Items,
+  type HomeCardOpen,
 } from '@/lib/displayHome';
 import { MONTH_NAMES_FR } from '@/lib/labels';
 import {
@@ -1158,40 +1161,52 @@ export default function CultureConnectApp({
     [allTheatreRows, allMusiqueRows],
   );
 
+  function applyHomeCardOpen(action: HomeCardOpen) {
+    if (action.mode === 'pack') {
+      if (action.pack === 'cine') {
+        setCineFocusKey(action.key);
+        setSelectedItemKey(null);
+        document
+          .getElementById('cine')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      if (action.pack === 'theatre') {
+        setTheatreFocusKey(action.key);
+        setSelectedItemKey(null);
+        document
+          .getElementById('theatre')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      if (action.pack === 'musique') {
+        setMusiqueFocusKey(action.key);
+        setSelectedItemKey(null);
+        document
+          .getElementById('musique')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+    }
+    setSelectedItemKey(action.key);
+  }
+
   function handleSelectHome(key: string) {
-    const found =
-      listItems.find((i) => i.key === key) ??
-      pourToiItems.find((i) => i.key === key) ??
-      nouveautesItems.find((i) => i.key === key) ??
-      vivantItems.find((i) => i.key === key) ??
-      leftoverRows.find((r) => r.item.key === key)?.item ??
-      null;
-    const pack = found ? homePackOfItem(found) : null;
-    if (pack === 'cine') {
-      setCineFocusKey(key);
-      setSelectedItemKey(null);
-      document
-        .getElementById('cine')
-        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      return;
-    }
-    if (pack === 'theatre') {
-      setTheatreFocusKey(key);
-      setSelectedItemKey(null);
-      document
-        .getElementById('theatre')
-        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      return;
-    }
-    if (pack === 'musique') {
-      setMusiqueFocusKey(key);
-      setSelectedItemKey(null);
-      document
-        .getElementById('musique')
-        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      return;
-    }
-    setSelectedItemKey(key);
+    const found = findDayItemByKey(
+      key,
+      listItems,
+      pourToiFilled,
+      pourToiItems,
+      nouveautesItems,
+      vivantItems,
+      leftoverRows.map((r) => r.item),
+    );
+    applyHomeCardOpen(resolveHomeCardOpen(key, found, 'grid'));
+  }
+
+  /** Top 3: always open the fiche by key (full catalogue / `?e=`), never pack-focus. */
+  function handleSelectTop3(key: string) {
+    applyHomeCardOpen(resolveHomeCardOpen(key, null, 'top3'));
   }
   const listEmpty =
     listItems.length === 0 &&
@@ -1279,11 +1294,20 @@ export default function CultureConnectApp({
   ]);
 
   const selectedItem =
-    detailItem ??
-    listItems.find((i) => i.key === selectedItemKey) ??
-    pourToiItems.find((i) => i.key === selectedItemKey) ??
-    nouveautesItems.find((i) => i.key === selectedItemKey) ??
-    null;
+    selectedItemKey == null
+      ? null
+      : detailItem?.key === selectedItemKey
+        ? detailItem
+        : findDayItemByKey(
+            selectedItemKey,
+            top3Cards,
+            pourToiFilled,
+            pourToiItems,
+            listItems,
+            nouveautesItems,
+            vivantItems,
+            leftoverRows.map((r) => r.item),
+          );
 
   useEffect(() => {
     if (!selectedItemKey) {
@@ -1292,11 +1316,16 @@ export default function CultureConnectApp({
       setAussiCeSoirItems([]);
       return;
     }
-    const slim =
-      listItems.find((i) => i.key === selectedItemKey) ??
-      pourToiItems.find((i) => i.key === selectedItemKey) ??
-      nouveautesItems.find((i) => i.key === selectedItemKey) ??
-      null;
+    const slim = findDayItemByKey(
+      selectedItemKey,
+      top3Cards,
+      pourToiFilled,
+      pourToiItems,
+      listItems,
+      nouveautesItems,
+      vivantItems,
+      leftoverRows.map((r) => r.item),
+    );
     if (slim) {
       setDetailItem(slim);
       // Track immediately from the slim card already on screen so a
@@ -1754,7 +1783,7 @@ export default function CultureConnectApp({
             <SeanceGrid
               items={top3Cards}
               showDate={showDateLabels}
-              onSelectItem={handleSelectHome}
+              onSelectItem={handleSelectTop3}
               onSelectVenue={handleSelectVenue}
               empty={null}
               nouveauFilmIds={nouveauFilmIdSet}
@@ -2015,9 +2044,7 @@ export default function CultureConnectApp({
       <TastesOverlayHost />
 
       <EventDetail
-        item={
-          selectedItem && !homePackOfItem(selectedItem) ? selectedItem : null
-        }
+        item={selectedItem}
         onClose={() => setSelectedItemKey(null)}
         onSelectVenue={handleSelectVenue}
         relatedItems={relatedFilmItems}
