@@ -78,6 +78,8 @@ export type ProgrammeItem = {
   billetterie_url?: string;
   duree_min?: string;
   public_cible?: string;
+  /** VF / VO / VOSTFR… when the scrape filled programme.langue */
+  langue?: string;
   scraped_at?: string;
   /** Hidden mood tags (never shown on cards). */
   form?: string;

@@ -23,6 +23,16 @@ import {
   seanceWhen,
 } from '@/lib/displayHome';
 import { itemKmLabel, minKmLabel, type GeoPos } from '@/lib/nearMe';
+import {
+  cinemaKeyOf,
+  cinemaOptionLabel,
+  cineDistanceOrigin,
+  defaultCineSeance,
+  groupCinemasForFilm,
+  horaireOptionLabel,
+  seanceMetaLabel,
+  seancesAtCinema,
+} from '@/lib/cineSeances';
 import { reservePickOf } from '@/lib/reserve';
 import { filterItemsByCommune } from '@/lib/commune';
 import VisualFallback, { categoryLabelOf } from './VisualFallback';
@@ -106,6 +116,7 @@ function FilmThumb({
   row: DenseRow;
   onSelect: () => void;
   active?: boolean;
+  /** Default (nearest) cinema km only — never a pile of salles. */
   distanceKm?: string | null;
 }) {
   const item = row.item;
@@ -185,6 +196,75 @@ function seanceOptionLabel(rel: DayItem): string {
   return [date, seanceHeure(rel), compactVenue(rel)].filter(Boolean).join(' · ');
 }
 
+function CineSeancePicker({
+  seances,
+  active,
+  origin,
+  onPick,
+  onReserve,
+}: {
+  seances: DayItem[];
+  active: DayItem;
+  origin: GeoPos | null;
+  onPick: (key: string) => void;
+  onReserve?: (item: DayItem) => void;
+}) {
+  const kmOrigin = cineDistanceOrigin(origin);
+  const groups = groupCinemasForFilm(seances, kmOrigin);
+  if (groups.length === 0) return null;
+  const cinemaId = cinemaKeyOf(active);
+  const times = seancesAtCinema(seances, cinemaId);
+  const meta = seanceMetaLabel(active);
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wide text-culture-muted">
+          Séances
+        </span>
+        {meta ? (
+          <span className="truncate text-xs text-culture-muted">{meta}</span>
+        ) : null}
+      </div>
+      <div className="mt-1 flex flex-wrap items-center gap-2">
+        <select
+          value={groups.some((g) => g.lieuId === cinemaId) ? cinemaId : groups[0]!.lieuId}
+          onChange={(e) => {
+            const next = seancesAtCinema(seances, e.target.value)[0];
+            if (next) onPick(next.key);
+          }}
+          aria-label="Choisir un cinéma"
+          className="h-11 min-w-0 flex-1 basis-28 rounded-lg border border-culture-line bg-culture-surface px-2.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
+        >
+          {groups.map((g) => (
+            <option key={g.lieuId} value={g.lieuId}>
+              {cinemaOptionLabel(g)}
+            </option>
+          ))}
+        </select>
+        <div className="flex min-w-0 flex-1 basis-36 items-center gap-2">
+          <select
+            value={
+              times.some((s) => s.key === active.key)
+                ? active.key
+                : (times[0]?.key ?? active.key)
+            }
+            onChange={(e) => onPick(e.target.value)}
+            aria-label="Choisir un horaire"
+            className="h-11 min-w-0 flex-1 rounded-lg border border-culture-line bg-culture-surface px-2.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
+          >
+            {(times.length ? times : [active]).map((rel) => (
+              <option key={rel.key} value={rel.key}>
+                {horaireOptionLabel(rel)}
+              </option>
+            ))}
+          </select>
+          <SeanceReserveLink item={active} onReserve={onReserve} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SeanceReserveLink({
   item,
   onReserve,
@@ -224,7 +304,7 @@ function SeanceReserveLink({
       className={
         compact
           ? 'shrink-0 rounded-full bg-culture-terracotta px-2.5 py-1 text-xs font-semibold text-white hover:bg-culture-clay'
-          : 'inline-flex min-h-10 shrink-0 items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-semibold text-white hover:bg-culture-clay ' +
+          : 'inline-flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-full bg-culture-terracotta px-3 py-2 text-sm font-semibold text-white hover:bg-culture-clay sm:px-4 ' +
             wideCls
       }
     >
@@ -429,16 +509,22 @@ export default function CinemaCarousel({
     ...groupSeances.map((s) => apiByKey.get(s.key) ?? s),
     ...fromApi.filter((s) => !seanceKeys.has(s.key)),
   ]);
+  const cineDefault =
+    pack === 'cine' ? defaultCineSeance(seances, origin) : null;
   const active =
     seances.find((s) => s.key === pickedKey) ??
+    cineDefault ??
     seances.find((s) => s.key === item.key) ??
     seances[0] ??
     item;
   const when = seanceWhen(active);
   const venue = formatLieuAffiche(active.lieu);
+  const kmOrigin = pack === 'cine' ? cineDistanceOrigin(origin) : origin;
   const km =
-    minKmLabel(seances.length ? seances : [active], origin) ??
-    itemKmLabel(active, origin);
+    pack === 'cine'
+      ? itemKmLabel(active, kmOrigin)
+      : minKmLabel(seances.length ? seances : [active], origin) ??
+        itemKmLabel(active, origin);
   const cal = calendarPayloadFromDayItem(active);
   const complements = filterItemsByCommune(
     aussi,
@@ -463,7 +549,11 @@ export default function CinemaCarousel({
             }}
             active={i === heroIndex}
             distanceKm={
-              minKmLabel(row.seances, origin) ?? itemKmLabel(row.item, origin)
+              pack === 'cine'
+                ? minKmLabel(row.seances, cineDistanceOrigin(origin)) ??
+                  itemKmLabel(row.item, cineDistanceOrigin(origin))
+                : minKmLabel(row.seances, origin) ??
+                  itemKmLabel(row.item, origin)
             }
           />
         ))}
@@ -532,16 +622,26 @@ export default function CinemaCarousel({
               {itemPitch(item)}
             </p>
           ) : null}
-          <div className="md:hidden">
-            <SeanceReserveLink item={active} onReserve={onReserve} wide />
-          </div>
+          {pack !== 'cine' ? (
+            <div className="md:hidden">
+              <SeanceReserveLink item={active} onReserve={onReserve} wide />
+            </div>
+          ) : null}
           <VivantComplementLinks
             film={active}
             items={complements}
             onSelect={onSelectLive}
           />
           <div ref={seancesRef} id={seancesDomId}>
-            {seances.length > 0 ? (
+            {seances.length > 0 && pack === 'cine' ? (
+              <CineSeancePicker
+                seances={seances}
+                active={active}
+                origin={origin}
+                onPick={setPickedKey}
+                onReserve={onReserve}
+              />
+            ) : seances.length > 0 ? (
               datePinned ? (
                 <>
                   <p className="text-xs font-semibold uppercase tracking-wide text-culture-muted">

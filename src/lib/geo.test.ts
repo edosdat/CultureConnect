@@ -1,6 +1,11 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatKmLabel, haversineKm, parseLieuCoords } from './geo';
+import {
+  formatKmLabel,
+  haversineKm,
+  parseLieuCoords,
+  TOULOUSE_ORIGIN,
+} from './geo';
 import {
   itemKmLabel,
   itemSortKm,
@@ -99,7 +104,7 @@ function item(opts: {
   };
 }
 
-const CAPITOLE: { lat: number; lng: number } = { lat: 43.6045, lng: 1.444 };
+const CAPITOLE = TOULOUSE_ORIGIN;
 
 describe('geo crow-flies', () => {
   it('formats 2,3 km with a comma', () => {

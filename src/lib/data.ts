@@ -106,6 +106,7 @@ export function loadProgramme(): ProgrammeItem[] {
     billetterie_url: r.billetterie_url ?? '',
     duree_min: r.duree_min ?? '',
     public_cible: r.public_cible ?? '',
+    langue: r.langue ?? '',
     scraped_at: r.scraped_at ?? '',
     form: r.form ?? '',
     moods: r.moods ?? '',
