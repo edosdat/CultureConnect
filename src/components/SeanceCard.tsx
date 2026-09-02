@@ -147,7 +147,7 @@ export default function SeanceCard({
         'relative overflow-hidden ' +
         catGradient(catLabel) +
         (resolved === 'rail'
-          ? ' h-full min-h-[6.5rem] w-[7.25rem] shrink-0 sm:w-[8.5rem]'
+          ? ' h-[5.25rem] w-[4.25rem] shrink-0 self-start sm:h-24 sm:w-[4.75rem] lg:h-[7.5rem] lg:w-[5.75rem]'
           : resolved === 'live'
             ? ' aspect-[4/3] w-full'
             : resolved === 'compact'
@@ -161,7 +161,10 @@ export default function SeanceCard({
           src={imageUrl}
           alt=""
           loading="lazy"
-          className="h-full w-full object-cover transition duration-200 ease-out group-hover:scale-[1.03]"
+          className={
+            'h-full w-full object-cover transition duration-200 ease-out group-hover:scale-[1.03]' +
+            (resolved === 'rail' ? ' absolute inset-0' : '')
+          }
         />
       ) : (
         <VisualFallback item={item} compact={resolved !== 'live'} />
@@ -189,7 +192,9 @@ export default function SeanceCard({
         className={
           resolved === 'live'
             ? 'mt-auto pt-1 text-sm font-semibold text-culture-ink'
-            : 'mt-auto pt-1 text-sm text-culture-muted'
+            : resolved === 'rail'
+              ? 'pt-0.5 text-sm text-culture-muted'
+              : 'mt-auto pt-1 text-sm text-culture-muted'
         }
       >
         <span
@@ -232,11 +237,12 @@ export default function SeanceCard({
   const body = (
     <div
       className={
-        'flex min-w-0 flex-1 flex-col gap-1 ' +
+        'flex min-w-0 flex-1 flex-col ' +
+        (resolved === 'rail' ? 'gap-0.5 ' : 'gap-1 ') +
         (resolved === 'compact'
           ? 'p-2.5 sm:p-3 '
           : resolved === 'rail'
-            ? 'p-3 '
+            ? 'px-2.5 py-2 sm:px-3 sm:py-2.5 '
             : 'p-3.5 sm:p-4 ')
       }
     >
@@ -253,7 +259,10 @@ export default function SeanceCard({
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
           >
-            <FavoriteButton itemKey={item.key} className="h-9 w-9" />
+            <FavoriteButton
+              itemKey={item.key}
+              className={resolved === 'rail' ? 'h-8 w-8' : 'h-9 w-9'}
+            />
           </span>
         ) : null}
       </div>
@@ -304,7 +313,7 @@ export default function SeanceCard({
       onClick={() => onSelect(item.key)}
       className={
         'group flex w-full min-w-0 overflow-hidden rounded-card border border-culture-line border-l-4 bg-culture-surface text-left shadow-card transition duration-200 ease-out ' +
-        (resolved === 'rail' ? 'flex-row ' : 'flex-col ') +
+        (resolved === 'rail' ? 'flex-row items-start ' : 'flex-col ') +
         (resolved === 'compact' ? 'hover:shadow-md' : 'hover:-translate-y-0.5 hover:shadow-md')
       }
       style={accentStyle}
