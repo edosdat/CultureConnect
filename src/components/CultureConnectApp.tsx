@@ -299,8 +299,7 @@ export default function CultureConnectApp({
   const [nearMePending, setNearMePending] = useState(false);
   const [userPos, setUserPos] = useState<GeoPos | null>(null);
   const [query, setQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
-  /** Leftover title after Enter / submit — never parsed per keystroke. */
+  /** Applied title `q` — Enter to set, empty draft / × to drop. Not a debounce. */
   const [committedTitle, setCommittedTitle] = useState('');
   const [phraseTags, setPhraseTags] = useState<PhraseTags | null>(null);
   const searchDrivenRef = useRef({ scope: false, cat: false });
@@ -463,27 +462,21 @@ export default function CultureConnectApp({
 
   function handleQueryChange(next: string) {
     setQuery(next);
-    const leftover = leftoverTitleAfterDraftChange(next, committedTitle);
-    if (leftover !== committedTitle) {
-      setCommittedTitle(leftover);
-      setDebouncedQuery(leftover);
-    }
+    // Always apply — empty draft must drop leftover q even if leftover state is stale.
+    setCommittedTitle((current) => leftoverTitleAfterDraftChange(next, current));
   }
 
   function handleSearchSubmit(raw: string) {
     const parsed = parseSearchChips(raw);
     applyParsedChips(parsed, raw);
-    if (raw.trim()) {
-      setCommittedTitle(parsed.titleQuery);
-      setDebouncedQuery(parsed.titleQuery);
-    }
+    setCommittedTitle(parsed.titleQuery);
   }
 
   const queryTrimmed = query.trim();
   const phraseMode = false;
   /** Leftover title after submit — chip-only phrases are not a title search. */
   const searchingUi = titleLeftover.length > 0;
-  const searching = debouncedQuery.trim().length > 0;
+  const searching = titleLeftover.trim().length > 0;
 
   const scopeRange = useMemo(
     () =>
@@ -805,7 +798,6 @@ export default function CultureConnectApp({
       return;
     }
     skipListFetch.current = false;
-    if (titleLeftover && titleLeftover !== debouncedQuery.trim()) return;
     const gen = ++listFetchGen.current;
     const delay = 0;
     let cancelled = false;
@@ -814,7 +806,7 @@ export default function CultureConnectApp({
       const params = buildAgendaParams({
         scope: timeScope,
         commune: selectedCommune,
-        q: debouncedQuery.trim(),
+        q: titleLeftover.trim(),
         cats: selectedCategories,
         genres: selectedGenres,
         lieuId: selectedLieuId,
@@ -851,7 +843,6 @@ export default function CultureConnectApp({
     year,
     month,
     titleLeftover,
-    debouncedQuery,
     selectedCommune,
     selectedLieuId,
     selectedCategories,
@@ -1222,7 +1213,7 @@ export default function CultureConnectApp({
     selectedDay,
     year,
     month,
-    debouncedQuery,
+    titleLeftover,
     selectedCommune,
     selectedLieuId,
     selectedCategories,
@@ -1240,7 +1231,7 @@ export default function CultureConnectApp({
     const params = buildAgendaParams({
       scope: timeScope,
       commune: selectedCommune,
-      q: debouncedQuery.trim(),
+      q: titleLeftover.trim(),
       cats: selectedCategories,
       genres: selectedGenres,
       lieuId: selectedLieuId,
@@ -1268,7 +1259,7 @@ export default function CultureConnectApp({
     total,
     timeScope,
     selectedCommune,
-    debouncedQuery,
+    titleLeftover,
     selectedCategories,
     selectedGenres,
     selectedLieuId,

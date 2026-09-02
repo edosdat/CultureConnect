@@ -1,11 +1,11 @@
 'use client';
 
-import type { FormEvent, KeyboardEvent } from 'react';
+import type { FormEvent, KeyboardEvent, SyntheticEvent } from 'react';
 import { SEARCH_PLACEHOLDER } from '@/lib/displayHome';
 
 type Props = {
   value: string;
-  /** Draft text only — never parse / apply chips. */
+  /** Draft text only — never parse / apply chips. Empty string drops title q. */
   onChange: (value: string) => void;
   /** Enter or mobile Search key only. */
   onSubmit?: (value: string) => void;
@@ -24,6 +24,16 @@ export default function SearchOmnibox({
 }: Props) {
   function commit() {
     onSubmit?.(value);
+  }
+
+  function emitDraft(next: string) {
+    onChange(next);
+  }
+
+  function clearDraft(e: SyntheticEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    emitDraft('');
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -57,7 +67,7 @@ export default function SearchOmnibox({
         type="text"
         inputMode="search"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => emitDraft(e.target.value)}
         onKeyDown={onKeyDown}
         placeholder={placeholder}
         aria-label={placeholder}
@@ -68,15 +78,9 @@ export default function SearchOmnibox({
       {value ? (
         <button
           type="button"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onChange('');
-          }}
+          onPointerDown={clearDraft}
+          onMouseDown={clearDraft}
+          onClick={clearDraft}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-culture-muted hover:text-culture-terracotta"
           aria-label="Effacer la recherche"
         >

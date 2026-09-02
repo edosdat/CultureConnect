@@ -433,8 +433,10 @@ export function searchSubmitAppliesChips(
 }
 
 /**
- * × / backspace-to-empty clears leftover title immediately.
- * Non-empty draft does not change leftover (chips still wait for Enter).
+ * Applied title `q` after a draft keystroke / ×.
+ * Empty draft ("" / whitespace) drops leftover immediately — apply this
+ * unconditionally; do not compare against a possibly stale leftover.
+ * Non-empty draft does not change leftover (chip parse still waits for Enter).
  */
 export function leftoverTitleAfterDraftChange(
   draft: string,
@@ -442,5 +444,10 @@ export function leftoverTitleAfterDraftChange(
 ): string {
   if (!(draft || '').trim()) return '';
   return currentLeftover;
+}
+
+/** True when × / last backspace left the box empty — title filter must drop. */
+export function emptyDraftClearsTitle(draft: string): boolean {
+  return leftoverTitleAfterDraftChange(draft, 'x') === '';
 }
 
