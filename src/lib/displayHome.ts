@@ -8,11 +8,13 @@ import type { AccountTasteState } from './signals';
 import { densify, densifyGroupKey, type DenseRow } from './densify';
 import {
   filmIdOfItem,
+  homePackOfItem,
   isCinemaDayItem,
   isMusiqueDayItem,
   isTheatreDayItem,
   isVivantDayItem,
   mainOfDayItem,
+  type HomePackId,
 } from './nouveautesCine';
 import { formatDateFr, formatHeure, formatLieuAffiche } from './labels';
 import { seanceDateIso } from './timeScope';
@@ -340,6 +342,43 @@ export function homeSectionsVisible(cats: readonly string[]): {
     theatre: home.includes('theatre_danse'),
     musique: home.includes('musique'),
   };
+}
+
+/**
+ * Look up a card by agenda key (`p:…` / `e:…`) across in-memory pools.
+ * Pass the full Top 3 / reco catalogue first — never only the QUOI-filtered
+ * grid (`applyList` / cine rows). Same key as `?e=` / `/api/agenda?id=`.
+ */
+export function findDayItemByKey(
+  key: string | null | undefined,
+  ...pools: Array<readonly DayItem[] | undefined | null>
+): DayItem | null {
+  if (!key) return null;
+  for (const pool of pools) {
+    if (!pool?.length) continue;
+    const found = pool.find((item) => item.key === key);
+    if (found) return found;
+  }
+  return null;
+}
+
+export type HomeCardOpen =
+  | { mode: 'fiche'; key: string }
+  | { mode: 'pack'; pack: HomePackId; key: string };
+
+/**
+ * Top 3 always opens the event fiche (dialog), even when a QUOI chip has
+ * hidden that pack's grid. Catalogue / leftover cards still focus their pack.
+ */
+export function resolveHomeCardOpen(
+  key: string,
+  found: DayItem | null,
+  source: 'top3' | 'grid' = 'grid',
+): HomeCardOpen {
+  if (source === 'top3') return { mode: 'fiche', key };
+  const pack = found ? homePackOfItem(found) : null;
+  if (pack) return { mode: 'pack', pack, key };
+  return { mode: 'fiche', key };
 }
 
 export function cineFirstPaint(mobile: boolean): number {
