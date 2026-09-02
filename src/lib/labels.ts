@@ -101,6 +101,54 @@ export function formatItemPrix(
   return 'Tarif non indiqué';
 }
 
+/**
+ * Catalogue price only — never invent. Empty / « tarif non indiqué » → null (omit in UI).
+ * Real columns: programme.prix_item, evenements.prix + gratuit.
+ */
+export function knownPrixLabel(
+  prixItem?: string | null,
+  event?: { prix?: string | null; gratuit?: string | null } | null,
+): string | null {
+  const item = (prixItem || '').trim();
+  if (item) {
+    if (item.toLowerCase() === 'gratuit') return 'Gratuit';
+    return item;
+  }
+  if (event?.gratuit?.trim().toLowerCase() === 'oui') return 'Gratuit';
+  const prix = (event?.prix || '').trim();
+  if (prix) {
+    if (prix.toLowerCase() === 'gratuit') return 'Gratuit';
+    return prix;
+  }
+  return null;
+}
+
+/**
+ * Film version from existing CSV `langue` (no version / vo / vost columns).
+ * Known mentions only — `fr` and empty are omitted, never invented.
+ */
+const FILM_VERSION_KEYS = new Set([
+  'VF',
+  'VO',
+  'VOST',
+  'VOSTFR',
+  'VFST',
+  'VOSTFR-SME',
+  'VFST-SME',
+]);
+
+export function filmVersionLabel(
+  ...raws: Array<string | null | undefined>
+): string | null {
+  for (const raw of raws) {
+    const t = (raw || '').trim();
+    if (!t) continue;
+    const key = t.replace(/\s+/g, '').toUpperCase();
+    if (FILM_VERSION_KEYS.has(key)) return key;
+  }
+  return null;
+}
+
 export function formatDateRange(debut: string, fin: string): string {
   if (!debut) return '';
   if (!fin || fin === debut) return formatDateFr(debut);
