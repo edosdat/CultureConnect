@@ -312,7 +312,7 @@ describe('pack rows + date filter', () => {
     assert.equal(shouldInvalidateProfileRecoCache(full, 4), false);
   });
 
-  it('cine pack shows one card per film_id; live pack one card per event_id', () => {
+  it('cine pack shows one card per film work; live pack one card per title', () => {
     const clones: DayItem[] = [
       item({
         key: 'cine-a',

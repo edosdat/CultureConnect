@@ -19,6 +19,8 @@ import {
   cinemaStemsCompatible,
   cinemaTitleStem,
   densifiedCardCount,
+  displayTitleNorm,
+  normalizeDisplayTitle,
 } from './densify';
 import {
   countItemsByDay,
@@ -1248,12 +1250,20 @@ export function queryAgendaDetail(
       commune,
       window,
     );
-  } else if (eid) {
-    // Living-arts fiche: all créneaux of this event_id (not only the opened day).
+  } else {
+    // Living-arts fiche: same event_id OR same visible title
+    // (weekly BAR* clones mint a new event_id per night).
+    const title = displayTitleNorm(item);
     relatedItems = relatedSeancesFromProgramme(
-      data.programmeWithContext.filter(
-        (p) => (p.programme.event_id || '').trim() === eid,
-      ),
+      data.programmeWithContext.filter((p) => {
+        if (eid && (p.programme.event_id || '').trim() === eid) return true;
+        if (!title) return false;
+        return (
+          normalizeDisplayTitle(
+            p.programme.nom_item || p.evenement?.titre || '',
+          ) === title
+        );
+      }),
       commune,
       window,
     );

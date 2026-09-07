@@ -120,7 +120,10 @@ describe('densify visible-card identity', () => {
     );
     const rows = densify(seances);
     assert.equal(rows.length, 1);
-    assert.equal(densifyGroupKey(seances[0]!), 'film:F0020');
+    assert.equal(
+      densifyGroupKey(seances[0]!),
+      `film:w:${cinemaTitleStem('La Bataille de Gaulle')}`,
+    );
     assert.equal(rows[0]!.seances.length, 6);
     assert.equal(rows[0]!.salleCount, 6);
     assert.equal(rows[0]!.item.key, 'p-gaulle-1');
@@ -249,24 +252,41 @@ describe('densify visible-card identity', () => {
     );
     const rows = densify(seances);
     assert.equal(rows.length, 1);
-    assert.equal(densifyGroupKey(seances[0]!), 'ev:E351');
+    assert.equal(densifyGroupKey(seances[0]!), 't:la bulle');
     assert.equal(rows[0]!.seances.length, 12);
     assert.equal(rows[0]!.item.dayIso, '2026-08-31');
     assert.equal(rows[0]!.item.programme.heure_debut, '09:30');
   });
 
-  it('does not merge two living-arts events that share a title', () => {
+  it('collapses weekly En live clones that mint a new event_id each night', () => {
+    const rows = densify(
+      [87, 94, 99, 101, 105, 106, 108].map((n, i) =>
+        item({
+          key: `flash-${n}`,
+          title: 'La Flashback by Jean-Heude',
+          cat: 'concert',
+          eventId: `BAR0${n}`,
+          day: `2026-09-0${1 + (i % 7)}`,
+          form: 'concert',
+        }),
+      ),
+    );
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0]!.seances.length, 7);
+  });
+
+  it('keeps two living-arts works with different titles apart', () => {
     const rows = densify([
       item({
         key: 'a',
-        title: 'Jam',
+        title: 'Jam jazz manouche',
         cat: 'concert',
         eventId: 'E1',
         form: 'concert',
       }),
       item({
         key: 'b',
-        title: 'Jam',
+        title: 'Jam Horra',
         cat: 'concert',
         eventId: 'E2',
         form: 'concert',

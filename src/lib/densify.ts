@@ -84,13 +84,17 @@ function itemTitleRaw(item: DayItem): string {
     : item.evenement.titre || '';
 }
 
-function titleNorm(item: DayItem): string {
-  return itemTitleRaw(item)
+export function normalizeDisplayTitle(raw: string): string {
+  return raw
     .toLowerCase()
     .normalize('NFD')
     .replace(/\p{M}/gu, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function titleNorm(item: DayItem): string {
+  return normalizeDisplayTitle(itemTitleRaw(item));
 }
 
 /** Display work stem — not a new film_id. Strips partie N / punctuation. */
@@ -140,35 +144,46 @@ function looksCinema(item: DayItem): boolean {
   return cat.includes('cinema') || cat.includes('cinematheque');
 }
 
+export function displayTitleNorm(item: DayItem): string {
+  return titleNorm(item);
+}
+
 /**
- * Visible-card identity only (not CSV, not reco):
- * - film_id → one card across salles / days
- * - cinema without film_id → one card per normalised title
- *   (cinema event_ids are often one-per-salle-per-day)
- * - else event_id → one card across days / créneaux (En live)
- * - else raw row key
+ * Strongest visible-card identity (not CSV, not reco):
+ * - cinema → work stem (catalogue film_id clones collapse)
+ * - else normalised title (weekly per-night event_id clones collapse)
+ * - else event_id / raw key
  */
-export function densifyGroupKey(item: DayItem): string {
-  if (item.kind === 'programme') {
-    const filmId = (item.programme.film_id || '').trim();
-    if (filmId) return `film:${filmId}`;
-  }
+export function visibleWorkKey(item: DayItem): string {
   if (looksCinema(item)) {
     const stem = cinemaDisplayStem(item);
     if (stem) return `film:w:${stem}`;
+    const filmId =
+      item.kind === 'programme' ? (item.programme.film_id || '').trim() : '';
+    if (filmId) return `film:${filmId}`;
   }
+  const title = titleNorm(item);
+  if (title) return `t:${title}`;
   const eventId = eventIdOf(item);
   if (eventId) return `ev:${eventId}`;
   return item.key;
 }
 
-function cardTitle(item: DayItem): string {
-  return titleNorm(item) || item.key;
+export function densifyGroupKey(item: DayItem): string {
+  return visibleWorkKey(item);
+}
+
+function sameVisibleWork(a: DayItem, b: DayItem): boolean {
+  if (visibleWorkKey(a) === visibleWorkKey(b)) return true;
+  if (looksCinema(a) && looksCinema(b)) {
+    return cinemaStemsCompatible(cinemaDisplayStem(a), cinemaDisplayStem(b));
+  }
+  return false;
 }
 
 /**
- * Unique visible titles in the first N cards vs the first N raw rows.
- * Higher denseShare = less séance-clone inflation on first scroll.
+ * Unique visible works in the first N cards vs the first N raw rows.
+ * First scroll must be 100% unique after densify.
  */
 export function firstScrollUniqueShare(
   items: DayItem[],
@@ -179,12 +194,13 @@ export function firstScrollUniqueShare(
   const rawShare =
     raw.length === 0
       ? 1
-      : new Set(raw.map(cardTitle)).size / raw.length;
+      : new Set(raw.map(visibleWorkKey)).size / raw.length;
   const dense = densify(items).slice(0, n);
   const denseShare =
     dense.length === 0
       ? 1
-      : new Set(dense.map((row) => cardTitle(row.item))).size / dense.length;
+      : new Set(dense.map((row) => visibleWorkKey(row.item))).size /
+        dense.length;
   return { rawShare, denseShare };
 }
 
@@ -209,39 +225,60 @@ export function densify(
   }
 
   const mergedOrder = mergeCompatibleFilmGroups(groups, order, filmFlags);
-
-  const rows = mergedOrder.map((k) => {
-    const g = groups.get(k)!;
-    const isFilmGroup = filmFlags.get(k) === true;
-    const item = isFilmGroup
-      ? pickRepresentative(g, origin)
-      : origin
-        ? pickRepresentative(g, origin)
-        : [...g].sort((a, b) => {
-            const da = seanceDateIso(a).localeCompare(seanceDateIso(b));
-            if (da !== 0) return da;
-            return heureKey(a).localeCompare(heureKey(b));
-          })[0];
-    const venues = new Set(
-      g.map((i) => i.lieu?.lieu_id).filter((id): id is string => Boolean(id)),
-    );
-    return {
-      item,
-      seances: g,
-      groupKey: k,
-      extraSlots: Math.max(0, g.length - 1),
-      salleCount: isFilmGroup ? venues.size : 0,
-      earliestHeure: isFilmGroup ? earliestHeureOf(g) : '',
-      citiesSummary: isFilmGroup ? citiesSummaryOf(g) : '',
-      isFilmGroup,
-    };
-  });
+  const rows = hardUniqueRows(
+    mergedOrder.map((k) => toDenseRow(k, groups.get(k)!, filmFlags, origin)),
+    origin,
+  );
   if (!origin) return rows;
   return [...rows].sort((a, b) => {
     const da = Math.min(...a.seances.map((s) => itemSortKm(s, origin)));
     const db = Math.min(...b.seances.map((s) => itemSortKm(s, origin)));
     return da - db;
   });
+}
+
+function toDenseRow(
+  groupKey: string,
+  g: DayItem[],
+  filmFlags: Map<string, boolean>,
+  origin: GeoPos | null,
+): DenseRow {
+  const isFilmGroup =
+    filmFlags.get(groupKey) === true || groupKey.startsWith('film:');
+  const item = pickRepresentative(g, origin);
+  const venues = new Set(
+    g.map((i) => i.lieu?.lieu_id).filter((id): id is string => Boolean(id)),
+  );
+  return {
+    item,
+    seances: g,
+    groupKey,
+    extraSlots: Math.max(0, g.length - 1),
+    salleCount: isFilmGroup ? venues.size : 0,
+    earliestHeure: isFilmGroup ? earliestHeureOf(g) : '',
+    citiesSummary: isFilmGroup ? citiesSummaryOf(g) : '',
+    isFilmGroup,
+  };
+}
+
+/** Last pass: never leave two visible cards for the same work. */
+function hardUniqueRows(
+  rows: DenseRow[],
+  origin: GeoPos | null,
+): DenseRow[] {
+  const out: DenseRow[] = [];
+  for (const row of rows) {
+    const hit = out.findIndex((keep) => sameVisibleWork(keep.item, row.item));
+    if (hit < 0) {
+      out.push(row);
+      continue;
+    }
+    const keep = out[hit]!;
+    const seances = [...keep.seances, ...row.seances];
+    const flags = new Map<string, boolean>([[keep.groupKey, keep.isFilmGroup]]);
+    out[hit] = toDenseRow(keep.groupKey, seances, flags, origin);
+  }
+  return out;
 }
 
 /** Card count after film / event collapse (for agenda counters). */

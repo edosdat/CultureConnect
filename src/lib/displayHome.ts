@@ -9,6 +9,7 @@ import {
   cinemaDisplayStem,
   densify,
   densifyGroupKey,
+  visibleWorkKey,
   type DenseRow,
 } from './densify';
 import {
@@ -197,7 +198,7 @@ export function eventIdOf(item: DayItem): string {
 }
 
 export function identityKeysOf(item: DayItem): string[] {
-  const keys = [item.key, densifyGroupKey(item)];
+  const keys = [item.key, densifyGroupKey(item), visibleWorkKey(item)];
   const fid = filmIdOfItem(item);
   if (fid) keys.push(`film:${fid}`);
   const eid = eventIdOf(item);
