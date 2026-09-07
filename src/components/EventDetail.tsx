@@ -43,6 +43,7 @@ import { fichePressCitation } from '@/lib/pressCitation';
 import type { GeoPos } from '@/lib/nearMe';
 import VivantComplementLinks from './VivantComplementLinks';
 import PressCitation from './PressCitation';
+import FicheDescription from './FicheDescription';
 import { CineFilmSeances } from './CineSeancePicker';
 
 type Props = {
@@ -292,21 +293,6 @@ function FichePressBlock({ item }: { item: DayItem }) {
   return <PressCitation citation={fichePressCitation(item)} />;
 }
 
-function pitchOf(item: DayItem): string {
-  if (item.kind === 'programme') {
-    const ev = item.evenement;
-    return (
-      (ev?.description_longue || '').trim() ||
-      (item.programme.description_item || '').trim() ||
-      (ev?.description_courte || '').trim()
-    );
-  }
-  return (
-    (item.evenement.description_longue || '').trim() ||
-    (item.evenement.description_courte || '').trim()
-  );
-}
-
 function creditNamesOf(item: DayItem): string[] {
   const ev = item.evenement;
   const raw = (ev?.casting || '').trim();
@@ -466,6 +452,7 @@ export default function EventDetail({
                     />
                   </div>
                 ) : null}
+                <FicheDescription item={item} />
                 <div className="mt-3">
                   <VivantComplementLinks
                     film={filmForSuggestions}
@@ -507,22 +494,12 @@ export default function EventDetail({
                     {ev.titre}
                   </p>
                 )}
+                <FicheDescription item={item} />
               </div>
             </div>
           )}
 
           <div className="space-y-5 px-5 py-5">
-            {pitchOf(item) ? (
-              <section>
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
-                  Description
-                </h3>
-                <p className="mt-2 whitespace-pre-wrap text-culture-ink leading-relaxed break-words">
-                  {pitchOf(item)}
-                </p>
-              </section>
-            ) : null}
-
             {!hasFilmSeances && (
               <dl className="grid gap-3 text-sm sm:grid-cols-2">
                 <div>
@@ -780,6 +757,7 @@ export default function EventDetail({
               <p className="mt-1 text-xs uppercase tracking-wide text-culture-muted">
                 Sur la période (pas de séance datée ce jour)
               </p>
+              <FicheDescription item={item} />
               <div className="mt-3">
                 <VivantComplementLinks
                   film={item}
@@ -814,22 +792,12 @@ export default function EventDetail({
               <p className="mt-1 text-xs uppercase tracking-wide text-culture-muted">
                 Sur la période (pas de séance datée ce jour)
               </p>
+              <FicheDescription item={item} />
             </div>
           </div>
         )}
 
         <div className="space-y-5 px-5 py-5">
-          {pitchOf(item) ? (
-            <section>
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
-                Description
-              </h3>
-              <p className="mt-1 whitespace-pre-wrap text-culture-ink leading-relaxed break-words">
-                {pitchOf(item)}
-              </p>
-            </section>
-          ) : null}
-
           <dl className="grid gap-3 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-culture-muted">Dates</dt>
