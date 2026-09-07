@@ -13,6 +13,7 @@ import { filterSeancesForActiveFilters } from '@/lib/displayFilter';
 import { isLikelyMobile, itemImageUrl } from '@/lib/displayHome';
 import { pickFilmVivantComplements } from '@/lib/filmVivantComplements';
 import SeanceCard from './SeanceCard';
+import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 import FilmPoster from './FilmPoster';
 import ShareButton from './ShareButton';
 import FavoriteButton from './FavoriteButton';
@@ -434,6 +435,7 @@ export default function EventDetail({
                       {labelTypeItem(p.type_item)}
                     </span>
                   )}
+                  <TheatreUrgenceBadge item={item} />
                 </div>
                 <h2
                   id="event-detail-title"
@@ -487,6 +489,7 @@ export default function EventDetail({
                       {labelTypeItem(p.type_item)}
                     </span>
                   )}
+                  <TheatreUrgenceBadge item={item} />
                 </div>
                 <h2
                   id="event-detail-title"
@@ -757,9 +760,12 @@ export default function EventDetail({
           <div>
             <FilmPoster src={itemImageUrl(item)} item={item} blurBackdrop />
             <div className="min-w-0 break-words px-5 pt-3">
-              <span className="rounded-full bg-white px-2.5 py-0.5 text-xs text-culture-terracotta">
-                {labelCategorie(event.categorie)}
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-white px-2.5 py-0.5 text-xs text-culture-terracotta">
+                  {labelCategorie(event.categorie)}
+                </span>
+                <TheatreUrgenceBadge item={item} />
+              </div>
               <h2
                 id="event-detail-title"
                 className="mt-2 font-display text-base leading-snug text-culture-ink break-words md:text-2xl"
@@ -788,9 +794,12 @@ export default function EventDetail({
         ) : (
           <div className="px-5 pt-4">
             <div className="min-w-0 break-words">
-              <span className="rounded-full bg-white px-2.5 py-0.5 text-xs text-culture-terracotta">
-                {labelCategorie(event.categorie)}
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-white px-2.5 py-0.5 text-xs text-culture-terracotta">
+                  {labelCategorie(event.categorie)}
+                </span>
+                <TheatreUrgenceBadge item={item} />
+              </div>
               <h2
                 id="event-detail-title"
                 className="mt-2 font-display text-2xl text-culture-ink break-words"

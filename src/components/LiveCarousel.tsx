@@ -7,6 +7,7 @@ import { itemPitch, itemTitle, seanceWhen } from '@/lib/displayHome';
 import { itemKmLabel, minKmLabel, type GeoPos } from '@/lib/nearMe';
 import VisualFallback, { categoryLabelOf } from './VisualFallback';
 import FavoriteButton from './FavoriteButton';
+import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 
 type Props = {
   rows: DenseRow[];
@@ -73,8 +74,11 @@ export default function LiveCarousel({
                     <VisualFallback item={item} />
                   )}
                   {cat ? (
-                    <span className="absolute left-2 top-2 rounded bg-culture-terracotta px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">
-                      {cat}
+                    <span className="absolute left-2 top-2 flex max-w-[calc(100%-1rem)] flex-wrap items-center gap-1">
+                      <span className="rounded bg-culture-terracotta px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">
+                        {cat}
+                      </span>
+                      <TheatreUrgenceBadge item={item} />
                     </span>
                   ) : null}
                 </div>

@@ -7,6 +7,7 @@ import {
   buildArtistesFromTable,
 } from './artists';
 import { mainsForItem, MAIN_CATEGORIES } from './categories';
+import { lastDateOfSeries } from './theatreUrgence';
 import type {
   Artiste,
   CategoryBucket,
@@ -155,6 +156,15 @@ function buildCultureData(): CultureData {
     const list = programmeByEvent.get(item.event_id) ?? [];
     list.push(item);
     programmeByEvent.set(item.event_id, list);
+  }
+
+  for (const ev of evenements) {
+    const rows = programmeByEvent.get(ev.event_id) ?? [];
+    ev.last_seance_date =
+      lastDateOfSeries({
+        programmeDates: rows.map((p) => p.date),
+        dateFin: ev.date_fin,
+      }) ?? '';
   }
 
   const events: EventWithDetails[] = evenements.map((ev) => ({
