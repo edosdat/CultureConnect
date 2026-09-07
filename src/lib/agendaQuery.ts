@@ -1167,6 +1167,51 @@ function withCredits(item: DayItem, artistes: Artiste[]): DayItem {
   return { ...item, evenement: { ...ev, casting: names.join(', ') } };
 }
 
+function eventIdOfItem(item: DayItem): string {
+  if (item.kind === 'programme') return (item.programme.event_id || '').trim();
+  return (item.evenement.event_id || '').trim();
+}
+
+function relatedSeancesFromProgramme(
+  rows: ProgrammeWithContext[],
+  commune?: string | null,
+  window?: {
+    dateFrom?: string | null;
+    dateTo?: string | null;
+    soir?: boolean;
+  },
+): DayItem[] {
+  const mapped = rows
+    .map((p) => ({
+      kind: 'programme' as const,
+      key: `p:${p.programme.programme_id}`,
+      dayIso: p.programme.date,
+      programme: p.programme,
+      evenement: p.evenement,
+      lieu: p.lieu,
+    }))
+    .sort((a, b) => {
+      const da = a.programme.date || a.dayIso;
+      const db = b.programme.date || b.dayIso;
+      if (da !== db) return da.localeCompare(db);
+      return (a.programme.heure_debut || '').localeCompare(
+        b.programme.heure_debut || '',
+      );
+    })
+    .map(relatedSeanceDayItem);
+  return filterSeancesForDisplay(
+    filterItemsByCommune(
+      hideSeancesBeforeToday(mapped, parisParts().iso),
+      commune,
+    ),
+    {
+      startIso: window?.dateFrom,
+      endIso: window?.dateTo,
+      soir: Boolean(window?.soir),
+    },
+  );
+}
+
 export function queryAgendaDetail(
   id: string,
   commune?: string | null,
@@ -1181,40 +1226,25 @@ export function queryAgendaDetail(
   if (!item) return null;
 
   let relatedItems: DayItem[] = [];
-  if (item.kind === 'programme') {
-    const fid = filmIdOfItem(item);
-    if (fid) {
-      relatedItems = data.programmeWithContext
-        .filter((p) => (p.programme.film_id || '').trim() === fid)
-        .map((p) => ({
-          kind: 'programme' as const,
-          key: `p:${p.programme.programme_id}`,
-          dayIso: p.programme.date,
-          programme: p.programme,
-          evenement: p.evenement,
-          lieu: p.lieu,
-        }))
-        .sort((a, b) => {
-          const da = a.programme.date || a.dayIso;
-          const db = b.programme.date || b.dayIso;
-          if (da !== db) return da.localeCompare(db);
-          return (a.programme.heure_debut || '').localeCompare(
-            b.programme.heure_debut || '',
-          );
-        })
-        .map(relatedSeanceDayItem);
-      relatedItems = filterSeancesForDisplay(
-        filterItemsByCommune(
-          hideSeancesBeforeToday(relatedItems, parisParts().iso),
-          commune,
-        ),
-        {
-          startIso: window?.dateFrom,
-          endIso: window?.dateTo,
-          soir: Boolean(window?.soir),
-        },
-      );
-    }
+  const fid = filmIdOfItem(item);
+  const eid = eventIdOfItem(item);
+  if (fid) {
+    relatedItems = relatedSeancesFromProgramme(
+      data.programmeWithContext.filter(
+        (p) => (p.programme.film_id || '').trim() === fid,
+      ),
+      commune,
+      window,
+    );
+  } else if (eid) {
+    // Living-arts fiche: all créneaux of this event_id (not only the opened day).
+    relatedItems = relatedSeancesFromProgramme(
+      data.programmeWithContext.filter(
+        (p) => (p.programme.event_id || '').trim() === eid,
+      ),
+      commune,
+      window,
+    );
   }
 
   let aussiCeSoir: DayItem[] = [];

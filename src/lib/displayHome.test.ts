@@ -79,13 +79,17 @@ function item(opts: {
   cat: string;
   day?: string;
   filmId?: string;
+  eventId?: string;
+  title?: string;
   genre?: string;
   form?: string;
 }): DayItem {
+  const eventId = opts.eventId ?? opts.key;
+  const title = opts.title ?? opts.key;
   const evenement = ev({
-    event_id: opts.key,
+    event_id: eventId,
     categorie: opts.cat,
-    titre: opts.key,
+    titre: title,
     genre: opts.genre ?? '',
     form: opts.form,
     date_debut: opts.day ?? '2026-09-02',
@@ -97,8 +101,8 @@ function item(opts: {
     dayIso: opts.day ?? '2026-09-02',
     programme: prog({
       programme_id: `p-${opts.key}`,
-      event_id: opts.key,
-      nom_item: opts.key,
+      event_id: eventId,
+      nom_item: title,
       date: opts.day ?? '2026-09-02',
       genre: opts.genre ?? '',
       form: opts.form,
@@ -306,6 +310,46 @@ describe('pack rows + date filter', () => {
       item({ key: 'mu-2', cat: 'concert' }),
     ];
     assert.equal(shouldInvalidateProfileRecoCache(full, 4), false);
+  });
+
+  it('cine pack shows one card per film_id; live pack one card per event_id', () => {
+    const clones: DayItem[] = [
+      item({
+        key: 'cine-a',
+        cat: 'cinema',
+        day: '2026-09-02',
+        filmId: 'F-GAULLE',
+        title: 'La Bataille de Gaulle',
+      }),
+      item({
+        key: 'cine-b',
+        cat: 'cinema',
+        day: '2026-09-02',
+        filmId: 'F-GAULLE',
+        title: 'La Bataille de Gaulle',
+        eventId: 'E-other-salle',
+      }),
+      item({
+        key: 'bulle-1',
+        cat: 'theatre',
+        day: '2026-09-02',
+        eventId: 'E351',
+        title: 'La Bulle',
+      }),
+      item({
+        key: 'bulle-2',
+        cat: 'theatre',
+        day: '2026-09-03',
+        eventId: 'E351',
+        title: 'La Bulle',
+      }),
+    ];
+    const cine = cineRows(clones, emptyTop3);
+    const theatre = theatreRows(clones, emptyTop3);
+    assert.equal(cine.length, 1);
+    assert.equal(cine[0]!.seances.length, 2);
+    assert.equal(theatre.length, 1);
+    assert.equal(theatre[0]!.seances.length, 2);
   });
 
   it('DATE window filters séances inside each pack', () => {

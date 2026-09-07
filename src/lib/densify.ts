@@ -78,20 +78,83 @@ function citiesSummaryOf(g: DayItem[]): string {
   return `${cities.slice(0, 2).join(', ')}…`;
 }
 
+function titleNorm(item: DayItem): string {
+  const raw =
+    item.kind === 'programme'
+      ? item.programme.nom_item || item.evenement?.titre || ''
+      : item.evenement.titre || '';
+  return raw
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function eventIdOf(item: DayItem): string {
+  if (item.kind === 'programme') return (item.programme.event_id || '').trim();
+  return (item.evenement.event_id || '').trim();
+}
+
+/** Display cinema? Official film_id, form cine, or cinema categorie. Not title invention. */
+function looksCinema(item: DayItem): boolean {
+  if (item.kind === 'programme' && (item.programme.film_id || '').trim()) {
+    return true;
+  }
+  const form = (
+    (item.kind === 'programme' ? item.programme.form : item.evenement.form) || ''
+  ).trim();
+  if (form === 'cine' || form === 'cinema') return true;
+  const cat = (item.evenement?.categorie || '').toLowerCase();
+  return cat.includes('cinema') || cat.includes('cinematheque');
+}
+
 /**
- * Soft-collapse:
- * - same film_id across the whole list → one card (N salles · dès HH:MM)
- * - else same event_id+day+title → +N créneaux
+ * Visible-card identity only (not CSV, not reco):
+ * - film_id → one card across salles / days
+ * - cinema without film_id → one card per normalised title
+ *   (cinema event_ids are often one-per-salle-per-day)
+ * - else event_id → one card across days / créneaux (En live)
+ * - else raw row key
  */
 export function densifyGroupKey(item: DayItem): string {
   if (item.kind === 'programme') {
     const filmId = (item.programme.film_id || '').trim();
     if (filmId) return `film:${filmId}`;
-    if (item.programme.event_id) {
-      return `p:${item.dayIso}:${item.programme.event_id}:${item.programme.nom_item}`;
-    }
   }
+  if (looksCinema(item)) {
+    const title = titleNorm(item);
+    if (title) return `film:t:${title}`;
+  }
+  const eventId = eventIdOf(item);
+  if (eventId) return `ev:${eventId}`;
   return item.key;
+}
+
+function cardTitle(item: DayItem): string {
+  return titleNorm(item) || item.key;
+}
+
+/**
+ * Unique visible titles in the first N cards vs the first N raw rows.
+ * Higher denseShare = less séance-clone inflation on first scroll.
+ */
+export function firstScrollUniqueShare(
+  items: DayItem[],
+  firstN: number,
+): { rawShare: number; denseShare: number } {
+  const n = Math.max(0, firstN);
+  const raw = items.slice(0, n);
+  const rawShare =
+    raw.length === 0
+      ? 1
+      : new Set(raw.map(cardTitle)).size / raw.length;
+  const dense = densify(items).slice(0, n);
+  const denseShare =
+    dense.length === 0
+      ? 1
+      : new Set(dense.map((row) => cardTitle(row.item))).size / dense.length;
+  return { rawShare, denseShare };
 }
 
 export function densify(
