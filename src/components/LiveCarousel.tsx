@@ -5,6 +5,7 @@ import type { DenseRow } from '@/lib/densify';
 import { formatLieuAffiche } from '@/lib/labels';
 import { itemPitch, itemTitle, seanceWhen } from '@/lib/displayHome';
 import { itemKmLabel, minKmLabel, type GeoPos } from '@/lib/nearMe';
+import EventImage from './EventImage';
 import VisualFallback, { categoryLabelOf } from './VisualFallback';
 import FavoriteButton from './FavoriteButton';
 import TheatreUrgenceBadge from './TheatreUrgenceBadge';
@@ -62,17 +63,13 @@ export default function LiveCarousel({
                 className="group flex w-full flex-col overflow-hidden rounded-card border border-culture-line bg-culture-surface text-left shadow-card"
               >
                 <div className="relative aspect-[16/10] w-full overflow-hidden">
-                  {image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={image}
-                      alt=""
-                      loading="lazy"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <VisualFallback item={item} />
-                  )}
+                  <EventImage
+                    src={image}
+                    alt=""
+                    loading="lazy"
+                    className="h-full w-full object-cover"
+                    fallback={<VisualFallback item={item} />}
+                  />
                   {cat ? (
                     <span className="absolute left-2 top-2 flex max-w-[calc(100%-1rem)] flex-wrap items-center gap-1">
                       <span className="rounded bg-culture-terracotta px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import type { DayItem } from '@/lib/types';
 import VisualFallback from './VisualFallback';
 
@@ -22,6 +23,17 @@ export default function FilmPoster({
   className = '',
   blurBackdrop = false,
 }: Props) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
+  const showPhoto = Boolean(src.trim()) && !failed;
+  const fallback = item ? (
+    <div className="absolute inset-0">
+      <VisualFallback item={item} />
+    </div>
+  ) : null;
+
   return (
     <div
       data-cine-hero="1"
@@ -31,20 +43,31 @@ export default function FilmPoster({
         className
       }
     >
-      {src ? (
+      {showPhoto ? (
         <>
           {blurBackdrop ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img className="cine-hero-blur" src={src} alt="" aria-hidden />
+            <img
+              className="cine-hero-blur"
+              src={src}
+              alt=""
+              aria-hidden
+              referrerPolicy="no-referrer"
+              onError={() => setFailed(true)}
+            />
           ) : null}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="cine-hero-poster" src={src} alt="" />
+          <img
+            className="cine-hero-poster"
+            src={src}
+            alt=""
+            referrerPolicy="no-referrer"
+            onError={() => setFailed(true)}
+          />
         </>
-      ) : item ? (
-        <div className="absolute inset-0">
-          <VisualFallback item={item} />
-        </div>
-      ) : null}
+      ) : (
+        fallback
+      )}
     </div>
   );
 }

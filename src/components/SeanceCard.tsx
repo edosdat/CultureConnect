@@ -14,6 +14,7 @@ import { seanceTimeLabel } from '@/lib/eventTimes';
 import { seanceDateIso } from '@/lib/timeScope';
 import { MAIN_CATEGORY_LABELS, mainFromCategorie, mainFromGenreSlug } from '@/lib/categories';
 import { catCssVar, catGradient } from '@/lib/categoryColor';
+import EventImage from './EventImage';
 import VisualFallback from './VisualFallback';
 import FavoriteButton from './FavoriteButton';
 import TheatreUrgenceBadge from './TheatreUrgenceBadge';
@@ -148,20 +149,16 @@ export default function SeanceCard({
               : ' h-28 w-full')
       }
     >
-      {imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={imageUrl}
-          alt=""
-          loading="lazy"
-          className={
-            'h-full w-full object-cover transition duration-200 ease-out group-hover:scale-[1.03]' +
-            (resolved === 'rail' ? ' absolute inset-0' : '')
-          }
-        />
-      ) : (
-        <VisualFallback item={item} compact={resolved !== 'live'} />
-      )}
+      <EventImage
+        src={imageUrl}
+        alt=""
+        loading="lazy"
+        className={
+          'h-full w-full object-cover transition duration-200 ease-out group-hover:scale-[1.03]' +
+          (resolved === 'rail' ? ' absolute inset-0' : '')
+        }
+        fallback={<VisualFallback item={item} compact={resolved !== 'live'} />}
+      />
       {catLabel && resolved !== 'rail' ? (
         <span className="absolute left-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-1">
           <CategoryPill label={catLabel} />

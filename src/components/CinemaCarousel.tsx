@@ -27,6 +27,7 @@ import { itemKmLabel, minKmLabel, type GeoPos } from '@/lib/nearMe';
 import { cineDistanceOrigin, defaultCineSeance } from '@/lib/cineSeances';
 import { pickFilmVivantComplements } from '@/lib/filmVivantComplements';
 import { reservePickOf } from '@/lib/reserve';
+import EventImage from './EventImage';
 import VisualFallback, { categoryLabelOf } from './VisualFallback';
 import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 import FilmPoster from './FilmPoster';
@@ -146,17 +147,13 @@ function FilmThumb({
       }
     >
       <div className="relative aspect-[2/3] overflow-hidden rounded-lg border border-culture-line bg-culture-sand">
-        {image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={image}
-            alt=""
-            loading="lazy"
-            className="h-full w-full object-cover object-top"
-          />
-        ) : (
-          <VisualFallback item={item} compact />
-        )}
+        <EventImage
+          src={image}
+          alt=""
+          loading="lazy"
+          className="h-full w-full object-cover object-top"
+          fallback={<VisualFallback item={item} compact />}
+        />
         <span className="absolute left-1.5 top-1.5 flex max-w-[calc(100%-0.75rem)] flex-wrap items-center gap-1">
           {when ? (
             <span className="rounded bg-culture-ink/85 px-1.5 py-0.5 text-[11px] font-semibold leading-tight text-white">
