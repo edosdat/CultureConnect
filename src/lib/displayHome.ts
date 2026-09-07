@@ -5,7 +5,12 @@
 
 import type { DayItem } from './types';
 import type { AccountTasteState } from './signals';
-import { densify, densifyGroupKey, type DenseRow } from './densify';
+import {
+  cinemaDisplayStem,
+  densify,
+  densifyGroupKey,
+  type DenseRow,
+} from './densify';
 import {
   filmIdOfItem,
   homePackOfItem,
@@ -199,6 +204,8 @@ export function identityKeysOf(item: DayItem): string[] {
   if (eid) keys.push(`ev:${eid}`);
   const title = itemTitle(item).trim().toLocaleLowerCase('fr');
   if (title) keys.push(`t:${title}`);
+  const stem = cinemaDisplayStem(item);
+  if (stem) keys.push(`stem:${stem}`);
   return keys;
 }
 

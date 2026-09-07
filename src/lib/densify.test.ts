@@ -1,6 +1,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  cinemaStemsCompatible,
+  cinemaTitleStem,
   densify,
   densifyGroupKey,
   densifiedCardCount,
@@ -129,13 +131,13 @@ describe('densify visible-card identity', () => {
     const rows = densify([
       item({
         key: 'p1',
-        title: 'La Bataille de Gaulle - partie 1',
+        title: "La Bataille de Gaulle - partie 1 : L'Âge de Fer",
         cat: 'cinema',
         filmId: 'F0020',
       }),
       item({
         key: 'p2',
-        title: 'La Bataille de Gaulle - Partie 2',
+        title: 'La Bataille de Gaulle - Partie 2 : J’écris ton nom',
         cat: 'cinema',
         filmId: 'F0015',
       }),
@@ -156,9 +158,78 @@ describe('densify visible-card identity', () => {
     );
     const rows = densify(seances);
     assert.equal(rows.length, 1);
-    assert.equal(densifyGroupKey(seances[0]!), 'film:t:la bataille de gaulle');
+    assert.equal(
+      densifyGroupKey(seances[0]!),
+      `film:w:${cinemaTitleStem('La Bataille de Gaulle')}`,
+    );
     assert.equal(rows[0]!.seances.length, 6);
     assert.equal(rows[0]!.isFilmGroup, true);
+  });
+
+  it('merges catalogue clones of the same film (extra film_ids / truncated titles)', () => {
+    const clones = [
+      item({
+        key: 'p-f15',
+        title: 'La Bataille de Gaulle - Partie 2 : J’écris ton nom',
+        cat: 'cinema',
+        filmId: 'F0015',
+        lieuId: 'L137',
+      }),
+      item({
+        key: 'p-f34',
+        title: 'La bataille de Gaulle – J’écris ton nom',
+        cat: 'cinema',
+        filmId: 'F0034',
+        lieuId: 'L126',
+      }),
+      item({
+        key: 'p-f44',
+        title: 'La bataille de Gaulle – J...',
+        cat: 'cinema',
+        filmId: 'F0044',
+        lieuId: 'L143',
+      }),
+      item({
+        key: 'p-f20',
+        title: "La Bataille de Gaulle - partie 1 : L'Âge de Fer",
+        cat: 'cinema',
+        filmId: 'F0020',
+        lieuId: 'L138',
+      }),
+      item({
+        key: 'p-f37',
+        title: 'La bataille de Gaulle – L’âge de fer',
+        cat: 'cinema',
+        filmId: 'F0037',
+        lieuId: 'L125',
+      }),
+      item({
+        key: 'p-f46',
+        title: 'La bataille de Gaulle – L...',
+        cat: 'cinema',
+        filmId: 'F0046',
+        lieuId: 'L144',
+      }),
+    ];
+    const rows = densify(clones);
+    assert.equal(rows.length, 2);
+    assert.equal(
+      rows.reduce((n, row) => n + row.seances.length, 0),
+      6,
+    );
+    assert.ok(
+      cinemaStemsCompatible(
+        cinemaTitleStem('La Bataille de Gaulle - Partie 2 : J’écris ton nom'),
+        cinemaTitleStem('La bataille de Gaulle – J...'),
+      ),
+    );
+    assert.equal(
+      cinemaStemsCompatible(
+        cinemaTitleStem('La Bataille de Gaulle - Partie 2 : J’écris ton nom'),
+        cinemaTitleStem("La Bataille de Gaulle - partie 1 : L'Âge de Fer"),
+      ),
+      false,
+    );
   });
 
   it('collapses En live / living-arts créneaux onto one event_id card', () => {

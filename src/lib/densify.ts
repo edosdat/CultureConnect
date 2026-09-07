@@ -78,17 +78,48 @@ function citiesSummaryOf(g: DayItem[]): string {
   return `${cities.slice(0, 2).join(', ')}…`;
 }
 
+function itemTitleRaw(item: DayItem): string {
+  return item.kind === 'programme'
+    ? item.programme.nom_item || item.evenement?.titre || ''
+    : item.evenement.titre || '';
+}
+
 function titleNorm(item: DayItem): string {
-  const raw =
-    item.kind === 'programme'
-      ? item.programme.nom_item || item.evenement?.titre || ''
-      : item.evenement.titre || '';
-  return raw
+  return itemTitleRaw(item)
     .toLowerCase()
     .normalize('NFD')
     .replace(/\p{M}/gu, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/** Display work stem — not a new film_id. Strips partie N / punctuation. */
+export function cinemaTitleStem(raw: string): string {
+  return raw
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/\bpartie\s*\d+\b/g, ' ')
+    .replace(/[''`´‘’]/g, '')
+    .replace(/[-–—:.,…·]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function cinemaDisplayStem(item: DayItem): string {
+  return cinemaTitleStem(itemTitleRaw(item));
+}
+
+const STEM_PREFIX_MIN = 20;
+
+/** Same work: equal stem, or a truncated title that is a word-boundary prefix. */
+export function cinemaStemsCompatible(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  if (short.length < STEM_PREFIX_MIN) return false;
+  // Truncated catalogue titles ("J...") must still join "J'écris ton nom".
+  return long.startsWith(short);
 }
 
 function eventIdOf(item: DayItem): string {
@@ -123,8 +154,8 @@ export function densifyGroupKey(item: DayItem): string {
     if (filmId) return `film:${filmId}`;
   }
   if (looksCinema(item)) {
-    const title = titleNorm(item);
-    if (title) return `film:t:${title}`;
+    const stem = cinemaDisplayStem(item);
+    if (stem) return `film:w:${stem}`;
   }
   const eventId = eventIdOf(item);
   if (eventId) return `ev:${eventId}`;
@@ -177,7 +208,9 @@ export function densify(
     groups.get(groupKey)!.push(item);
   }
 
-  const rows = order.map((k) => {
+  const mergedOrder = mergeCompatibleFilmGroups(groups, order, filmFlags);
+
+  const rows = mergedOrder.map((k) => {
     const g = groups.get(k)!;
     const isFilmGroup = filmFlags.get(k) === true;
     const item = isFilmGroup
@@ -211,10 +244,56 @@ export function densify(
   });
 }
 
-/** Card count after film_id / créneau collapse (for agenda counters). */
+/** Card count after film / event collapse (for agenda counters). */
 export function densifiedCardCount(items: DayItem[]): number {
   if (items.length <= 1) return items.length;
-  const keys = new Set<string>();
-  for (const item of items) keys.add(densifyGroupKey(item));
-  return keys.size;
+  return densify(items).length;
+}
+
+function mergeCompatibleFilmGroups(
+  groups: Map<string, DayItem[]>,
+  order: string[],
+  filmFlags: Map<string, boolean>,
+): string[] {
+  const filmKeys = order.filter((k) => filmFlags.get(k));
+  if (filmKeys.length < 2) return order;
+
+  const stemOf = new Map<string, string>();
+  for (const k of filmKeys) {
+    const g = groups.get(k);
+    if (!g?.length) continue;
+    const stems = g.map(cinemaDisplayStem).filter(Boolean);
+    stems.sort((a, b) => b.length - a.length);
+    stemOf.set(k, stems[0] || '');
+  }
+
+  const parent = new Map<string, string>();
+  for (const k of filmKeys) parent.set(k, k);
+  const find = (k: string): string => {
+    let p = parent.get(k) ?? k;
+    while (p !== (parent.get(p) ?? p)) p = parent.get(p) ?? p;
+    parent.set(k, p);
+    return p;
+  };
+
+  for (let i = 0; i < filmKeys.length; i++) {
+    for (let j = i + 1; j < filmKeys.length; j++) {
+      const a = filmKeys[i]!;
+      const b = filmKeys[j]!;
+      if (!cinemaStemsCompatible(stemOf.get(a) || '', stemOf.get(b) || '')) {
+        continue;
+      }
+      const pa = find(a);
+      const pb = find(b);
+      if (pa === pb) continue;
+      const keep = order.indexOf(pa) <= order.indexOf(pb) ? pa : pb;
+      const drop = keep === pa ? pb : pa;
+      parent.set(drop, keep);
+      groups.get(keep)!.push(...(groups.get(drop) || []));
+      groups.delete(drop);
+      filmFlags.delete(drop);
+    }
+  }
+
+  return order.filter((k) => groups.has(k));
 }

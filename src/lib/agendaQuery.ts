@@ -14,7 +14,12 @@ import type {
 import { loadCultureData } from './data';
 import { catsAllowCinemaPack, formFromCategorieAndForm, mainFromForm } from './categories';
 import { filterItemsByCommune } from './commune';
-import { densifiedCardCount } from './densify';
+import {
+  cinemaDisplayStem,
+  cinemaStemsCompatible,
+  cinemaTitleStem,
+  densifiedCardCount,
+} from './densify';
 import {
   countItemsByDay,
   itemsForDateRange,
@@ -1228,11 +1233,18 @@ export function queryAgendaDetail(
   let relatedItems: DayItem[] = [];
   const fid = filmIdOfItem(item);
   const eid = eventIdOfItem(item);
-  if (fid) {
+  const cineStem = isCinemaDayItem(item) ? cinemaDisplayStem(item) : '';
+  if (fid || cineStem) {
+    // Same visible film (official film_id and catalogue title clones).
     relatedItems = relatedSeancesFromProgramme(
-      data.programmeWithContext.filter(
-        (p) => (p.programme.film_id || '').trim() === fid,
-      ),
+      data.programmeWithContext.filter((p) => {
+        if (fid && (p.programme.film_id || '').trim() === fid) return true;
+        if (!cineStem) return false;
+        const rowStem = cinemaTitleStem(
+          p.programme.nom_item || p.evenement?.titre || '',
+        );
+        return cinemaStemsCompatible(cineStem, rowStem);
+      }),
       commune,
       window,
     );
