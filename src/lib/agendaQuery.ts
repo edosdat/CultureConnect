@@ -22,6 +22,7 @@ import {
   displayTitleNorm,
   normalizeDisplayTitle,
 } from './densify';
+import { vivantListInput } from './displayHome';
 import {
   countItemsByDay,
   itemsForDateRange,
@@ -931,10 +932,16 @@ export function queryAgenda(
   const cap = Math.min(Math.max(requested, 0), pageMax);
   const page = items.slice(offset, offset + cap).map(slimDayItem);
 
-  const vivantAll = items.filter(isVivantDayItem);
+  // Catalogue `items` stay QUOI-filtered. Vivant / En live uses the same
+  // date · commune · salle window without cat / genre chips.
+  const vivantSource =
+    input.cats.length > 0 || input.genres.length > 0
+      ? listForRange(vivantListInput(input), now).items
+      : items;
+  const vivantAll = vivantSource.filter(isVivantDayItem);
   const cineAll = items.filter(isCinemaDayItem);
-  const theatreAll = items.filter(isTheatreDayItem);
-  const musiqueAll = items.filter(isMusiqueDayItem);
+  const theatreAll = vivantSource.filter(isTheatreDayItem);
+  const musiqueAll = vivantSource.filter(isMusiqueDayItem);
   const vivantCap = dayPage ? pageMax : 40;
   const vivantItems =
     !searching && offset === 0

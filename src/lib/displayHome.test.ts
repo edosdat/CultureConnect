@@ -15,6 +15,7 @@ import {
   shouldInvalidateProfileRecoCache,
   theatreRows,
   visibleTop3Items,
+  vivantListInput,
 } from './displayHome';
 import { isTasteMood } from './phraseTags';
 import { TASTE_MOOD_LABELS_FR } from './pourToi';
@@ -127,20 +128,41 @@ describe('homeSectionsVisible', () => {
     });
   });
 
-  it('Cinéma only hides theatre and musique', () => {
+  it('Cinéma keeps the En live / vivant packs; cine catalogue stays on', () => {
     assert.deepEqual(homeSectionsVisible(['cinema']), {
       cine: true,
-      theatre: false,
-      musique: false,
+      theatre: true,
+      musique: true,
     });
   });
 
-  it('Cinéma + Musique keeps those two', () => {
+  it('Cinéma + Musique still keeps the vivant strip', () => {
     assert.deepEqual(homeSectionsVisible(['cinema', 'musique']), {
       cine: true,
-      theatre: false,
+      theatre: true,
       musique: true,
     });
+  });
+
+  it('Théâtre hides the Ciné catalogue, not the vivant strip', () => {
+    assert.deepEqual(homeSectionsVisible(['theatre_danse']), {
+      cine: false,
+      theatre: true,
+      musique: true,
+    });
+  });
+
+  it('vivantListInput drops QUOI / genre chips for the En live window', () => {
+    assert.deepEqual(
+      vivantListInput({
+        cats: ['cinema'],
+        genres: ['fiction'],
+        commune: 'Toulouse',
+      }),
+      { cats: [], genres: [], commune: 'Toulouse' },
+    );
+    const untouched = { cats: [] as string[], genres: [] as string[] };
+    assert.equal(vivantListInput(untouched), untouched);
   });
 
   it('extra chips do not hide the three packs', () => {
@@ -357,6 +379,24 @@ describe('pack rows + date filter', () => {
     assert.equal(theatre[0]!.seances.length, 2);
   });
 
+  it('Cinéma catalogue stays cinema-only while vivant rows keep theatre/concert', () => {
+    const cinemaOnly = mix.filter(isCinemaDayItem);
+    assert.deepEqual(
+      cineRows(cinemaOnly, emptyTop3).map((r) => r.item.key).sort(),
+      ['cine-2', 'cine-5'],
+    );
+    assert.ok(
+      theatreRows(mix, emptyTop3).some((r) => r.item.key.startsWith('th-')),
+    );
+    assert.ok(
+      musiqueRows(mix, emptyTop3).some((r) => r.item.key.startsWith('mu-')),
+    );
+    assert.equal(
+      cineRows(cinemaOnly, emptyTop3).some((r) => !isCinemaDayItem(r.item)),
+      false,
+    );
+  });
+
   it('DATE window filters séances inside each pack', () => {
     const onDay = filterSeancesForActiveFilters(mix, {
       startIso: '2026-09-05',
@@ -388,7 +428,7 @@ describe('top 3 click opens fiche outside QUOI grid', () => {
   it('finds a theatre in Top 3 even when the filtered cinema list lacks it', () => {
     assert.equal(findDayItemByKey(theatre.key, cinemaGrid), null);
     assert.equal(findDayItemByKey(theatre.key, cinemaGrid, top3), theatre);
-    assert.equal(homeSectionsVisible(['cinema']).theatre, false);
+    assert.equal(homeSectionsVisible(['cinema']).theatre, true);
   });
 
   it('Top 3 click always opens the fiche, including theatre / concert', () => {
