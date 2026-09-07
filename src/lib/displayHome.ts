@@ -16,6 +16,7 @@ import {
   filmIdOfItem,
   homePackOfItem,
   isCinemaDayItem,
+  isEnfantsChipItem,
   isEnfantsDayItem,
   isExpoDayItem,
   isMusiqueDayItem,
@@ -26,7 +27,7 @@ import {
 } from './nouveautesCine';
 import { seanceTimeLabel } from './eventTimes';
 import { formatDateFr, formatHeure, formatLieuAffiche } from './labels';
-import type { MainCategoryId } from './categories';
+import { isEnfantsOnlyChip, type MainCategoryId } from './categories';
 import { profileChips } from './pourToi';
 import {
   hasPhraseSignal,
@@ -427,9 +428,10 @@ export function musiqueRows(
 export function enfantsRows(
   items: DayItem[],
   top3: ReadonlySet<string>,
-  opts?: { origin?: GeoPos | null },
+  opts?: { origin?: GeoPos | null; includeCrossCatKids?: boolean },
 ): DenseRow[] {
-  const enfants = dedupAgainstTop3(items.filter(isEnfantsDayItem), top3);
+  const pred = opts?.includeCrossCatKids ? isEnfantsChipItem : isEnfantsDayItem;
+  const enfants = dedupAgainstTop3(items.filter(pred), top3);
   const origin = opts?.origin ?? null;
   if (origin) return densify(enfants, { origin });
   return densify(displayShuffle(enfants));
@@ -470,8 +472,10 @@ export function visibleTop3Nearest(
 
 /**
  * QUOI / search home chips hide catalogue sections exclusively.
- * Only Cinéma / Théâtre / Musique count. Extra chips (festival, expo,
- * enfants) filter the item pool via the API — they do not hide packs.
+ * Only Cinéma / Théâtre / Musique count as home chips.
+ * Extra chips (festival, expo) filter the item pool — they do not hide packs.
+ * Enfants-only is a kids view: Enfants carousel (+ filtered kids grid),
+ * not an awkward Sorties-pack hide. Combined extra chips stay open (#49).
  * No home chip → all five. Cats never apply to Top 3.
  */
 export function homeSectionsVisible(cats: readonly string[]): {
@@ -485,6 +489,15 @@ export function homeSectionsVisible(cats: readonly string[]): {
     (c) => c === 'cinema' || c === 'theatre_danse' || c === 'musique',
   );
   if (home.length === 0) {
+    if (isEnfantsOnlyChip(cats)) {
+      return {
+        cine: false,
+        theatre: false,
+        musique: false,
+        enfants: true,
+        expo: false,
+      };
+    }
     return {
       cine: true,
       theatre: true,
@@ -769,6 +782,7 @@ export function isLikelyMobile(): boolean {
 
 export {
   isCinemaDayItem,
+  isEnfantsChipItem,
   isEnfantsDayItem,
   isExpoDayItem,
   isMusiqueDayItem,

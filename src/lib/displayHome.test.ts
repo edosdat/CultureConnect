@@ -26,6 +26,7 @@ import { slotFormOfItem } from './reco';
 import {
   homePackOfItem,
   isCinemaDayItem,
+  isEnfantsChipItem,
   isEnfantsDayItem,
   isExpoDayItem,
   isMusiqueDayItem,
@@ -191,6 +192,16 @@ describe('homeSectionsVisible', () => {
       expo: true,
     });
   });
+
+  it('Enfants-only is a kids view (not cine / théâtre rails)', () => {
+    assert.deepEqual(homeSectionsVisible(['enfants_famille']), {
+      cine: false,
+      theatre: false,
+      musique: false,
+      enfants: true,
+      expo: false,
+    });
+  });
 });
 
 describe('home pack classifiers', () => {
@@ -252,6 +263,55 @@ describe('home pack classifiers', () => {
     assert.equal(isMusiqueDayItem(expo), false);
     assert.equal(isTheatreDayItem(kids), false);
     assert.equal(isMusiqueDayItem(kids), false);
+  });
+
+  it('Enfants chip includes kids films / jeune-public theatre without stealing default packs', () => {
+    const kidsFilm = item({
+      key: 'kf1',
+      cat: 'cinema',
+      filmId: 'F-KIDS',
+      genre: 'animation_jeune_public',
+    });
+    const kidsTheatre = item({
+      key: 'kt1',
+      cat: 'theatre_danse',
+      genre: 'jeune_public',
+    });
+    const taggedTheatre = item({
+      key: 'kt2',
+      cat: 'theatre',
+      genre: 'theatre_contemporain',
+    });
+    taggedTheatre.evenement.tags = 'famille|enfants';
+    const thriller = item({
+      key: 'thrl',
+      cat: 'cinema',
+      filmId: 'F-ADULT',
+      genre: 'fiction',
+    });
+    assert.equal(isEnfantsChipItem(kidsFilm), true);
+    assert.equal(isEnfantsChipItem(kidsTheatre), true);
+    assert.equal(isEnfantsChipItem(taggedTheatre), true);
+    assert.equal(isEnfantsChipItem(thriller), false);
+    assert.equal(isEnfantsDayItem(kidsFilm), false);
+    assert.equal(isEnfantsDayItem(kidsTheatre), false);
+    assert.equal(homePackOfItem(kidsFilm), 'cine');
+    assert.equal(homePackOfItem(kidsTheatre), 'theatre');
+    const emptyTop3 = new Set<string>();
+    const chipRows = enfantsRows(
+      [kidsFilm, kidsTheatre, taggedTheatre, thriller],
+      emptyTop3,
+      { includeCrossCatKids: true },
+    ).map((r) => r.item.key);
+    assert.ok(chipRows.includes('kf1') && chipRows.includes('kt1'));
+    assert.ok(chipRows.includes('kt2'));
+    assert.equal(chipRows.includes('thrl'), false);
+    const defaultRows = enfantsRows(
+      [kidsFilm, kidsTheatre, taggedTheatre],
+      emptyTop3,
+    ).map((r) => r.item.key);
+    assert.equal(defaultRows.includes('kf1'), false);
+    assert.equal(defaultRows.includes('kt1'), false);
   });
 });
 

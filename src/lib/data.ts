@@ -6,7 +6,11 @@ import {
   buildArtistesDerived,
   buildArtistesFromTable,
 } from './artists';
-import { mainsForItem, MAIN_CATEGORIES } from './categories';
+import {
+  mainsForItem,
+  matchesEnfantsChipContent,
+  MAIN_CATEGORIES,
+} from './categories';
 import { lastDateOfSeries } from './theatreUrgence';
 import type {
   Artiste,
@@ -202,7 +206,19 @@ function buildCultureData(): CultureData {
     bumpMax(p.programme.date);
     const cat = p.evenement?.categorie ?? '';
     const genre = p.programme.genre || p.evenement?.genre || '';
-    for (const main of mainsForItem(cat, genre)) {
+    const mains = new Set(mainsForItem(cat, genre));
+    if (
+      matchesEnfantsChipContent({
+        categorie: cat,
+        genre,
+        tags: p.evenement?.tags || '',
+        publicCible:
+          p.programme.public_cible || p.evenement?.public_cible || '',
+      })
+    ) {
+      mains.add('enfants_famille');
+    }
+    for (const main of mains) {
       if (!byMain[main]) byMain[main] = { programme: [], events: [] };
       byMain[main].programme.push(p);
     }
@@ -210,7 +226,18 @@ function buildCultureData(): CultureData {
   for (const ev of events) {
     bumpMax(ev.date_debut);
     bumpMax(ev.date_fin);
-    for (const main of mainsForItem(ev.categorie, ev.genre || '')) {
+    const mains = new Set(mainsForItem(ev.categorie, ev.genre || ''));
+    if (
+      matchesEnfantsChipContent({
+        categorie: ev.categorie,
+        genre: ev.genre || '',
+        tags: ev.tags || '',
+        publicCible: ev.public_cible || '',
+      })
+    ) {
+      mains.add('enfants_famille');
+    }
+    for (const main of mains) {
       if (!byMain[main]) byMain[main] = { programme: [], events: [] };
       byMain[main].events.push(ev);
     }

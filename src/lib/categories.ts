@@ -248,16 +248,122 @@ export function catsAllowCinemaPack(cats: readonly string[]): boolean {
   return cats.every((c) => c === 'cinema');
 }
 
+/**
+ * Enfants-only QUOI chip — exclusive kids view (grid + Enfants carousel).
+ * Combined extra chips (expo + enfants) still show all packs (#49).
+ * Home chips (ciné / théâtre / musique) stay exclusive.
+ */
+export function isEnfantsOnlyChip(cats: readonly string[]): boolean {
+  return cats.length === 1 && cats[0] === 'enfants_famille';
+}
+
+/**
+ * Genre slugs that mark kids films / jeune-public theatre.
+ * Their GENRE_SLUG_TO_MAIN stays cinema / theatre_danse so exclusive
+ * Cinéma / Théâtre chips keep them.
+ */
+export const ENFANTS_CHIP_GENRE_SLUGS: ReadonlySet<string> = new Set([
+  'animation_jeune_public',
+  'jeune_public',
+  'enfants_famille',
+  'atelier_mediation',
+]);
+
+const ENFANTS_CHIP_TAG_TOKENS: ReadonlySet<string> = new Set([
+  'enfants',
+  'enfant',
+  'famille',
+  'familles',
+  'familial',
+  'jeune_public',
+  'jeune-public',
+  'jeunepublic',
+  'jeunesse',
+  'animation_jeune_public',
+  'kids',
+  'kid',
+]);
+
+const ENFANTS_PUBLIC_CIBLE: ReadonlySet<string> = new Set([
+  'jeune_public',
+  'jeune-public',
+  'enfants',
+  'enfant',
+  'famille',
+  'familles',
+  'tout-petits',
+  'tout_petits',
+  'petite_enfance',
+]);
+
+export type EnfantsChipFields = {
+  categorie?: string;
+  genre?: string;
+  tags?: string;
+  publicCible?: string;
+};
+
+function splitChipTokens(raw: string | undefined | null): string[] {
+  if (!raw) return [];
+  return raw
+    .split(/[|,;/]+/)
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export function isEnfantsChipGenre(genreSlug: string): boolean {
+  return splitChipTokens(genreSlug).some((t) => ENFANTS_CHIP_GENRE_SLUGS.has(t));
+}
+
+function hasEnfantsAudienceTag(fields: EnfantsChipFields): boolean {
+  const tokens = [
+    ...splitChipTokens(fields.tags),
+    ...splitChipTokens(fields.publicCible),
+  ];
+  return tokens.some(
+    (t) => ENFANTS_CHIP_TAG_TOKENS.has(t) || ENFANTS_PUBLIC_CIBLE.has(t),
+  );
+}
+
+/**
+ * Enfants chip predicate: cat enfants_famille / ateliers, plus kids films
+ * (`animation_jeune_public`) and jeune-public theatre (genre or
+ * tags famille|enfants|jeune_public). Adult thriller / concert stay out.
+ */
+export function matchesEnfantsChipContent(fields: EnfantsChipFields): boolean {
+  const categorie = fields.categorie || '';
+  const genre = fields.genre || '';
+  const mains = mainsForItem(categorie, genre);
+  if (mains.includes('enfants_famille')) return true;
+  if (isEnfantsChipGenre(genre)) return true;
+  if (mains.includes('cinema') || mains.includes('theatre_danse')) {
+    return hasEnfantsAudienceTag(fields);
+  }
+  return false;
+}
+
 /** True if item matches at least one selected main (empty selection = all). */
 export function matchesMainCategories(
   categorie: string,
   genreSlug: string,
   selectedMains: string[],
+  extra?: Pick<EnfantsChipFields, 'tags' | 'publicCible'>,
 ): boolean {
   if (selectedMains.length === 0) return true;
   const mains = mainsForItem(categorie, genreSlug);
-  if (mains.length === 0) return false;
-  return mains.some((m) => selectedMains.includes(m));
+  if (mains.some((m) => selectedMains.includes(m))) return true;
+  if (
+    selectedMains.includes('enfants_famille') &&
+    matchesEnfantsChipContent({
+      categorie,
+      genre: genreSlug,
+      tags: extra?.tags,
+      publicCible: extra?.publicCible,
+    })
+  ) {
+    return true;
+  }
+  return false;
 }
 
 /** Whether a legend genre belongs under any of the selected main categories. */
@@ -268,7 +374,16 @@ export function genreBelongsToMains(
   if (selectedMains.length === 0) return false;
   // Prefer slug mapping (covers synthetic legend rows with empty/autre famille)
   const fromSlug = mainFromGenreSlug(genre.slug);
-  if (fromSlug) return selectedMains.includes(fromSlug);
+  if (fromSlug) {
+    if (selectedMains.includes(fromSlug)) return true;
+    if (
+      selectedMains.includes('enfants_famille') &&
+      ENFANTS_CHIP_GENRE_SLUGS.has(genre.slug.trim().toLowerCase())
+    ) {
+      return true;
+    }
+    return false;
+  }
   const fromFamille = mainFromFamille(genre.famille);
   if (!fromFamille) return false;
   return selectedMains.includes(fromFamille);

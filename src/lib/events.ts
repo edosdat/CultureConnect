@@ -113,7 +113,13 @@ function matchesFilters(
   lieuIds: string[],
   genres: string[],
 ): boolean {
-  if (!matchesMainCategories(categorie, fields.genre, categories)) return false;
+  if (
+    !matchesMainCategories(categorie, fields.genre, categories, {
+      tags: fields.tags,
+      publicCible: fields.publicCible,
+    })
+  )
+    return false;
   if (lieuIds.length > 0 && !lieuIds.includes(lieuId)) return false;
   if (!matchesSelectedGenres(fields, genres)) return false;
   return true;
@@ -631,6 +637,11 @@ export function lieuxForDay(
           categorieOf(p),
           genreOfProgramme(p),
           categories,
+          {
+            tags: p.evenement?.tags || '',
+            publicCible:
+              p.programme.public_cible || p.evenement?.public_cible || '',
+          },
         )
       )
         continue;
@@ -640,7 +651,12 @@ export function lieuxForDay(
     for (const ev of events) {
       if (!ev.lieu) continue;
       if (!isPublishableEvent(ev)) continue;
-      if (!matchesMainCategories(ev.categorie, ev.genre || '', categories))
+      if (
+        !matchesMainCategories(ev.categorie, ev.genre || '', categories, {
+          tags: ev.tags || '',
+          publicCible: ev.public_cible || '',
+        })
+      )
         continue;
       if (!matchesSelectedGenres(genreFieldsFromEvent(ev), genres)) continue;
       map.set(ev.lieu.lieu_id, ev.lieu);
@@ -700,7 +716,12 @@ export function eventsForDay(
   return events.filter((ev) => {
     if (!isPublishableEvent(ev)) return false;
     if (!eventOccursOnDay(ev, dayIso)) return false;
-    if (!matchesMainCategories(ev.categorie, ev.genre || '', categories))
+    if (
+      !matchesMainCategories(ev.categorie, ev.genre || '', categories, {
+        tags: ev.tags || '',
+        publicCible: ev.public_cible || '',
+      })
+    )
       return false;
     return true;
   });
