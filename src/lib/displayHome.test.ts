@@ -16,6 +16,7 @@ import {
   searchExampleIsVivant,
   searchExamplesVisible,
   shouldInvalidateProfileRecoCache,
+  shouldShowTop3Section,
   theatreRows,
   visibleTop3Items,
 } from './displayHome';
@@ -600,6 +601,119 @@ describe('search example chips', () => {
     );
     assert.equal(
       searchExamplesVisible({ ...empty, committedTitle: 'concert' }),
+      false,
+    );
+  });
+});
+
+describe('shouldShowTop3Section — hide on QUOI / search, keep on date', () => {
+  const shown = {
+    ready: true,
+    wiped: false,
+    cardCount: 3,
+  };
+
+  it('stays visible with no filters, date chips, or commune/salle alone', () => {
+    assert.equal(shouldShowTop3Section(shown), true);
+    assert.equal(
+      shouldShowTop3Section({
+        ...shown,
+        selectedCategories: [],
+        committedTitle: '',
+        phraseActive: false,
+      }),
+      true,
+    );
+    assert.equal(
+      shouldShowTop3Section({ ...shown, selectedCategories: [] }),
+      true,
+      'empty QUOI list is not a hide signal',
+    );
+  });
+
+  it('hides on category chips, committed search, or phrase', () => {
+    assert.equal(
+      shouldShowTop3Section({ ...shown, selectedCategories: ['cinema'] }),
+      false,
+    );
+    assert.equal(
+      shouldShowTop3Section({ ...shown, selectedCategories: ['musique'] }),
+      false,
+    );
+    assert.equal(
+      shouldShowTop3Section({
+        ...shown,
+        selectedCategories: ['theatre'],
+        committedTitle: '',
+      }),
+      false,
+    );
+    assert.equal(
+      shouldShowTop3Section({ ...shown, committedTitle: 'nougaro' }),
+      false,
+    );
+    assert.equal(
+      shouldShowTop3Section({ ...shown, committedTitle: '  nougaro  ' }),
+      false,
+    );
+    assert.equal(
+      shouldShowTop3Section({ ...shown, phraseActive: true }),
+      false,
+    );
+  });
+
+  it('hides as soon as any non-date filter is on (date + category / search)', () => {
+    assert.equal(
+      shouldShowTop3Section({
+        ...shown,
+        selectedCategories: ['cinema'],
+        committedTitle: '',
+        phraseActive: false,
+      }),
+      false,
+    );
+    assert.equal(
+      shouldShowTop3Section({
+        ...shown,
+        selectedCategories: [],
+        committedTitle: 'concert',
+      }),
+      false,
+    );
+    assert.equal(
+      shouldShowTop3Section({
+        ...shown,
+        selectedCategories: ['musique'],
+        committedTitle: 'nougaro',
+      }),
+      false,
+    );
+  });
+
+  it('returns when category / search are cleared', () => {
+    assert.equal(
+      shouldShowTop3Section({
+        ...shown,
+        selectedCategories: [],
+        committedTitle: '   ',
+        phraseActive: false,
+      }),
+      true,
+    );
+  });
+
+  it('still hides at 0 cards or wiped, even without QUOI / search', () => {
+    assert.equal(
+      shouldShowTop3Section({ ready: true, wiped: false, cardCount: 0 }),
+      false,
+    );
+    assert.equal(
+      shouldShowTop3Section({
+        ready: false,
+        wiped: true,
+        cardCount: 3,
+        selectedCategories: [],
+      }),
       false,
     );
   });

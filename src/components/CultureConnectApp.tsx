@@ -1039,6 +1039,9 @@ export default function CultureConnectApp({
     ready: recoReady,
     wiped: recoWiped,
     cardCount: top3Cards.length,
+    selectedCategories,
+    committedTitle,
+    phraseActive: phraseMode,
   });
   const pourToiKeys = useMemo(
     () => new Set(pourToiFilled.map((item) => item.key)),
