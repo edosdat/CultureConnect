@@ -282,7 +282,7 @@ describe('home pack classifiers', () => {
       cat: 'theatre',
       genre: 'theatre_contemporain',
     });
-    taggedTheatre.evenement.tags = 'famille|enfants';
+    if (taggedTheatre.evenement) taggedTheatre.evenement.tags = 'famille|enfants';
     const thriller = item({
       key: 'thrl',
       cat: 'cinema',
