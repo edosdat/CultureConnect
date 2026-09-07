@@ -76,6 +76,12 @@ export function loadEvenements(): Evenement[] {
     genres_mood: r.genres_mood ?? '',
     themes: r.themes ?? '',
     entities: r.entities ?? '',
+    citation: r.citation ?? '',
+    source: r.source ?? '',
+    source_url: r.source_url ?? '',
+    note_presse: r.note_presse ?? '',
+    score_presse: r.score_presse ?? '',
+    confiance: r.confiance ?? '',
   }));
 }
 
@@ -136,6 +142,12 @@ export function loadArtistes(): Artiste[] {
     url_site: r.url_site ?? '',
     url_reseaux: r.url_reseaux ?? '',
     scraped_at: r.scraped_at ?? '',
+    citation: r.citation ?? '',
+    source: r.source ?? '',
+    source_url: r.source_url ?? '',
+    note_presse: r.note_presse ?? '',
+    score_presse: r.score_presse ?? '',
+    confiance: r.confiance ?? '',
   }));
 }
 

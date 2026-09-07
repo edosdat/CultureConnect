@@ -1,523 +1,523 @@
-artiste_id,nom,nom_normalise,genre_principal,genres_secondaires,url_photo,notes
-A0002,Les faux british,les-faux-british,humour_standup,,,auto depuis programme (7 passages)
-A0003,Arthur Barutel,soiree-candie-pop-arthur-barutel,guinguette_sorties,,,auto depuis programme (4 passages)
-A0004,JLN,jln,electro_techno,,,auto depuis programme (3 passages)
-A0005,Sphère,sphere,electro_techno,,,auto depuis programme (3 passages)
-A0006,Made On Block,made-on-block,electro_techno,,,auto depuis programme (3 passages)
-A0008,Anne Roumanoff,anne-roumanoff-l-age-libre,humour_standup,,,auto depuis programme (3 passages)
-A0011,SKS,sks,electro_techno,,,auto depuis programme (2 passages)
-A0015,Les Clotildes : La bonne surprise !,les-clotildes-la-bonne-surprise,humour_standup,,,auto depuis programme (2 passages)
-A0016,"Les Femmes ont toujours raison, les hommes n’ont jamais tort",les-femmes-ont-toujours-raison-les-hommes-n-ont-jamais-tort,humour_standup,,,auto depuis programme (2 passages)
-A0018,Fabien Olicard Experimente,fabien-olicard-experimente,humour_standup,,,auto depuis programme (2 passages)
-A0019,"Les Clotildes : Amour, ex et alibi",les-clotildes-amour-ex-et-alibi,humour_standup,,,auto depuis programme (2 passages)
-A0022,Ben l'Oncle Soul,ben-l-oncle-soul,funk_soul_rnb,,,auto depuis programme (2 passages)
-A0024,Bakermat,bakermat,electro_techno,,,auto depuis programme (1 passages)
-A0025,Aether,aether-duo-piano-voix,classique_lyrique,,,auto depuis programme (1 passages)
-A0026,Novah,novah,electro_techno,,,auto depuis programme (1 passages)
-A0027,JHF,jhf,musique_autre,,,auto depuis programme (1 passages)
-A0028,Zalbecino,zalbecino,musique_autre,,,auto depuis programme (1 passages)
-A0029,David (McFly),david-mcfly,hiphop_rap,,,auto depuis programme (1 passages)
-A0030,Sarāb (génération Spédidam),sarab-generation-spedidam,musiques_monde_trad,,,auto depuis programme (1 passages)
-A0031,Lujipeka,lujipeka,hiphop_rap,,,auto depuis programme (1 passages)
-A0032,Alma Rechtman,alma-rechtman-festival-chorus,chanson_variete,,,auto depuis programme (1 passages)
-A0033,La Cercleuse,la-cercleuse,musique_autre,,,auto depuis programme (1 passages)
-A0034,Miki,miki,musique_autre,,,auto depuis programme (1 passages)
-A0035,Lushe,lushe,musique_autre,,,auto depuis programme (1 passages)
-A0036,Ino Casablanca,ino-casablanca,musique_autre,,,auto depuis programme (1 passages)
-A0037,Kamilou,kamilou-festival-d-ete-de-quebec,musique_autre,,,auto depuis programme (1 passages)
-A0038,Louise Charbonnel,louise-charbonnel-festival-beauregard,chanson_variete,,,auto depuis programme (1 passages)
-A0039,Franglish,franglish,hiphop_rap,,,auto depuis programme (1 passages)
-A0040,Naïka,naika,funk_soul_rnb,,,auto depuis programme (1 passages)
-A0041,Paolo.,paolo,chanson_variete,,,auto depuis programme (1 passages)
-A0042,Andy 4000,andy-4000,musique_autre,,,auto depuis programme (1 passages)
-A0043,Disiz,disiz,hiphop_rap,,,auto depuis programme (1 passages)
-A0044,Ultragama,ultragama,electro_techno,,,auto depuis programme (1 passages)
-A0045,Romsii,romsii,hiphop_rap,,,auto depuis programme (1 passages)
-A0046,Macklemore,macklemore,hiphop_rap,,,auto depuis programme (1 passages)
-A0047,Doka,doka,electro_techno,,,auto depuis programme (1 passages)
-A0048,Mosimann,mosimann,electro_techno,,,auto depuis programme (1 passages)
-A0049,Lost Frequencies,lost-frequencies,electro_techno,,,auto depuis programme (1 passages)
-A0050,The Clamps,the-clamps,electro_techno,,,auto depuis programme (1 passages)
-A0051,Emberline,emberline,electro_techno,,,auto depuis programme (1 passages)
-A0052,Broma,broma,electro_techno,,,auto depuis programme (1 passages)
-A0053,Modestep,modestep,electro_techno,,,auto depuis programme (1 passages)
-A0054,Vladimir Cauchemar,vladimir-cauchemar,electro_techno,,,auto depuis programme (1 passages)
-A0055,William NC,william-nc,chanson_variete,,,auto depuis programme (1 passages)
-A0056,Kaïlen,kailen,chanson_variete,,,auto depuis programme (1 passages)
-A0057,Milhan,milhan-tremplin-rose-festival,musique_autre,,,auto depuis programme (1 passages)
-A0058,Adam El Mouna (MPourMontréal),adam-el-mouna-mpourmontreal,hiphop_rap,,,auto depuis programme (1 passages)
-A0059,Mel,mel,hiphop_rap,,,auto depuis programme (1 passages)
-A0060,R2,r2,hiphop_rap,,,auto depuis programme (1 passages)
-A0061,Blynk (MPourMontréal),blynk-mpourmontreal,musique_autre,,,auto depuis programme (1 passages)
-A0062,Big Ass Cat,big-ass-cat,hiphop_rap,,,auto depuis programme (1 passages)
-A0063,ElGrandeToto,elgrandetoto,hiphop_rap,,,auto depuis programme (1 passages)
-A0064,Marianne,marianne,chanson_variete,,,auto depuis programme (1 passages)
-A0065,Jetlag,jetlag,electro_techno,,,auto depuis programme (1 passages)
-A0066,Lisaa Camin,lisaa-camin,chanson_variete,,,auto depuis programme (1 passages)
-A0067,Marguerite,marguerite,chanson_variete,,,auto depuis programme (1 passages)
-A0068,Feel,feel,electro_techno,,,auto depuis programme (1 passages)
-A0069,Bekar,bekar,hiphop_rap,,,auto depuis programme (1 passages)
-A0070,Lowey,lowey,hiphop_rap,,,auto depuis programme (1 passages)
-A0071,Myra,myra,chanson_variete,,,auto depuis programme (1 passages)
-A0072,Meryl,meryl,hiphop_rap,,,auto depuis programme (1 passages)
-A0073,Maheva,maheva,chanson_variete,,,auto depuis programme (1 passages)
-A0074,Ants & Madzes,ants-madzes,chanson_variete,,,auto depuis programme (1 passages)
-A0075,L2B,l2b,hiphop_rap,,,auto depuis programme (1 passages)
-A0076,Cēzange,cezange,musique_autre,,,auto depuis programme (1 passages)
-A0077,DJ Lucky,dj-lucky,electro_techno,,,auto depuis programme (1 passages)
-A0078,Aya Nakamura,aya-nakamura,funk_soul_rnb,,,auto depuis programme (1 passages)
-A0079,Manigance,manigance,electro_techno,,,auto depuis programme (1 passages)
-A0080,Kungs,kungs,electro_techno,,,auto depuis programme (1 passages)
-A0081,Zingabe (Afrobeat),zingabe-afrobeat,musiques_monde_trad,,,auto depuis programme (1 passages)
-A0082,Pendulum (DJ set),pendulum-dj-set,electro_techno,,,auto depuis programme (1 passages)
-A0083,Camo & Krooked,camo-krooked,electro_techno,,,auto depuis programme (1 passages)
-A0084,Eptic,eptic,electro_techno,,,auto depuis programme (1 passages)
-A0085,Habstrakt,habstrakt,electro_techno,,,auto depuis programme (1 passages)
-A0086,Murdock & MC Mota,murdock-mc-mota,electro_techno,,,auto depuis programme (1 passages)
-A0087,Zomboy,zomboy,electro_techno,,,auto depuis programme (1 passages)
-A0088,A5KM,a5km,electro_techno,,,auto depuis programme (1 passages)
-A0089,Creeds,creeds,electro_techno,,,auto depuis programme (1 passages)
-A0090,Evil Grimace,evil-grimace,electro_techno,,,auto depuis programme (1 passages)
-A0091,Neika,neika,electro_techno,,,auto depuis programme (1 passages)
-A0092,Persin Down,persin-down,musique_autre,,,auto depuis programme (1 passages)
-A0093,Deen CK,deen-ck,hiphop_rap,,,auto depuis programme (1 passages)
-A0094,Odeza,odeza-tremplin-rose-festival,musique_autre,,,auto depuis programme (1 passages)
-A0095,Kulturr,kulturr,hiphop_rap,,,auto depuis programme (1 passages)
-A0096,Noé Extrat,noe-extrat-tremplin-rose-festival,chanson_variete,,,auto depuis programme (1 passages)
-A0097,Timar,timar,chanson_variete,,,auto depuis programme (1 passages)
-A0098,Etane,etane-tremplin-rose-festival,musique_autre,,,auto depuis programme (1 passages)
-A0099,Juliane Piermay,juliane-piermay,chanson_variete,,,auto depuis programme (1 passages)
-A0100,Iliona,iliona,chanson_variete,,,auto depuis programme (1 passages)
-A0102,Béeseau,beeseau,chanson_variete,,,auto depuis programme (1 passages)
-A0103,Médine,medine,hiphop_rap,,,auto depuis programme (1 passages)
-A0104,Noée,noee,chanson_variete,,,auto depuis programme (1 passages)
-A0105,Eva,eva,chanson_variete,,,auto depuis programme (1 passages)
-A0106,Maïa,maia,chanson_variete,,,auto depuis programme (1 passages)
-A0107,Triangle des Bermudes,triangle-des-bermudes,electro_techno,,,auto depuis programme (1 passages)
-A0108,Ajar,ajar,chanson_variete,,,auto depuis programme (1 passages)
-A0109,Jethro Nine (génération Spédidam),jethro-nine-generation-spedidam,rock_metal_punk,,,auto depuis programme (1 passages)
-A0110,Danyl,danyl,hiphop_rap,,,auto depuis programme (1 passages)
-A0111,2L,2l,hiphop_rap,,,auto depuis programme (1 passages)
-A0112,Zaho,zaho,funk_soul_rnb,,,auto depuis programme (1 passages)
-A0113,Yiadé,yiade,hiphop_rap,,,auto depuis programme (1 passages)
-A0114,St Graal,st-graal,rock_metal_punk,,,auto depuis programme (1 passages)
-A0115,Josman,josman,hiphop_rap,,,auto depuis programme (1 passages)
-A0116,Sunsept France,sunsept-france,electro_techno,,,auto depuis programme (1 passages)
-A0117,DJ Snake,dj-snake,electro_techno,,,auto depuis programme (1 passages)
-A0118,Karpouzi Mon Amour (Bulgarock),karpouzi-mon-amour-bulgarock,rock_metal_punk,,,auto depuis programme (1 passages)
-A0120,Juliette Magnevasoa,juliette-magnevasoa,chanson_variete,,,auto depuis programme (1 passages)
-A0121,Unfaced,unfaced,electro_techno,,,auto depuis programme (1 passages)
-A0122,Un putain de conte de fée,un-putain-de-conte-de-fee,humour_standup,,,auto depuis programme (1 passages)
-A0126,Javier Perianes,javier-perianes,classique_lyrique,,,auto depuis programme (1 passages)
-A0127,Magdalene Ho,magdalene-ho,classique_lyrique,,,auto depuis programme (1 passages)
-A0129,Ilyun Bürkev,ilyun-burkev,classique_lyrique,,,auto depuis programme (1 passages)
-A0130,Amareia,amareia-en-concert,chanson_variete,,,auto depuis programme (1 passages)
-A0131,CHELABÔM,chelabom,funk_soul_rnb,,,auto depuis programme (1 passages)
-A0132,Hortense de Beauharnais,hortense-de-beauharnais,electro_techno,,,auto depuis programme (1 passages)
-A0133,Vadym Kholodenko,vadym-kholodenko,classique_lyrique,,,auto depuis programme (1 passages)
-A0137,DELI ZIRZOP,deli-zirzop,musiques_monde_trad,,,auto depuis programme (1 passages)
-A0139,Jodylin Gallavardin,jodylin-gallavardin,classique_lyrique,,,auto depuis programme (1 passages)
-A0140,Paul Lay (carte blanche jazz),paul-lay-carte-blanche-jazz,jazz_blues,,,auto depuis programme (1 passages)
-A0141,Pierre-Laurent Aimard,pierre-laurent-aimard,classique_lyrique,,,auto depuis programme (1 passages)
-A0142,TABANAR,tabanar,rock_metal_punk,,,auto depuis programme (1 passages)
-A0143,FEELING THE SPIRIT OF GRANT GREEN,feeling-the-spirit-of-grant-green,jazz_blues,,,auto depuis programme (1 passages)
-A0144,Anna Petrova-Forster,anna-petrova-forster,classique_lyrique,,,auto depuis programme (1 passages)
-A0145,Kody,kody-evolue,humour_standup,,,auto depuis programme (1 passages)
-A0146,La Mòssa + Sollùna,la-mossa-solluna-festival-occitania,musiques_monde_trad,,,auto depuis programme (1 passages)
-A0147,Urge,urge,rock_metal_punk,,,auto depuis programme (1 passages)
-A0148,Mourir,mourir,rock_metal_punk,,,auto depuis programme (1 passages)
-A0149,The Young Gods,the-young-gods,rock_metal_punk,,,auto depuis programme (1 passages)
-A0150,Elisabeth Pion,elisabeth-pion,classique_lyrique,,,auto depuis programme (1 passages)
-A0152,Les Bonobos,les-bonobos,humour_standup,,,auto depuis programme (1 passages)
-A0154,Einar Solberg,einar-solberg,rock_metal_punk,,,auto depuis programme (1 passages)
-A0155,Les Clefs de Saint-Pierre,les-clefs-de-saint-pierre-cuivres-marteles,classique_lyrique,,,auto depuis programme (1 passages)
-A0156,"Pianip–Pianop (Pierre Rigal, Constant Despres, Brice Mvie)",pianip-pianop-pierre-rigal-constant-despres-brice-mvie,danse,,,auto depuis programme (1 passages)
-A0157,Aéro malgré lui !,aero-malgre-lui,humour_standup,,,auto depuis programme (1 passages)
-A0158,Valentin POMMERAY TRIO,valentin-pommeray-trio,jazz_blues,,,auto depuis programme (1 passages)
-A0160,Bernard Sellam And The Boyz From The Hood,bernard-sellam-and-the-boyz-from-the-hood,funk_soul_rnb,,,auto depuis programme (1 passages)
-A0161,Labess,labess,musique_autre,,,auto depuis programme (1 passages)
-A0162,Tiwiza,tiwiza,musique_autre,,,auto depuis programme (1 passages)
-A0163,Gabrielle Giraud,gabrielle-giraud-au-naturel,humour_standup,,,auto depuis programme (1 passages)
-A0164,Lisa Perrio,lisa-perrio-c-est-complique-je-t-expliquerai,humour_standup,,,auto depuis programme (1 passages)
-A0165,Gabriel Delmas invite Jakob Manz + JAM,gabriel-delmas-invite-jakob-manz-jam,jazz_blues,,,auto depuis programme (1 passages)
-A0166,Potochkine,potochkine,electro_techno,,,auto depuis programme (1 passages)
-A0167,Light Asylum,light-asylum,electro_techno,,,auto depuis programme (1 passages)
-A0168,Jérémy Rollando,jeremy-rollando,jazz_blues,,,auto depuis programme (1 passages)
-A0169,Zinée,zinee,hiphop_rap,,,auto depuis programme (1 passages)
-A0170,Etane,etane,hiphop_rap,,,auto depuis programme (1 passages)
-A0174,MOWGLI + NAAMLOZE,mowgli-naamloze,rock_metal_punk,,,auto depuis programme (1 passages)
-A0175,LEE BURRIDGE,lee-burridge,electro_techno,,,auto depuis programme (1 passages)
-A0176,Paloma Colombe,paloma-colombe,electro_techno,,,auto depuis programme (1 passages)
-A0177,La Louuve,la-louuve,electro_techno,,,auto depuis programme (1 passages)
-A0178,Shahzen,shahzen,electro_techno,,,auto depuis programme (1 passages)
-A0179,Forever Nu,forever-nu,rock_metal_punk,,,auto depuis programme (1 passages)
-A0180,Kevin Levy : Cocu,kevin-levy-cocu,humour_standup,,,auto depuis programme (1 passages)
-A0181,Seven Spires,seven-spires,rock_metal_punk,,,auto depuis programme (1 passages)
-A0182,Tulip,tulip,rock_metal_punk,,,auto depuis programme (1 passages)
-A0183,Xandria,xandria,rock_metal_punk,,,auto depuis programme (1 passages)
-A0184,FAT FREDDY'S DROP,fat-freddy-s-drop,musique_autre,,,auto depuis programme (1 passages)
-A0186,Schooet,schooet-des-goguettes,chanson_variete,,,auto depuis programme (1 passages)
-A0187,FIBR 4TET,fibr-4tet,jazz_blues,,,auto depuis programme (1 passages)
-A0188,LOUIS CATTELAT,louis-cattelat,musique_autre,,,auto depuis programme (1 passages)
-A0189,DJ Pone,dj-pone,hiphop_rap,,,auto depuis programme (1 passages)
-A0190,Talisco,talisco,chanson_variete,,,auto depuis programme (1 passages)
-A0191,Primal Fear,primal-fear,rock_metal_punk,,,auto depuis programme (1 passages)
-A0192,HIPPOTRAKTOR,hippotraktor,rock_metal_punk,,,auto depuis programme (1 passages)
-A0193,HYPNO5E,hypno5e,rock_metal_punk,,,auto depuis programme (1 passages)
-A0194,A6EL,a6el,hiphop_rap,,,auto depuis programme (1 passages)
-A0195,Dopelord,dopelord,rock_metal_punk,,,auto depuis programme (1 passages)
-A0196,Monolord,monolord,rock_metal_punk,,,auto depuis programme (1 passages)
-A0197,Earth Tongue,earth-tongue,rock_metal_punk,,,auto depuis programme (1 passages)
-A0198,Hällas,hallas,rock_metal_punk,,,auto depuis programme (1 passages)
-A0200,Neon Paradise,neon-paradise,electro_techno,,,auto depuis programme (1 passages)
-A0201,Neon Kult,neon-kult,electro_techno,,,auto depuis programme (1 passages)
-A0202,Vector Seven,vector-seven,electro_techno,,,auto depuis programme (1 passages)
-A0203,Owls Woods Graves,owls-woods-graves,rock_metal_punk,,,auto depuis programme (1 passages)
-A0204,Profanation,profanation,rock_metal_punk,,,auto depuis programme (1 passages)
-A0205,Gorrch,gorrch,rock_metal_punk,,,auto depuis programme (1 passages)
-A0206,Mispyrming,mispyrming,rock_metal_punk,,,auto depuis programme (1 passages)
-A0207,Boris,boris,rock_metal_punk,,,auto depuis programme (1 passages)
-A0208,Imparfait,imparfait,rock_metal_punk,,,auto depuis programme (1 passages)
-A0209,Calva Louise,calva-louise,rock_metal_punk,,,auto depuis programme (1 passages)
-A0210,Two Lanes,two-lanes,electro_techno,,,auto depuis programme (1 passages)
-A0211,Spider Zed,spider-zed,hiphop_rap,,,auto depuis programme (1 passages)
-A0212,Mammal Hands,mammal-hands,jazz_blues,,,auto depuis programme (1 passages)
-A0213,7WEEKS,7weeks,rock_metal_punk,,,auto depuis programme (1 passages)
-A0214,Within Destruction,within-destruction,rock_metal_punk,,,auto depuis programme (1 passages)
-A0215,Abbie Falls,abbie-falls,rock_metal_punk,,,auto depuis programme (1 passages)
-A0216,The Browning,the-browning,rock_metal_punk,,,auto depuis programme (1 passages)
-A0217,Storm Orchestra,storm-orchestra,rock_metal_punk,,,auto depuis programme (1 passages)
-A0218,Fulci,fulci,rock_metal_punk,,,auto depuis programme (1 passages)
-A0219,Arottenbit,arottenbit,rock_metal_punk,,,auto depuis programme (1 passages)
-A0220,Master Boot Record,master-boot-record,rock_metal_punk,,,auto depuis programme (1 passages)
-A0221,The Vintage Caravan,the-vintage-caravan,rock_metal_punk,,,auto depuis programme (1 passages)
-A0222,Magyd Cherfi,magyd-cherfi,chanson_variete,,,auto depuis programme (1 passages)
-A0223,Stanislas,stanislas,chanson_variete,,,auto depuis programme (1 passages)
-A0224,Jupiter & Okwess,jupiter-okwess,musiques_monde_trad,,,auto depuis programme (1 passages)
-A0225,ROADRUNNERS,roadrunners,rock_metal_punk,,,auto depuis programme (1 passages)
-A0226,63OG,63og,hiphop_rap,,,auto depuis programme (1 passages)
-A0227,Spike and the Gimme Gimmes,spike-and-the-gimme-gimmes,rock_metal_punk,,,auto depuis programme (1 passages)
-A0228,Colours in the Street,colours-in-the-street,chanson_variete,,,auto depuis programme (1 passages)
-A0229,Florent Marchet,florent-marchet,chanson_variete,,,auto depuis programme (1 passages)
-A0230,Knoll,knoll,rock_metal_punk,,,auto depuis programme (1 passages)
-A0231,Imperial Triumphant,imperial-triumphant,rock_metal_punk,,,auto depuis programme (1 passages)
-A0232,DINAA,dinaa,electro_techno,,,auto depuis programme (1 passages)
-A0233,Malefino,malefino,electro_techno,,,auto depuis programme (1 passages)
-A0234,Gaouta,gaouta,electro_techno,,,auto depuis programme (1 passages)
-A0235,Rosa Crux,rosa-crux,electro_techno,,,auto depuis programme (1 passages)
-A0236,Tribulation,tribulation,rock_metal_punk,,,auto depuis programme (1 passages)
-A0237,Soen,soen,rock_metal_punk,,,auto depuis programme (1 passages)
-A0238,JWLES,jwles,hiphop_rap,,,auto depuis programme (1 passages)
-A0239,Changeline,changeline,rock_metal_punk,,,auto depuis programme (1 passages)
-A0240,Solventis,solventis,rock_metal_punk,,,auto depuis programme (1 passages)
-A0241,Esthesis,esthesis,rock_metal_punk,,,auto depuis programme (1 passages)
-A0242,The Sexy Music Live Band,the-sexy-music-live-band,funk_soul_rnb,,,auto depuis programme (1 passages)
-A0243,Theo Juice,theo-juice,funk_soul_rnb,,,auto depuis programme (1 passages)
-A0244,Seth Gueko,seth-gueko,hiphop_rap,,,auto depuis programme (1 passages)
-A0245,Tonique & Man,tonique-man,funk_soul_rnb,,,auto depuis programme (1 passages)
-A0246,The Black Dahlia Murder,the-black-dahlia-murder,rock_metal_punk,,,auto depuis programme (1 passages)
-A0247,Pestilence,pestilence,rock_metal_punk,,,auto depuis programme (1 passages)
-A0248,Cryptic Shift,cryptic-shift,rock_metal_punk,,,auto depuis programme (1 passages)
-A0249,Thus,thus,rock_metal_punk,,,auto depuis programme (1 passages)
-A0250,DVRK,dvrk,rock_metal_punk,,,auto depuis programme (1 passages)
-A0251,Obscura,obscura,rock_metal_punk,,,auto depuis programme (1 passages)
-A0252,Revnoir,revnoir,rock_metal_punk,,,auto depuis programme (1 passages)
-A0253,Eloiz,eloiz,chanson_variete,,,auto depuis programme (1 passages)
-A0254,Cuarteto Tafi,cuarteto-tafi,guinguette_sorties,,,corrigé: P1679 pointait à tort vers A0219 Arottenbit
-A0255,Candie,candie,guinguette_sorties,,,auto (1 passages)
-A0256,Musique live (Candie),musique-live-candie,guinguette_sorties,,,auto (5 passages)
-A0257,Aether,aether,classique_lyrique,,,auto (1 passages)
-A0258,Kamilou (Festival d’été de Québec),kamilou-festival-dete-de-quebec,musique_autre,,,auto (1 passages)
-A0259,Juste Shani,juste-shani,hiphop_rap,,,auto (2 passages)
-A0260,Soirée Candie Pop,soiree-candie-pop,guinguette_sorties,,,auto (4 passages)
-A0261,DJ set Candie,dj-set-candie,guinguette_sorties,,,auto (8 passages)
-A0262,Tu Luz Habana,tu-luz-habana,guinguette_sorties,,,auto (1 passages)
-A0263,LEON Show Man,leon-show-man,guinguette_sorties,,,auto (1 passages)
-A0264,Concert La Cuma,concert-la-cuma,musique_autre,,,auto (1 passages)
-A0265,Deeplodocus,deeplodocus,musique_autre,,,auto (1 passages)
-A0266,Retro Fever,retro-fever,guinguette_sorties,,,auto (1 passages)
-A0267,L'Esbrouf,lesbrouf,guinguette_sorties,,,auto (1 passages)
-A0268,Pianomuses,pianomuses,classique_lyrique,,,auto (2 passages)
-A0269,Lauréat Tremplin V and B Fest’ 2026,laureat-tremplin-v-and-b-fest-2026,musique_autre,,,auto (1 passages)
-A0270,Moher,moher,guinguette_sorties,,,auto (1 passages)
-A0271,Création FÔM,creation-fom,musiques_monde_trad,,,auto (1 passages)
-A0272,Adelante Quintet,adelante-quintet,musiques_monde_trad,,,auto (1 passages)
-A0273,Chers parents,chers-parents,humour_standup,,,auto (3 passages)
-A0274,"Anne Roumanoff, L’âge libre",anne-roumanoff-lage-libre,humour_standup,,,auto (3 passages)
-A0275,À vies contraires,a-vies-contraires,humour_standup,,,auto (2 passages)
-A0276,Venise sous la neige,venise-sous-la-neige,humour_standup,,,auto (2 passages)
-A0277,LE TAQUIN FETE SES 10 ANS #1,le-taquin-fete-ses-10-ans-1,funk_soul_rnb,,,auto (1 passages)
-A0278,"Les Femmes ont toujours raison, les hommes n’ont jamais tort",les-femmes-ont-toujours-raison-les-hommes-nont-jamais-tort,humour_standup,,,auto (2 passages)
-A0279,LE TAQUIN FETE SES 10 ANS #2,le-taquin-fete-ses-10-ans-2,funk_soul_rnb,,,auto (1 passages)
-A0280,PLEIN PHARE,plein-phare,electro_techno,,,auto (1 passages)
-A0281,REX TECHNO OPENING,rex-techno-opening,electro_techno,,,auto (1 passages)
-A0282,Closing,closing,guinguette_sorties,,,auto (1 passages)
-A0283,JAM#1 en mixité choisie,jam-1-en-mixite-choisie,jazz_blues,,,auto (1 passages)
-A0284,Houriaa,houriaa,cirque_arts_rue,,,auto (1 passages)
-A0285,"Psy, sex and fun",psy-sex-and-fun,humour_standup,,,auto (2 passages)
-A0286,datziraGrain présente ECHO JAZZ,datziragrain-presente-echo-jazz,jazz_blues,,,auto (1 passages)
-A0287,Sax Machines Foundation,sax-machines-foundation,cirque_arts_rue,,,auto (1 passages)
-A0288,Vacances de rêve,vacances-de-reve,humour_standup,,,auto (3 passages)
-A0289,Une semaine pas plus !,une-semaine-pas-plus,humour_standup,,,auto (2 passages)
-A0290,Les Clotildes : Vive la mariée !,les-clotildes-vive-la-mariee,humour_standup,,,auto (1 passages)
-A0291,En toutes amitiés,en-toutes-amities,humour_standup,,,auto (1 passages)
-A0292,On est tous portés sur la question,on-est-tous-portes-sur-la-question,humour_standup,,,auto (1 passages)
-A0293,Le Rex fête ses 10 ans,le-rex-fete-ses-10-ans,electro_techno,,,auto (1 passages)
-A0294,Les Dents du Rire,les-dents-du-rire,humour_standup,,,auto (2 passages)
-A0295,La Mòssa + Sollùna,la-mossa-solluna,musiques_monde_trad,,,auto (1 passages)
-A0296,Bonjour Au Revoir joue les Beatles,bonjour-au-revoir-joue-les-beatles,chanson_variete,,,auto (1 passages)
-A0297,Le meilleur de l’homme c’est sa femme,le-meilleur-de-lhomme-cest-sa-femme,humour_standup,,,auto (1 passages)
-A0298,Divagueries sentimentales,divagueries-sentimentales,humour_standup,,,auto (1 passages)
-A0299,Irina González JAM LATINA #2 Destination Brésil !,irina-gonzalez-jam-latina-2-destination-bresil,musiques_monde_trad,,,auto (1 passages)
-A0300,Concert : musique et cinéma | bibliothèque,concert-musique-et-cinema-bibliotheque,musique_autre,,,auto (1 passages)
-A0301,Wonder Brass Quartet,wonder-brass-quartet,jazz_blues,,,auto (3 passages)
-A0302,Tolosa Trobadors,tolosa-trobadors,musiques_monde_trad,,,auto (1 passages)
-A0303,Les Clefs de Saint-Pierre,les-clefs-de-saint-pierre,classique_lyrique,,,auto (1 passages)
-A0304,Le Grand Hôtel,le-grand-hotel,humour_standup,,,auto (1 passages)
-A0305,"Lisa Perrio, C'est compliqué je t'expliquerai",lisa-perrio-cest-complique-je-texpliquerai,humour_standup,,,auto (1 passages)
-A0306,Les Monologues du Vagin,les-monologues-du-vagin,humour_standup,,,auto (1 passages)
-A0307,Le Prénom,le-prenom,humour_standup,,,auto (1 passages)
-A0308,Trop Parfaite !,trop-parfaite,humour_standup,,,auto (1 passages)
-A0309,FAT FREDDY'S DROP,fat-freddys-drop,musique_autre,,,auto (1 passages)
-A0310,Toc Toc,toc-toc,humour_standup,,,auto (1 passages)
-A0311,Tarmo Peltokoski / Daniel Lozakovich,tarmo-peltokoski-daniel-lozakovich,classique_lyrique,,,auto (1 passages)
-A0312,Pierre-Emmanuel Barré,pierre-emmanuel-barre,chanson_variete,,,auto (1 passages)
-A0313,Lio Kuokman / Nelson Goerner,lio-kuokman-nelson-goerner,classique_lyrique,,,auto (1 passages)
-A0314,CORNÉLIUS,cornelius,musique_autre,,,auto (1 passages)
-A0315,Cercle de l’Harmonie,cercle-de-lharmonie,classique_lyrique,,,auto (1 passages)
-A0316,Ben l'Oncle Soul,ben-loncle-soul,funk_soul_rnb,,,auto (2 passages)
-A0317,READY FOR PROG FESTIVAL,ready-for-prog-festival,rock_metal_punk,,,auto (1 passages)
-A0318,Comme John // Ring of Cash,comme-john-ring-of-cash,musique_autre,,,auto (1 passages)
-A0319,Pierre et le Loup,pierre-et-le-loup,classique_lyrique,,,auto (2 passages)
-A0320,Sage & Zaza,sage-zaza,musique_autre,,,auto (1 passages)
-A0321,Symphonie Africaine,symphonie-africaine,musiques_monde_trad,,,auto (1 passages)
-A0322,Stephan Eicher,stephan-eicher,chanson_variete,,,auto (2 passages)
-A0323,Cocoon,cocoon,chanson_variete,,,auto (1 passages)
-A0324,Concert Framboyán,concert-framboyan,cirque_arts_rue,,,auto (1 passages)
-A0325,Chamber Orchestra of Europe,chamber-orchestra-of-europe,classique_lyrique,,,auto (1 passages)
-A0326,Eva Ollikainen / Beatrice Rana,eva-ollikainen-beatrice-rana,classique_lyrique,,,auto (1 passages)
-A0327,Alexander Soddy / Stefan Dohr,alexander-soddy-stefan-dohr,classique_lyrique,,,auto (1 passages)
-A0328,Lang Lang,lang-lang,classique_lyrique,,,auto (1 passages)
-A0329,Nikolaï Lugansky,nikolai-lugansky,classique_lyrique,,,auto (1 passages)
-A0330,Concert étudiants,concert-etudiants,classique_lyrique,,,auto (1 passages)
-A0331,Legrand enchanteur avec Nathalie Dessay,legrand-enchanteur-avec-nathalie-dessay,classique_lyrique,,,auto (1 passages)
-A0332,Jean-François Zygel met en musique le canal du Midi,jean-francois-zygel-met-en-musique-le-canal-du-midi,classique_lyrique,,,auto (1 passages)
-A0333,Let’s Swing Again!,lets-swing-again,jazz_blues,,,auto (2 passages)
-A0334,Philippe Jaroussky,philippe-jaroussky,classique_lyrique,,,auto (1 passages)
-A0335,Noël avec Britten,noel-avec-britten,classique_lyrique,,,auto (1 passages)
-A0336,Chœur Accentus,ch-ur-accentus,classique_lyrique,,,auto (1 passages)
-A0337,Riccardo Minasi / Nobuyuki Tsujii,riccardo-minasi-nobuyuki-tsujii,classique_lyrique,,,auto (1 passages)
-A0338,Happy Hour avec le violon,happy-hour-avec-le-violon,classique_lyrique,,,auto (1 passages)
-A0339,Barbara Hannigan / Bertrand Chamayou,barbara-hannigan-bertrand-chamayou,classique_lyrique,,,auto (1 passages)
-A0340,Hugues Lavigne,hugues-lavigne,humour_standup,,,officiel 3T
-A0341,Félix Junier,felix-junier,humour_standup,,,officiel 3T
-A0342,Caroline Seba,caroline-seba,humour_standup,,,officiel 3T
-A0343,les classiques,les-classiques,musique_autre,,,auto (6 passages)
-A0344,SEPTEMBRE au BUV'ART,septembre-au-buvart,musique_autre,,,auto (1 passages)
-A0345,Café des parents: une rentrée à partager,cafe-des-parents-une-rentree-a-partager,musique_autre,,,auto (1 passages)
-A0346,tropical discoteq emile omar and friends,tropical-discoteq-emile-omar-and-friends,musique_autre,,,auto (3 passages)
-A0347,𝗞𝗔𝗥𝗡𝗔𝗚𝗘 𝗥𝗘𝗫 𝗢𝗣𝗘𝗡𝗜𝗡𝗚 𝗜𝗡𝗗𝗨𝗦𝗧𝗥𝗜𝗔𝗟 ⻽ (electro|hardcore),karnage-rex-opening-industrial-electro-hardcore,musique_autre,,,auto (1 passages)
-A0348,apero 2000 vs 2010,apero-2000-vs-2010,musique_autre,,,auto (3 passages)
-A0349,unfaced jacidorex part time killer dj cringey danke al,unfaced-jacidorex-part-time-killer-dj-cringey-danke-al,musique_autre,,,auto (3 passages)
-A0350,REX TECHNO OPENING x PLEIN PHARE,rex-techno-opening-x-plein-phare,musique_autre,,,auto (1 passages)
-A0351,apero 80 s,apero-80-s,musique_autre,,,auto (3 passages)
-A0352,la qlub dj sexstasy dj caline belladonna sohier,la-qlub-dj-sexstasy-dj-caline-belladonna-sohier,musique_autre,,,auto (3 passages)
-A0353,Lecture pour les tout-petits,lecture-pour-les-tout-petits,musique_autre,,,auto (1 passages)
-A0354,Karaoké,karaoke,musique_autre,,,auto (1 passages)
-A0355,HORTENSE DE BEAUHARNAIS (all night long) (techno|hardstyle),hortense-de-beauharnais-all-night-long-techno-hardstyle,musique_autre,,,auto (1 passages)
-A0356,playground metrik simula monty against humanity rinma,playground-metrik-simula-monty-against-humanity-rinma,musique_autre,,,auto (3 passages)
-A0357,LE REX FTE SES 10 ANS (electro|funk|pop-rock),le-rex-fte-ses-10-ans-electro-funk-pop-rock,musique_autre,,,auto (1 passages)
-A0358,reevolt uberkikz caiva kandelissa,reevolt-uberkikz-caiva-kandelissa,musique_autre,,,auto (3 passages)
-A0359,Atelier Conteurs Amateurs,atelier-conteurs-amateurs,musique_autre,,,auto (1 passages)
-A0360,stand with lebanon belaria b2b secret guest arabian panther lyss jaad,stand-with-lebanon-belaria-b2b-secret-guest-arabian-panther-lyss-jaad,musique_autre,,,auto (3 passages)
-A0361,Le voyage de zacario,le-voyage-de-zacario,musique_autre,,,auto (1 passages)
-A0362,Café lecture,cafe-lecture,musique_autre,,,auto (1 passages)
-A0363,Apéro Entre'Elles,apero-entreelles,musique_autre,,,auto (1 passages)
-A0364,Noise Party : Mourir & Urge (black-metal|post-punk),noise-party-mourir-urge-black-metal-post-punk,musique_autre,,,auto (1 passages)
-A0365,Shelter Disco (disco|electro),shelter-disco-disco-electro,musique_autre,,,auto (1 passages)
-A0366,meet the beat avalon major7 djantrix x noize hu bee,meet-the-beat-avalon-major7-djantrix-x-noize-hu-bee,musique_autre,,,auto (3 passages)
-A0367,Après-midi récréative des aîné·es,apres-midi-recreative-des-aine-es,musique_autre,,,auto (1 passages)
-A0368,COMMENT RÉDUIRE L’UTILISATION DE NOTRE VOITURE INDIVIDUELLE ?,comment-reduire-lutilisation-de-notre-voiture-individuelle,musique_autre,,,auto (1 passages)
-A0369,CONCERT,concert,musique_autre,,,auto (1 passages)
-A0370,RAVE 90'S (trance),rave-90s-trance,musique_autre,,,auto (1 passages)
-A0371,karnage grand opening,karnage-grand-opening,musique_autre,,,auto (3 passages)
-A0372,DEBOUT AVEC LE BUV'ART,debout-avec-le-buvart,musique_autre,,,auto (1 passages)
-A0373,Théâtre avec l'Agit à 18h30 dans la cour du Buv'Art,theatre-avec-lagit-a-18h30-dans-la-cour-du-buvart,musique_autre,,,auto (1 passages)
-A0374,Einar Solberg & Guest (metal-progressif),einar-solberg-guest-metal-progressif,musique_autre,,,auto (1 passages)
-A0375,27eme convention du disque de toulouse,27eme-convention-du-disque-de-toulouse,musique_autre,,,auto (3 passages)
-A0376,Les Ateliers du Vill'Âge : Art floral,les-ateliers-du-village-art-floral,musique_autre,,,auto (1 passages)
-A0377,Les commandos Percu,les-commandos-percu,musique_autre,,,auto (1 passages)
-A0378,pagination,pagination,musique_autre,,,auto (24 passages)
-A0379,Light Asylum + Potochkine (darkwave),light-asylum-potochkine-darkwave,musique_autre,,,auto (1 passages)
-A0380,BELFIELD x PLEIN PHARE inv. KIRK (electro),belfield-x-plein-phare-inv-kirk-electro,musique_autre,,,auto (1 passages)
-A0381,2much kander linds lobsta b riana holley zelva,2much-kander-linds-lobsta-b-riana-holley-zelva,musique_autre,,,auto (3 passages)
-A0382,Forever Nu (metal|tribute),forever-nu-metal-tribute,musique_autre,,,auto (1 passages)
-A0383,Xandria + Seven Spires + Tulip (metal),xandria-seven-spires-tulip-metal,musique_autre,,,auto (1 passages)
-A0384,Complet,complet,musique_autre,,,auto (3 passages)
-A0385,Talisco (folk|pop),talisco-folk-pop,musique_autre,,,auto (1 passages)
-A0386,"PLEIN PHARE inv. H! DUDE, BLAZE & MARCEL DK (electro|hardcore|indie)",plein-phare-inv-h-dude-blaze-marcel-dk-electro-hardcore-indie,musique_autre,,,auto (1 passages)
-A0387,Primal Fear (metal),primal-fear-metal,musique_autre,,,auto (1 passages)
-A0388,Musiques,musiques,musique_autre,,,auto (2 passages)
-A0389,HYPNO5E & HIPPOTRAKTOR (metal|post-metal),hypno5e-hippotraktor-metal-post-metal,musique_autre,,,auto (1 passages)
-A0390,A6EL (hip-hop|rap),a6el-hip-hop-rap,musique_autre,,,auto (1 passages)
-A0391,Monolord & Dopelord (doom|metal|stoner),monolord-dopelord-doom-metal-stoner,musique_autre,,,auto (1 passages)
-A0392,Hllas + Earth Tongue (),hllas-earth-tongue,musique_autre,,,auto (1 passages)
-A0393,Cirque,cirque,musique_autre,,,auto (4 passages)
-A0394,MUSIQUE DU MONDE,musique-du-monde,musique_autre,,,auto (1 passages)
-A0395,READY FOR PROG FESTIVAL (metal),ready-for-prog-festival-metal,musique_autre,,,auto (1 passages)
-A0396,Cybersynth 2026 : Vector Seven + Neon Paradise + DJ set Neon Kult (dark-electro|synthwave|darksynth),cybersynth-2026-vector-seven-neon-paradise-dj-set-neon-kult-dark-electro-synthwa,musique_autre,,,auto (1 passages)
-A0397,Mispyrming & Owls Woods Graves & Profanation & Gorrch (black-metal|experimental),mispyrming-owls-woods-graves-profanation-gorrch-black-metal-experimental,musique_autre,,,auto (1 passages)
-A0398,Boris (experimental),boris-experimental,musique_autre,,,auto (1 passages)
-A0399,Calva Louise & Imparfait (metal|punk),calva-louise-imparfait-metal-punk,musique_autre,,,auto (1 passages)
-A0400,Two Lanes (electro),two-lanes-electro,musique_autre,,,auto (1 passages)
-A0401,Spider Zed (rap),spider-zed-rap,musique_autre,,,auto (1 passages)
-A0402,7WEEKS & Guest (rock|stoner),7weeks-guest-rock-stoner,musique_autre,,,auto (1 passages)
-A0403,Théâtre,theatre,musique_autre,,,auto (8 passages)
-A0404,The Browning & Within Destruction & Abbie Falls (metal),the-browning-within-destruction-abbie-falls-metal,musique_autre,,,auto (1 passages)
-A0405,Danse,danse,musique_autre,,,auto (2 passages)
-A0406,Storm Orchestra (rock),storm-orchestra-rock,musique_autre,,,auto (1 passages)
-A0407,Master Boot Record & Fulci & Arottenbit (metal),master-boot-record-fulci-arottenbit-metal,musique_autre,,,auto (1 passages)
-A0408,The Vintage Caravan (rock-psychedelique|stoner|hard-rock),the-vintage-caravan-rock-psychedelique-stoner-hard-rock,musique_autre,,,auto (1 passages)
-A0409,Stanislas (pop|rap),stanislas-pop-rap,musique_autre,,,auto (1 passages)
-A0410,"ROADRUNNERS ""Never Say Never Again"" (rock)",roadrunners-never-say-never-again-rock,musique_autre,,,auto (1 passages)
-A0411,THÉÂTRE D’OBJETS,theatre-dobjets,musique_autre,,,auto (1 passages)
-A0412,63OG (hip-hop|rap),63og-hip-hop-rap,musique_autre,,,auto (1 passages)
-A0413,Spike and the Gimme Gimmes (punk|rock),spike-and-the-gimme-gimmes-punk-rock,musique_autre,,,auto (1 passages)
-A0414,Colours in the Street (pop-rock),colours-in-the-street-pop-rock,musique_autre,,,auto (1 passages)
-A0415,Imperial Triumphant & Knoll (black-metal|experimental),imperial-triumphant-knoll-black-metal-experimental,musique_autre,,,auto (1 passages)
-A0416,DINAA (pop-rock|psytrance|soul),dinaa-pop-rock-psytrance-soul,musique_autre,,,auto (1 passages)
-A0417,CIRQUE / DANSE,cirque-danse,musique_autre,,,auto (2 passages)
-A0418,Juste Shani (rap),juste-shani-rap,musique_autre,,,auto (1 passages)
-A0419,Tonique & Man (disco),tonique-man-disco,musique_autre,,,auto (1 passages)
-A0420,KARNAGE REX OPENING (electro|hardcore),karnage-rex-opening-electro-hardcore,musique_autre,,,auto (1 passages)
-A0421,Lancement de Saison,lancement-de-saison,musique_autre,,,auto (1 passages)
-A0422,Le Bijou Comédie Club,le-bijou-comedie-club,musique_autre,,,auto (1 passages)
-A0423,Le Lukaraoké,le-lukaraoke,musique_autre,,,auto (1 passages)
-A0424,Tioma,tioma,musique_autre,,,auto (1 passages)
-A0425,Syrano feat. Danielito de Tryo,syrano-feat-danielito-de-tryo,musique_autre,,,auto (1 passages)
-A0426,Les Fils de ta Mère,les-fils-de-ta-mere,musique_autre,,,auto (1 passages)
-A0427,Le Bal du Bijou,le-bal-du-bijou,musique_autre,,,auto (1 passages)
-A0428,Qu'ouis-je,quouis-je,musique_autre,,,auto (1 passages)
-A0429,Scène ouverte de Slam Poésie,scene-ouverte-de-slam-poesie,musique_autre,,,auto (1 passages)
-A0430,Soirée Sharabia,soiree-sharabia,musique_autre,,,auto (1 passages)
-A0431,Melba + Telma,melba-telma,musique_autre,,,auto (1 passages)
-A0432,Ukulélé Boboys,ukulele-boboys,musique_autre,,,auto (1 passages)
-A0433,Réservez vos places de concert à partir du 1er septembre 2026 !,reservez-vos-places-de-concert-a-partir-du-1er-septembre-2026,musique_autre,,,auto (1 passages)
-A0434,Osons le Tremplin,osons-le-tremplin,musique_autre,,,auto (1 passages)
-A0435,Les Acides,les-acides,musique_autre,,,auto (1 passages)
-A0436,San-Nom,san-nom,musique_autre,,,auto (1 passages)
-A0437,Labess + Tiwiza,labess-tiwiza,musique_autre,,,auto (1 passages)
-A0438,Zinée + Etane,zinee-etane,musique_autre,,,auto (1 passages)
-A0439,VERNISSAGE,vernissage,musique_autre,,,auto (1 passages)
-A0440,BANGER 1 (psytrance|trance),banger-1-psytrance-trance,musique_autre,,,auto (1 passages)
-A0441,La Scène Ouverte du Bijou,la-scene-ouverte-du-bijou,musique_autre,,,auto (1 passages)
-A0442,Paloma Colombe + La Louuve + Shahzen(xxx),paloma-colombe-la-louuve-shahzen-xxx,musique_autre,,,auto (1 passages)
-A0443,De Fleur + Big Ass Cat + Coeur d'Artichaut + Mafia Matou,de-fleur-big-ass-cat-coeur-dartichaut-mafia-matou,musique_autre,,,auto (1 passages)
-A0444,Atelier D'écritures Le Lab' des mots,atelier-decritures-le-lab-des-mots,musique_autre,,,auto (1 passages)
-A0445,Chanson Soudaine,chanson-soudaine,musique_autre,,,auto (1 passages)
-A0446,FÜLÜ,fulu,musique_autre,,,auto (1 passages)
-A0447,Super Parquet + Peldrut,super-parquet-peldrut,musique_autre,,,auto (1 passages)
-A0448,Puppetmastaz,puppetmastaz,musique_autre,,,auto (1 passages)
-A0449,Goûter-concert #4,gouter-concert-4,musique_autre,,,auto (2 passages)
-A0450,Mîrkut + Le Grand Ensemble Filos,mirkut-le-grand-ensemble-filos,musique_autre,,,auto (1 passages)
-A0451,Blue Jay + Mel,blue-jay-mel,musique_autre,,,auto (1 passages)
-A0452,Bianca Costa,bianca-costa,musique_autre,,,auto (1 passages)
-A0453,MAHOM ASHKABAD Dub lectro Live (dub),mahom-ashkabad-dub-lectro-live-dub,musique_autre,,,auto (1 passages)
-A0454,GIRLS ON RAVE (),girls-on-rave,musique_autre,,,auto (1 passages)
-A0455,Mariam,mariam,musique_autre,,,auto (1 passages)
-A0456,Julia Bondar + Sethi One,julia-bondar-sethi-one,musique_autre,,,auto (1 passages)
-A0457,Demi Portion,demi-portion,musique_autre,,,auto (1 passages)
-A0458,Alea Jacta Est,alea-jacta-est,musique_autre,,,auto (1 passages)
-A0459,Myrath,myrath,musique_autre,,,auto (1 passages)
-A0460,Mohand Baha,mohand-baha,musique_autre,,,auto (1 passages)
-A0461,Nono La Grinta,nono-la-grinta,musique_autre,,,auto (1 passages)
-A0462,Gérald Toto + Leïla Martial & friends,gerald-toto-leila-martial-friends,musique_autre,,,auto (1 passages)
-A0463,« Jubilä » par Leïla Martial,jubila-par-leila-martial,musique_autre,,,auto (1 passages)
-A0464,Soirée LaLaLa,soiree-lalala,musique_autre,,,auto (1 passages)
-A0465,Kamelot + Exit Eden + Temperance,kamelot-exit-eden-temperance,musique_autre,,,auto (1 passages)
-A0466,Kalika,kalika,musique_autre,,,auto (1 passages)
-A0467,EMMA,emma,musique_autre,,,auto (1 passages)
-A0468,Ibeyi,ibeyi,musique_autre,,,auto (1 passages)
-A0469,Open Mic Night,open-mic-night,open_mic,,,auto (4 passages)
-A0470,Jam jazz manouche,jam-jazz-manouche,jam,,,auto (4 passages)
-A0471,Jam Horra,jam-horra,jam,,,auto (1 passages)
-A0472,Jam Swing & New Orleans,jam-swing-new-orleans,jam,,,auto (1 passages)
-A0473,Jam Balkanique,jam-balkanique,jam,,,auto (1 passages)
-A0474,THE BAND,the-band,jazz,,,auto (1 passages)
-A0475,Jam Swing,jam-swing,jam,,,auto (1 passages)
-A0476,Quiz + Bootyshake,quiz-bootyshake,quiz,,,auto (3 passages)
-A0477,Jam Bluegrass (Bluegrassoulet),jam-bluegrass-bluegrassoulet,jam,,,auto (1 passages)
-A0478,Isia,isia,concert,,,auto (1 passages)
-A0479,Gadjos Di Forró,gadjos-di-forro,concert,,,auto (1 passages)
-A0480,Yles trio,yles-trio,musique_autre,,,auto (1 passages)
-A0481,DJ SET Deejayjomax,dj-set-deejayjomax,musique_autre,,,auto (1 passages)
-A0482,Mamelle Bent,mamelle-bent,dj_set,,,auto (1 passages)
-A0483,Concert Lallau,concert-lallau,chanson,,,auto (1 passages)
-A0484,La Flashback by Jean-Heude,la-flashback-by-jean-heude,dj,,,auto (7 passages)
-A0485,Chamarré en concert,chamarre-en-concert,pop_rock,,,auto (1 passages)
-A0486,DJ SET Ekyoz,dj-set-ekyoz,musique_autre,,,auto (1 passages)
-A0487,Groovissimo,groovissimo,dj_set,,,auto (1 passages)
-A0488,Bounce Back,bounce-back,concert,,,auto (1 passages)
-A0489,2010 Party by Vicky Trix,2010-party-by-vicky-trix,dj,,,auto (1 passages)
-A0490,FAMJAM,famjam,jam,,,auto (1 passages)
-A0491,Malchance aux chansons,malchance-aux-chansons,blindtest,,,auto (1 passages)
-A0492,Manigance Club #11 (eclectique-rap-trap-electro-french-touch-dnb-),manigance-club-11-eclectique-rap-trap-electro-french-touch-dnb,musique_autre,,,auto (1 passages)
-A0493,Ziad Daroueche,ziad-daroueche,musique_autre,,,auto (1 passages)
-A0494,BACK TO BOTA,back-to-bota,dj,,,auto (1 passages)
-A0495,Le Passage,le-passage,concert,,,auto (1 passages)
-A0496,Ron Maloya/Jam sega,ron-maloya-jam-sega,musique_autre,,,auto (1 passages)
-A0497,DJ No Breakfast,dj-no-breakfast,dj_set,,,auto (1 passages)
-A0498,Chorale le Nez dans le Ruisseau,chorale-le-nez-dans-le-ruisseau,chorale,,,auto (1 passages)
-A0499,LES 11 ANS DU FOUR MONKEYS,les-11-ans-du-four-monkeys,dj,,,auto (2 passages)
-A0500,Jamo,jamo,dj,,,auto (4 passages)
-A0501,Hop Hop Hop,hop-hop-hop,funk_soul_jazz,,,auto (1 passages)
-A0502,DJ SET Judoboy,dj-set-judoboy,musique_autre,,,auto (1 passages)
-A0503,DJ Konstroy,dj-konstroy,dj_set,,,auto (1 passages)
-A0504,Ad Lib,ad-lib,concert,,,auto (1 passages)
-A0505,La Roda Dominicale de La Casa De Choro,la-roda-dominicale-de-la-casa-de-choro,choro,,,auto (3 passages)
-A0506,Livia Giaffreda : Piel + Jam chants et musique du monde,livia-giaffreda-piel-jam-chants-et-musique-du-monde,jam,,,auto (1 passages)
-A0507,Soirée karaoké,soiree-karaoke,karaoke,,,auto (1 passages)
-A0508,Lukaraoké,lukaraoke,karaoke,,,auto (1 passages)
-A0509,Makemba,makemba,musique_autre,,,auto (1 passages)
-A0510,Soirée Féria,soiree-feria,musique_autre,,,auto (1 passages)
-A0511,Karantika night fever,karantika-night-fever,musique_autre,,,auto (1 passages)
-A0512,DJ SET Mamelle Bent,dj-set-mamelle-bent,musique_autre,,,auto (1 passages)
-A0513,Mr Boom,mr-boom,dj_set,,,auto (1 passages)
-A0514,Soirée années 2000,soiree-annees-2000,musique_autre,,,auto (1 passages)
-A0515,in bikini dura electro xxl open air after,in-bikini-dura-electro-xxl-open-air-after,musique_autre,,,auto (3 passages)
-A0516,Concert The Roommates,concert-the-roommates,musique_autre,,,auto (1 passages)
-A0517,Monkey Leo,monkey-leo,dj_set,,,auto (1 passages)
-A0518,Khero,khero,concert,,,auto (1 passages)
-A0519,Groovy Party by Ory,groovy-party-by-ory,dj,,,auto (3 passages)
-A0520,Camping sauvage (quartet),camping-sauvage-quartet,musique_autre,,,auto (1 passages)
-A0521,Astrojam,astrojam,jam,,,auto (1 passages)
-A0522,Hysteria,hysteria,dj,,,auto (1 passages)
-A0523,Tonajha,tonajha,dj,,,auto (1 passages)
-A0524,Paint It Blues,paint-it-blues,concert,,,auto (1 passages)
-A0525,LES 6 ANS DU BOTA PUB,les-6-ans-du-bota-pub,dj,,,auto (1 passages)
-A0526,TBM (hard-techno|techno),tbm-hard-techno-techno,musique_autre,,,auto (1 passages)
-A0527,BLACK CAT BONES,black-cat-bones,blues,,,auto (1 passages)
-A0528,Funk.It,funk-it,concert,,,auto (1 passages)
-A0529,Super Ambiance by Mulot,super-ambiance-by-mulot,dj,,,auto (1 passages)
-A0530,Lluis Coloma,lluis-coloma,jazz_blues_boogie,,,auto (1 passages)
-A0531,THE SILVER LININGS,the-silver-linings,blues,,,auto (1 passages)
-A0532,Avou Acoustic,avou-acoustic,concert,,,auto (1 passages)
-A0533,CROSSROADS,crossroads,blues,,,auto (1 passages)
-A0534,Radio fit,radio-fit,concert,,,auto (1 passages)
-A0535,CARINA BANDITA,carina-bandita,pop,,,auto (1 passages)
-A0536,Move Over,move-over,concert,,,auto (1 passages)
-A0537,Mississippi Jazz Band,mississippi-jazz-band,jazz_new_orleans,,,auto (1 passages)
-A0538,Ashes,ashes,concert,,,auto (1 passages)
-A0539,SNAPPY TONES,snappy-tones,funk,,,auto (1 passages)
-A0540,Soltice Jazz,soltice-jazz,concert,,,auto (1 passages)
-A0541,FUNK’IT,funkit,funk,,,auto (1 passages)
-A0542,Véro 2.0,vero-2-0,concert,,,auto (1 passages)
-A0543,Gead Mulheran Quintet,gead-mulheran-quintet,jazz_vocal,,,auto (1 passages)
-A0544,HYL,hyl,concert,,,auto (1 passages)
-A0545,LOST ON MOON,lost-on-moon,pop,,,auto (1 passages)
-A0546,Groovin Soul,groovin-soul,concert,,,auto (1 passages)
-A0547,Felhur x Andro (hip-hop|rap),felhur-x-andro-hip-hop-rap,musique_autre,,,auto (1 passages)
-A0548,DJ SET ChokFunk,dj-set-chokfunk,musique_autre,,,auto (1 passages)
-A0549,DJ SET Jumien Jumini,dj-set-jumien-jumini,musique_autre,,,auto (1 passages)
-A0550,The bricks,the-bricks,concert,,,auto (1 passages)
-A0551,Concert Slim Paul,concert-slim-paul,musique_autre,,,auto (1 passages)
+artiste_id,nom,nom_normalise,genre_principal,genres_secondaires,url_photo,notes,citation,source,source_url,note_presse,score_presse,confiance
+A0002,Les faux british,les-faux-british,humour_standup,,,auto depuis programme (7 passages),,,,,,
+A0003,Arthur Barutel,soiree-candie-pop-arthur-barutel,guinguette_sorties,,,auto depuis programme (4 passages),,,,,,
+A0004,JLN,jln,electro_techno,,,auto depuis programme (3 passages),,,,,,
+A0005,Sphère,sphere,electro_techno,,,auto depuis programme (3 passages),,,,,,
+A0006,Made On Block,made-on-block,electro_techno,,,auto depuis programme (3 passages),,,,,,
+A0008,Anne Roumanoff,anne-roumanoff-l-age-libre,humour_standup,,,auto depuis programme (3 passages),,,,,,
+A0011,SKS,sks,electro_techno,,,auto depuis programme (2 passages),,,,,,
+A0015,Les Clotildes : La bonne surprise !,les-clotildes-la-bonne-surprise,humour_standup,,,auto depuis programme (2 passages),,,,,,
+A0016,"Les Femmes ont toujours raison, les hommes n’ont jamais tort",les-femmes-ont-toujours-raison-les-hommes-n-ont-jamais-tort,humour_standup,,,auto depuis programme (2 passages),,,,,,
+A0018,Fabien Olicard Experimente,fabien-olicard-experimente,humour_standup,,,auto depuis programme (2 passages),,,,,,
+A0019,"Les Clotildes : Amour, ex et alibi",les-clotildes-amour-ex-et-alibi,humour_standup,,,auto depuis programme (2 passages),,,,,,
+A0022,Ben l'Oncle Soul,ben-l-oncle-soul,funk_soul_rnb,,,auto depuis programme (2 passages),,,,,,
+A0024,Bakermat,bakermat,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0025,Aether,aether-duo-piano-voix,classique_lyrique,,,auto depuis programme (1 passages),,,,,,
+A0026,Novah,novah,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0027,JHF,jhf,musique_autre,,,auto depuis programme (1 passages),,,,,,
+A0028,Zalbecino,zalbecino,musique_autre,,,auto depuis programme (1 passages),,,,,,
+A0029,David (McFly),david-mcfly,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0030,Sarāb (génération Spédidam),sarab-generation-spedidam,musiques_monde_trad,,,auto depuis programme (1 passages),,,,,,
+A0031,Lujipeka,lujipeka,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0032,Alma Rechtman,alma-rechtman-festival-chorus,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0033,La Cercleuse,la-cercleuse,musique_autre,,,auto depuis programme (1 passages),,,,,,
+A0034,Miki,miki,musique_autre,,,auto depuis programme (1 passages),,,,,,
+A0035,Lushe,lushe,musique_autre,,,auto depuis programme (1 passages),,,,,,
+A0036,Ino Casablanca,ino-casablanca,musique_autre,,,auto depuis programme (1 passages),,,,,,
+A0037,Kamilou,kamilou-festival-d-ete-de-quebec,musique_autre,,,auto depuis programme (1 passages),,,,,,
+A0038,Louise Charbonnel,louise-charbonnel-festival-beauregard,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0039,Franglish,franglish,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0040,Naïka,naika,funk_soul_rnb,,,auto depuis programme (1 passages),,,,,,
+A0041,Paolo.,paolo,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0042,Andy 4000,andy-4000,musique_autre,,,auto depuis programme (1 passages),,,,,,
+A0043,Disiz,disiz,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0044,Ultragama,ultragama,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0045,Romsii,romsii,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0046,Macklemore,macklemore,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0047,Doka,doka,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0048,Mosimann,mosimann,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0049,Lost Frequencies,lost-frequencies,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0050,The Clamps,the-clamps,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0051,Emberline,emberline,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0052,Broma,broma,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0053,Modestep,modestep,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0054,Vladimir Cauchemar,vladimir-cauchemar,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0055,William NC,william-nc,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0056,Kaïlen,kailen,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0057,Milhan,milhan-tremplin-rose-festival,musique_autre,,,auto depuis programme (1 passages),,,,,,
+A0058,Adam El Mouna (MPourMontréal),adam-el-mouna-mpourmontreal,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0059,Mel,mel,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0060,R2,r2,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0061,Blynk (MPourMontréal),blynk-mpourmontreal,musique_autre,,,auto depuis programme (1 passages),,,,,,
+A0062,Big Ass Cat,big-ass-cat,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0063,ElGrandeToto,elgrandetoto,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0064,Marianne,marianne,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0065,Jetlag,jetlag,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0066,Lisaa Camin,lisaa-camin,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0067,Marguerite,marguerite,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0068,Feel,feel,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0069,Bekar,bekar,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0070,Lowey,lowey,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0071,Myra,myra,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0072,Meryl,meryl,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0073,Maheva,maheva,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0074,Ants & Madzes,ants-madzes,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0075,L2B,l2b,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0076,Cēzange,cezange,musique_autre,,,auto depuis programme (1 passages),,,,,,
+A0077,DJ Lucky,dj-lucky,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0078,Aya Nakamura,aya-nakamura,funk_soul_rnb,,,auto depuis programme (1 passages),,,,,,
+A0079,Manigance,manigance,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0080,Kungs,kungs,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0081,Zingabe (Afrobeat),zingabe-afrobeat,musiques_monde_trad,,,auto depuis programme (1 passages),,,,,,
+A0082,Pendulum (DJ set),pendulum-dj-set,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0083,Camo & Krooked,camo-krooked,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0084,Eptic,eptic,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0085,Habstrakt,habstrakt,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0086,Murdock & MC Mota,murdock-mc-mota,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0087,Zomboy,zomboy,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0088,A5KM,a5km,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0089,Creeds,creeds,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0090,Evil Grimace,evil-grimace,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0091,Neika,neika,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0092,Persin Down,persin-down,musique_autre,,,auto depuis programme (1 passages),,,,,,
+A0093,Deen CK,deen-ck,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0094,Odeza,odeza-tremplin-rose-festival,musique_autre,,,auto depuis programme (1 passages),,,,,,
+A0095,Kulturr,kulturr,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0096,Noé Extrat,noe-extrat-tremplin-rose-festival,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0097,Timar,timar,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0098,Etane,etane-tremplin-rose-festival,musique_autre,,,auto depuis programme (1 passages),,,,,,
+A0099,Juliane Piermay,juliane-piermay,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0100,Iliona,iliona,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0102,Béeseau,beeseau,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0103,Médine,medine,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0104,Noée,noee,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0105,Eva,eva,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0106,Maïa,maia,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0107,Triangle des Bermudes,triangle-des-bermudes,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0108,Ajar,ajar,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0109,Jethro Nine (génération Spédidam),jethro-nine-generation-spedidam,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0110,Danyl,danyl,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0111,2L,2l,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0112,Zaho,zaho,funk_soul_rnb,,,auto depuis programme (1 passages),,,,,,
+A0113,Yiadé,yiade,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0114,St Graal,st-graal,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0115,Josman,josman,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0116,Sunsept France,sunsept-france,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0117,DJ Snake,dj-snake,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0118,Karpouzi Mon Amour (Bulgarock),karpouzi-mon-amour-bulgarock,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0120,Juliette Magnevasoa,juliette-magnevasoa,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0121,Unfaced,unfaced,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0122,Un putain de conte de fée,un-putain-de-conte-de-fee,humour_standup,,,auto depuis programme (1 passages),,,,,,
+A0126,Javier Perianes,javier-perianes,classique_lyrique,,,auto depuis programme (1 passages),,,,,,
+A0127,Magdalene Ho,magdalene-ho,classique_lyrique,,,auto depuis programme (1 passages),,,,,,
+A0129,Ilyun Bürkev,ilyun-burkev,classique_lyrique,,,auto depuis programme (1 passages),,,,,,
+A0130,Amareia,amareia-en-concert,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0131,CHELABÔM,chelabom,funk_soul_rnb,,,auto depuis programme (1 passages),,,,,,
+A0132,Hortense de Beauharnais,hortense-de-beauharnais,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0133,Vadym Kholodenko,vadym-kholodenko,classique_lyrique,,,auto depuis programme (1 passages),,,,,,
+A0137,DELI ZIRZOP,deli-zirzop,musiques_monde_trad,,,auto depuis programme (1 passages),,,,,,
+A0139,Jodylin Gallavardin,jodylin-gallavardin,classique_lyrique,,,auto depuis programme (1 passages),,,,,,
+A0140,Paul Lay (carte blanche jazz),paul-lay-carte-blanche-jazz,jazz_blues,,,auto depuis programme (1 passages),,,,,,
+A0141,Pierre-Laurent Aimard,pierre-laurent-aimard,classique_lyrique,,,auto depuis programme (1 passages),,,,,,
+A0142,TABANAR,tabanar,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0143,FEELING THE SPIRIT OF GRANT GREEN,feeling-the-spirit-of-grant-green,jazz_blues,,,auto depuis programme (1 passages),,,,,,
+A0144,Anna Petrova-Forster,anna-petrova-forster,classique_lyrique,,,auto depuis programme (1 passages),,,,,,
+A0145,Kody,kody-evolue,humour_standup,,,auto depuis programme (1 passages),,,,,,
+A0146,La Mòssa + Sollùna,la-mossa-solluna-festival-occitania,musiques_monde_trad,,,auto depuis programme (1 passages),,,,,,
+A0147,Urge,urge,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0148,Mourir,mourir,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0149,The Young Gods,the-young-gods,rock_metal_punk,,,auto depuis programme (1 passages),"Appear Disappear est une nouvelle pierre à un édifice époustouflant d'avant-gardisme, d'authencité et d'intelligence.",Indiepoprock,https://www.indiepoprock.fr/OnAAussiEcoute/the-young-gods-appear-disappear/,critique,,haute
+A0150,Elisabeth Pion,elisabeth-pion,classique_lyrique,,,auto depuis programme (1 passages),,,,,,
+A0152,Les Bonobos,les-bonobos,humour_standup,,,auto depuis programme (1 passages),,,,,,
+A0154,Einar Solberg,einar-solberg,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0155,Les Clefs de Saint-Pierre,les-clefs-de-saint-pierre-cuivres-marteles,classique_lyrique,,,auto depuis programme (1 passages),,,,,,
+A0156,"Pianip–Pianop (Pierre Rigal, Constant Despres, Brice Mvie)",pianip-pianop-pierre-rigal-constant-despres-brice-mvie,danse,,,auto depuis programme (1 passages),,,,,,
+A0157,Aéro malgré lui !,aero-malgre-lui,humour_standup,,,auto depuis programme (1 passages),,,,,,
+A0158,Valentin POMMERAY TRIO,valentin-pommeray-trio,jazz_blues,,,auto depuis programme (1 passages),,,,,,
+A0160,Bernard Sellam And The Boyz From The Hood,bernard-sellam-and-the-boyz-from-the-hood,funk_soul_rnb,,,auto depuis programme (1 passages),,,,,,
+A0161,Labess,labess,musique_autre,,,auto depuis programme (1 passages),,,,,,
+A0162,Tiwiza,tiwiza,musique_autre,,,auto depuis programme (1 passages),,,,,,
+A0163,Gabrielle Giraud,gabrielle-giraud-au-naturel,humour_standup,,,auto depuis programme (1 passages),,,,,,
+A0164,Lisa Perrio,lisa-perrio-c-est-complique-je-t-expliquerai,humour_standup,,,auto depuis programme (1 passages),,,,,,
+A0165,Gabriel Delmas invite Jakob Manz + JAM,gabriel-delmas-invite-jakob-manz-jam,jazz_blues,,,auto depuis programme (1 passages),,,,,,
+A0166,Potochkine,potochkine,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0167,Light Asylum,light-asylum,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0168,Jérémy Rollando,jeremy-rollando,jazz_blues,,,auto depuis programme (1 passages),,,,,,
+A0169,Zinée,zinee,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0170,Etane,etane,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0174,MOWGLI + NAAMLOZE,mowgli-naamloze,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0175,LEE BURRIDGE,lee-burridge,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0176,Paloma Colombe,paloma-colombe,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0177,La Louuve,la-louuve,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0178,Shahzen,shahzen,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0179,Forever Nu,forever-nu,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0180,Kevin Levy : Cocu,kevin-levy-cocu,humour_standup,,,auto depuis programme (1 passages),,,,,,
+A0181,Seven Spires,seven-spires,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0182,Tulip,tulip,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0183,Xandria,xandria,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0184,FAT FREDDY'S DROP,fat-freddy-s-drop,musique_autre,,,auto depuis programme (1 passages),Le plus torride des groupes de Nouvelle-Zélande est de retour.,Les Inrockuptibles,https://www.lesinrocks.com/musique/concert/fat-freddys-drop-bays-132643-27-11-2015/,critique,,haute
+A0186,Schooet,schooet-des-goguettes,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0187,FIBR 4TET,fibr-4tet,jazz_blues,,,auto depuis programme (1 passages),,,,,,
+A0188,LOUIS CATTELAT,louis-cattelat,musique_autre,,,auto depuis programme (1 passages),,,,,,
+A0189,DJ Pone,dj-pone,hiphop_rap,,,auto depuis programme (1 passages),"Un premier album époustouflant, hypnotisant, voire chamanisant. Bref, bluffant.",Les Inrockuptibles,https://www.lesinrocks.com/musique/premier-album-solo-pone-56986-11-10-2016/,critique,,haute
+A0190,Talisco,talisco,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0191,Primal Fear,primal-fear,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0192,HIPPOTRAKTOR,hippotraktor,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0193,HYPNO5E,hypno5e,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0194,A6EL,a6el,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0195,Dopelord,dopelord,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0196,Monolord,monolord,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0197,Earth Tongue,earth-tongue,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0198,Hällas,hallas,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0200,Neon Paradise,neon-paradise,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0201,Neon Kult,neon-kult,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0202,Vector Seven,vector-seven,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0203,Owls Woods Graves,owls-woods-graves,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0204,Profanation,profanation,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0205,Gorrch,gorrch,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0206,Mispyrming,mispyrming,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0207,Boris,boris,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0208,Imparfait,imparfait,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0209,Calva Louise,calva-louise,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0210,Two Lanes,two-lanes,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0211,Spider Zed,spider-zed,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0212,Mammal Hands,mammal-hands,jazz_blues,,,auto depuis programme (1 passages),,,,,,
+A0213,7WEEKS,7weeks,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0214,Within Destruction,within-destruction,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0215,Abbie Falls,abbie-falls,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0216,The Browning,the-browning,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0217,Storm Orchestra,storm-orchestra,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0218,Fulci,fulci,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0219,Arottenbit,arottenbit,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0220,Master Boot Record,master-boot-record,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0221,The Vintage Caravan,the-vintage-caravan,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0222,Magyd Cherfi,magyd-cherfi,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0223,Stanislas,stanislas,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0224,Jupiter & Okwess,jupiter-okwess,musiques_monde_trad,,,auto depuis programme (1 passages),,,,,,
+A0225,ROADRUNNERS,roadrunners,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0226,63OG,63og,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0227,Spike and the Gimme Gimmes,spike-and-the-gimme-gimmes,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0228,Colours in the Street,colours-in-the-street,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0229,Florent Marchet,florent-marchet,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0230,Knoll,knoll,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0231,Imperial Triumphant,imperial-triumphant,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0232,DINAA,dinaa,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0233,Malefino,malefino,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0234,Gaouta,gaouta,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0235,Rosa Crux,rosa-crux,electro_techno,,,auto depuis programme (1 passages),,,,,,
+A0236,Tribulation,tribulation,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0237,Soen,soen,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0238,JWLES,jwles,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0239,Changeline,changeline,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0240,Solventis,solventis,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0241,Esthesis,esthesis,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0242,The Sexy Music Live Band,the-sexy-music-live-band,funk_soul_rnb,,,auto depuis programme (1 passages),,,,,,
+A0243,Theo Juice,theo-juice,funk_soul_rnb,,,auto depuis programme (1 passages),,,,,,
+A0244,Seth Gueko,seth-gueko,hiphop_rap,,,auto depuis programme (1 passages),,,,,,
+A0245,Tonique & Man,tonique-man,funk_soul_rnb,,,auto depuis programme (1 passages),,,,,,
+A0246,The Black Dahlia Murder,the-black-dahlia-murder,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0247,Pestilence,pestilence,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0248,Cryptic Shift,cryptic-shift,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0249,Thus,thus,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0250,DVRK,dvrk,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0251,Obscura,obscura,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0252,Revnoir,revnoir,rock_metal_punk,,,auto depuis programme (1 passages),,,,,,
+A0253,Eloiz,eloiz,chanson_variete,,,auto depuis programme (1 passages),,,,,,
+A0254,Cuarteto Tafi,cuarteto-tafi,guinguette_sorties,,,corrigé: P1679 pointait à tort vers A0219 Arottenbit,,,,,,
+A0255,Candie,candie,guinguette_sorties,,,auto (1 passages),,,,,,
+A0256,Musique live (Candie),musique-live-candie,guinguette_sorties,,,auto (5 passages),,,,,,
+A0257,Aether,aether,classique_lyrique,,,auto (1 passages),,,,,,
+A0258,Kamilou (Festival d’été de Québec),kamilou-festival-dete-de-quebec,musique_autre,,,auto (1 passages),,,,,,
+A0259,Juste Shani,juste-shani,hiphop_rap,,,auto (2 passages),,,,,,
+A0260,Soirée Candie Pop,soiree-candie-pop,guinguette_sorties,,,auto (4 passages),,,,,,
+A0261,DJ set Candie,dj-set-candie,guinguette_sorties,,,auto (8 passages),,,,,,
+A0262,Tu Luz Habana,tu-luz-habana,guinguette_sorties,,,auto (1 passages),,,,,,
+A0263,LEON Show Man,leon-show-man,guinguette_sorties,,,auto (1 passages),,,,,,
+A0264,Concert La Cuma,concert-la-cuma,musique_autre,,,auto (1 passages),,,,,,
+A0265,Deeplodocus,deeplodocus,musique_autre,,,auto (1 passages),,,,,,
+A0266,Retro Fever,retro-fever,guinguette_sorties,,,auto (1 passages),,,,,,
+A0267,L'Esbrouf,lesbrouf,guinguette_sorties,,,auto (1 passages),,,,,,
+A0268,Pianomuses,pianomuses,classique_lyrique,,,auto (2 passages),,,,,,
+A0269,Lauréat Tremplin V and B Fest’ 2026,laureat-tremplin-v-and-b-fest-2026,musique_autre,,,auto (1 passages),,,,,,
+A0270,Moher,moher,guinguette_sorties,,,auto (1 passages),,,,,,
+A0271,Création FÔM,creation-fom,musiques_monde_trad,,,auto (1 passages),,,,,,
+A0272,Adelante Quintet,adelante-quintet,musiques_monde_trad,,,auto (1 passages),,,,,,
+A0273,Chers parents,chers-parents,humour_standup,,,auto (3 passages),,,,,,
+A0274,"Anne Roumanoff, L’âge libre",anne-roumanoff-lage-libre,humour_standup,,,auto (3 passages),,,,,,
+A0275,À vies contraires,a-vies-contraires,humour_standup,,,auto (2 passages),,,,,,
+A0276,Venise sous la neige,venise-sous-la-neige,humour_standup,,,auto (2 passages),,,,,,
+A0277,LE TAQUIN FETE SES 10 ANS #1,le-taquin-fete-ses-10-ans-1,funk_soul_rnb,,,auto (1 passages),,,,,,
+A0278,"Les Femmes ont toujours raison, les hommes n’ont jamais tort",les-femmes-ont-toujours-raison-les-hommes-nont-jamais-tort,humour_standup,,,auto (2 passages),,,,,,
+A0279,LE TAQUIN FETE SES 10 ANS #2,le-taquin-fete-ses-10-ans-2,funk_soul_rnb,,,auto (1 passages),,,,,,
+A0280,PLEIN PHARE,plein-phare,electro_techno,,,auto (1 passages),,,,,,
+A0281,REX TECHNO OPENING,rex-techno-opening,electro_techno,,,auto (1 passages),,,,,,
+A0282,Closing,closing,guinguette_sorties,,,auto (1 passages),,,,,,
+A0283,JAM#1 en mixité choisie,jam-1-en-mixite-choisie,jazz_blues,,,auto (1 passages),,,,,,
+A0284,Houriaa,houriaa,cirque_arts_rue,,,auto (1 passages),,,,,,
+A0285,"Psy, sex and fun",psy-sex-and-fun,humour_standup,,,auto (2 passages),,,,,,
+A0286,datziraGrain présente ECHO JAZZ,datziragrain-presente-echo-jazz,jazz_blues,,,auto (1 passages),,,,,,
+A0287,Sax Machines Foundation,sax-machines-foundation,cirque_arts_rue,,,auto (1 passages),,,,,,
+A0288,Vacances de rêve,vacances-de-reve,humour_standup,,,auto (3 passages),,,,,,
+A0289,Une semaine pas plus !,une-semaine-pas-plus,humour_standup,,,auto (2 passages),,,,,,
+A0290,Les Clotildes : Vive la mariée !,les-clotildes-vive-la-mariee,humour_standup,,,auto (1 passages),,,,,,
+A0291,En toutes amitiés,en-toutes-amities,humour_standup,,,auto (1 passages),,,,,,
+A0292,On est tous portés sur la question,on-est-tous-portes-sur-la-question,humour_standup,,,auto (1 passages),,,,,,
+A0293,Le Rex fête ses 10 ans,le-rex-fete-ses-10-ans,electro_techno,,,auto (1 passages),,,,,,
+A0294,Les Dents du Rire,les-dents-du-rire,humour_standup,,,auto (2 passages),,,,,,
+A0295,La Mòssa + Sollùna,la-mossa-solluna,musiques_monde_trad,,,auto (1 passages),,,,,,
+A0296,Bonjour Au Revoir joue les Beatles,bonjour-au-revoir-joue-les-beatles,chanson_variete,,,auto (1 passages),,,,,,
+A0297,Le meilleur de l’homme c’est sa femme,le-meilleur-de-lhomme-cest-sa-femme,humour_standup,,,auto (1 passages),,,,,,
+A0298,Divagueries sentimentales,divagueries-sentimentales,humour_standup,,,auto (1 passages),,,,,,
+A0299,Irina González JAM LATINA #2 Destination Brésil !,irina-gonzalez-jam-latina-2-destination-bresil,musiques_monde_trad,,,auto (1 passages),,,,,,
+A0300,Concert : musique et cinéma | bibliothèque,concert-musique-et-cinema-bibliotheque,musique_autre,,,auto (1 passages),,,,,,
+A0301,Wonder Brass Quartet,wonder-brass-quartet,jazz_blues,,,auto (3 passages),,,,,,
+A0302,Tolosa Trobadors,tolosa-trobadors,musiques_monde_trad,,,auto (1 passages),,,,,,
+A0303,Les Clefs de Saint-Pierre,les-clefs-de-saint-pierre,classique_lyrique,,,auto (1 passages),,,,,,
+A0304,Le Grand Hôtel,le-grand-hotel,humour_standup,,,auto (1 passages),,,,,,
+A0305,"Lisa Perrio, C'est compliqué je t'expliquerai",lisa-perrio-cest-complique-je-texpliquerai,humour_standup,,,auto (1 passages),,,,,,
+A0306,Les Monologues du Vagin,les-monologues-du-vagin,humour_standup,,,auto (1 passages),,,,,,
+A0307,Le Prénom,le-prenom,humour_standup,,,auto (1 passages),,,,,,
+A0308,Trop Parfaite !,trop-parfaite,humour_standup,,,auto (1 passages),,,,,,
+A0309,FAT FREDDY'S DROP,fat-freddys-drop,musique_autre,,,auto (1 passages),,,,,,
+A0310,Toc Toc,toc-toc,humour_standup,,,auto (1 passages),,,,,,
+A0311,Tarmo Peltokoski / Daniel Lozakovich,tarmo-peltokoski-daniel-lozakovich,classique_lyrique,,,auto (1 passages),,,,,,
+A0312,Pierre-Emmanuel Barré,pierre-emmanuel-barre,chanson_variete,,,auto (1 passages),"Nous, on a beaucoup, beaucoup ri.",HuffPost,https://www.huffingtonpost.fr/culture/article/on-a-vu-la-premiere-du-spectacle-de-pierre-emmanuel-barre-et-laurent-nunez-ne-va-pas-apprecier_258156.html,critique,,haute
+A0313,Lio Kuokman / Nelson Goerner,lio-kuokman-nelson-goerner,classique_lyrique,,,auto (1 passages),,,,,,
+A0314,CORNÉLIUS,cornelius,musique_autre,,,auto (1 passages),,,,,,
+A0315,Cercle de l’Harmonie,cercle-de-lharmonie,classique_lyrique,,,auto (1 passages),,,,,,
+A0316,Ben l'Oncle Soul,ben-loncle-soul,funk_soul_rnb,,,auto (2 passages),,,,,,
+A0317,READY FOR PROG FESTIVAL,ready-for-prog-festival,rock_metal_punk,,,auto (1 passages),,,,,,
+A0318,Comme John // Ring of Cash,comme-john-ring-of-cash,musique_autre,,,auto (1 passages),,,,,,
+A0319,Pierre et le Loup,pierre-et-le-loup,classique_lyrique,,,auto (2 passages),,,,,,
+A0320,Sage & Zaza,sage-zaza,musique_autre,,,auto (1 passages),,,,,,
+A0321,Symphonie Africaine,symphonie-africaine,musiques_monde_trad,,,auto (1 passages),,,,,,
+A0322,Stephan Eicher,stephan-eicher,chanson_variete,,,auto (2 passages),,,,,,
+A0323,Cocoon,cocoon,chanson_variete,,,auto (1 passages),,,,,,
+A0324,Concert Framboyán,concert-framboyan,cirque_arts_rue,,,auto (1 passages),,,,,,
+A0325,Chamber Orchestra of Europe,chamber-orchestra-of-europe,classique_lyrique,,,auto (1 passages),,,,,,
+A0326,Eva Ollikainen / Beatrice Rana,eva-ollikainen-beatrice-rana,classique_lyrique,,,auto (1 passages),,,,,,
+A0327,Alexander Soddy / Stefan Dohr,alexander-soddy-stefan-dohr,classique_lyrique,,,auto (1 passages),,,,,,
+A0328,Lang Lang,lang-lang,classique_lyrique,,,auto (1 passages),,,,,,
+A0329,Nikolaï Lugansky,nikolai-lugansky,classique_lyrique,,,auto (1 passages),,,,,,
+A0330,Concert étudiants,concert-etudiants,classique_lyrique,,,auto (1 passages),,,,,,
+A0331,Legrand enchanteur avec Nathalie Dessay,legrand-enchanteur-avec-nathalie-dessay,classique_lyrique,,,auto (1 passages),,,,,,
+A0332,Jean-François Zygel met en musique le canal du Midi,jean-francois-zygel-met-en-musique-le-canal-du-midi,classique_lyrique,,,auto (1 passages),,,,,,
+A0333,Let’s Swing Again!,lets-swing-again,jazz_blues,,,auto (2 passages),,,,,,
+A0334,Philippe Jaroussky,philippe-jaroussky,classique_lyrique,,,auto (1 passages),,,,,,
+A0335,Noël avec Britten,noel-avec-britten,classique_lyrique,,,auto (1 passages),,,,,,
+A0336,Chœur Accentus,ch-ur-accentus,classique_lyrique,,,auto (1 passages),,,,,,
+A0337,Riccardo Minasi / Nobuyuki Tsujii,riccardo-minasi-nobuyuki-tsujii,classique_lyrique,,,auto (1 passages),,,,,,
+A0338,Happy Hour avec le violon,happy-hour-avec-le-violon,classique_lyrique,,,auto (1 passages),,,,,,
+A0339,Barbara Hannigan / Bertrand Chamayou,barbara-hannigan-bertrand-chamayou,classique_lyrique,,,auto (1 passages),,,,,,
+A0340,Hugues Lavigne,hugues-lavigne,humour_standup,,,officiel 3T,,,,,,
+A0341,Félix Junier,felix-junier,humour_standup,,,officiel 3T,,,,,,
+A0342,Caroline Seba,caroline-seba,humour_standup,,,officiel 3T,,,,,,
+A0343,les classiques,les-classiques,musique_autre,,,auto (6 passages),,,,,,
+A0344,SEPTEMBRE au BUV'ART,septembre-au-buvart,musique_autre,,,auto (1 passages),,,,,,
+A0345,Café des parents: une rentrée à partager,cafe-des-parents-une-rentree-a-partager,musique_autre,,,auto (1 passages),,,,,,
+A0346,tropical discoteq emile omar and friends,tropical-discoteq-emile-omar-and-friends,musique_autre,,,auto (3 passages),,,,,,
+A0347,𝗞𝗔𝗥𝗡𝗔𝗚𝗘 𝗥𝗘𝗫 𝗢𝗣𝗘𝗡𝗜𝗡𝗚 𝗜𝗡𝗗𝗨𝗦𝗧𝗥𝗜𝗔𝗟 ⻽ (electro|hardcore),karnage-rex-opening-industrial-electro-hardcore,musique_autre,,,auto (1 passages),,,,,,
+A0348,apero 2000 vs 2010,apero-2000-vs-2010,musique_autre,,,auto (3 passages),,,,,,
+A0349,unfaced jacidorex part time killer dj cringey danke al,unfaced-jacidorex-part-time-killer-dj-cringey-danke-al,musique_autre,,,auto (3 passages),,,,,,
+A0350,REX TECHNO OPENING x PLEIN PHARE,rex-techno-opening-x-plein-phare,musique_autre,,,auto (1 passages),,,,,,
+A0351,apero 80 s,apero-80-s,musique_autre,,,auto (3 passages),,,,,,
+A0352,la qlub dj sexstasy dj caline belladonna sohier,la-qlub-dj-sexstasy-dj-caline-belladonna-sohier,musique_autre,,,auto (3 passages),,,,,,
+A0353,Lecture pour les tout-petits,lecture-pour-les-tout-petits,musique_autre,,,auto (1 passages),,,,,,
+A0354,Karaoké,karaoke,musique_autre,,,auto (1 passages),,,,,,
+A0355,HORTENSE DE BEAUHARNAIS (all night long) (techno|hardstyle),hortense-de-beauharnais-all-night-long-techno-hardstyle,musique_autre,,,auto (1 passages),,,,,,
+A0356,playground metrik simula monty against humanity rinma,playground-metrik-simula-monty-against-humanity-rinma,musique_autre,,,auto (3 passages),,,,,,
+A0357,LE REX FTE SES 10 ANS (electro|funk|pop-rock),le-rex-fte-ses-10-ans-electro-funk-pop-rock,musique_autre,,,auto (1 passages),,,,,,
+A0358,reevolt uberkikz caiva kandelissa,reevolt-uberkikz-caiva-kandelissa,musique_autre,,,auto (3 passages),,,,,,
+A0359,Atelier Conteurs Amateurs,atelier-conteurs-amateurs,musique_autre,,,auto (1 passages),,,,,,
+A0360,stand with lebanon belaria b2b secret guest arabian panther lyss jaad,stand-with-lebanon-belaria-b2b-secret-guest-arabian-panther-lyss-jaad,musique_autre,,,auto (3 passages),,,,,,
+A0361,Le voyage de zacario,le-voyage-de-zacario,musique_autre,,,auto (1 passages),,,,,,
+A0362,Café lecture,cafe-lecture,musique_autre,,,auto (1 passages),,,,,,
+A0363,Apéro Entre'Elles,apero-entreelles,musique_autre,,,auto (1 passages),,,,,,
+A0364,Noise Party : Mourir & Urge (black-metal|post-punk),noise-party-mourir-urge-black-metal-post-punk,musique_autre,,,auto (1 passages),,,,,,
+A0365,Shelter Disco (disco|electro),shelter-disco-disco-electro,musique_autre,,,auto (1 passages),,,,,,
+A0366,meet the beat avalon major7 djantrix x noize hu bee,meet-the-beat-avalon-major7-djantrix-x-noize-hu-bee,musique_autre,,,auto (3 passages),,,,,,
+A0367,Après-midi récréative des aîné·es,apres-midi-recreative-des-aine-es,musique_autre,,,auto (1 passages),,,,,,
+A0368,COMMENT RÉDUIRE L’UTILISATION DE NOTRE VOITURE INDIVIDUELLE ?,comment-reduire-lutilisation-de-notre-voiture-individuelle,musique_autre,,,auto (1 passages),,,,,,
+A0369,CONCERT,concert,musique_autre,,,auto (1 passages),,,,,,
+A0370,RAVE 90'S (trance),rave-90s-trance,musique_autre,,,auto (1 passages),,,,,,
+A0371,karnage grand opening,karnage-grand-opening,musique_autre,,,auto (3 passages),,,,,,
+A0372,DEBOUT AVEC LE BUV'ART,debout-avec-le-buvart,musique_autre,,,auto (1 passages),,,,,,
+A0373,Théâtre avec l'Agit à 18h30 dans la cour du Buv'Art,theatre-avec-lagit-a-18h30-dans-la-cour-du-buvart,musique_autre,,,auto (1 passages),,,,,,
+A0374,Einar Solberg & Guest (metal-progressif),einar-solberg-guest-metal-progressif,musique_autre,,,auto (1 passages),"Possessing one of the most remarkable voices in rock today, Solberg doesn't hold back, offering one powerhouse performance after another.",Sonic Perspectives,https://www.sonicperspectives.com/album-reviews/einar-solberg-16/,critique,,haute
+A0375,27eme convention du disque de toulouse,27eme-convention-du-disque-de-toulouse,musique_autre,,,auto (3 passages),,,,,,
+A0376,Les Ateliers du Vill'Âge : Art floral,les-ateliers-du-village-art-floral,musique_autre,,,auto (1 passages),,,,,,
+A0377,Les commandos Percu,les-commandos-percu,musique_autre,,,auto (1 passages),,,,,,
+A0378,pagination,pagination,musique_autre,,,auto (24 passages),,,,,,
+A0379,Light Asylum + Potochkine (darkwave),light-asylum-potochkine-darkwave,musique_autre,,,auto (1 passages),This is a thrilling joy ride of an album.,NME,https://www.nme.com/reviews/reviews-light-asylum-13295-310127,critique,,haute
+A0380,BELFIELD x PLEIN PHARE inv. KIRK (electro),belfield-x-plein-phare-inv-kirk-electro,musique_autre,,,auto (1 passages),,,,,,
+A0381,2much kander linds lobsta b riana holley zelva,2much-kander-linds-lobsta-b-riana-holley-zelva,musique_autre,,,auto (3 passages),,,,,,
+A0382,Forever Nu (metal|tribute),forever-nu-metal-tribute,musique_autre,,,auto (1 passages),,,,,,
+A0383,Xandria + Seven Spires + Tulip (metal),xandria-seven-spires-tulip-metal,musique_autre,,,auto (1 passages),"Plus qu'une simple confirmation, ce nouvel album marque l'entrée de Xandria dans une nouvelle dimension",Radio Metal,"https://www.radiometal.com/article/xandria-eclipse,545728",critique,,haute
+A0384,Complet,complet,musique_autre,,,auto (3 passages),,,,,,
+A0385,Talisco (folk|pop),talisco-folk-pop,musique_autre,,,auto (1 passages),,,,,,
+A0386,"PLEIN PHARE inv. H! DUDE, BLAZE & MARCEL DK (electro|hardcore|indie)",plein-phare-inv-h-dude-blaze-marcel-dk-electro-hardcore-indie,musique_autre,,,auto (1 passages),,,,,,
+A0387,Primal Fear (metal),primal-fear-metal,musique_autre,,,auto (1 passages),,,,,,
+A0388,Musiques,musiques,musique_autre,,,auto (2 passages),,,,,,
+A0389,HYPNO5E & HIPPOTRAKTOR (metal|post-metal),hypno5e-hippotraktor-metal-post-metal,musique_autre,,,auto (1 passages),,,,,,
+A0390,A6EL (hip-hop|rap),a6el-hip-hop-rap,musique_autre,,,auto (1 passages),,,,,,
+A0391,Monolord & Dopelord (doom|metal|stoner),monolord-dopelord-doom-metal-stoner,musique_autre,,,auto (1 passages),,,,,,
+A0392,Hllas + Earth Tongue (),hllas-earth-tongue,musique_autre,,,auto (1 passages),,,,,,
+A0393,Cirque,cirque,musique_autre,,,auto (4 passages),,,,,,
+A0394,MUSIQUE DU MONDE,musique-du-monde,musique_autre,,,auto (1 passages),,,,,,
+A0395,READY FOR PROG FESTIVAL (metal),ready-for-prog-festival-metal,musique_autre,,,auto (1 passages),,,,,,
+A0396,Cybersynth 2026 : Vector Seven + Neon Paradise + DJ set Neon Kult (dark-electro|synthwave|darksynth),cybersynth-2026-vector-seven-neon-paradise-dj-set-neon-kult-dark-electro-synthwa,musique_autre,,,auto (1 passages),,,,,,
+A0397,Mispyrming & Owls Woods Graves & Profanation & Gorrch (black-metal|experimental),mispyrming-owls-woods-graves-profanation-gorrch-black-metal-experimental,musique_autre,,,auto (1 passages),,,,,,
+A0398,Boris (experimental),boris-experimental,musique_autre,,,auto (1 passages),,,,,,
+A0399,Calva Louise & Imparfait (metal|punk),calva-louise-imparfait-metal-punk,musique_autre,,,auto (1 passages),,,,,,
+A0400,Two Lanes (electro),two-lanes-electro,musique_autre,,,auto (1 passages),,,,,,
+A0401,Spider Zed (rap),spider-zed-rap,musique_autre,,,auto (1 passages),,,,,,
+A0402,7WEEKS & Guest (rock|stoner),7weeks-guest-rock-stoner,musique_autre,,,auto (1 passages),,,,,,
+A0403,Théâtre,theatre,musique_autre,,,auto (8 passages),,,,,,
+A0404,The Browning & Within Destruction & Abbie Falls (metal),the-browning-within-destruction-abbie-falls-metal,musique_autre,,,auto (1 passages),,,,,,
+A0405,Danse,danse,musique_autre,,,auto (2 passages),,,,,,
+A0406,Storm Orchestra (rock),storm-orchestra-rock,musique_autre,,,auto (1 passages),,,,,,
+A0407,Master Boot Record & Fulci & Arottenbit (metal),master-boot-record-fulci-arottenbit-metal,musique_autre,,,auto (1 passages),,,,,,
+A0408,The Vintage Caravan (rock-psychedelique|stoner|hard-rock),the-vintage-caravan-rock-psychedelique-stoner-hard-rock,musique_autre,,,auto (1 passages),,,,,,
+A0409,Stanislas (pop|rap),stanislas-pop-rap,musique_autre,,,auto (1 passages),,,,,,
+A0410,"ROADRUNNERS ""Never Say Never Again"" (rock)",roadrunners-never-say-never-again-rock,musique_autre,,,auto (1 passages),,,,,,
+A0411,THÉÂTRE D’OBJETS,theatre-dobjets,musique_autre,,,auto (1 passages),,,,,,
+A0412,63OG (hip-hop|rap),63og-hip-hop-rap,musique_autre,,,auto (1 passages),,,,,,
+A0413,Spike and the Gimme Gimmes (punk|rock),spike-and-the-gimme-gimmes-punk-rock,musique_autre,,,auto (1 passages),,,,,,
+A0414,Colours in the Street (pop-rock),colours-in-the-street-pop-rock,musique_autre,,,auto (1 passages),,,,,,
+A0415,Imperial Triumphant & Knoll (black-metal|experimental),imperial-triumphant-knoll-black-metal-experimental,musique_autre,,,auto (1 passages),,,,,,
+A0416,DINAA (pop-rock|psytrance|soul),dinaa-pop-rock-psytrance-soul,musique_autre,,,auto (1 passages),,,,,,
+A0417,CIRQUE / DANSE,cirque-danse,musique_autre,,,auto (2 passages),,,,,,
+A0418,Juste Shani (rap),juste-shani-rap,musique_autre,,,auto (1 passages),,,,,,
+A0419,Tonique & Man (disco),tonique-man-disco,musique_autre,,,auto (1 passages),,,,,,
+A0420,KARNAGE REX OPENING (electro|hardcore),karnage-rex-opening-electro-hardcore,musique_autre,,,auto (1 passages),,,,,,
+A0421,Lancement de Saison,lancement-de-saison,musique_autre,,,auto (1 passages),,,,,,
+A0422,Le Bijou Comédie Club,le-bijou-comedie-club,musique_autre,,,auto (1 passages),,,,,,
+A0423,Le Lukaraoké,le-lukaraoke,musique_autre,,,auto (1 passages),,,,,,
+A0424,Tioma,tioma,musique_autre,,,auto (1 passages),,,,,,
+A0425,Syrano feat. Danielito de Tryo,syrano-feat-danielito-de-tryo,musique_autre,,,auto (1 passages),,,,,,
+A0426,Les Fils de ta Mère,les-fils-de-ta-mere,musique_autre,,,auto (1 passages),,,,,,
+A0427,Le Bal du Bijou,le-bal-du-bijou,musique_autre,,,auto (1 passages),,,,,,
+A0428,Qu'ouis-je,quouis-je,musique_autre,,,auto (1 passages),,,,,,
+A0429,Scène ouverte de Slam Poésie,scene-ouverte-de-slam-poesie,musique_autre,,,auto (1 passages),,,,,,
+A0430,Soirée Sharabia,soiree-sharabia,musique_autre,,,auto (1 passages),,,,,,
+A0431,Melba + Telma,melba-telma,musique_autre,,,auto (1 passages),,,,,,
+A0432,Ukulélé Boboys,ukulele-boboys,musique_autre,,,auto (1 passages),,,,,,
+A0433,Réservez vos places de concert à partir du 1er septembre 2026 !,reservez-vos-places-de-concert-a-partir-du-1er-septembre-2026,musique_autre,,,auto (1 passages),,,,,,
+A0434,Osons le Tremplin,osons-le-tremplin,musique_autre,,,auto (1 passages),,,,,,
+A0435,Les Acides,les-acides,musique_autre,,,auto (1 passages),,,,,,
+A0436,San-Nom,san-nom,musique_autre,,,auto (1 passages),,,,,,
+A0437,Labess + Tiwiza,labess-tiwiza,musique_autre,,,auto (1 passages),"Labess contient de la vitamine B, celle du bonheur !",France Inter,https://www.radiofrance.fr/franceinter/podcasts/musicaline/musicaline-du-jeudi-31-octobre-2024-3561899,sélection,,haute
+A0438,Zinée + Etane,zinee-etane,musique_autre,,,auto (1 passages),"créative, pleine de mystère, à mi-chemin entre puissance et vulnérabilité",Télérama,https://www.telerama.fr/musique/osmin-entre-force-et-fragilite-la-melancolie-apaisee-de-zinee_cri-7033356.php,critique,,haute
+A0439,VERNISSAGE,vernissage,musique_autre,,,auto (1 passages),,,,,,
+A0440,BANGER 1 (psytrance|trance),banger-1-psytrance-trance,musique_autre,,,auto (1 passages),,,,,,
+A0441,La Scène Ouverte du Bijou,la-scene-ouverte-du-bijou,musique_autre,,,auto (1 passages),,,,,,
+A0442,Paloma Colombe + La Louuve + Shahzen(xxx),paloma-colombe-la-louuve-shahzen-xxx,musique_autre,,,auto (1 passages),,,,,,
+A0443,De Fleur + Big Ass Cat + Coeur d'Artichaut + Mafia Matou,de-fleur-big-ass-cat-coeur-dartichaut-mafia-matou,musique_autre,,,auto (1 passages),,,,,,
+A0444,Atelier D'écritures Le Lab' des mots,atelier-decritures-le-lab-des-mots,musique_autre,,,auto (1 passages),,,,,,
+A0445,Chanson Soudaine,chanson-soudaine,musique_autre,,,auto (1 passages),,,,,,
+A0446,FÜLÜ,fulu,musique_autre,,,auto (1 passages),,,,,,
+A0447,Super Parquet + Peldrut,super-parquet-peldrut,musique_autre,,,auto (1 passages),"La musique de Super Parquet apparaît comme une manifestation nouvelle, hybride, électroacoustique du revivalisme",Trax Magazine,https://www.palmier-rouge.com/superparquet,critique,,haute
+A0448,Puppetmastaz,puppetmastaz,musique_autre,,,auto (1 passages),"Creature Shock Radio ist ein großes, pathetisches Vergnügen",Süddeutsche Zeitung,https://www.sueddeutsche.de/kultur/cd-puppetmastaz-mit-creature-shock-radio-ein-maulwurf-in-samt-und-seide-1.799824,critique,,haute
+A0449,Goûter-concert #4,gouter-concert-4,musique_autre,,,auto (2 passages),,,,,,
+A0450,Mîrkut + Le Grand Ensemble Filos,mirkut-le-grand-ensemble-filos,musique_autre,,,auto (1 passages),,,,,,
+A0451,Blue Jay + Mel,blue-jay-mel,musique_autre,,,auto (1 passages),,,,,,
+A0452,Bianca Costa,bianca-costa,musique_autre,,,auto (1 passages),,,,,,
+A0453,MAHOM ASHKABAD Dub lectro Live (dub),mahom-ashkabad-dub-lectro-live-dub,musique_autre,,,auto (1 passages),,,,,,
+A0454,GIRLS ON RAVE (),girls-on-rave,musique_autre,,,auto (1 passages),,,,,,
+A0455,Mariam,mariam,musique_autre,,,auto (1 passages),,,,,,
+A0456,Julia Bondar + Sethi One,julia-bondar-sethi-one,musique_autre,,,auto (1 passages),,,,,,
+A0457,Demi Portion,demi-portion,musique_autre,,,auto (1 passages),,,,,,
+A0458,Alea Jacta Est,alea-jacta-est,musique_autre,,,auto (1 passages),,,,,,
+A0459,Myrath,myrath,musique_autre,,,auto (1 passages),,,,,,
+A0460,Mohand Baha,mohand-baha,musique_autre,,,auto (1 passages),,,,,,
+A0461,Nono La Grinta,nono-la-grinta,musique_autre,,,auto (1 passages),,,,,,
+A0462,Gérald Toto + Leïla Martial & friends,gerald-toto-leila-martial-friends,musique_autre,,,auto (1 passages),,,,,,
+A0463,« Jubilä » par Leïla Martial,jubila-par-leila-martial,musique_autre,,,auto (1 passages),,,,,,
+A0464,Soirée LaLaLa,soiree-lalala,musique_autre,,,auto (1 passages),,,,,,
+A0465,Kamelot + Exit Eden + Temperance,kamelot-exit-eden-temperance,musique_autre,,,auto (1 passages),,,,,,
+A0466,Kalika,kalika,musique_autre,,,auto (1 passages),,,,,,
+A0467,EMMA,emma,musique_autre,,,auto (1 passages),,,,,,
+A0468,Ibeyi,ibeyi,musique_autre,,,auto (1 passages),,,,,,
+A0469,Open Mic Night,open-mic-night,open_mic,,,auto (4 passages),,,,,,
+A0470,Jam jazz manouche,jam-jazz-manouche,jam,,,auto (4 passages),,,,,,
+A0471,Jam Horra,jam-horra,jam,,,auto (1 passages),,,,,,
+A0472,Jam Swing & New Orleans,jam-swing-new-orleans,jam,,,auto (1 passages),,,,,,
+A0473,Jam Balkanique,jam-balkanique,jam,,,auto (1 passages),,,,,,
+A0474,THE BAND,the-band,jazz,,,auto (1 passages),,,,,,
+A0475,Jam Swing,jam-swing,jam,,,auto (1 passages),,,,,,
+A0476,Quiz + Bootyshake,quiz-bootyshake,quiz,,,auto (3 passages),,,,,,
+A0477,Jam Bluegrass (Bluegrassoulet),jam-bluegrass-bluegrassoulet,jam,,,auto (1 passages),,,,,,
+A0478,Isia,isia,concert,,,auto (1 passages),,,,,,
+A0479,Gadjos Di Forró,gadjos-di-forro,concert,,,auto (1 passages),,,,,,
+A0480,Yles trio,yles-trio,musique_autre,,,auto (1 passages),,,,,,
+A0481,DJ SET Deejayjomax,dj-set-deejayjomax,musique_autre,,,auto (1 passages),,,,,,
+A0482,Mamelle Bent,mamelle-bent,dj_set,,,auto (1 passages),,,,,,
+A0483,Concert Lallau,concert-lallau,chanson,,,auto (1 passages),,,,,,
+A0484,La Flashback by Jean-Heude,la-flashback-by-jean-heude,dj,,,auto (7 passages),,,,,,
+A0485,Chamarré en concert,chamarre-en-concert,pop_rock,,,auto (1 passages),,,,,,
+A0486,DJ SET Ekyoz,dj-set-ekyoz,musique_autre,,,auto (1 passages),,,,,,
+A0487,Groovissimo,groovissimo,dj_set,,,auto (1 passages),,,,,,
+A0488,Bounce Back,bounce-back,concert,,,auto (1 passages),,,,,,
+A0489,2010 Party by Vicky Trix,2010-party-by-vicky-trix,dj,,,auto (1 passages),,,,,,
+A0490,FAMJAM,famjam,jam,,,auto (1 passages),,,,,,
+A0491,Malchance aux chansons,malchance-aux-chansons,blindtest,,,auto (1 passages),,,,,,
+A0492,Manigance Club #11 (eclectique-rap-trap-electro-french-touch-dnb-),manigance-club-11-eclectique-rap-trap-electro-french-touch-dnb,musique_autre,,,auto (1 passages),,,,,,
+A0493,Ziad Daroueche,ziad-daroueche,musique_autre,,,auto (1 passages),,,,,,
+A0494,BACK TO BOTA,back-to-bota,dj,,,auto (1 passages),,,,,,
+A0495,Le Passage,le-passage,concert,,,auto (1 passages),,,,,,
+A0496,Ron Maloya/Jam sega,ron-maloya-jam-sega,musique_autre,,,auto (1 passages),,,,,,
+A0497,DJ No Breakfast,dj-no-breakfast,dj_set,,,auto (1 passages),,,,,,
+A0498,Chorale le Nez dans le Ruisseau,chorale-le-nez-dans-le-ruisseau,chorale,,,auto (1 passages),,,,,,
+A0499,LES 11 ANS DU FOUR MONKEYS,les-11-ans-du-four-monkeys,dj,,,auto (2 passages),,,,,,
+A0500,Jamo,jamo,dj,,,auto (4 passages),,,,,,
+A0501,Hop Hop Hop,hop-hop-hop,funk_soul_jazz,,,auto (1 passages),,,,,,
+A0502,DJ SET Judoboy,dj-set-judoboy,musique_autre,,,auto (1 passages),,,,,,
+A0503,DJ Konstroy,dj-konstroy,dj_set,,,auto (1 passages),,,,,,
+A0504,Ad Lib,ad-lib,concert,,,auto (1 passages),,,,,,
+A0505,La Roda Dominicale de La Casa De Choro,la-roda-dominicale-de-la-casa-de-choro,choro,,,auto (3 passages),,,,,,
+A0506,Livia Giaffreda : Piel + Jam chants et musique du monde,livia-giaffreda-piel-jam-chants-et-musique-du-monde,jam,,,auto (1 passages),,,,,,
+A0507,Soirée karaoké,soiree-karaoke,karaoke,,,auto (1 passages),,,,,,
+A0508,Lukaraoké,lukaraoke,karaoke,,,auto (1 passages),,,,,,
+A0509,Makemba,makemba,musique_autre,,,auto (1 passages),,,,,,
+A0510,Soirée Féria,soiree-feria,musique_autre,,,auto (1 passages),,,,,,
+A0511,Karantika night fever,karantika-night-fever,musique_autre,,,auto (1 passages),,,,,,
+A0512,DJ SET Mamelle Bent,dj-set-mamelle-bent,musique_autre,,,auto (1 passages),,,,,,
+A0513,Mr Boom,mr-boom,dj_set,,,auto (1 passages),,,,,,
+A0514,Soirée années 2000,soiree-annees-2000,musique_autre,,,auto (1 passages),,,,,,
+A0515,in bikini dura electro xxl open air after,in-bikini-dura-electro-xxl-open-air-after,musique_autre,,,auto (3 passages),,,,,,
+A0516,Concert The Roommates,concert-the-roommates,musique_autre,,,auto (1 passages),,,,,,
+A0517,Monkey Leo,monkey-leo,dj_set,,,auto (1 passages),,,,,,
+A0518,Khero,khero,concert,,,auto (1 passages),,,,,,
+A0519,Groovy Party by Ory,groovy-party-by-ory,dj,,,auto (3 passages),,,,,,
+A0520,Camping sauvage (quartet),camping-sauvage-quartet,musique_autre,,,auto (1 passages),,,,,,
+A0521,Astrojam,astrojam,jam,,,auto (1 passages),,,,,,
+A0522,Hysteria,hysteria,dj,,,auto (1 passages),,,,,,
+A0523,Tonajha,tonajha,dj,,,auto (1 passages),,,,,,
+A0524,Paint It Blues,paint-it-blues,concert,,,auto (1 passages),,,,,,
+A0525,LES 6 ANS DU BOTA PUB,les-6-ans-du-bota-pub,dj,,,auto (1 passages),,,,,,
+A0526,TBM (hard-techno|techno),tbm-hard-techno-techno,musique_autre,,,auto (1 passages),,,,,,
+A0527,BLACK CAT BONES,black-cat-bones,blues,,,auto (1 passages),,,,,,
+A0528,Funk.It,funk-it,concert,,,auto (1 passages),,,,,,
+A0529,Super Ambiance by Mulot,super-ambiance-by-mulot,dj,,,auto (1 passages),,,,,,
+A0530,Lluis Coloma,lluis-coloma,jazz_blues_boogie,,,auto (1 passages),,,,,,
+A0531,THE SILVER LININGS,the-silver-linings,blues,,,auto (1 passages),,,,,,
+A0532,Avou Acoustic,avou-acoustic,concert,,,auto (1 passages),,,,,,
+A0533,CROSSROADS,crossroads,blues,,,auto (1 passages),,,,,,
+A0534,Radio fit,radio-fit,concert,,,auto (1 passages),,,,,,
+A0535,CARINA BANDITA,carina-bandita,pop,,,auto (1 passages),,,,,,
+A0536,Move Over,move-over,concert,,,auto (1 passages),,,,,,
+A0537,Mississippi Jazz Band,mississippi-jazz-band,jazz_new_orleans,,,auto (1 passages),,,,,,
+A0538,Ashes,ashes,concert,,,auto (1 passages),,,,,,
+A0539,SNAPPY TONES,snappy-tones,funk,,,auto (1 passages),,,,,,
+A0540,Soltice Jazz,soltice-jazz,concert,,,auto (1 passages),,,,,,
+A0541,FUNK’IT,funkit,funk,,,auto (1 passages),,,,,,
+A0542,Véro 2.0,vero-2-0,concert,,,auto (1 passages),,,,,,
+A0543,Gead Mulheran Quintet,gead-mulheran-quintet,jazz_vocal,,,auto (1 passages),,,,,,
+A0544,HYL,hyl,concert,,,auto (1 passages),,,,,,
+A0545,LOST ON MOON,lost-on-moon,pop,,,auto (1 passages),,,,,,
+A0546,Groovin Soul,groovin-soul,concert,,,auto (1 passages),,,,,,
+A0547,Felhur x Andro (hip-hop|rap),felhur-x-andro-hip-hop-rap,musique_autre,,,auto (1 passages),,,,,,
+A0548,DJ SET ChokFunk,dj-set-chokfunk,musique_autre,,,auto (1 passages),,,,,,
+A0549,DJ SET Jumien Jumini,dj-set-jumien-jumini,musique_autre,,,auto (1 passages),,,,,,
+A0550,The bricks,the-bricks,concert,,,auto (1 passages),,,,,,
+A0551,Concert Slim Paul,concert-slim-paul,musique_autre,,,auto (1 passages),,,,,,
