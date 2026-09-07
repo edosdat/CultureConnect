@@ -291,9 +291,12 @@ export function shouldShowTop3Section(opts: {
 }
 
 /** H2 for the reco row. Matches visible card count; 0 is hidden by the caller. */
-export function top3Heading(cardCount: number): string {
+export function top3Heading(
+  cardCount: number,
+  signedIn = false,
+): string {
   const n = cardCount === 1 || cardCount === 2 || cardCount === 3 ? cardCount : 3;
-  return `Ton top ${n} du moment`;
+  return signedIn ? `Mon top ${n} du moment` : `Le top ${n} du moment`;
 }
 
 export function eventIdOf(item: DayItem): string {
@@ -655,7 +658,7 @@ export function guestReasonLine(
 }
 
 /**
- * Reco why-line only (Ton top 3 / Pour toi).
+ * Reco why-line only (Top 3 / Pour toi).
  * Logged-in: 16 locked moods, grammatical French, display labels
  * (rigolo → rire, critique → satirique). Never a raw slug.
  * Guest: place/time line — never « parce que tu aimes ».
