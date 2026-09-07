@@ -533,4 +533,16 @@ describe('pinFocusedPackRow', () => {
       ['a', 'b', 'c'],
     );
   });
+
+  it('injects a deep-linked show that is absent from the current window', () => {
+    const rows = [row('a'), row('b')];
+    const extra = item({
+      key: 'p:P1548',
+      cat: 'musique',
+      form: 'concert',
+      title: 'DJ Pone',
+    });
+    const visible = pinFocusedPackRow(rows, 3, 'p:P1548', extra);
+    assert.equal(visible[0]!.item.key, 'p:P1548');
+  });
 });
