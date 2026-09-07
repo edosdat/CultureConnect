@@ -9,7 +9,9 @@ import {
   cineDistanceOrigin,
   defaultCineSeance,
   groupCinemasForFilm,
+  cineSeanceLineLabel,
   horaireOptionLabel,
+  seanceHeureLabel,
   seanceMetaLabel,
   seancesAtCinema,
 } from './cineSeances';
@@ -166,7 +168,23 @@ describe('cine seances cinema-then-time', () => {
       atAbc.map((s) => s.key),
       ['abc-soon', 'abc-late'],
     );
-    assert.equal(horaireOptionLabel(ABC_SOON), '02/09 · 13:20');
+    assert.equal(horaireOptionLabel(ABC_SOON), '02/09 · 13:20 VF');
+    assert.equal(horaireOptionLabel(ABC), '03/09 · 20:30 VOSTFR');
+    assert.equal(horaireOptionLabel(LABEGE), '02/09 · 10:00 VO');
+    assert.equal(seanceHeureLabel(ABC_SOON), '13:20 VF');
+    assert.equal(seanceHeureLabel(ABC), '20:30 VOSTFR');
+    const vost = item({
+      key: 'vost-line',
+      lieuId: 'L127',
+      nom: 'Cinéma ABC',
+      day: '2026-09-02',
+      heure: '21:15',
+      langue: 'VOST',
+    });
+    assert.equal(seanceHeureLabel(vost), '21:15 VOST');
+    assert.equal(horaireOptionLabel(vost), '02/09 · 21:15 VOST');
+    assert.equal(cineSeanceLineLabel(vost, [vost, ABC_SOON]), '21:15 VOST');
+    assert.equal(cineSeanceLineLabel(ABC_SOON, [ABC_SOON, ABC]), '02/09 · 13:20 VF');
     const groups = groupCinemasForFilm(rows, TOULOUSE_ORIGIN);
     assert.match(cinemaOptionLabel(groups[0]!), /Cinéma ABC · .+ km/);
   });
@@ -183,6 +201,8 @@ describe('cine seances cinema-then-time', () => {
       heure: '18:00',
     });
     assert.equal(seanceMetaLabel(bare), '');
+    assert.equal(horaireOptionLabel(bare), '02/09 · 18:00');
+    assert.equal(seanceHeureLabel(bare), '18:00');
     assert.equal(knownPrixLabel('', { prix: '', gratuit: 'non' }), null);
     assert.equal(knownPrixLabel('', { prix: '', gratuit: '' }), null);
     assert.equal(filmVersionLabel(''), null);

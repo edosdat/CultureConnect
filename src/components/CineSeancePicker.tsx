@@ -8,10 +8,12 @@ import {
   cinemaKeyOf,
   cinemaOptionLabel,
   cineDistanceOrigin,
+  cineSeanceLineLabel,
   defaultCineSeance,
   groupCinemasForFilm,
   horaireOptionLabel,
   seanceMetaLabel,
+  seanceVersionLabel,
   seancesAtCinema,
 } from '@/lib/cineSeances';
 
@@ -68,6 +70,7 @@ export default function CineSeancePicker({
   if (groups.length === 0) return null;
   const cinemaId = cinemaKeyOf(active);
   const times = seancesAtCinema(seances, cinemaId);
+  const horaireRows = times.length ? times : [active];
   const meta = seanceMetaLabel(active);
   return (
     <div data-testid="cine-seance-picker">
@@ -110,8 +113,13 @@ export default function CineSeancePicker({
             aria-label="Choisir un horaire"
             className="h-11 min-w-0 flex-1 rounded-lg border border-culture-line bg-culture-surface px-2.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
           >
-            {(times.length ? times : [active]).map((rel) => (
-              <option key={rel.key} value={rel.key}>
+            {horaireRows.map((rel) => (
+              <option
+                key={rel.key}
+                value={rel.key}
+                data-testid="cine-horaire-option"
+                data-langue={seanceVersionLabel(rel) ?? ''}
+              >
                 {horaireOptionLabel(rel)}
               </option>
             ))}
@@ -119,6 +127,31 @@ export default function CineSeancePicker({
           <SeanceReserveLink item={active} onReserve={onReserve} />
         </div>
       </div>
+      <ul
+        data-testid="cine-seance-lines"
+        className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-sm"
+      >
+        {horaireRows.map((rel) => {
+          const version = seanceVersionLabel(rel);
+          return (
+            <li key={rel.key}>
+              <button
+                type="button"
+                onClick={() => onPick(rel.key)}
+                data-testid="cine-seance-line"
+                data-langue={version ?? ''}
+                className={
+                  rel.key === active.key
+                    ? 'font-medium text-culture-ink'
+                    : 'text-culture-muted hover:text-culture-ink'
+                }
+              >
+                {cineSeanceLineLabel(rel, horaireRows)}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

@@ -114,12 +114,6 @@ export function cinemaOptionLabel(group: CinemaVenueGroup): string {
   return [group.label, group.kmLabel].filter(Boolean).join(' · ');
 }
 
-/** Dropdown: « 02/09 · 13:20 » for the selected cinema only. */
-export function horaireOptionLabel(rel: DayItem): string {
-  const date = formatDateShort(seanceDateIso(rel) || rel.dayIso);
-  return [date, seanceHeure(rel)].filter(Boolean).join(' · ');
-}
-
 export function seancePrixLabel(item: DayItem): string | null {
   if (item.kind === 'programme') {
     return knownPrixLabel(item.programme.prix_item, item.evenement);
@@ -132,6 +126,30 @@ export function seanceVersionLabel(item: DayItem): string | null {
     return filmVersionLabel(item.programme.langue, item.evenement?.langue);
   }
   return filmVersionLabel(item.evenement.langue);
+}
+
+/** Time + catalogue version: « 21:15 VOST ». Empty langue → time only. */
+export function seanceHeureLabel(rel: DayItem): string {
+  return [seanceHeure(rel), seanceVersionLabel(rel)].filter(Boolean).join(' ');
+}
+
+/** Dropdown: « 02/09 · 10:30 VOST » for the selected cinema only. */
+export function horaireOptionLabel(rel: DayItem): string {
+  const date = formatDateShort(seanceDateIso(rel) || rel.dayIso);
+  return [date, seanceHeureLabel(rel)].filter(Boolean).join(' · ');
+}
+
+/** Visible séance line: « 21:15 VOST » when peers share a day, else the dropdown form. */
+export function cineSeanceLineLabel(
+  rel: DayItem,
+  peers: DayItem[] = [rel],
+): string {
+  const rows = peers.length ? peers : [rel];
+  const firstDay = seanceDateIso(rows[0]!) || rows[0]!.dayIso;
+  const sameDay = rows.every(
+    (row) => (seanceDateIso(row) || row.dayIso) === firstDay,
+  );
+  return sameDay ? seanceHeureLabel(rel) : horaireOptionLabel(rel);
 }
 
 /** Compact « 8,20€ · VOSTFR » — omit either part when the CSV is empty. */
