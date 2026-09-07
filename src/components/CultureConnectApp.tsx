@@ -26,6 +26,7 @@ import {
   homeSectionsVisible,
   musiqueRows,
   resolveHomeCardOpen,
+  resolveSearchSubmit,
   shouldInvalidateProfileRecoCache,
   shouldShowTop3Section,
   top3Heading,
@@ -50,6 +51,7 @@ import SeanceGrid from './SeanceGrid';
 import Top3Skeleton from './Top3Skeleton';
 import TimeScopeBar from './TimeScopeBar';
 import SearchOmnibox from './SearchOmnibox';
+import SearchExamples from './SearchExamples';
 import ListWaitDots from './ListWaitDots';
 import EventDetail from './EventDetail';
 import TastesOverlayHost from './TastesOverlayHost';
@@ -62,7 +64,6 @@ import {
 } from '@/lib/phraseTags';
 import {
   leftoverTitleAfterDraftChange,
-  parseSearchChips,
   searchChipsToUi,
   searchSubmitAppliesChips,
   type SearchChipParse,
@@ -467,16 +468,36 @@ export default function CultureConnectApp({
     setQuery(next);
     // Always apply — empty draft must drop leftover q even if leftover state is stale.
     setCommittedTitle((current) => leftoverTitleAfterDraftChange(next, current));
+    if (!(next || '').trim()) setPhraseTags(null);
   }
 
   function handleSearchSubmit(raw: string) {
-    const parsed = parseSearchChips(raw);
-    applyParsedChips(parsed, raw);
-    setCommittedTitle(parsed.titleQuery);
+    const intent = resolveSearchSubmit(raw);
+    applyParsedChips(intent.parsed, raw);
+    setPhraseTags(intent.phraseTags);
+    setCommittedTitle(intent.titleQuery);
+    if (intent.commune) handleCommuneChange(intent.commune);
+  }
+
+  function handleExamplePick(next: string) {
+    if (!next.trim()) {
+      handleQueryChange('');
+      return;
+    }
+    setTimeScope('tous');
+    setSelectedDay(null);
+    setShowMonthPanel(false);
+    setSelectedCategories([]);
+    setSelectedGenres([]);
+    setPhraseTags(null);
+    lastSearchChipsRef.current = { scope: '', date: '', cat: '' };
+    searchDrivenRef.current = { scope: false, cat: false };
+    setQuery(next);
+    handleSearchSubmit(next);
   }
 
   const queryTrimmed = query.trim();
-  const phraseMode = false;
+  const phraseMode = Boolean(phraseTags && !phraseUsesTitleQ(phraseTags));
   /** Leftover title after submit — chip-only phrases are not a title search. */
   const searchingUi = titleLeftover.length > 0;
   const searching = titleLeftover.trim().length > 0;
@@ -817,7 +838,7 @@ export default function CultureConnectApp({
         year,
         month,
         includeListMeta: true,
-        phraseMode: false,
+        phraseMode,
         phraseTags,
       });
       startListSlowWatch(gen, 'top');
@@ -850,6 +871,7 @@ export default function CultureConnectApp({
     selectedLieuId,
     selectedCategories,
     selectedGenres,
+    phraseMode,
     phraseTags,
   ]);
 
@@ -1234,6 +1256,7 @@ export default function CultureConnectApp({
     selectedCategories,
     selectedGenres,
     nearMeActive,
+    phraseTags,
   ]);
 
   const handleLoadMore = useCallback(() => {
@@ -1255,7 +1278,7 @@ export default function CultureConnectApp({
       month,
       offset: listItems.length,
       includeCounts: showMonthPanel,
-      phraseMode: false,
+      phraseMode,
       phraseTags,
     });
     void fetch(`/api/agenda?${params.toString()}`)
@@ -1281,6 +1304,7 @@ export default function CultureConnectApp({
     selectedDay,
     year,
     month,
+    phraseMode,
     phraseTags,
   ]);
 
@@ -1605,6 +1629,7 @@ export default function CultureConnectApp({
           onSubmit={handleSearchSubmit}
         />
       </div>
+      <SearchExamples onPick={handleExamplePick} activeQuery={query} />
 
       <div className="space-y-2.5 sm:space-y-4">
         <div className="cc-axes-row">

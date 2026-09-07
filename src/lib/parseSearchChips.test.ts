@@ -71,6 +71,18 @@ describe('parseSearchChips', () => {
     assert.equal(p.titleQuery, 'un truc intimiste');
   });
 
+  it('maps example « un truc intimiste ce WE » to Ce WE, not a category', () => {
+    const p = parseSearchChips('un truc intimiste ce WE', NOW);
+    assert.equal(p.scope, 'weekend');
+    assert.deepEqual(p.categories, []);
+  });
+
+  it('maps example « concert près du centre » to Musique', () => {
+    const p = parseSearchChips('concert près du centre', NOW);
+    assert.deepEqual(p.categories, ['musique']);
+    assert.equal(p.scope, null);
+  });
+
   it('picks one QUAND chip, most specific first (Ce soir > Date…)', () => {
     const p = parseSearchChips('samedi soir', NOW);
     assert.equal(p.scope, 'soir');
