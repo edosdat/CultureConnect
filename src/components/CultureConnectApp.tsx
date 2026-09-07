@@ -1056,8 +1056,14 @@ export default function CultureConnectApp({
     [cineSource, top3Set, gpsOrigin],
   );
   const visibleCineRows = useMemo(
-    () => pinFocusedPackRow(allCineRows, cineLimit, cineFocusKey),
-    [allCineRows, cineLimit, cineFocusKey],
+    () =>
+      pinFocusedPackRow(
+        allCineRows,
+        cineLimit,
+        cineFocusKey,
+        homePackOfItem(initialOpenItem) === 'cine' ? initialOpenItem : null,
+      ),
+    [allCineRows, cineLimit, cineFocusKey, initialOpenItem],
   );
   const vivantPool = useMemo(() => {
     const seen = new Set<string>();
@@ -1087,8 +1093,14 @@ export default function CultureConnectApp({
     [vivantPool, top3Set, gpsOrigin],
   );
   const visibleTheatreRows = useMemo(
-    () => pinFocusedPackRow(allTheatreRows, theatreLimit, theatreFocusKey),
-    [allTheatreRows, theatreLimit, theatreFocusKey],
+    () =>
+      pinFocusedPackRow(
+        allTheatreRows,
+        theatreLimit,
+        theatreFocusKey,
+        homePackOfItem(initialOpenItem) === 'theatre' ? initialOpenItem : null,
+      ),
+    [allTheatreRows, theatreLimit, theatreFocusKey, initialOpenItem],
   );
   const allMusiqueRows = useMemo(
     () =>
@@ -1100,8 +1112,14 @@ export default function CultureConnectApp({
     [vivantPool, top3Set, gpsOrigin],
   );
   const visibleMusiqueRows = useMemo(
-    () => pinFocusedPackRow(allMusiqueRows, musiqueLimit, musiqueFocusKey),
-    [allMusiqueRows, musiqueLimit, musiqueFocusKey],
+    () =>
+      pinFocusedPackRow(
+        allMusiqueRows,
+        musiqueLimit,
+        musiqueFocusKey,
+        homePackOfItem(initialOpenItem) === 'musique' ? initialOpenItem : null,
+      ),
+    [allMusiqueRows, musiqueLimit, musiqueFocusKey, initialOpenItem],
   );
   const sectionVis = homeSectionsVisible(selectedCategories);
 
