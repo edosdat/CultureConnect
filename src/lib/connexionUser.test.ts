@@ -533,6 +533,33 @@ describe('top 3 adaptive layout', () => {
     assert.equal(shouldShowTop3Section({ ready: true, wiped: false, cardCount: 1 }), true);
     assert.equal(shouldShowTop3Section({ ready: false, wiped: false, cardCount: 0 }), true);
     assert.equal(shouldShowTop3Section({ ready: false, wiped: true, cardCount: 0 }), false);
+    assert.equal(
+      shouldShowTop3Section({
+        ready: true,
+        wiped: false,
+        cardCount: 3,
+        selectedCategories: ['cinema'],
+      }),
+      false,
+    );
+    assert.equal(
+      shouldShowTop3Section({
+        ready: true,
+        wiped: false,
+        cardCount: 3,
+        committedTitle: 'nougaro',
+      }),
+      false,
+    );
+    assert.equal(
+      shouldShowTop3Section({
+        ready: true,
+        wiped: false,
+        cardCount: 3,
+        phraseActive: true,
+      }),
+      false,
+    );
     assert.ok(!top3GridClass(1).includes('grid-cols-2'));
     assert.ok(!top3GridClass(1).includes('lg:grid-cols-3'));
     assert.ok(top3GridClass(2).includes('sm:grid-cols-2'));

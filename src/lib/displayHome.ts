@@ -280,12 +280,23 @@ export function top3GridClass(count: number): string {
   return 'grid w-full grid-cols-1 items-start gap-3 lg:grid-cols-3';
 }
 
+/**
+ * Home Top 3 row.
+ * Hide when a QUOI chip or an omnibox commit (title leftover / phrase) is on.
+ * Date chips, commune, and salle alone keep the section (if cards).
+ */
 export function shouldShowTop3Section(opts: {
   ready: boolean;
   wiped: boolean;
   cardCount: number;
+  selectedCategories?: readonly string[];
+  committedTitle?: string;
+  phraseActive?: boolean;
 }): boolean {
   if (opts.wiped) return false;
+  if ((opts.selectedCategories?.length ?? 0) > 0) return false;
+  if ((opts.committedTitle || '').trim()) return false;
+  if (opts.phraseActive) return false;
   if (!opts.ready) return true;
   return opts.cardCount > 0;
 }
