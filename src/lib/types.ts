@@ -89,6 +89,14 @@ export type ProgrammeItem = {
   genres_mood?: string;
   themes?: string;
   entities?: string;
+  /** Press citation fields (fill-empty; UI max 1). */
+  citation?: string;
+  source?: string;
+  source_url?: string;
+  note_presse?: string;
+  score_presse?: string;
+  /** Citation confidence — do not confuse with mood_confiance. */
+  confiance?: string;
 };
 
 /** Row from data/films.csv — film regroupé multi-salles. */
