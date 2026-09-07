@@ -10,6 +10,7 @@ import {
   defaultCineSeance,
   groupCinemasForFilm,
   horaireOptionLabel,
+  seanceHeureLabel,
   seanceMetaLabel,
   seancesAtCinema,
 } from './cineSeances';
@@ -166,9 +167,26 @@ describe('cine seances cinema-then-time', () => {
       atAbc.map((s) => s.key),
       ['abc-soon', 'abc-late'],
     );
-    assert.equal(horaireOptionLabel(ABC_SOON), '02/09 · 13:20');
+    assert.equal(horaireOptionLabel(ABC_SOON), '02/09 · 13:20 VF');
+    assert.equal(horaireOptionLabel(ABC), '03/09 · 20:30 VOSTFR');
+    assert.equal(horaireOptionLabel(LABEGE), '02/09 · 10:00 VO');
     const groups = groupCinemasForFilm(rows, TOULOUSE_ORIGIN);
     assert.match(cinemaOptionLabel(groups[0]!), /Cinéma ABC · .+ km/);
+  });
+
+  it('glues VF/VOST after the time only when the catalogue has langue', () => {
+    assert.equal(seanceHeureLabel(ABC_SOON), '13:20 VF');
+    assert.equal(seanceHeureLabel(ABC), '20:30 VOSTFR');
+    assert.equal(seanceHeureLabel(LABEGE), '10:00 VO');
+    const bare = item({
+      key: 'bare-time',
+      lieuId: 'L1',
+      nom: 'Salle',
+      day: '2026-09-02',
+      heure: '21:15',
+    });
+    assert.equal(seanceHeureLabel(bare), '21:15');
+    assert.equal(horaireOptionLabel(bare), '02/09 · 21:15');
   });
 
   it('shows prix and VF/VOST only when the catalogue has them', () => {
