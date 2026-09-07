@@ -36,6 +36,7 @@ import ShareButton from './ShareButton';
 import VivantComplementLinks from './VivantComplementLinks';
 import PressCitation from './PressCitation';
 import CineSeancePicker from './CineSeancePicker';
+import FicheDescription from './FicheDescription';
 import { fichePressCitation, pressItemForFiche } from '@/lib/pressCitation';
 
 export type CinemaCarouselPack =
@@ -571,11 +572,7 @@ export default function CinemaCarousel({
               />
             </div>
           ) : null}
-          {itemPitch(item) ? (
-            <p className="hidden text-sm leading-relaxed text-culture-ink md:block">
-              {itemPitch(item)}
-            </p>
-          ) : null}
+          <FicheDescription item={detailItem ?? item} />
           {pack === 'theatre' || pack === 'musique' ? (
             <PressCitation
               citation={fichePressCitation(

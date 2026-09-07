@@ -1,8 +1,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
-import { clipListPitch, detailDayItem, slimDayItem } from './slim';
-import { ficheDescriptionOf, isSlimFichePayload } from './ficheDescription';
+import { detailDayItem, slimDayItem } from './slim';
+import { ficheDescriptionOf } from './ficheDescription';
 
 const LONG_PITCH =
   'Taïwan, 1988. Hsiao-lee, une jeune adolescente timide, peine à trouver sa place à l’école. ' +
@@ -103,7 +103,7 @@ function fallbackItem(evenement: Partial<Evenement> = {}): DayItem {
 }
 
 describe('ficheDescriptionOf', () => {
-  it('shows the full description_longue on a hydrated fiche', () => {
+  it('prefers description_longue over description_courte', () => {
     const item = detailDayItem(
       programmeItem({
         cat: 'cinema',
@@ -112,21 +112,30 @@ describe('ficheDescriptionOf', () => {
     );
     assert.equal(ficheDescriptionOf(item), LONG_PITCH);
     assert.ok(ficheDescriptionOf(item).length > 200);
-    assert.ok(!ficheDescriptionOf(item).endsWith('…'));
   });
 
-  it('hides slim first-paint so clipped 1–2 sentences never look like the synopsis', () => {
-    const raw = programmeItem({
-      cat: 'theatre_danse',
-      evenement: { description_longue: LONG_PITCH, description_courte: LONG_PITCH },
-    });
-    const slim = slimDayItem(raw);
-    assert.equal(isSlimFichePayload(slim), true);
-    assert.equal(ficheDescriptionOf(slim), '');
-    assert.ok(clipListPitch(LONG_PITCH).length < LONG_PITCH.length);
+  it('does not hide the long field on slim first-paint', () => {
+    const slim = slimDayItem(
+      programmeItem({
+        cat: 'theatre_danse',
+        evenement: { description_longue: LONG_PITCH, description_courte: 'Court.' },
+      }),
+    );
+    assert.equal(ficheDescriptionOf(slim), LONG_PITCH);
   });
 
-  it('hides the block when every description field is empty', () => {
+  it('uses short alone when no long field is filled', () => {
+    const item = detailDayItem(
+      programmeItem({
+        cat: 'enfants_familles',
+        evenement: { description_longue: '', description_courte: 'Pitch famille.' },
+        programme: { description_item: '' },
+      }),
+    );
+    assert.equal(ficheDescriptionOf(item), 'Pitch famille.');
+  });
+
+  it('hides the block only when every description field is empty', () => {
     const item = detailDayItem(
       programmeItem({
         cat: 'musique',
@@ -137,7 +146,7 @@ describe('ficheDescriptionOf', () => {
     assert.equal(ficheDescriptionOf(item), '');
   });
 
-  it('falls back to description_item then courte when longue is empty', () => {
+  it('treats description_item as the long pitch when longue is empty', () => {
     const viaItem = detailDayItem(
       programmeItem({
         cat: 'festival',
@@ -146,15 +155,6 @@ describe('ficheDescriptionOf', () => {
       }),
     );
     assert.equal(ficheDescriptionOf(viaItem), 'Pitch programme entier.');
-
-    const viaCourte = detailDayItem(
-      programmeItem({
-        cat: 'enfants_familles',
-        evenement: { description_longue: '', description_courte: 'Pitch famille.' },
-        programme: { description_item: '' },
-      }),
-    );
-    assert.equal(ficheDescriptionOf(viaCourte), 'Pitch famille.');
   });
 
   it('keeps newlines and does not invent copy', () => {
@@ -173,12 +173,21 @@ describe('ficheDescriptionOf', () => {
       fallbackItem({ description_longue: LONG_PITCH, description_courte: 'Court.' }),
     );
     assert.equal(ficheDescriptionOf(full), LONG_PITCH);
-    assert.equal(ficheDescriptionOf(slimDayItem(fallbackItem({ description_longue: LONG_PITCH }))), '');
+    assert.equal(
+      ficheDescriptionOf(slimDayItem(fallbackItem({ description_longue: LONG_PITCH }))),
+      LONG_PITCH,
+    );
     assert.equal(
       ficheDescriptionOf(
         detailDayItem(fallbackItem({ description_longue: '', description_courte: '' })),
       ),
       '',
+    );
+    assert.equal(
+      ficheDescriptionOf(
+        detailDayItem(fallbackItem({ description_longue: '', description_courte: 'Seul court.' })),
+      ),
+      'Seul court.',
     );
   });
 });
