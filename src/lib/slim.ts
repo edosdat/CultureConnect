@@ -66,6 +66,7 @@ function slimEvenement(
     moods: ev.moods || '',
     genres_mood: ev.genres_mood || '',
     billetterie_url: ev.billetterie_url || '',
+    ...pickPressCatalogueFields(ev as unknown as Record<string, unknown>),
   };
 }
 
@@ -93,6 +94,7 @@ function slimProgramme(p: ProgrammeItem): ProgrammeItem {
     form: p.form || '',
     moods: p.moods || '',
     genres_mood: p.genres_mood || '',
+    ...pickPressCatalogueFields(p as unknown as Record<string, unknown>),
   };
 }
 
@@ -179,6 +181,9 @@ export function detailDayItem(item: DayItem): DayItem {
         image_url: p.image_url || '',
         description_item: p.description_item || '',
         billetterie_url: p.billetterie_url || '',
+        form: p.form || '',
+        moods: p.moods || '',
+        genres_mood: p.genres_mood || '',
         ...pickPressCatalogueFields(p as unknown as Record<string, unknown>),
       },
       evenement: ev
@@ -204,6 +209,9 @@ export function detailDayItem(item: DayItem): DayItem {
             billetterie_url: ev.billetterie_url || '',
             casting: ev.casting || '',
             tags: ev.tags || '',
+            form: ev.form || '',
+            moods: ev.moods || '',
+            genres_mood: ev.genres_mood || '',
             ...pickPressCatalogueFields(ev as unknown as Record<string, unknown>),
           }
         : null,
@@ -237,6 +245,9 @@ export function detailDayItem(item: DayItem): DayItem {
       billetterie_url: ev.billetterie_url || '',
       casting: ev.casting || '',
       tags: ev.tags || '',
+      form: ev.form || '',
+      moods: ev.moods || '',
+      genres_mood: ev.genres_mood || '',
       ...pickPressCatalogueFields(ev as unknown as Record<string, unknown>),
     },
     lieu: detailLieu(item.lieu),
