@@ -38,8 +38,10 @@ import {
   reservePickOf,
 } from '@/lib/reserve';
 import { isCinemaDayItem } from '@/lib/nouveautesCine';
+import { fichePressCitation } from '@/lib/pressCitation';
 import type { GeoPos } from '@/lib/nearMe';
 import VivantComplementLinks from './VivantComplementLinks';
+import PressCitation from './PressCitation';
 import { CineFilmSeances } from './CineSeancePicker';
 
 type Props = {
@@ -287,6 +289,10 @@ function sourceUrlOf(item: DayItem): string {
   const reserve = reserveUrlOf(item);
   if (!page || page === reserve) return '';
   return page;
+}
+
+function FichePressBlock({ item }: { item: DayItem }) {
+  return <PressCitation citation={fichePressCitation(item)} />;
 }
 
 function pitchOf(item: DayItem): string {
@@ -647,6 +653,8 @@ export default function EventDetail({
               </section>
             )}
 
+            <FichePressBlock item={item} />
+
             <div className="flex flex-wrap items-center gap-2">
               {!hasFilmSeances && (
                 <ReserveControl
@@ -884,6 +892,8 @@ export default function EventDetail({
               )}
             </section>
           )}
+
+          <FichePressBlock item={item} />
 
           <div className="flex flex-wrap items-center gap-2">
             <ReserveControl

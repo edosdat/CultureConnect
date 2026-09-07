@@ -14,6 +14,36 @@ export type Lieu = {
   lng?: string;
 };
 
+/**
+ * Fill-empty press citation (event / programme / artiste).
+ * Official: citation | source | source_url | note_presse | score_presse | confiance.
+ * Contexte aliases (same UI, no extra PR): citation_presse, citation_source,
+ * citation_url, citation_note (+ a few presse_* / media_* spellings).
+ * Hide UI when the quote cell is empty. `confiance` ≠ mood_confiance.
+ */
+export type PressCatalogueFields = {
+  citation?: string;
+  source?: string;
+  source_url?: string;
+  note_presse?: string;
+  score_presse?: string;
+  confiance?: string;
+  citation_presse?: string;
+  presse_citation?: string;
+  /** Alias — same role as `source`. */
+  citation_source?: string;
+  presse_media?: string;
+  media_presse?: string;
+  presse_source?: string;
+  presse_url?: string;
+  url_presse?: string;
+  citation_url?: string;
+  /** Alias — same role as `note_presse`. */
+  citation_note?: string;
+  presse_note?: string;
+  note_telerama?: string;
+};
+
 export type Evenement = {
   event_id: string;
   lieu_id: string;
@@ -53,15 +83,7 @@ export type Evenement = {
   genres_mood?: string;
   themes?: string;
   entities?: string;
-  /** Press citation fields (fill-empty; UI max 1). */
-  citation?: string;
-  source?: string;
-  source_url?: string;
-  note_presse?: string;
-  score_presse?: string;
-  /** Citation confidence — do not confuse with mood_confiance. */
-  confiance?: string;
-};
+} & PressCatalogueFields;
 
 export type ProgrammeItem = {
   programme_id: string;
@@ -97,15 +119,7 @@ export type ProgrammeItem = {
   genres_mood?: string;
   themes?: string;
   entities?: string;
-  /** Press citation fields (fill-empty; UI max 1). */
-  citation?: string;
-  source?: string;
-  source_url?: string;
-  note_presse?: string;
-  score_presse?: string;
-  /** Citation confidence — do not confuse with mood_confiance. */
-  confiance?: string;
-};
+} & PressCatalogueFields;
 
 /** Row from data/films.csv — film regroupé multi-salles. */
 export type Film = {
@@ -144,15 +158,7 @@ export type Artiste = {
   url_site?: string;
   url_reseaux?: string;
   scraped_at?: string;
-  /** Press citation fields (fill-empty; UI max 1). */
-  citation?: string;
-  source?: string;
-  source_url?: string;
-  note_presse?: string;
-  score_presse?: string;
-  /** Citation confidence — do not confuse with mood_confiance. */
-  confiance?: string;
-};
+} & PressCatalogueFields;
 
 /** One date/appearance for an artist around Toulouse. */
 export type ArtisteDate = {

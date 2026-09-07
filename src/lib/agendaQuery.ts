@@ -30,6 +30,7 @@ import {
 } from './events';
 import { genreSlugsFromItems } from './genreChipMatch';
 import { collectCinemaLivingCandidates } from './filmVivantComplements';
+import { withConcertArtistPress } from './pressCitation';
 import {
   filmIdOfItem,
   isCinemaDayItem,
@@ -1301,7 +1302,9 @@ export function queryAgendaDetail(
   }
 
   return {
-    item: detailDayItem(withCredits(item, data.artistes)),
+    item: detailDayItem(
+      withConcertArtistPress(withCredits(item, data.artistes), data.artistes),
+    ),
     relatedItems,
     aussiCeSoir,
   };

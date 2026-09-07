@@ -3,7 +3,9 @@
 import { useEffect } from 'react';
 import type { ArtisteWithDates, GenreLegend } from '@/lib/types';
 import { labelGenre, splitUpcomingPast } from '@/lib/artists';
+import { artistPressCitation } from '@/lib/pressCitation';
 import { formatDateFr, formatHeure } from '@/lib/labels';
+import PressCitation from './PressCitation';
 
 type Props = {
   artiste: ArtisteWithDates | null;
@@ -121,6 +123,7 @@ export default function ArtisteDetail({ artiste, legend, onClose }: Props) {
         </div>
 
         <div className="space-y-6 px-5 py-5">
+          <PressCitation citation={artistPressCitation(artiste)} />
           <section>
             <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-culture-muted">
               Dates à venir
