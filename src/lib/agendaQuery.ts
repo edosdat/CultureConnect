@@ -26,9 +26,10 @@ import { vivantListInput } from './displayHome';
 import {
   countItemsByDay,
   itemsForDateRange,
+  itemsForDay,
 } from './events';
 import { genreSlugsFromItems } from './genreChipMatch';
-import { pickFilmVivantComplements } from './filmVivantComplements';
+import { collectCinemaLivingCandidates } from './filmVivantComplements';
 import {
   filmIdOfItem,
   isCinemaDayItem,
@@ -53,7 +54,6 @@ import {
   type AgendaListResponse,
 } from './slim';
 import {
-  addDaysIso,
   bootTimeScope,
   filterSeancesForDisplay,
   hideSeancesBeforeToday,
@@ -1278,23 +1278,26 @@ export function queryAgendaDetail(
 
   let aussiCeSoir: DayItem[] = [];
   if (isCinemaDayItem(item)) {
-    const todayIso = parisParts().iso;
-    const filmDay = seanceDateIso(item) || item.dayIso || todayIso;
-    const complementCommune = (commune || '').trim() || 'Toulouse';
-    const rangeEnd = [addDaysIso(todayIso, 21), addDaysIso(filmDay, 14)].sort()[1]!;
-    const pool = itemsForDateRange(
-      data.programmeWithContext,
-      data.events,
-      todayIso,
-      rangeEnd,
-      [],
-      [],
-      [],
-      true,
-    );
-    aussiCeSoir = pickFilmVivantComplements(pool, item, {
-      commune: complementCommune,
-    }).map(slimDayItem);
+    const days = new Set<string>();
+    for (const row of [item, ...relatedItems]) {
+      const d = seanceDateIso(row) || row.dayIso;
+      if (d) days.add(d);
+    }
+    const pool: DayItem[] = [];
+    for (const day of days) {
+      pool.push(
+        ...itemsForDay(
+          data.programmeWithContext,
+          data.events,
+          day,
+          [],
+          [],
+          [],
+          false,
+        ),
+      );
+    }
+    aussiCeSoir = collectCinemaLivingCandidates(pool).map(slimDayItem);
   }
 
   return {

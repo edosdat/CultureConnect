@@ -24,8 +24,8 @@ import {
 } from '@/lib/displayHome';
 import { itemKmLabel, minKmLabel, type GeoPos } from '@/lib/nearMe';
 import { cineDistanceOrigin, defaultCineSeance } from '@/lib/cineSeances';
+import { pickFilmVivantComplements } from '@/lib/filmVivantComplements';
 import { reservePickOf } from '@/lib/reserve';
-import { filterItemsByCommune } from '@/lib/commune';
 import VisualFallback, { categoryLabelOf } from './VisualFallback';
 import FilmPoster from './FilmPoster';
 import FavoriteButton from './FavoriteButton';
@@ -334,12 +334,7 @@ export default function CinemaCarousel({
         setRelated(
           filterSeancesForActiveFilters(data.relatedItems ?? [], displayFilter),
         );
-        setAussi(
-          filterItemsByCommune(
-            data.aussiCeSoir ?? [],
-            selectedCommune || 'Toulouse',
-          ),
-        );
+        setAussi(data.aussiCeSoir ?? []);
       })
       .catch(() => undefined);
     return () => {
@@ -449,10 +444,10 @@ export default function CinemaCarousel({
       : minKmLabel(seances.length ? seances : [active], origin) ??
         itemKmLabel(active, origin);
   const cal = calendarPayloadFromDayItem(active);
-  const complements = filterItemsByCommune(
-    aussi,
-    selectedCommune || 'Toulouse',
-  ).slice(0, 3);
+  const complements =
+    pack === 'cine'
+      ? pickFilmVivantComplements(aussi, active, { userGps: origin })
+      : [];
 
   const thumbs = (
     <div className="relative">

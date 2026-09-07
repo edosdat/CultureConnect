@@ -8,8 +8,10 @@ import {
   googleCalendarUrl,
 } from '@/lib/calendar';
 import { filterItemsByCommune, normalizeCommune } from '@/lib/commune';
+import { defaultCineSeance } from '@/lib/cineSeances';
 import { filterSeancesForActiveFilters } from '@/lib/displayFilter';
 import { isLikelyMobile, itemImageUrl } from '@/lib/displayHome';
+import { pickFilmVivantComplements } from '@/lib/filmVivantComplements';
 import SeanceCard from './SeanceCard';
 import FilmPoster from './FilmPoster';
 import ShareButton from './ShareButton';
@@ -330,9 +332,11 @@ export default function EventDetail({
   useEscapeClose(Boolean(item), onClose);
   const [engaged, setEngaged] = useState(false);
   const [mobileCal, setMobileCal] = useState(false);
+  const [activeSeance, setActiveSeance] = useState<DayItem | null>(null);
 
   useEffect(() => {
     setEngaged(false);
+    setActiveSeance(null);
   }, [item?.key]);
 
   useEffect(() => {
@@ -348,16 +352,14 @@ export default function EventDetail({
   const cal = calendarPayloadFromDayItem(item);
   const openKey = item.key;
   const cinemaFiche = isCinemaDayItem(item);
-  const crossSellItems = cinemaFiche
-    ? filterItemsByCommune(
-        aussiCeSoirItems,
-        selectedCommune || 'Toulouse',
-      ).slice(0, 3)
-    : aussiCeSoirItems.length > 0
-      ? filterItemsByCommune(aussiCeSoirItems, selectedCommune)
-      : filterItemsByCommune(fallbackVivant, selectedCommune)
-          .filter((it) => it.key !== openKey)
-          .slice(0, 2);
+  const crossSellItems =
+    cinemaFiche
+      ? []
+      : aussiCeSoirItems.length > 0
+        ? filterItemsByCommune(aussiCeSoirItems, selectedCommune)
+        : filterItemsByCommune(fallbackVivant, selectedCommune)
+            .filter((it) => it.key !== openKey)
+            .slice(0, 2);
   const showCrossSell = !cinemaFiche && engaged && crossSellItems.length > 0;
 
   if (item.kind === 'programme') {
@@ -382,6 +384,17 @@ export default function EventDetail({
           ? [item]
           : [];
     const hasFilmSeances = seancesForList.length > 0;
+    const filmForSuggestions =
+      (activeSeance && seancesForList.some((s) => s.key === activeSeance.key)
+        ? activeSeance
+        : null) ??
+      defaultCineSeance(seancesForList, origin) ??
+      item;
+    const cinemaSuggestions = cinemaFiche
+      ? pickFilmVivantComplements(aussiCeSoirItems, filmForSuggestions, {
+          userGps: origin,
+        })
+      : [];
 
     return (
       <div
@@ -443,6 +456,7 @@ export default function EventDetail({
                     <CineFilmSeances
                       items={seancesForList}
                       origin={origin}
+                      onActiveChange={setActiveSeance}
                       onReserve={() => {
                         markEngaged();
                         onReserve?.();
@@ -452,8 +466,8 @@ export default function EventDetail({
                 ) : null}
                 <div className="mt-3">
                   <VivantComplementLinks
-                    film={item}
-                    items={crossSellItems}
+                    film={filmForSuggestions}
+                    items={cinemaSuggestions}
                     onSelect={onSelectItem}
                   />
                 </div>
@@ -760,6 +774,15 @@ export default function EventDetail({
               <p className="mt-1 text-xs uppercase tracking-wide text-culture-muted">
                 Sur la période (pas de séance datée ce jour)
               </p>
+              <div className="mt-3">
+                <VivantComplementLinks
+                  film={item}
+                  items={pickFilmVivantComplements(aussiCeSoirItems, item, {
+                    userGps: origin,
+                  })}
+                  onSelect={onSelectItem}
+                />
+              </div>
             </div>
           </div>
         ) : (
