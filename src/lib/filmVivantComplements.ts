@@ -1,7 +1,8 @@
 /**
  * Living-arts suggestions on a cinema fiche (never theatre/music fiches).
- * Same civil evening (Europe/Paris), walking disk around the selected séance
- * cinema, optional GPS corridor bonus. Zero films. Hide when empty.
+ * Same civil evening (Europe/Paris): start after the séance clock, label « ce soir ».
+ * Other calendar days: date chip, event start that day. Walking disk around the
+ * selected séance cinema, optional GPS corridor bonus. Zero films. Hide when empty.
  */
 
 import { haversineKm, isOnUserCinemaCorridor, itemVenueCoords } from './geo';
@@ -20,6 +21,7 @@ export type VivantArtsForm = 'theatre' | 'musique';
 export {
   endsBeforeScreening,
   itemIntervalMinutes,
+  livingSuggestionDateLabel,
   overlapsScreening,
   startsAfterScreening,
   vivantComplementLead,
@@ -27,6 +29,8 @@ export {
 } from './vivantComplementCopy';
 
 export const CINE_LIVING_RADIUS_KM = 1.2;
+/** Extra civil days after each film-seance day sent in the living pool. */
+export const CINE_LIVING_OTHER_DAY_HORIZON = 7;
 /** Perpendicular half-width of the user→cinema corridor (GO: do not widen disk). */
 export const CINE_LIVING_CORRIDOR_KM = 0.6;
 const MAX_BLOCK = 3;
@@ -69,13 +73,25 @@ function itemStartMinutes(item: DayItem): number | null {
   return itemIntervalMinutes(item)?.start ?? null;
 }
 
-/** Same civil day; start before or after the séance clock — never J+1. */
+/** Same civil evening; start strictly after the séance clock. No invented times. */
 export function sameEveningStartOk(seance: DayItem, living: DayItem): boolean {
   if (civilDayOf(living) !== civilDayOf(seance)) return false;
   const seanceStart = itemStartMinutes(seance);
   const livingStart = itemStartMinutes(living);
-  if (seanceStart == null || livingStart == null) return true;
-  return livingStart !== seanceStart;
+  if (seanceStart == null || livingStart == null) return false;
+  return livingStart > seanceStart;
+}
+
+/** Other calendar day with a real start clock (never labelled « ce soir »). */
+export function otherDayStartOk(seance: DayItem, living: DayItem): boolean {
+  const seanceDay = civilDayOf(seance);
+  const livingDay = civilDayOf(living);
+  if (!seanceDay || !livingDay || livingDay === seanceDay) return false;
+  return itemStartMinutes(living) != null;
+}
+
+function livingTimeOk(seance: DayItem, living: DayItem): boolean {
+  return sameEveningStartOk(seance, living) || otherDayStartOk(seance, living);
 }
 
 export function collectCinemaLivingCandidates(pool: DayItem[]): DayItem[] {
@@ -122,12 +138,15 @@ export function pickFilmVivantComplements(
     item: DayItem;
     kmCinema: number;
     onCorridor: boolean;
+    sameEvening: boolean;
+    livingDay: string;
+    livingStart: number;
     timeDelta: number;
   }[] = [];
 
   for (const item of collectCinemaLivingCandidates(pool)) {
     if (item.key === film.key) continue;
-    if (!sameEveningStartOk(film, item)) continue;
+    if (!livingTimeOk(film, item)) continue;
     const venue = itemVenueCoords(item);
     if (!venue) continue;
     const kmCinema = haversineKm(cinema, venue);
@@ -136,17 +155,31 @@ export function pickFilmVivantComplements(
       : false;
     if (kmCinema > radiusKm && !onCorridor) continue;
     const livingStart = itemStartMinutes(item);
+    const sameEvening = sameEveningStartOk(film, item);
     const timeDelta =
       seanceStart == null || livingStart == null
         ? UNTIMED_DELTA
-        : Math.abs(livingStart - seanceStart);
-    ranked.push({ item, kmCinema, onCorridor, timeDelta });
+        : livingStart - seanceStart;
+    ranked.push({
+      item,
+      kmCinema,
+      onCorridor,
+      sameEvening,
+      livingDay: civilDayOf(item),
+      livingStart: livingStart ?? UNTIMED_DELTA,
+      timeDelta,
+    });
   }
 
   ranked.sort((a, b) => {
     if (a.onCorridor !== b.onCorridor) return a.onCorridor ? -1 : 1;
+    if (a.sameEvening !== b.sameEvening) return a.sameEvening ? -1 : 1;
     if (a.kmCinema !== b.kmCinema) return a.kmCinema - b.kmCinema;
-    if (a.timeDelta !== b.timeDelta) return a.timeDelta - b.timeDelta;
+    if (a.sameEvening && b.sameEvening && a.timeDelta !== b.timeDelta) {
+      return a.timeDelta - b.timeDelta;
+    }
+    if (a.livingDay !== b.livingDay) return a.livingDay.localeCompare(b.livingDay);
+    if (a.livingStart !== b.livingStart) return a.livingStart - b.livingStart;
     return a.item.key.localeCompare(b.item.key);
   });
 
