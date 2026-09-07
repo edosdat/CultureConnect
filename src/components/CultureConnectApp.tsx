@@ -1061,18 +1061,10 @@ export default function CultureConnectApp({
   const vivantPool = useMemo(() => {
     const seen = new Set<string>();
     const pool: DayItem[] = [];
-    // En live / vivant is its own payload — never the QUOI-filtered catalogue.
-    for (const item of vivantItems) {
+    for (const item of [...vivantItems, ...listItems]) {
       if (seen.has(item.key)) continue;
       seen.add(item.key);
       pool.push(item);
-    }
-    if (pool.length === 0) {
-      for (const item of listItems) {
-        if (seen.has(item.key)) continue;
-        seen.add(item.key);
-        pool.push(item);
-      }
     }
     return filterSeancesForActiveFilters(pool, activeFilter);
   }, [vivantItems, listItems, activeFilter]);
