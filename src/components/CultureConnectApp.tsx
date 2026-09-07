@@ -25,6 +25,7 @@ import {
   findDayItemByKey,
   homeSectionsVisible,
   musiqueRows,
+  pinFocusedPackRow,
   resolveHomeCardOpen,
   resolveSearchSubmit,
   shouldInvalidateProfileRecoCache,
@@ -1055,8 +1056,8 @@ export default function CultureConnectApp({
     [cineSource, top3Set, gpsOrigin],
   );
   const visibleCineRows = useMemo(
-    () => allCineRows.slice(0, cineLimit),
-    [allCineRows, cineLimit],
+    () => pinFocusedPackRow(allCineRows, cineLimit, cineFocusKey),
+    [allCineRows, cineLimit, cineFocusKey],
   );
   const vivantPool = useMemo(() => {
     const seen = new Set<string>();
@@ -1086,8 +1087,8 @@ export default function CultureConnectApp({
     [vivantPool, top3Set, gpsOrigin],
   );
   const visibleTheatreRows = useMemo(
-    () => allTheatreRows.slice(0, theatreLimit),
-    [allTheatreRows, theatreLimit],
+    () => pinFocusedPackRow(allTheatreRows, theatreLimit, theatreFocusKey),
+    [allTheatreRows, theatreLimit, theatreFocusKey],
   );
   const allMusiqueRows = useMemo(
     () =>
@@ -1099,8 +1100,8 @@ export default function CultureConnectApp({
     [vivantPool, top3Set, gpsOrigin],
   );
   const visibleMusiqueRows = useMemo(
-    () => allMusiqueRows.slice(0, musiqueLimit),
-    [allMusiqueRows, musiqueLimit],
+    () => pinFocusedPackRow(allMusiqueRows, musiqueLimit, musiqueFocusKey),
+    [allMusiqueRows, musiqueLimit, musiqueFocusKey],
   );
   const sectionVis = homeSectionsVisible(selectedCategories);
 
