@@ -28,6 +28,7 @@ import { cineDistanceOrigin, defaultCineSeance } from '@/lib/cineSeances';
 import { pickFilmVivantComplements } from '@/lib/filmVivantComplements';
 import { reservePickOf } from '@/lib/reserve';
 import VisualFallback, { categoryLabelOf } from './VisualFallback';
+import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 import FilmPoster from './FilmPoster';
 import FavoriteButton from './FavoriteButton';
 import ShareButton from './ShareButton';
@@ -156,11 +157,14 @@ function FilmThumb({
         ) : (
           <VisualFallback item={item} compact />
         )}
-        {when ? (
-          <span className="absolute left-1.5 top-1.5 rounded bg-culture-ink/85 px-1.5 py-0.5 text-[11px] font-semibold leading-tight text-white">
-            {when}
-          </span>
-        ) : null}
+        <span className="absolute left-1.5 top-1.5 flex max-w-[calc(100%-0.75rem)] flex-wrap items-center gap-1">
+          {when ? (
+            <span className="rounded bg-culture-ink/85 px-1.5 py-0.5 text-[11px] font-semibold leading-tight text-white">
+              {when}
+            </span>
+          ) : null}
+          <TheatreUrgenceBadge item={item} />
+        </span>
       </div>
       <p className="mt-1.5 line-clamp-2 text-sm font-semibold leading-snug text-culture-ink">
         {itemTitle(item)}
@@ -532,8 +536,11 @@ export default function CinemaCarousel({
   const titleBlock = (
     <>
       <div className="flex items-start justify-between gap-2">
-        <span className="inline-flex rounded bg-culture-terracotta px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">
-          {cat || copy.fallbackCat}
+        <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+          <span className="inline-flex rounded bg-culture-terracotta px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">
+            {cat || copy.fallbackCat}
+          </span>
+          <TheatreUrgenceBadge item={item} />
         </span>
         <FavoriteButton itemKey={item.key} />
       </div>

@@ -51,6 +51,11 @@ export type Evenement = {
   categorie: string;
   date_debut: string;
   date_fin: string;
+  /**
+   * Resolved last séance of the run (max valid programme.date, else date_fin).
+   * Set at CSV load — never invent on the card from the visible séance alone.
+   */
+  last_seance_date?: string;
   heure_debut: string;
   heure_fin: string;
   prix: string;

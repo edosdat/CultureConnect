@@ -16,6 +16,7 @@ import { MAIN_CATEGORY_LABELS, mainFromCategorie, mainFromGenreSlug } from '@/li
 import { catCssVar, catGradient } from '@/lib/categoryColor';
 import VisualFallback from './VisualFallback';
 import FavoriteButton from './FavoriteButton';
+import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 
 export type SeanceCardVariant = 'default' | 'rail' | 'live' | 'compact';
 
@@ -162,8 +163,9 @@ export default function SeanceCard({
         <VisualFallback item={item} compact={resolved !== 'live'} />
       )}
       {catLabel && resolved !== 'rail' ? (
-        <span className="absolute left-3 top-3">
+        <span className="absolute left-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-1">
           <CategoryPill label={catLabel} />
+          <TheatreUrgenceBadge item={item} />
         </span>
       ) : null}
       {nouveau ? (
@@ -239,7 +241,12 @@ export default function SeanceCard({
       }
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
-        {resolved === 'rail' && catLabel ? <CategoryPill label={catLabel} /> : null}
+        {resolved === 'rail' && catLabel ? (
+          <span className="flex flex-wrap items-center gap-1">
+            <CategoryPill label={catLabel} />
+            <TheatreUrgenceBadge item={item} />
+          </span>
+        ) : null}
         {showDate && (
           <span className="text-xs font-medium text-culture-terracotta">
             {formatDateFr(seanceDateIso(item) || item.dayIso)}
