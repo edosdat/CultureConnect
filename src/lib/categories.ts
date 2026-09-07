@@ -301,6 +301,7 @@ export type EnfantsChipFields = {
   genre?: string;
   tags?: string;
   publicCible?: string;
+  ageMin?: string;
 };
 
 function splitChipTokens(raw: string | undefined | null): string[] {
@@ -326,15 +327,33 @@ function hasEnfantsAudienceTag(fields: EnfantsChipFields): boolean {
 }
 
 /**
+ * AlloCiné often dumps adult animation into `animation_jeune_public`.
+ * Veto explicit age gates so Jim Queen / Belladonna do not leak.
+ */
+export function isAgeRestrictedForEnfantsChip(fields: EnfantsChipFields): boolean {
+  const hay = [fields.publicCible, fields.tags].filter(Boolean).join(' ');
+  const n = hay
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (/\binterdit\b/.test(n)) return true;
+  if (/\b(12|16|18)\s*ans\b/.test(n)) return true;
+  const age = parseInt((fields.ageMin || '').trim(), 10);
+  return Number.isFinite(age) && age >= 12;
+}
+
+/**
  * Enfants chip predicate: cat enfants_famille / ateliers, plus kids films
  * (`animation_jeune_public`) and jeune-public theatre (genre or
  * tags famille|enfants|jeune_public). Adult thriller / concert stay out.
+ * Age-restricted cinema (Interdit 12+) is vetoed even if the genre slug is kids.
  */
 export function matchesEnfantsChipContent(fields: EnfantsChipFields): boolean {
   const categorie = fields.categorie || '';
   const genre = fields.genre || '';
   const mains = mainsForItem(categorie, genre);
   if (mains.includes('enfants_famille')) return true;
+  if (isAgeRestrictedForEnfantsChip(fields)) return false;
   if (isEnfantsChipGenre(genre)) return true;
   if (mains.includes('cinema') || mains.includes('theatre_danse')) {
     return hasEnfantsAudienceTag(fields);
@@ -347,7 +366,7 @@ export function matchesMainCategories(
   categorie: string,
   genreSlug: string,
   selectedMains: string[],
-  extra?: Pick<EnfantsChipFields, 'tags' | 'publicCible'>,
+  extra?: Pick<EnfantsChipFields, 'tags' | 'publicCible' | 'ageMin'>,
 ): boolean {
   if (selectedMains.length === 0) return true;
   const mains = mainsForItem(categorie, genreSlug);
@@ -359,6 +378,7 @@ export function matchesMainCategories(
       genre: genreSlug,
       tags: extra?.tags,
       publicCible: extra?.publicCible,
+      ageMin: extra?.ageMin,
     })
   ) {
     return true;

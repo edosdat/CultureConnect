@@ -214,6 +214,7 @@ function buildCultureData(): CultureData {
         tags: p.evenement?.tags || '',
         publicCible:
           p.programme.public_cible || p.evenement?.public_cible || '',
+        ageMin: p.evenement?.age_min || '',
       })
     ) {
       mains.add('enfants_famille');
@@ -233,6 +234,7 @@ function buildCultureData(): CultureData {
         genre: ev.genre || '',
         tags: ev.tags || '',
         publicCible: ev.public_cible || '',
+        ageMin: ev.age_min || '',
       })
     ) {
       mains.add('enfants_famille');

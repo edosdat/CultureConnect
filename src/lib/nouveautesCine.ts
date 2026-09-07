@@ -166,6 +166,7 @@ function enfantsChipFieldsOf(item: DayItem): {
   genre: string;
   tags: string;
   publicCible: string;
+  ageMin: string;
 } {
   const { categorie, genre } = itemCatGenre(item);
   if (item.kind === 'programme') {
@@ -175,6 +176,7 @@ function enfantsChipFieldsOf(item: DayItem): {
       tags: item.evenement?.tags || '',
       publicCible:
         item.programme.public_cible || item.evenement?.public_cible || '',
+      ageMin: item.evenement?.age_min || '',
     };
   }
   return {
@@ -182,6 +184,7 @@ function enfantsChipFieldsOf(item: DayItem): {
     genre,
     tags: item.evenement.tags || '',
     publicCible: item.evenement.public_cible || '',
+    ageMin: item.evenement.age_min || '',
   };
 }
 

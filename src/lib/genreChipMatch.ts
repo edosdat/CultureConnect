@@ -12,6 +12,7 @@ export type GenreMatchFields = {
   pitch?: string;
   tags?: string;
   publicCible?: string;
+  ageMin?: string;
 };
 
 /** Closed UI chip labels, separate from vocab 89. */
@@ -98,13 +99,14 @@ export function genreFieldsFromProgramme(
     tags: p.evenement?.tags || '',
     publicCible:
       p.programme.public_cible || p.evenement?.public_cible || '',
+    ageMin: p.evenement?.age_min || '',
   };
 }
 
 export function genreFieldsFromEvent(
   ev: Pick<
     Evenement,
-    'genre' | 'titre' | 'description_courte' | 'tags' | 'public_cible'
+    'genre' | 'titre' | 'description_courte' | 'tags' | 'public_cible' | 'age_min'
   >,
 ): GenreMatchFields {
   return {
@@ -113,6 +115,7 @@ export function genreFieldsFromEvent(
     pitch: ev.description_courte || '',
     tags: ev.tags || '',
     publicCible: ev.public_cible || '',
+    ageMin: ev.age_min || '',
   };
 }
 
@@ -132,6 +135,7 @@ export function genreFieldsFromDayItem(item: DayItem): GenreMatchFields {
       tags: item.evenement?.tags || '',
       publicCible:
         item.programme.public_cible || item.evenement?.public_cible || '',
+      ageMin: item.evenement?.age_min || '',
     };
   }
   return genreFieldsFromEvent(item.evenement);

@@ -167,6 +167,26 @@ describe('matchesEnfantsChipContent', () => {
     );
   });
 
+  it('vetoes AlloCiné adult animation tagged animation_jeune_public', () => {
+    assert.equal(
+      matchesEnfantsChipContent({
+        categorie: 'cinema',
+        genre: 'animation_jeune_public',
+        publicCible: 'Interdit - 12 ans',
+        ageMin: '12',
+      }),
+      false,
+    );
+    assert.equal(
+      matchesEnfantsChipContent({
+        categorie: 'cinema',
+        genre: 'animation_jeune_public',
+        publicCible: 'tout_public',
+      }),
+      true,
+    );
+  });
+
   it('does not steal concerts via a famille mood tag', () => {
     assert.equal(
       matchesEnfantsChipContent({
@@ -282,13 +302,22 @@ describe('itemsForDateRange Enfants chip', () => {
     tags: 'Thriller',
     filmId: 'F-AD',
   });
+  const bannedAnim = ctx({
+    id: 'jq',
+    cat: 'cinema',
+    title: 'Jim Queen',
+    genre: 'animation_jeune_public',
+    publicCible: 'Interdit - 12 ans',
+    filmId: 'F0040',
+  });
+  bannedAnim.evenement!.age_min = '12';
   const atelier = ctx({
     id: 'at',
     cat: 'atelier',
     title: 'Stage vacances',
     genre: 'atelier_mediation',
   });
-  const pool = [kidsFilm, kidsTheatre, taggedTheatre, thriller, atelier];
+  const pool = [kidsFilm, kidsTheatre, taggedTheatre, thriller, atelier, bannedAnim];
   const events: EventWithDetails[] = [];
 
   it('QA: Enfants chip shows kids films + tagged theatre, no thriller leak', () => {
@@ -307,6 +336,7 @@ describe('itemsForDateRange Enfants chip', () => {
     assert.ok(titles.includes('Contes en famille'));
     assert.ok(titles.includes('Stage vacances'));
     assert.equal(titles.includes('Adult thriller'), false);
+    assert.equal(titles.includes('Jim Queen'), false);
   });
 
   it('QA: Cinéma chip stays exclusive (#49) and clear filter is the full catalogue', () => {
@@ -323,6 +353,8 @@ describe('itemsForDateRange Enfants chip', () => {
     assert.equal(cine.includes('Stage vacances'), false);
 
     const all = itemsForDateRange(pool, events, '2026-09-08', '2026-09-08', []);
-    assert.equal(all.length, 5);
+    assert.equal(all.length, 6);
+    const cineTitles = cine;
+    assert.ok(cineTitles.includes('Jim Queen'));
   });
 });

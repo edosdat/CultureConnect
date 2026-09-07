@@ -14,6 +14,8 @@ Eloi GO 08/09. Chip `enfants_famille` was cat-only: `animation_jeune_public` map
 
 `isEnfantsDayItem` stays exclusive on the default home (kids films stay in Ciné — never steal).
 
+Age veto: `Interdit` / 12+ on `public_cible` or `age_min` drops adult animation that AlloCiné dumped into `animation_jeune_public` (Jim Queen, Belladonna). Catalogue rows that stay `animation_jeune_public` + `tout_public` (Akira) still match — that is data, not the Cinéma chip.
+
 ## Chip ON
 
 - API pool: `matchesMainCategories` + dual-index into `byMain.enfants_famille`

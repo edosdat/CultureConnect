@@ -117,6 +117,7 @@ function matchesFilters(
     !matchesMainCategories(categorie, fields.genre, categories, {
       tags: fields.tags,
       publicCible: fields.publicCible,
+      ageMin: fields.ageMin,
     })
   )
     return false;
@@ -641,6 +642,7 @@ export function lieuxForDay(
             tags: p.evenement?.tags || '',
             publicCible:
               p.programme.public_cible || p.evenement?.public_cible || '',
+            ageMin: p.evenement?.age_min || '',
           },
         )
       )
@@ -655,6 +657,7 @@ export function lieuxForDay(
         !matchesMainCategories(ev.categorie, ev.genre || '', categories, {
           tags: ev.tags || '',
           publicCible: ev.public_cible || '',
+          ageMin: ev.age_min || '',
         })
       )
         continue;
@@ -720,6 +723,7 @@ export function eventsForDay(
       !matchesMainCategories(ev.categorie, ev.genre || '', categories, {
         tags: ev.tags || '',
         publicCible: ev.public_cible || '',
+        ageMin: ev.age_min || '',
       })
     )
       return false;
