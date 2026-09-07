@@ -1061,7 +1061,9 @@ export default function CultureConnectApp({
         allCineRows,
         cineLimit,
         cineFocusKey,
-        homePackOfItem(initialOpenItem) === 'cine' ? initialOpenItem : null,
+        initialOpenItem && homePackOfItem(initialOpenItem) === 'cine'
+          ? initialOpenItem
+          : null,
       ),
     [allCineRows, cineLimit, cineFocusKey, initialOpenItem],
   );
@@ -1090,7 +1092,9 @@ export default function CultureConnectApp({
         allTheatreRows,
         theatreLimit,
         theatreFocusKey,
-        homePackOfItem(initialOpenItem) === 'theatre' ? initialOpenItem : null,
+        initialOpenItem && homePackOfItem(initialOpenItem) === 'theatre'
+          ? initialOpenItem
+          : null,
       ),
     [allTheatreRows, theatreLimit, theatreFocusKey, initialOpenItem],
   );
@@ -1109,7 +1113,9 @@ export default function CultureConnectApp({
         allMusiqueRows,
         musiqueLimit,
         musiqueFocusKey,
-        homePackOfItem(initialOpenItem) === 'musique' ? initialOpenItem : null,
+        initialOpenItem && homePackOfItem(initialOpenItem) === 'musique'
+          ? initialOpenItem
+          : null,
       ),
     [allMusiqueRows, musiqueLimit, musiqueFocusKey, initialOpenItem],
   );
