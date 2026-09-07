@@ -399,11 +399,69 @@ export function artistPressCitation(
   return pressCitationFromRow(artiste as unknown as Record<string, unknown>);
 }
 
+export function artistIdsOfItem(item: DayItem): string[] {
+  if (item.kind !== 'programme') return [];
+  return (item.programme.artiste_id || '')
+    .split(/[|,;]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function artistFallbackCitation(
+  item: DayItem,
+  artistes: Artiste[] | null | undefined,
+): PressCitation | null {
+  if (!artistes?.length) return null;
+  const byId = new Map(artistes.map((a) => [a.artiste_id, a]));
+  for (const id of artistIdsOfItem(item)) {
+    const c = artistPressCitation(byId.get(id));
+    if (c) return c;
+  }
+  return null;
+}
+
 /**
- * Theatre + concert / musique fiches. Cinema (and expo/enfants) → null.
+ * Copy artistes.csv citation* onto a concert row when programme.citation is empty.
+ * Theatre keeps programme.citation* only. Cinema unchanged.
  */
-export function fichePressCitation(item: DayItem): PressCitation | null {
+export function withConcertArtistPress(
+  item: DayItem,
+  artistes: Artiste[],
+): DayItem {
+  if (isCinemaDayItem(item)) return item;
+  if (!isMusiqueDayItem(item)) return item;
+  if (pressCitationOf(item)) return item;
+  if (item.kind !== 'programme') return item;
+  const byId = new Map(artistes.map((a) => [a.artiste_id, a]));
+  for (const id of artistIdsOfItem(item)) {
+    const a = byId.get(id);
+    const fields = pickPressCatalogueFields(
+      a as unknown as Record<string, unknown>,
+    );
+    if (!fields.citation && !fields.citation_presse && !fields.presse_citation) {
+      continue;
+    }
+    return {
+      ...item,
+      programme: { ...item.programme, ...fields },
+    };
+  }
+  return item;
+}
+
+/**
+ * Theatre: programme.citation*.
+ * Concert: programme.citation*, else artistes.csv via programme.artiste_id.
+ * Cinema / expo / enfants → null.
+ */
+export function fichePressCitation(
+  item: DayItem,
+  artistes?: Artiste[] | null,
+): PressCitation | null {
   if (isCinemaDayItem(item)) return null;
   if (!isTheatreDayItem(item) && !isMusiqueDayItem(item)) return null;
-  return pressCitationOf(item);
+  const fromShow = pressCitationOf(item);
+  if (fromShow) return fromShow;
+  if (!isMusiqueDayItem(item)) return null;
+  return artistFallbackCitation(item, artistes);
 }

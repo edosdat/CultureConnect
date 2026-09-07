@@ -8,6 +8,7 @@ import {
   pickPressCatalogueFields,
   pressCitationOf,
   pressItemForFiche,
+  withConcertArtistPress,
 } from './pressCitation';
 import { detailDayItem } from './slim';
 
@@ -279,6 +280,73 @@ describe('fichePressCitation', () => {
     const merged = pressItemForFiche(slim, detail);
     assert.equal(fichePressCitation(slim), null);
     assert.equal(fichePressCitation(merged)?.quote, '« Même spectacle. »');
+  });
+});
+
+describe('concert artist_id fallback', () => {
+  const artist: Artiste = {
+    artiste_id: 'A9',
+    nom: 'Combo',
+    nom_normalise: 'combo',
+    genre_principal: '',
+    genres_secondaires: '',
+    url_photo: '',
+    notes: '',
+    citation: 'Une voix qui porte loin.',
+    source: 'La Terrasse',
+    source_url: 'https://www.journal-laterrasse.fr/a',
+    note_presse: 'TT',
+  };
+
+  it('concert uses programme.citation first, else artistes.csv via artiste_id', () => {
+    const ownProg = item({
+      key: 'mu-own2',
+      cat: 'musique',
+      form: 'concert',
+      programme: {
+        artiste_id: 'A9',
+        citation: 'Sur scène.',
+        source: 'Télérama',
+        source_url: 'https://www.telerama.fr/live',
+      },
+    });
+    const viaArtist = item({
+      key: 'mu-fb',
+      cat: 'musique',
+      form: 'concert',
+      programme: { artiste_id: 'A9' },
+    });
+    assert.equal(fichePressCitation(ownProg)?.source, 'Télérama');
+    assert.equal(fichePressCitation(viaArtist), null);
+    assert.equal(
+      fichePressCitation(viaArtist, [artist])?.quote,
+      '« Une voix qui porte loin. »',
+    );
+    const merged = withConcertArtistPress(viaArtist, [artist]);
+    assert.equal(fichePressCitation(merged)?.source, 'La Terrasse');
+    const keepOwn = withConcertArtistPress(ownProg, [artist]);
+    assert.equal(fichePressCitation(keepOwn)?.source, 'Télérama');
+  });
+
+  it('theatre does not fall back to the artist row', () => {
+    const th = item({
+      key: 'th-noart',
+      cat: 'theatre_danse',
+      programme: { artiste_id: 'A9' },
+    });
+    assert.equal(fichePressCitation(th, [artist]), null);
+    assert.equal(withConcertArtistPress(th, [artist]), th);
+  });
+
+  it('cinema stays empty even when the artist has a citation', () => {
+    const cine = item({
+      key: 'cine-fb',
+      cat: 'cinema',
+      filmId: 'F9',
+      programme: { artiste_id: 'A9' },
+    });
+    assert.equal(fichePressCitation(cine, [artist]), null);
+    assert.equal(withConcertArtistPress(cine, [artist]), cine);
   });
 });
 
