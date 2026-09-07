@@ -9,10 +9,15 @@ import {
   homeSectionsVisible,
   musiqueRows,
   resolveHomeCardOpen,
+  resolveSearchSubmit,
+  SEARCH_EXAMPLES,
+  searchExampleIsVivant,
   shouldInvalidateProfileRecoCache,
   theatreRows,
   visibleTop3Items,
 } from './displayHome';
+import { isTasteMood } from './phraseTags';
+import { TASTE_MOOD_LABELS_FR } from './pourToi';
 import { slotFormOfItem } from './reco';
 import {
   homePackOfItem,
@@ -412,5 +417,60 @@ describe('top 3 click opens fiche outside QUOI grid', () => {
       pack: 'cine',
       key: cine.key,
     });
+  });
+});
+
+describe('search example chips', () => {
+  const NOW = new Date('2026-09-01T14:00:00+02:00');
+
+  it('locks the three French labels', () => {
+    assert.deepEqual(
+      SEARCH_EXAMPLES.map((e) => e.label),
+      [
+        'un truc intimiste ce WE',
+        'envie de rire',
+        'concert près du centre',
+      ],
+    );
+  });
+
+  it('maps intimiste WE to Ce WE + vivant QUOI + locked Intimiste', () => {
+    const intent = resolveSearchSubmit('un truc intimiste ce WE', NOW);
+    assert.equal(intent.parsed.scope, 'weekend');
+    assert.deepEqual(intent.parsed.categories, ['theatre_danse', 'musique']);
+    assert.deepEqual(intent.phraseTags?.moods, ['intimiste']);
+    assert.equal(intent.titleQuery, '');
+    assert.equal(TASTE_MOOD_LABELS_FR.intimiste, 'Intimiste');
+    assert.equal(homeSectionsVisible(intent.parsed.categories).cine, false);
+  });
+
+  it('maps envie de rire to locked Ambiances Rire / rigolo', () => {
+    const intent = resolveSearchSubmit('envie de rire', NOW);
+    assert.deepEqual(intent.phraseTags?.moods, ['rigolo']);
+    assert.equal(intent.parsed.scope, null);
+    assert.equal(intent.titleQuery, '');
+    assert.equal(TASTE_MOOD_LABELS_FR.rigolo, 'Rire');
+    assert.equal(isTasteMood('rigolo'), true);
+  });
+
+  it('maps concert près du centre to Musique + Toulouse, no GPS field', () => {
+    const intent = resolveSearchSubmit('concert près du centre', NOW);
+    assert.deepEqual(intent.parsed.categories, ['musique']);
+    assert.equal(intent.commune, 'Toulouse');
+    assert.equal(intent.phraseTags?.form, 'concert');
+    assert.equal(intent.titleQuery, '');
+    assert.equal('lat' in intent, false);
+    assert.equal('lng' in intent, false);
+  });
+
+  it('at least two examples land on vivant, never a 17th mood', () => {
+    const vivantCount = SEARCH_EXAMPLES.filter((e) =>
+      searchExampleIsVivant(e.query, NOW),
+    ).length;
+    assert.ok(vivantCount >= 2);
+    for (const ex of SEARCH_EXAMPLES) {
+      const moods = resolveSearchSubmit(ex.query, NOW).phraseTags?.moods ?? [];
+      for (const m of moods) assert.equal(isTasteMood(m), true);
+    }
   });
 });

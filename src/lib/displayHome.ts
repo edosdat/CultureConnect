@@ -23,12 +23,22 @@ import {
   type HomePackId,
 } from './nouveautesCine';
 import { formatDateFr, formatHeure, formatLieuAffiche } from './labels';
-import { seanceDateIso } from './timeScope';
+import type { MainCategoryId } from './categories';
 import { profileChips } from './pourToi';
-import { isTasteMood, type TasteMood } from './phraseTags';
+import {
+  hasPhraseSignal,
+  isTasteMood,
+  normalizePhrase,
+  parsePhraseRules,
+  tasteMoodsOf,
+  type PhraseMood,
+  type PhraseTags,
+  type TasteMood,
+} from './phraseTags';
 import type { RecoSlotForm } from './reco';
 import { fillEmptyCineSlot, slotFormOfItem } from './reco';
-import type { TimeScopeId } from './timeScope';
+import { parseSearchChips, type SearchChipParse } from './parseSearchChips';
+import { seanceDateIso, type TimeScopeId } from './timeScope';
 import { sortItemsNearestFirst, type GeoPos } from './nearMe';
 
 /** Living-led visual order for Top 3 (scoring order in reco.ts is unchanged). */
@@ -38,10 +48,11 @@ export const DISPLAY_SLOT_ORDER: RecoSlotForm[] = [
   'cine',
 ];
 
+/** Locked FR example chips — same axes as Enter / QUAND-QUOI / Ambiances. */
 export const SEARCH_EXAMPLES = [
-  { label: 'un truc intimiste', query: 'un truc intimiste' },
-  { label: 'envie de danser', query: 'envie de danser' },
-  { label: 'un film feel good', query: 'un film feel good' },
+  { label: 'un truc intimiste ce WE', query: 'un truc intimiste ce WE' },
+  { label: 'envie de rire', query: 'envie de rire' },
+  { label: 'concert près du centre', query: 'concert près du centre' },
 ] as const;
 
 const HOME_CINE_DESKTOP = 10;
@@ -90,7 +101,77 @@ export function seanceWhen(item: DayItem, earliestHeure?: string): string {
 }
 
 export const SEARCH_PLACEHOLDER =
-  'Qu’est-ce qui te ferait vibrer ? (un truc intimiste, envie de danser, un film feel good)';
+  'Qu’est-ce qui te ferait vibrer ? (un truc intimiste ce WE, envie de rire, concert près du centre)';
+
+/**
+ * Extra existing chips for the 3 example taps.
+ * Vivant QUOI for the intimiste WE line; Toulouse commune for centre.
+ * No 17th mood, no GPS persist.
+ */
+export function searchExampleChipExtras(query: string): {
+  categories: MainCategoryId[];
+  commune: string | null;
+} {
+  const n = normalizePhrase(query);
+  if (n === normalizePhrase('un truc intimiste ce WE')) {
+    return { categories: ['theatre_danse', 'musique'], commune: null };
+  }
+  if (n === normalizePhrase('concert près du centre')) {
+    return { categories: [], commune: 'Toulouse' };
+  }
+  return { categories: [], commune: null };
+}
+
+export type SearchSubmitIntent = {
+  parsed: SearchChipParse;
+  phraseTags: PhraseTags | null;
+  commune: string | null;
+  titleQuery: string;
+};
+
+/**
+ * Enter / example tap → existing chips + locked Ambiances moods.
+ * Mood leftover is not a title `q`.
+ */
+export function resolveSearchSubmit(
+  raw: string,
+  now = new Date(),
+): SearchSubmitIntent {
+  const parsed = parseSearchChips(raw, now);
+  const extra = searchExampleChipExtras(raw);
+  const tags = parsePhraseRules(raw, now);
+  const moods = tasteMoodsOf(tags.moods) as PhraseMood[];
+  const categories =
+    extra.categories.length > 0 ? extra.categories : parsed.categories;
+  const merged: SearchChipParse = { ...parsed, categories };
+  const phraseTags: PhraseTags | null =
+    moods.length > 0 || tags.form
+      ? {
+          moods,
+          genres: [],
+          themes: [],
+          entities: [],
+          source: 'rules',
+          ...(tags.form ? { form: tags.form } : {}),
+        }
+      : null;
+  const usePhrase = Boolean(phraseTags && hasPhraseSignal(phraseTags));
+  return {
+    parsed: merged,
+    phraseTags: usePhrase ? phraseTags : null,
+    commune: extra.commune,
+    titleQuery: usePhrase ? '' : parsed.titleQuery,
+  };
+}
+
+export function searchExampleIsVivant(query: string, now = new Date()): boolean {
+  const intent = resolveSearchSubmit(query, now);
+  if (intent.parsed.categories.some((c) => c === 'theatre_danse' || c === 'musique')) {
+    return true;
+  }
+  const form = intent.phraseTags?.form;
+  return form === 'theatre' || form === 'concert';
+}
 
 export function itemVenue(item: DayItem): string {
   return formatLieuAffiche(item.lieu);
