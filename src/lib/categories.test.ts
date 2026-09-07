@@ -7,6 +7,87 @@ import {
   matchesEnfantsChipContent,
   matchesMainCategories,
 } from './categories';
+import { itemsForDateRange } from './events';
+import type {
+  Evenement,
+  EventWithDetails,
+  Lieu,
+  ProgrammeItem,
+  ProgrammeWithContext,
+} from './types';
+
+function lieu(): Lieu {
+  return {
+    lieu_id: 'L1',
+    nom: 'Salle',
+    type: '',
+    adresse: '',
+    commune: 'Toulouse',
+    dist_km_capitole: '',
+    site_web: '',
+    notes: '',
+  };
+}
+
+function ev(
+  p: Partial<Evenement> & Pick<Evenement, 'event_id' | 'categorie' | 'titre'>,
+): Evenement {
+  return {
+    lieu_id: 'L1',
+    date_debut: '2026-09-08',
+    date_fin: '2026-09-08',
+    heure_debut: '15:00',
+    heure_fin: '',
+    prix: '',
+    gratuit: '',
+    url_source: '',
+    description_courte: '',
+    statut: 'ouvert',
+    genre: '',
+    publication: 'agenda',
+    ...p,
+  };
+}
+
+function ctx(
+  opts: {
+    id: string;
+    cat: string;
+    title: string;
+    genre?: string;
+    tags?: string;
+    publicCible?: string;
+    filmId?: string;
+  },
+): ProgrammeWithContext {
+  const evenement = ev({
+    event_id: opts.id,
+    categorie: opts.cat,
+    titre: opts.title,
+    genre: opts.genre ?? '',
+    tags: opts.tags,
+    public_cible: opts.publicCible,
+  });
+  const programme: ProgrammeItem = {
+    programme_id: opts.id,
+    event_id: opts.id,
+    lieu_id: 'L1',
+    nom_item: opts.title,
+    type_item: '',
+    date: '2026-09-08',
+    heure_debut: '15:00',
+    heure_fin: '',
+    scene_salle: '',
+    prix_item: '',
+    url: '',
+    notes: '',
+    genre: opts.genre ?? '',
+    artiste_id: '',
+    film_id: opts.filmId,
+    public_cible: opts.publicCible,
+  };
+  return { programme, evenement, lieu: lieu() };
+}
 
 describe('GENRE_SLUG_TO_MAIN stays exclusive', () => {
   it('keeps animation_jeune_public under cinema and jeune_public under theatre', () => {
@@ -169,5 +250,79 @@ describe('genreBelongsToMains Enfants', () => {
       genreBelongsToMains({ slug: 'fiction', famille: 'cinema' }, ['enfants_famille']),
       false,
     );
+  });
+});
+
+describe('itemsForDateRange Enfants chip', () => {
+  const kidsFilm = ctx({
+    id: 'kf',
+    cat: 'cinema',
+    title: 'Toy Story 5',
+    genre: 'animation_jeune_public',
+    filmId: 'F0016',
+  });
+  const kidsTheatre = ctx({
+    id: 'kt',
+    cat: 'theatre_danse',
+    title: 'Cosmos 1979',
+    genre: 'jeune_public',
+  });
+  const taggedTheatre = ctx({
+    id: 'tt',
+    cat: 'theatre',
+    title: 'Contes en famille',
+    genre: 'theatre_contemporain',
+    tags: 'famille|enfants',
+  });
+  const thriller = ctx({
+    id: 'ad',
+    cat: 'cinema',
+    title: 'Adult thriller',
+    genre: 'fiction',
+    tags: 'Thriller',
+    filmId: 'F-AD',
+  });
+  const atelier = ctx({
+    id: 'at',
+    cat: 'atelier',
+    title: 'Stage vacances',
+    genre: 'atelier_mediation',
+  });
+  const pool = [kidsFilm, kidsTheatre, taggedTheatre, thriller, atelier];
+  const events: EventWithDetails[] = [];
+
+  it('QA: Enfants chip shows kids films + tagged theatre, no thriller leak', () => {
+    const items = itemsForDateRange(
+      pool,
+      events,
+      '2026-09-08',
+      '2026-09-08',
+      ['enfants_famille'],
+    );
+    const titles = items.map((i) =>
+      i.kind === 'programme' ? i.programme.nom_item : i.evenement.titre,
+    );
+    assert.ok(titles.includes('Toy Story 5'));
+    assert.ok(titles.includes('Cosmos 1979'));
+    assert.ok(titles.includes('Contes en famille'));
+    assert.ok(titles.includes('Stage vacances'));
+    assert.equal(titles.includes('Adult thriller'), false);
+  });
+
+  it('QA: Cinéma chip stays exclusive (#49) and clear filter is the full catalogue', () => {
+    const cine = itemsForDateRange(
+      pool,
+      events,
+      '2026-09-08',
+      '2026-09-08',
+      ['cinema'],
+    ).map((i) => (i.kind === 'programme' ? i.programme.nom_item : i.evenement.titre));
+    assert.ok(cine.includes('Toy Story 5'));
+    assert.ok(cine.includes('Adult thriller'));
+    assert.equal(cine.includes('Cosmos 1979'), false);
+    assert.equal(cine.includes('Stage vacances'), false);
+
+    const all = itemsForDateRange(pool, events, '2026-09-08', '2026-09-08', []);
+    assert.equal(all.length, 5);
   });
 });
