@@ -18,7 +18,6 @@ import ShareButton from './ShareButton';
 import FavoriteButton from './FavoriteButton';
 import {
   formatDateRange,
-  formatHeure,
   formatItemPrix,
   formatLieuAffiche,
   formatPrix,
@@ -26,6 +25,7 @@ import {
   labelCategorie,
   labelTypeItem,
 } from '@/lib/labels';
+import { formatFicheHoraires, seanceTimeLabel } from '@/lib/eventTimes';
 import {
   hideSeancesBeforeToday,
   isNotBeforeToday,
@@ -146,11 +146,7 @@ function groupSeancesByVenue(items: DayItem[]): VenueGroup[] {
       order.push(key);
     }
     seancesByKey.get(key)!.push(rel);
-    const heure =
-      formatHeure(rel.programme.heure_debut) +
-      (rel.programme.heure_fin
-        ? ` – ${formatHeure(rel.programme.heure_fin)}`
-        : '');
+    const heure = seanceTimeLabel(rel);
     map.get(key)!.rows.push({
       key: rel.key,
       date: rel.programme.date || rel.dayIso,
@@ -370,9 +366,7 @@ export default function EventDetail({
 
   if (item.kind === 'programme') {
     const { programme: p, evenement: ev, lieu } = item;
-    const time =
-      formatHeure(p.heure_debut) +
-      (p.heure_fin ? ` – ${formatHeure(p.heure_fin)}` : '');
+    const time = formatFicheHoraires(item);
     const categorie = ev?.categorie ?? '';
     const upcomingRelated = filterSeancesForActiveFilters(
       hideSeancesBeforeToday(relatedItems, parisParts().iso),
@@ -734,9 +728,7 @@ export default function EventDetail({
 
   // Fallback: parent evenement without programme row that day
   const { evenement: event, lieu } = item;
-  const time =
-    formatHeure(event.heure_debut) +
-    (event.heure_fin ? ` – ${formatHeure(event.heure_fin)}` : '');
+  const time = formatFicheHoraires(item);
 
   return (
     <div

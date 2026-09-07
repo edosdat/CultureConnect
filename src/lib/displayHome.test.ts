@@ -6,6 +6,8 @@ import {
   cineRows,
   fillEmptyCineFromPool,
   findDayItemByKey,
+  enfantsRows,
+  expoRows,
   homeSectionsVisible,
   musiqueRows,
   resolveHomeCardOpen,
@@ -22,6 +24,8 @@ import { slotFormOfItem } from './reco';
 import {
   homePackOfItem,
   isCinemaDayItem,
+  isEnfantsDayItem,
+  isExpoDayItem,
   isMusiqueDayItem,
   isTheatreDayItem,
 } from './nouveautesCine';
@@ -119,35 +123,43 @@ function item(opts: {
 }
 
 describe('homeSectionsVisible', () => {
-  it('no chip → all three packs', () => {
+  it('no chip → all five packs', () => {
     assert.deepEqual(homeSectionsVisible([]), {
       cine: true,
       theatre: true,
       musique: true,
+      enfants: true,
+      expo: true,
     });
   });
 
-  it('Cinéma only hides theatre and musique', () => {
+  it('Cinéma only hides theatre, musique, enfants and expos', () => {
     assert.deepEqual(homeSectionsVisible(['cinema']), {
       cine: true,
       theatre: false,
       musique: false,
+      enfants: false,
+      expo: false,
     });
   });
 
-  it('Musique only hides cine and theatre', () => {
+  it('Musique only hides cine, theatre, enfants and expos', () => {
     assert.deepEqual(homeSectionsVisible(['musique']), {
       cine: false,
       theatre: false,
       musique: true,
+      enfants: false,
+      expo: false,
     });
   });
 
-  it('Théâtre only hides cine and musique', () => {
+  it('Théâtre only hides cine, musique, enfants and expos', () => {
     assert.deepEqual(homeSectionsVisible(['theatre_danse']), {
       cine: false,
       theatre: true,
       musique: false,
+      enfants: false,
+      expo: false,
     });
   });
 
@@ -156,19 +168,25 @@ describe('homeSectionsVisible', () => {
       cine: true,
       theatre: false,
       musique: true,
+      enfants: false,
+      expo: false,
     });
   });
 
-  it('extra chips do not hide the three packs', () => {
+  it('extra chips do not hide the five packs', () => {
     assert.deepEqual(homeSectionsVisible(['festival']), {
       cine: true,
       theatre: true,
       musique: true,
+      enfants: true,
+      expo: true,
     });
     assert.deepEqual(homeSectionsVisible(['expo_patrimoine', 'enfants_famille']), {
       cine: true,
       theatre: true,
       musique: true,
+      enfants: true,
+      expo: true,
     });
   });
 });
@@ -213,11 +231,17 @@ describe('home pack classifiers', () => {
     assert.equal(isMusiqueDayItem(festTheatre), false);
   });
 
-  it('does not invent a pack for expo', () => {
+  it('maps expo / enfants to their own packs, not theatre or musique', () => {
     const expo = item({ key: 'e1', cat: 'exposition' });
-    assert.equal(homePackOfItem(expo), null);
+    const kids = item({ key: 'k1', cat: 'enfants_famille' });
+    assert.equal(homePackOfItem(expo), 'expo');
+    assert.equal(homePackOfItem(kids), 'enfants');
+    assert.equal(isExpoDayItem(expo), true);
+    assert.equal(isEnfantsDayItem(kids), true);
     assert.equal(isTheatreDayItem(expo), false);
     assert.equal(isMusiqueDayItem(expo), false);
+    assert.equal(isTheatreDayItem(kids), false);
+    assert.equal(isMusiqueDayItem(kids), false);
   });
 });
 
@@ -227,21 +251,31 @@ describe('pack rows + date filter', () => {
     item({ key: 'cine-2', cat: 'cinema', day: '2026-09-02', filmId: 'F2' }),
     item({ key: 'th-2', cat: 'theatre', day: '2026-09-02' }),
     item({ key: 'mu-2', cat: 'concert', day: '2026-09-02' }),
+    item({ key: 'enf-2', cat: 'enfants_famille', day: '2026-09-02' }),
+    item({ key: 'ex-2', cat: 'exposition', day: '2026-09-02' }),
     item({ key: 'cine-5', cat: 'cinema', day: '2026-09-05', filmId: 'F5' }),
     item({ key: 'th-5', cat: 'theatre', day: '2026-09-05' }),
     item({ key: 'mu-5', cat: 'concert', day: '2026-09-05' }),
+    item({ key: 'enf-5', cat: 'enfants_famille', day: '2026-09-05' }),
+    item({ key: 'ex-5', cat: 'exposition', day: '2026-09-05' }),
   ];
 
   it('splits catalogue into three packs without collapsing living arts', () => {
     const cine = cineRows(mix, emptyTop3).map((r) => r.item.key);
     const theatre = theatreRows(mix, emptyTop3).map((r) => r.item.key);
     const musique = musiqueRows(mix, emptyTop3).map((r) => r.item.key);
+    const enfants = enfantsRows(mix, emptyTop3).map((r) => r.item.key);
+    const expos = expoRows(mix, emptyTop3).map((r) => r.item.key);
     assert.ok(cine.includes('cine-2') && cine.includes('cine-5'));
     assert.ok(theatre.includes('th-2') && theatre.includes('th-5'));
     assert.ok(musique.includes('mu-2') && musique.includes('mu-5'));
+    assert.ok(enfants.includes('enf-2') && enfants.includes('enf-5'));
+    assert.ok(expos.includes('ex-2') && expos.includes('ex-5'));
     assert.equal(cine.some((k) => k.startsWith('th-') || k.startsWith('mu-')), false);
     assert.equal(theatre.some((k) => k.startsWith('cine-') || k.startsWith('mu-')), false);
     assert.equal(musique.some((k) => k.startsWith('cine-') || k.startsWith('th-')), false);
+    assert.equal(enfants.some((k) => k.startsWith('cine-') || k.startsWith('mu-')), false);
+    assert.equal(expos.some((k) => k.startsWith('cine-') || k.startsWith('th-')), false);
   });
 
   it('visibleTop3 keeps a film_id row as cine even without cinema categorie', () => {
@@ -391,6 +425,14 @@ describe('pack rows + date filter', () => {
       musiqueRows(onDay, emptyTop3).map((r) => r.item.key),
       ['mu-5'],
     );
+    assert.deepEqual(
+      enfantsRows(onDay, emptyTop3).map((r) => r.item.key),
+      ['enf-5'],
+    );
+    assert.deepEqual(
+      expoRows(onDay, emptyTop3).map((r) => r.item.key),
+      ['ex-5'],
+    );
   });
 });
 
@@ -432,6 +474,18 @@ describe('top 3 click opens fiche outside QUOI grid', () => {
       mode: 'pack',
       pack: 'cine',
       key: cine.key,
+    });
+    const kids = item({ key: 'p:K1', cat: 'enfants_famille' });
+    const expo = item({ key: 'p:X1', cat: 'exposition' });
+    assert.deepEqual(resolveHomeCardOpen(kids.key, kids, 'grid'), {
+      mode: 'pack',
+      pack: 'enfants',
+      key: kids.key,
+    });
+    assert.deepEqual(resolveHomeCardOpen(expo.key, expo, 'grid'), {
+      mode: 'pack',
+      pack: 'expo',
+      key: expo.key,
     });
   });
 });

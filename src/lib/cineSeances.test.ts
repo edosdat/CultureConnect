@@ -185,6 +185,16 @@ describe('cine seances cinema-then-time', () => {
     assert.equal(horaireOptionLabel(vost), '02/09 · 21:15 VOST');
     assert.equal(cineSeanceLineLabel(vost, [vost, ABC_SOON]), '21:15 VOST');
     assert.equal(cineSeanceLineLabel(ABC_SOON, [ABC_SOON, ABC]), '02/09 · 13:20 VF');
+    const withFin = {
+      ...ABC_SOON,
+      programme: { ...ABC_SOON.programme, heure_fin: '15:10' },
+    };
+    assert.equal(horaireOptionLabel(withFin), '02/09 · 13:20–15:10 VF');
+    const withDuree = {
+      ...ABC_SOON,
+      programme: { ...ABC_SOON.programme, duree_min: '110' },
+    };
+    assert.equal(horaireOptionLabel(withDuree), '02/09 · 13:20 VF');
     const groups = groupCinemasForFilm(rows, TOULOUSE_ORIGIN);
     assert.match(cinemaOptionLabel(groups[0]!), /Cinéma ABC · .+ km/);
   });

@@ -142,12 +142,30 @@ export function isMusiqueDayItem(item: DayItem): boolean {
   return mainOfDayItem(item) === 'musique';
 }
 
-export type HomePackId = 'cine' | 'theatre' | 'musique';
+/** Enfants / familles chip — never steal cine / théâtre / musique cards. */
+export function isEnfantsDayItem(item: DayItem): boolean {
+  if (isCinemaDayItem(item) || isTheatreDayItem(item) || isMusiqueDayItem(item)) {
+    return false;
+  }
+  return mainOfDayItem(item) === 'enfants_famille';
+}
+
+/** Expo & patrimoine chip — never steal cine / théâtre / musique cards. */
+export function isExpoDayItem(item: DayItem): boolean {
+  if (isCinemaDayItem(item) || isTheatreDayItem(item) || isMusiqueDayItem(item)) {
+    return false;
+  }
+  return mainOfDayItem(item) === 'expo_patrimoine';
+}
+
+export type HomePackId = 'cine' | 'theatre' | 'musique' | 'enfants' | 'expo';
 
 export function homePackOfItem(item: DayItem): HomePackId | null {
   if (isCinemaDayItem(item)) return 'cine';
   if (isTheatreDayItem(item)) return 'theatre';
   if (isMusiqueDayItem(item)) return 'musique';
+  if (isEnfantsDayItem(item)) return 'enfants';
+  if (isExpoDayItem(item)) return 'expo';
   return null;
 }
 

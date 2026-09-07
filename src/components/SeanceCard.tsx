@@ -10,6 +10,7 @@ import {
   formatPrix,
   labelCategorie,
 } from '@/lib/labels';
+import { seanceTimeLabel } from '@/lib/eventTimes';
 import { seanceDateIso } from '@/lib/timeScope';
 import { MAIN_CATEGORY_LABELS, mainFromCategorie, mainFromGenreSlug } from '@/lib/categories';
 import { catCssVar, catGradient } from '@/lib/categoryColor';
@@ -97,16 +98,7 @@ export default function SeanceCard({
   const imageUrl = imageUrlOf(item);
   const title =
     item.kind === 'programme' ? item.programme.nom_item : item.evenement.titre;
-  const singleTime =
-    item.kind === 'programme'
-      ? formatHeure(item.programme.heure_debut) +
-        (item.programme.heure_fin
-          ? ` – ${formatHeure(item.programme.heure_fin)}`
-          : '')
-      : formatHeure(item.evenement.heure_debut) +
-        (item.evenement.heure_fin
-          ? ` – ${formatHeure(item.evenement.heure_fin)}`
-          : '');
+  const singleTime = seanceTimeLabel(item);
   const price =
     item.kind === 'programme'
       ? formatItemPrix(item.programme.prix_item, item.evenement)
