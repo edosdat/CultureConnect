@@ -2,7 +2,8 @@
 
 import type { DayItem } from '@/lib/types';
 import { vivantComplementLead } from '@/lib/vivantComplementCopy';
-import { itemHeure, itemTitle } from '@/lib/displayHome';
+import { itemTitle } from '@/lib/displayHome';
+import { seanceTimeLabel } from '@/lib/eventTimes';
 
 type Props = {
   film: DayItem;
@@ -22,7 +23,7 @@ export default function VivantComplementLinks({
       {items.map((it) => {
         const lead = vivantComplementLead(film, it);
         const title = itemTitle(it);
-        const heure = itemHeure(it);
+        const heure = seanceTimeLabel(it);
         return (
           <li key={it.key}>
             <button

@@ -33,6 +33,8 @@ import { withConcertArtistPress } from './pressCitation';
 import {
   filmIdOfItem,
   isCinemaDayItem,
+  isEnfantsDayItem,
+  isExpoDayItem,
   isMusiqueDayItem,
   isTheatreDayItem,
   isVivantDayItem,
@@ -936,12 +938,16 @@ export function queryAgenda(
   const cineAll = items.filter(isCinemaDayItem);
   const theatreAll = items.filter(isTheatreDayItem);
   const musiqueAll = items.filter(isMusiqueDayItem);
+  const enfantsAll = items.filter(isEnfantsDayItem);
+  const expoAll = items.filter(isExpoDayItem);
   const vivantCap = dayPage ? pageMax : 40;
   const vivantItems =
     !searching && offset === 0
       ? [
           ...theatreAll.slice(0, vivantCap),
           ...musiqueAll.slice(0, vivantCap),
+          ...enfantsAll.slice(0, vivantCap),
+          ...expoAll.slice(0, vivantCap),
         ]
           .filter((item, i, all) => all.findIndex((x) => x.key === item.key) === i)
           .map(slimDayItem)

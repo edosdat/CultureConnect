@@ -16,12 +16,15 @@ import {
   filmIdOfItem,
   homePackOfItem,
   isCinemaDayItem,
+  isEnfantsDayItem,
+  isExpoDayItem,
   isMusiqueDayItem,
   isTheatreDayItem,
   isVivantDayItem,
   mainOfDayItem,
   type HomePackId,
 } from './nouveautesCine';
+import { seanceTimeLabel } from './eventTimes';
 import { formatDateFr, formatHeure, formatLieuAffiche } from './labels';
 import type { MainCategoryId } from './categories';
 import { profileChips } from './pourToi';
@@ -93,10 +96,11 @@ export function itemHeure(item: DayItem): string {
   return formatHeure(item.evenement.heure_debut);
 }
 
-/** Planning line: this séance’s Paris date + time (never a later day’s clock). */
+/** Planning line: this séance’s Paris date + début–fin (never a later day’s clock). */
 export function seanceWhen(item: DayItem, earliestHeure?: string): string {
   const date = formatDateFr(seanceDateIso(item) || item.dayIso || '');
-  const time = itemHeure(item) || (earliestHeure ? formatHeure(earliestHeure) : '');
+  const time =
+    seanceTimeLabel(item) || (earliestHeure ? formatHeure(earliestHeure) : '');
   return [date, time].filter(Boolean).join(' · ');
 }
 
@@ -387,6 +391,28 @@ export function musiqueRows(
   return densify(displayShuffle(musique));
 }
 
+export function enfantsRows(
+  items: DayItem[],
+  top3: ReadonlySet<string>,
+  opts?: { origin?: GeoPos | null },
+): DenseRow[] {
+  const enfants = dedupAgainstTop3(items.filter(isEnfantsDayItem), top3);
+  const origin = opts?.origin ?? null;
+  if (origin) return densify(enfants, { origin });
+  return densify(displayShuffle(enfants));
+}
+
+export function expoRows(
+  items: DayItem[],
+  top3: ReadonlySet<string>,
+  opts?: { origin?: GeoPos | null },
+): DenseRow[] {
+  const expos = dedupAgainstTop3(items.filter(isExpoDayItem), top3);
+  const origin = opts?.origin ?? null;
+  if (origin) return densify(expos, { origin });
+  return densify(displayShuffle(expos));
+}
+
 /** @deprecated Home no longer collapses living arts into one strip. */
 export function liveRows(
   items: DayItem[],
@@ -412,24 +438,34 @@ export function visibleTop3Nearest(
 /**
  * QUOI / search home chips hide catalogue sections exclusively.
  * Only Cinéma / Théâtre / Musique count. Extra chips (festival, expo,
- * enfants) filter the item pool via the API — they do not hide the three
- * packs. No home chip → all three. Cats never apply to Top 3.
+ * enfants) filter the item pool via the API — they do not hide packs.
+ * No home chip → all five. Cats never apply to Top 3.
  */
 export function homeSectionsVisible(cats: readonly string[]): {
   cine: boolean;
   theatre: boolean;
   musique: boolean;
+  enfants: boolean;
+  expo: boolean;
 } {
   const home = cats.filter(
     (c) => c === 'cinema' || c === 'theatre_danse' || c === 'musique',
   );
   if (home.length === 0) {
-    return { cine: true, theatre: true, musique: true };
+    return {
+      cine: true,
+      theatre: true,
+      musique: true,
+      enfants: true,
+      expo: true,
+    };
   }
   return {
     cine: home.includes('cinema'),
     theatre: home.includes('theatre_danse'),
     musique: home.includes('musique'),
+    enfants: false,
+    expo: false,
   };
 }
 
@@ -700,6 +736,8 @@ export function isLikelyMobile(): boolean {
 
 export {
   isCinemaDayItem,
+  isEnfantsDayItem,
+  isExpoDayItem,
   isMusiqueDayItem,
   isTheatreDayItem,
   isVivantDayItem,

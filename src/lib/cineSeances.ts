@@ -8,10 +8,10 @@ import { TOULOUSE_ORIGIN, type GeoPos } from './geo';
 import {
   filmVersionLabel,
   formatDateFr,
-  formatHeure,
   formatLieuAffiche,
   knownPrixLabel,
 } from './labels';
+import { seanceTimeLabel } from './eventTimes';
 import { itemKmLabel, itemSortKm } from './nearMe';
 import { sortSeances } from './displayFilter';
 import { seanceDateIso } from './timeScope';
@@ -104,9 +104,7 @@ function formatDateShort(iso: string): string {
 }
 
 function seanceHeure(rel: DayItem): string {
-  return rel.kind === 'programme'
-    ? formatHeure(rel.programme.heure_debut)
-    : formatHeure(rel.evenement.heure_debut);
+  return seanceTimeLabel(rel);
 }
 
 /** Dropdown: « Cinéma ABC · 2,3 km » */

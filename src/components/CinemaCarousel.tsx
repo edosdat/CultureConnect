@@ -9,7 +9,8 @@ import {
   downloadIcs,
   googleCalendarUrl,
 } from '@/lib/calendar';
-import { formatDateFr, formatHeure, formatLieuAffiche } from '@/lib/labels';
+import { formatDateFr, formatLieuAffiche } from '@/lib/labels';
+import { seanceTimeLabel } from '@/lib/eventTimes';
 import {
   filterSeancesForActiveFilters,
   sortSeances,
@@ -35,7 +36,12 @@ import PressCitation from './PressCitation';
 import CineSeancePicker from './CineSeancePicker';
 import { fichePressCitation, pressItemForFiche } from '@/lib/pressCitation';
 
-export type CinemaCarouselPack = 'cine' | 'theatre' | 'musique';
+export type CinemaCarouselPack =
+  | 'cine'
+  | 'theatre'
+  | 'musique'
+  | 'enfants'
+  | 'expo';
 
 const PACK_COPY: Record<
   CinemaCarouselPack,
@@ -58,6 +64,18 @@ const PACK_COPY: Record<
     prev: 'Concerts précédents',
     next: 'Concerts suivants',
     fallbackCat: 'Musique',
+  },
+  enfants: {
+    more: 'Plus pour les enfants',
+    prev: 'Précédent',
+    next: 'Suivant',
+    fallbackCat: 'Enfants',
+  },
+  expo: {
+    more: 'Plus d’expos',
+    prev: 'Expos précédentes',
+    next: 'Expos suivantes',
+    fallbackCat: 'Expos',
   },
 };
 
@@ -169,9 +187,7 @@ function formatDateShort(iso: string): string {
 }
 
 function seanceHeure(rel: DayItem): string {
-  return rel.kind === 'programme'
-    ? formatHeure(rel.programme.heure_debut)
-    : formatHeure(rel.evenement.heure_debut);
+  return seanceTimeLabel(rel);
 }
 
 function compactVenue(rel: DayItem): string {

@@ -4,7 +4,8 @@ import { useEffect } from 'react';
 import type { ArtisteWithDates, GenreLegend } from '@/lib/types';
 import { labelGenre, splitUpcomingPast } from '@/lib/artists';
 import { artistPressCitation } from '@/lib/pressCitation';
-import { formatDateFr, formatHeure } from '@/lib/labels';
+import { formatDateFr } from '@/lib/labels';
+import { compactTimeRangeFromFields } from '@/lib/eventTimes';
 import PressCitation from './PressCitation';
 
 type Props = {
@@ -16,27 +17,28 @@ type Props = {
 function DateRow({
   date,
   heure_debut,
+  heure_fin,
   venueName,
   eventTitle,
   url,
 }: {
   date: string;
   heure_debut: string;
+  heure_fin: string;
   venueName: string;
   eventTitle: string;
   url: string;
 }) {
+  const when = compactTimeRangeFromFields(heure_debut, heure_fin);
   return (
     <li className="rounded-2xl border border-culture-sand bg-white px-4 py-3">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="font-medium text-culture-ink">
           {formatDateFr(date)}
         </span>
-        {heure_debut && (
-          <span className="text-sm text-culture-muted">
-            {formatHeure(heure_debut)}
-          </span>
-        )}
+        {when ? (
+          <span className="text-sm text-culture-muted">{when}</span>
+        ) : null}
       </div>
       {venueName && (
         <p className="mt-1 text-sm text-culture-ink">{venueName}</p>

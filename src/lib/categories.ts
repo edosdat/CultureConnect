@@ -97,6 +97,7 @@ export const CATEGORIE_TO_MAIN: Record<string, MainCategoryId> = {
   exposition: 'expo_patrimoine',
   expo_spectacle: 'expo_patrimoine',
   visite: 'expo_patrimoine',
+  expo_visite: 'expo_patrimoine',
   conference: 'expo_patrimoine',
 
   // Enfants / familles
@@ -199,6 +200,7 @@ export function formFromCategorieAndForm(
   if (main === 'musique') return 'concert';
   if (main === 'festival') return 'festival';
   if (main === 'enfants_famille') return 'enfants';
+  if (main === 'expo_patrimoine') return 'expo';
   const raw = (storedForm || '').toString().trim().toLowerCase();
   if (raw) return raw;
   const c = (categorie || '').trim().toLowerCase();
@@ -209,6 +211,8 @@ export function formFromCategorieAndForm(
     return 'concert';
   if (c.includes('festival')) return 'festival';
   if (c.includes('enfant') || c.includes('famille')) return 'enfants';
+  if (c.includes('expo') || c.includes('visite') || c.includes('patrimoine'))
+    return 'expo';
   return '';
 }
 

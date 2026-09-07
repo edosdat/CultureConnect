@@ -6,7 +6,12 @@
  * repertory one-shots do not qualify.
  */
 
-import { mainFromCategorie, mainFromGenreSlug, type MainCategoryId } from './categories';
+import {
+  mainFromCategorie,
+  mainFromGenreSlug,
+  matchesMainCategories,
+  type MainCategoryId,
+} from './categories';
 import {
   isCinemaPeriodAggregate,
   isPublishableEvent,
@@ -142,12 +147,45 @@ export function isMusiqueDayItem(item: DayItem): boolean {
   return mainOfDayItem(item) === 'musique';
 }
 
-export type HomePackId = 'cine' | 'theatre' | 'musique';
+function itemCatGenre(item: DayItem): { categorie: string; genre: string } {
+  if (item.kind === 'programme') {
+    return {
+      categorie: item.evenement?.categorie ?? '',
+      genre: item.programme.genre || item.evenement?.genre || '',
+    };
+  }
+  return {
+    categorie: item.evenement.categorie,
+    genre: item.evenement.genre || '',
+  };
+}
+
+/** QUOI chip `enfants_famille` — never steal cine / théâtre / musique cards. */
+export function isEnfantsDayItem(item: DayItem): boolean {
+  if (isCinemaDayItem(item) || isTheatreDayItem(item) || isMusiqueDayItem(item)) {
+    return false;
+  }
+  const { categorie, genre } = itemCatGenre(item);
+  return matchesMainCategories(categorie, genre, ['enfants_famille']);
+}
+
+/** QUOI chip `expo_patrimoine` (`expo_*` + mapped visite/conférence). */
+export function isExpoDayItem(item: DayItem): boolean {
+  if (isCinemaDayItem(item) || isTheatreDayItem(item) || isMusiqueDayItem(item)) {
+    return false;
+  }
+  const { categorie, genre } = itemCatGenre(item);
+  return matchesMainCategories(categorie, genre, ['expo_patrimoine']);
+}
+
+export type HomePackId = 'cine' | 'theatre' | 'musique' | 'enfants' | 'expo';
 
 export function homePackOfItem(item: DayItem): HomePackId | null {
   if (isCinemaDayItem(item)) return 'cine';
   if (isTheatreDayItem(item)) return 'theatre';
   if (isMusiqueDayItem(item)) return 'musique';
+  if (isEnfantsDayItem(item)) return 'enfants';
+  if (isExpoDayItem(item)) return 'expo';
   return null;
 }
 
