@@ -31,7 +31,9 @@ import FilmPoster from './FilmPoster';
 import FavoriteButton from './FavoriteButton';
 import ShareButton from './ShareButton';
 import VivantComplementLinks from './VivantComplementLinks';
+import PressCitation from './PressCitation';
 import CineSeancePicker from './CineSeancePicker';
+import { pressItemForFiche, theatrePressCitation } from '@/lib/pressCitation';
 
 export type CinemaCarouselPack = 'cine' | 'theatre' | 'musique';
 
@@ -264,6 +266,7 @@ export default function CinemaCarousel({
   const selectRef = useRef<HTMLSelectElement | null>(null);
   const [related, setRelated] = useState<DayItem[]>([]);
   const [aussi, setAussi] = useState<DayItem[]>([]);
+  const [detailItem, setDetailItem] = useState<DayItem | null>(null);
   const [mobileCal, setMobileCal] = useState(false);
   const moreLock = useRef(0);
   const moreApi = useRef({ hasMore, onNeedMore });
@@ -302,6 +305,7 @@ export default function CinemaCarousel({
 
   useEffect(() => {
     setPickedKey(null);
+    setDetailItem(null);
   }, [hero?.item.key]);
   const displayFilter: DisplayFilter = {
     startIso: dateFrom,
@@ -331,6 +335,7 @@ export default function CinemaCarousel({
       .then((res) => (res.ok ? res.json() : null))
       .then((data: AgendaDetailResponse | null) => {
         if (cancelled || !data) return;
+        setDetailItem(data.item);
         setRelated(
           filterSeancesForActiveFilters(data.relatedItems ?? [], displayFilter),
         );
@@ -550,6 +555,13 @@ export default function CinemaCarousel({
             <p className="hidden text-sm leading-relaxed text-culture-ink md:block">
               {itemPitch(item)}
             </p>
+          ) : null}
+          {pack === 'theatre' ? (
+            <PressCitation
+              citation={theatrePressCitation(
+                pressItemForFiche(active, detailItem),
+              )}
+            />
           ) : null}
           {pack === 'cine' ? (
             <VivantComplementLinks

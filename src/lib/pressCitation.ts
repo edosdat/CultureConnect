@@ -338,6 +338,30 @@ export function pressCitationOf(item: DayItem): PressCitation | null {
   return pickBest(candidates);
 }
 
+function eventIdOf(item: DayItem): string {
+  if (item.kind === 'programme') {
+    return (
+      item.evenement?.event_id ||
+      item.programme.event_id ||
+      ''
+    ).trim();
+  }
+  return (item.evenement.event_id || '').trim();
+}
+
+/** Prefer the detail payload (press cells survive slim) when it is the same show. */
+export function pressItemForFiche(
+  active: DayItem,
+  detail: DayItem | null,
+): DayItem {
+  if (!detail) return active;
+  if (detail.key === active.key) return detail;
+  const a = eventIdOf(active);
+  const d = eventIdOf(detail);
+  if (a && a === d) return detail;
+  return active;
+}
+
 /** Theatre fiche only. Cinema / music / others → null. */
 export function theatrePressCitation(item: DayItem): PressCitation | null {
   if (!isTheatreDayItem(item)) return null;

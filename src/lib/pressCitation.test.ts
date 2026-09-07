@@ -5,6 +5,7 @@ import {
   cataloguePressRating,
   pickPressCatalogueFields,
   pressCitationOf,
+  pressItemForFiche,
   theatrePressCitation,
 } from './pressCitation';
 import { detailDayItem } from './slim';
@@ -255,6 +256,23 @@ describe('theatrePressCitation', () => {
     assert.equal(theatrePressCitation(cine), null);
     assert.equal(theatrePressCitation(music), null);
     assert.ok(theatrePressCitation(theatre));
+  });
+
+  it('reuses detail press cells for another séance of the same event', () => {
+    const slim = item({ key: 'th-a', cat: 'theatre_danse' });
+    const detail = item({
+      key: 'th-b',
+      cat: 'theatre_danse',
+      evenement: {
+        event_id: slim.evenement!.event_id,
+        citation_presse: 'Même spectacle.',
+        presse_media: 'Télérama',
+        presse_url: 'https://www.telerama.fr/same',
+      },
+    });
+    const merged = pressItemForFiche(slim, detail);
+    assert.equal(theatrePressCitation(slim), null);
+    assert.equal(theatrePressCitation(merged)?.quote, '« Même spectacle. »');
   });
 });
 
