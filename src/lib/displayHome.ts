@@ -410,10 +410,10 @@ export function visibleTop3Nearest(
 }
 
 /**
- * QUOI / search home chips hide catalogue sections.
- * Only Cinéma / Théâtre / Musique count. Extra chips (festival, expo,
- * enfants) filter the item pool via the API — they do not hide the three
- * packs. No home chip → all three. Cats never apply to Top 3.
+ * QUOI chips hide the Ciné catalogue pack only.
+ * Theatre / musique are the En live / vivant strip — chips never unmount
+ * them. Extra chips (festival, expo, enfants) do not hide packs.
+ * No home chip → cine + vivant. Cats never apply to Top 3.
  */
 export function homeSectionsVisible(cats: readonly string[]): {
   cine: boolean;
@@ -428,9 +428,20 @@ export function homeSectionsVisible(cats: readonly string[]): {
   }
   return {
     cine: home.includes('cinema'),
-    theatre: home.includes('theatre_danse'),
-    musique: home.includes('musique'),
+    theatre: true,
+    musique: true,
   };
+}
+
+/**
+ * QUOI / genre chips filter the catalogue page only.
+ * The En live / vivant strip uses the same date · commune · salle window.
+ */
+export function vivantListInput<T extends { cats: string[]; genres: string[] }>(
+  input: T,
+): T {
+  if (input.cats.length === 0 && input.genres.length === 0) return input;
+  return { ...input, cats: [], genres: [] };
 }
 
 /**

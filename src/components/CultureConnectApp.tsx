@@ -1061,10 +1061,18 @@ export default function CultureConnectApp({
   const vivantPool = useMemo(() => {
     const seen = new Set<string>();
     const pool: DayItem[] = [];
-    for (const item of [...vivantItems, ...listItems]) {
+    // En live / vivant is its own payload — never the QUOI-filtered catalogue.
+    for (const item of vivantItems) {
       if (seen.has(item.key)) continue;
       seen.add(item.key);
       pool.push(item);
+    }
+    if (pool.length === 0) {
+      for (const item of listItems) {
+        if (seen.has(item.key)) continue;
+        seen.add(item.key);
+        pool.push(item);
+      }
     }
     return filterSeancesForActiveFilters(pool, activeFilter);
   }, [vivantItems, listItems, activeFilter]);
@@ -1934,96 +1942,104 @@ export default function CultureConnectApp({
           </HomeSection>
         ) : null}
 
-        {showTheatreBlock ? (
-          <HomeSection
-            id="theatre"
-            title="Théâtre & spectacle vivant"
-            count={theatreCount}
-            hideCount={!showAdminCounts}
-            shown={visibleTheatreRows.length}
-            expanded={
-              theatreLimit >= theatreCount && listItems.length >= total
-            }
-            onSeeAll={() => {
-              setTheatreExpanded(true);
-              setTheatreLimit(Number.POSITIVE_INFINITY);
-              if (listItems.length < total) handleLoadMore();
-            }}
+        {showTheatreBlock || showMusiqueBlock ? (
+          <div
+            data-en-live=""
+            aria-label="En live"
+            className="space-y-2.5 sm:space-y-4"
           >
-            <CinemaCarousel
-              rows={visibleTheatreRows}
-              pack="theatre"
-              mobile={narrowHome}
-              focusKey={theatreFocusKey}
-              selectedCommune={selectedCommune}
-              selectedLieuId={selectedLieuId}
-              dateFrom={scopeRange.startIso}
-              dateTo={scopeRange.endIso}
-              soir={timeScope === 'soir'}
-              datePinned={timeScope !== 'tous'}
-              hasMore={
-                theatreLimit < allTheatreRows.length ||
-                listItems.length < total
-              }
-              onNeedMore={() => {
-                setTheatreExpanded(true);
-                setTheatreLimit((n) => n + cineFirstPaint(narrowHome));
-                if (listItems.length < total) handleLoadMore();
-              }}
-              fallbackVivant={allMusiqueRows.map((row) => row.item)}
-              onAgenda={(item) => trackItem(item, 'agenda_add')}
-              onIcs={(item) => trackItem(item, 'ics')}
-              onReserve={(item) => trackItem(item, 'reserve')}
-              onSelectLive={handleSelectHome}
-              origin={gpsOrigin}
-            />
-          </HomeSection>
-        ) : null}
+            {showTheatreBlock ? (
+              <HomeSection
+                id="theatre"
+                title="Théâtre & spectacle vivant"
+                count={theatreCount}
+                hideCount={!showAdminCounts}
+                shown={visibleTheatreRows.length}
+                expanded={
+                  theatreLimit >= theatreCount && listItems.length >= total
+                }
+                onSeeAll={() => {
+                  setTheatreExpanded(true);
+                  setTheatreLimit(Number.POSITIVE_INFINITY);
+                  if (listItems.length < total) handleLoadMore();
+                }}
+              >
+                <CinemaCarousel
+                  rows={visibleTheatreRows}
+                  pack="theatre"
+                  mobile={narrowHome}
+                  focusKey={theatreFocusKey}
+                  selectedCommune={selectedCommune}
+                  selectedLieuId={selectedLieuId}
+                  dateFrom={scopeRange.startIso}
+                  dateTo={scopeRange.endIso}
+                  soir={timeScope === 'soir'}
+                  datePinned={timeScope !== 'tous'}
+                  hasMore={
+                    theatreLimit < allTheatreRows.length ||
+                    listItems.length < total
+                  }
+                  onNeedMore={() => {
+                    setTheatreExpanded(true);
+                    setTheatreLimit((n) => n + cineFirstPaint(narrowHome));
+                    if (listItems.length < total) handleLoadMore();
+                  }}
+                  fallbackVivant={allMusiqueRows.map((row) => row.item)}
+                  onAgenda={(item) => trackItem(item, 'agenda_add')}
+                  onIcs={(item) => trackItem(item, 'ics')}
+                  onReserve={(item) => trackItem(item, 'reserve')}
+                  onSelectLive={handleSelectHome}
+                  origin={gpsOrigin}
+                />
+              </HomeSection>
+            ) : null}
 
-        {showMusiqueBlock ? (
-          <HomeSection
-            id="musique"
-            title="Musique"
-            count={musiqueCount}
-            hideCount={!showAdminCounts}
-            shown={visibleMusiqueRows.length}
-            expanded={
-              musiqueLimit >= musiqueCount && listItems.length >= total
-            }
-            onSeeAll={() => {
-              setMusiqueExpanded(true);
-              setMusiqueLimit(Number.POSITIVE_INFINITY);
-              if (listItems.length < total) handleLoadMore();
-            }}
-          >
-            <CinemaCarousel
-              rows={visibleMusiqueRows}
-              pack="musique"
-              mobile={narrowHome}
-              focusKey={musiqueFocusKey}
-              selectedCommune={selectedCommune}
-              selectedLieuId={selectedLieuId}
-              dateFrom={scopeRange.startIso}
-              dateTo={scopeRange.endIso}
-              soir={timeScope === 'soir'}
-              datePinned={timeScope !== 'tous'}
-              hasMore={
-                musiqueLimit < allMusiqueRows.length ||
-                listItems.length < total
-              }
-              onNeedMore={() => {
-                setMusiqueExpanded(true);
-                setMusiqueLimit((n) => n + cineFirstPaint(narrowHome));
-                if (listItems.length < total) handleLoadMore();
-              }}
-              fallbackVivant={allTheatreRows.map((row) => row.item)}
-              onAgenda={(item) => trackItem(item, 'agenda_add')}
-              onIcs={(item) => trackItem(item, 'ics')}
-              onReserve={(item) => trackItem(item, 'reserve')}
-              onSelectLive={handleSelectHome}
-              origin={gpsOrigin}
-            />
-          </HomeSection>
+            {showMusiqueBlock ? (
+              <HomeSection
+                id="musique"
+                title="Musique"
+                count={musiqueCount}
+                hideCount={!showAdminCounts}
+                shown={visibleMusiqueRows.length}
+                expanded={
+                  musiqueLimit >= musiqueCount && listItems.length >= total
+                }
+                onSeeAll={() => {
+                  setMusiqueExpanded(true);
+                  setMusiqueLimit(Number.POSITIVE_INFINITY);
+                  if (listItems.length < total) handleLoadMore();
+                }}
+              >
+                <CinemaCarousel
+                  rows={visibleMusiqueRows}
+                  pack="musique"
+                  mobile={narrowHome}
+                  focusKey={musiqueFocusKey}
+                  selectedCommune={selectedCommune}
+                  selectedLieuId={selectedLieuId}
+                  dateFrom={scopeRange.startIso}
+                  dateTo={scopeRange.endIso}
+                  soir={timeScope === 'soir'}
+                  datePinned={timeScope !== 'tous'}
+                  hasMore={
+                    musiqueLimit < allMusiqueRows.length ||
+                    listItems.length < total
+                  }
+                  onNeedMore={() => {
+                    setMusiqueExpanded(true);
+                    setMusiqueLimit((n) => n + cineFirstPaint(narrowHome));
+                    if (listItems.length < total) handleLoadMore();
+                  }}
+                  fallbackVivant={allTheatreRows.map((row) => row.item)}
+                  onAgenda={(item) => trackItem(item, 'agenda_add')}
+                  onIcs={(item) => trackItem(item, 'ics')}
+                  onReserve={(item) => trackItem(item, 'reserve')}
+                  onSelectLive={handleSelectHome}
+                  origin={gpsOrigin}
+                />
+              </HomeSection>
+            ) : null}
+          </div>
         ) : null}
 
         {leftoverRows.length > 0 ? (
