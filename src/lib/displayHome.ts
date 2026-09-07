@@ -55,6 +55,21 @@ export const SEARCH_EXAMPLES = [
   { label: 'concert près du centre', query: 'concert près du centre' },
 ] as const;
 
+/**
+ * Examples under `#cc-search`: hide on QUOI chip or typed/applied query.
+ * QUAND (date) chips alone keep the examples visible.
+ */
+export function searchExamplesVisible(opts: {
+  selectedCategories: readonly string[];
+  query: string;
+  committedTitle?: string;
+}): boolean {
+  if (opts.selectedCategories.length > 0) return false;
+  if ((opts.query || '').trim()) return false;
+  if ((opts.committedTitle || '').trim()) return false;
+  return true;
+}
+
 const HOME_CINE_DESKTOP = 10;
 const HOME_CINE_MOBILE = 3;
 const LIVE_DISPLAY_CAP = 36;
