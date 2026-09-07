@@ -22,6 +22,7 @@ const QUOTE_KEYS = [
 
 const MEDIA_KEYS = [
   'source',
+  'citation_source',
   'presse_media',
   'media_presse',
   'presse_source',
@@ -36,16 +37,17 @@ const URL_KEYS = [
 
 const NOTE_KEYS = [
   'note_presse',
+  'citation_note',
   'score_presse',
   'presse_note',
   'note_telerama',
 ] as const;
 
 const INDEXED_RE =
-  /^(citation|citation_presse|presse_citation|source|source_url|note_presse|score_presse|confiance|presse_media|media_presse|presse_source|presse_url|url_presse|citation_url|presse_note|note_telerama)_(\d+)$/;
+  /^(citation|citation_presse|presse_citation|citation_source|source|source_url|note_presse|citation_note|score_presse|confiance|presse_media|media_presse|presse_source|presse_url|url_presse|citation_url|presse_note|note_telerama)_(\d+)$/;
 
 const PRESS_KEY_RE =
-  /^(citation|source|source_url|note_presse|score_presse|confiance|citation_presse|presse_citation|presse_media|media_presse|presse_source|presse_url|url_presse|citation_url|presse_note|note_telerama)(?:_\d+)?$/;
+  /^(citation|source|source_url|note_presse|score_presse|confiance|citation_presse|presse_citation|citation_source|citation_note|presse_media|media_presse|presse_source|presse_url|url_presse|citation_url|presse_note|note_telerama)(?:_\d+)?$/;
 
 /** Known outlets for ranking + host → label. Never invent ratings from these. */
 const SOURCE_ALIASES: { test: RegExp; label: string; rank: number }[] = [
@@ -75,12 +77,14 @@ const EMPTY_PRESS_FIELDS: Record<string, string> = {
   confiance: '',
   citation_presse: '',
   presse_citation: '',
+  citation_source: '',
   presse_media: '',
   media_presse: '',
   presse_source: '',
   presse_url: '',
   url_presse: '',
   citation_url: '',
+  citation_note: '',
   presse_note: '',
   note_telerama: '',
 };
@@ -153,12 +157,19 @@ function parseJsonCitations(raw: string): PressCitation[] {
             rec.quote ??
             rec.texte,
         ),
-        source: str(rec.source ?? rec.media ?? rec.presse_media ?? rec.media_presse),
+        source: str(
+          rec.source ??
+            rec.citation_source ??
+            rec.media ??
+            rec.presse_media ??
+            rec.media_presse,
+        ),
         url: str(
           rec.source_url ?? rec.url ?? rec.presse_url ?? rec.url_presse ?? rec.lien,
         ),
         rating: str(
           rec.note_presse ??
+            rec.citation_note ??
             rec.score_presse ??
             rec.note ??
             rec.presse_note ??
@@ -438,7 +449,11 @@ export function withConcertArtistPress(
     const fields = pickPressCatalogueFields(
       a as unknown as Record<string, unknown>,
     );
-    if (!fields.citation && !fields.citation_presse && !fields.presse_citation) {
+    if (
+      !fields.citation &&
+      !fields.citation_presse &&
+      !fields.presse_citation
+    ) {
       continue;
     }
     return {

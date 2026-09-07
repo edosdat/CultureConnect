@@ -17,7 +17,9 @@ export type Lieu = {
 /**
  * Fill-empty press citation (event / programme / artiste).
  * Official: citation | source | source_url | note_presse | score_presse | confiance.
- * Hide UI when `citation` is empty. `confiance` ≠ mood_confiance.
+ * Contexte aliases (same UI, no extra PR): citation_presse, citation_source,
+ * citation_url, citation_note (+ a few presse_* / media_* spellings).
+ * Hide UI when the quote cell is empty. `confiance` ≠ mood_confiance.
  */
 export type PressCatalogueFields = {
   citation?: string;
@@ -28,12 +30,16 @@ export type PressCatalogueFields = {
   confiance?: string;
   citation_presse?: string;
   presse_citation?: string;
+  /** Alias — same role as `source`. */
+  citation_source?: string;
   presse_media?: string;
   media_presse?: string;
   presse_source?: string;
   presse_url?: string;
   url_presse?: string;
   citation_url?: string;
+  /** Alias — same role as `note_presse`. */
+  citation_note?: string;
   presse_note?: string;
   note_telerama?: string;
 };

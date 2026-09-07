@@ -32,6 +32,8 @@ Colonnes officielles sur **evenements**, **programme** et **artistes** (vides ta
 
 UI : un seul bloc, hide si `citation` vide. Pas de fiche cinéma.
 
+Alias Contexte (même rôle, UI déjà branchée) : `citation_presse`, `citation_source`, `citation_url`, `citation_note`.
+
 ## artistes.csv
 + bio_courte, url_site, url_reseaux, scraped_at
 

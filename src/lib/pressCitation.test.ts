@@ -138,6 +138,25 @@ describe('pressCitationOf', () => {
     });
   });
 
+  it('reads fill-empty aliases citation_presse|citation_source|citation_url|citation_note', () => {
+    const row = item({
+      key: 'th-aliases',
+      cat: 'theatre_danse',
+      evenement: {
+        citation_presse: 'Une soirée rare',
+        citation_source: 'Les Inrocks',
+        citation_url: 'https://presse.example/inrocks',
+        citation_note: 'TTT',
+      },
+    });
+    assert.deepEqual(pressCitationOf(row), {
+      quote: '« Une soirée rare »',
+      source: 'Les Inrocks',
+      url: 'https://presse.example/inrocks',
+      rating: 'TTT',
+    });
+  });
+
   it('uses score_presse as badge only when it is already T–TTTT', () => {
     const ok = item({
       key: 'th-score-ok',
@@ -396,6 +415,23 @@ describe('pickPressCatalogueFields', () => {
         source: 'Télérama',
         source_url: 'https://www.telerama.fr/z',
         note_presse: 'T',
+      },
+    );
+  });
+
+  it('keeps Contexte aliases so fill-empty can land without a UI PR', () => {
+    assert.deepEqual(
+      pickPressCatalogueFields({
+        citation_presse: 'Alias quote',
+        citation_source: 'Les Inrocks',
+        citation_url: 'https://presse.example/inrocks',
+        citation_note: 'TTT',
+      }),
+      {
+        citation_presse: 'Alias quote',
+        citation_source: 'Les Inrocks',
+        citation_url: 'https://presse.example/inrocks',
+        citation_note: 'TTT',
       },
     );
   });
