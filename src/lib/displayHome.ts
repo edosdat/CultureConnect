@@ -25,6 +25,7 @@ import {
   normalizePhrase,
   parsePhraseRules,
   tasteMoodsOf,
+  type PhraseMood,
   type PhraseTags,
   type TasteMood,
 } from './phraseTags';
@@ -133,7 +134,7 @@ export function resolveSearchSubmit(
   const parsed = parseSearchChips(raw, now);
   const extra = searchExampleChipExtras(raw);
   const tags = parsePhraseRules(raw, now);
-  const moods = tasteMoodsOf(tags.moods);
+  const moods = tasteMoodsOf(tags.moods) as PhraseMood[];
   const categories =
     extra.categories.length > 0 ? extra.categories : parsed.categories;
   const merged: SearchChipParse = { ...parsed, categories };
