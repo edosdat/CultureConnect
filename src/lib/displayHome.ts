@@ -478,6 +478,29 @@ export function capCineRows(rows: DenseRow[], mobile: boolean): DenseRow[] {
   return rows.slice(0, cineFirstPaint(mobile));
 }
 
+/**
+ * Keep a `?e=` / pack-focus show in the first-paint strip so the hero
+ * (and PressCitation) can mount even when it sits past the mobile cap.
+ */
+export function pinFocusedPackRow(
+  rows: DenseRow[],
+  limit: number,
+  focusKey: string | null,
+): DenseRow[] {
+  const cap = Number.isFinite(limit) ? Math.max(0, limit) : rows.length;
+  const sliced = rows.slice(0, cap);
+  if (!focusKey) return sliced;
+  const isFocus = (row: DenseRow) =>
+    row.item.key === focusKey || row.seances.some((s) => s.key === focusKey);
+  if (sliced.some(isFocus)) return sliced;
+  const extra = rows.find(isFocus);
+  if (!extra) return sliced;
+  return [extra, ...sliced.filter((r) => r.groupKey !== extra.groupKey)].slice(
+    0,
+    Math.max(cap, 1),
+  );
+}
+
 export function capLiveRows(rows: DenseRow[]): DenseRow[] {
   return rows.slice(0, LIVE_DISPLAY_CAP);
 }

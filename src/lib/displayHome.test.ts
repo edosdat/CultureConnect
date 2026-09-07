@@ -8,6 +8,7 @@ import {
   findDayItemByKey,
   homeSectionsVisible,
   musiqueRows,
+  pinFocusedPackRow,
   resolveHomeCardOpen,
   resolveSearchSubmit,
   SEARCH_EXAMPLES,
@@ -488,5 +489,48 @@ describe('search example chips', () => {
       const moods = resolveSearchSubmit(ex.query, NOW).phraseTags?.moods ?? [];
       for (const m of moods) assert.equal(isTasteMood(m), true);
     }
+  });
+});
+
+describe('pinFocusedPackRow', () => {
+  function row(key: string) {
+    const it = item({ key, cat: 'theatre_danse', form: 'theatre', title: key });
+    return {
+      item: it,
+      seances: [it],
+      groupKey: key,
+      extraSlots: 0,
+      salleCount: 1,
+      earliestHeure: '20:00',
+      citiesSummary: 'Toulouse',
+      isFilmGroup: false,
+    };
+  }
+
+  it('pins a deep-linked show that sits past the mobile first-paint cap', () => {
+    const rows = [row('a'), row('b'), row('c'), row('p:P1848')];
+    const visible = pinFocusedPackRow(rows, 3, 'p:P1848');
+    assert.equal(visible.length, 3);
+    assert.equal(visible[0]!.item.key, 'p:P1848');
+    assert.equal(
+      visible.some((r) => r.item.key === 'p:P1848'),
+      true,
+    );
+  });
+
+  it('leaves the slice unchanged when the focus is already visible or missing', () => {
+    const rows = [row('a'), row('b'), row('c')];
+    assert.deepEqual(
+      pinFocusedPackRow(rows, 3, 'a').map((r) => r.item.key),
+      ['a', 'b', 'c'],
+    );
+    assert.deepEqual(
+      pinFocusedPackRow(rows, 3, 'p:missing').map((r) => r.item.key),
+      ['a', 'b', 'c'],
+    );
+    assert.deepEqual(
+      pinFocusedPackRow(rows, 3, null).map((r) => r.item.key),
+      ['a', 'b', 'c'],
+    );
   });
 });
