@@ -60,6 +60,8 @@ function slimEvenement(
     url_source: ev.url_source || '',
     description_courte:
       clipListPitch(ev.description_courte) || clipListPitch(ev.description_longue),
+    /** Keep the long field so fiches can prefer it over courte. */
+    description_longue: ev.description_longue || '',
     statut: ev.statut,
     genre: ev.genre,
     image_url: ev.image_url || '',
@@ -102,8 +104,9 @@ function slimProgramme(p: ProgrammeItem): ProgrammeItem {
 /**
  * First-paint card: id, titre, heure, lieu, cat, image, film_id
  * (+ prix / genre / type so SeanceCard + densify + Pour toi still work).
- * Keeps a 1–2 sentence pitch (description_courte / description_item).
- * Drops description_longue, nested programme[], source blobs.
+ * Keeps a 1–2 sentence pitch (description_courte / description_item)
+ * plus unclipped description_longue for fiches.
+ * Drops nested programme[] and source blobs.
  */
 export function slimDayItem(item: DayItem): DayItem {
   if (item.kind === 'programme') {
