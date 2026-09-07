@@ -1880,7 +1880,10 @@ export default function CultureConnectApp({
           data-top3-count={recoReady ? top3Cards.length : undefined}
         >
           <h2 className="w-full font-display text-xl leading-tight text-culture-ink sm:text-2xl">
-            {top3Heading(recoReady ? top3Cards.length : 3)}
+            {top3Heading(
+              recoReady ? top3Cards.length : 3,
+              sessionStatus === 'authenticated',
+            )}
           </h2>
           {sessionStatus === 'unauthenticated' ? (
             <button

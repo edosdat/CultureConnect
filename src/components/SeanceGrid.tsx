@@ -33,7 +33,7 @@ type Props = {
   /** Top 3: only real reco cards (1–3). Empty slots are omitted, not placeholders. */
   fixedSlots?: boolean;
   variant?: SeanceCardVariant;
-  /** Reco why-line (Ton top 3 only). Catalogue grids omit this. */
+  /** Reco why-line (Top 3 only). Catalogue grids omit this. */
   reasonFor?: (item: DayItem) => string | null;
   /** Tab-only GPS origin. Sort + « 2,3 km » when venue coords exist. */
   origin?: GeoPos | null;

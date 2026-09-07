@@ -543,11 +543,19 @@ describe('top 3 adaptive layout', () => {
     assert.ok(top3GridClass(3).includes('items-start'));
   });
 
-  it('H2 says Ton top N du moment for 1 / 2 / 3 cards', () => {
-    assert.equal(top3Heading(1), 'Ton top 1 du moment');
-    assert.equal(top3Heading(2), 'Ton top 2 du moment');
-    assert.equal(top3Heading(3), 'Ton top 3 du moment');
-    assert.equal(top3Heading(0), 'Ton top 3 du moment');
+  it('H2 says Le top N du moment for guests (1 / 2 / 3 cards)', () => {
+    assert.equal(top3Heading(1), 'Le top 1 du moment');
+    assert.equal(top3Heading(2), 'Le top 2 du moment');
+    assert.equal(top3Heading(3), 'Le top 3 du moment');
+    assert.equal(top3Heading(0), 'Le top 3 du moment');
+    assert.equal(top3Heading(3, false), 'Le top 3 du moment');
+  });
+
+  it('H2 says Mon top N du moment when signed in (1 / 2 / 3 cards)', () => {
+    assert.equal(top3Heading(1, true), 'Mon top 1 du moment');
+    assert.equal(top3Heading(2, true), 'Mon top 2 du moment');
+    assert.equal(top3Heading(3, true), 'Mon top 3 du moment');
+    assert.equal(top3Heading(0, true), 'Mon top 3 du moment');
   });
 });
 
