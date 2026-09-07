@@ -114,12 +114,6 @@ export function cinemaOptionLabel(group: CinemaVenueGroup): string {
   return [group.label, group.kmLabel].filter(Boolean).join(' · ');
 }
 
-/** Dropdown: « 02/09 · 13:20 » for the selected cinema only. */
-export function horaireOptionLabel(rel: DayItem): string {
-  const date = formatDateShort(seanceDateIso(rel) || rel.dayIso);
-  return [date, seanceHeure(rel)].filter(Boolean).join(' · ');
-}
-
 export function seancePrixLabel(item: DayItem): string | null {
   if (item.kind === 'programme') {
     return knownPrixLabel(item.programme.prix_item, item.evenement);
@@ -132,6 +126,17 @@ export function seanceVersionLabel(item: DayItem): string | null {
     return filmVersionLabel(item.programme.langue, item.evenement?.langue);
   }
   return filmVersionLabel(item.evenement.langue);
+}
+
+/** Time + catalogue version: « 21:15 VOST ». Empty langue → time only. */
+export function seanceHeureLabel(rel: DayItem): string {
+  return [seanceHeure(rel), seanceVersionLabel(rel)].filter(Boolean).join(' ');
+}
+
+/** Dropdown: « 02/09 · 10:30 VOST » for the selected cinema only. */
+export function horaireOptionLabel(rel: DayItem): string {
+  const date = formatDateShort(seanceDateIso(rel) || rel.dayIso);
+  return [date, seanceHeureLabel(rel)].filter(Boolean).join(' · ');
 }
 
 /** Compact « 8,20€ · VOSTFR » — omit either part when the CSV is empty. */
