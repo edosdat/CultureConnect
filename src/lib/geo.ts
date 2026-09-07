@@ -60,3 +60,52 @@ export function itemVenueCoords(item: {
 }): GeoPos | null {
   return parseLieuCoords(item.lieu);
 }
+
+/** East/north km from `origin` — planar, Toulouse-scale only. */
+function toLocalKm(point: GeoPos, origin: GeoPos): { x: number; y: number } {
+  const latRad = degToRad((point.lat + origin.lat) / 2);
+  return {
+    x: (point.lng - origin.lng) * 111.32 * Math.cos(latRad),
+    y: (point.lat - origin.lat) * 111.32,
+  };
+}
+
+/**
+ * Project `point` onto segment a→b.
+ * `t` is unclamped (0–1 = on the segment). `distKm` uses the clamped foot.
+ */
+export function projectOnSegment(
+  point: GeoPos,
+  a: GeoPos,
+  b: GeoPos,
+): { t: number; distKm: number } {
+  const p = toLocalKm(point, a);
+  const q = toLocalKm(b, a);
+  const len2 = q.x * q.x + q.y * q.y;
+  if (len2 < 1e-12) {
+    return { t: 0, distKm: haversineKm(point, a) };
+  }
+  const t = (p.x * q.x + p.y * q.y) / len2;
+  const tClamped = Math.max(0, Math.min(1, t));
+  const foot: GeoPos = {
+    lat: a.lat + tClamped * (b.lat - a.lat),
+    lng: a.lng + tClamped * (b.lng - a.lng),
+  };
+  return { t, distKm: haversineKm(point, foot) };
+}
+
+/**
+ * Venue lies on the user→cinema walking corridor (projection on the segment
+ * and within `halfWidthKm` of that segment). Degenerate when user ≈ cinema.
+ */
+export function isOnUserCinemaCorridor(
+  venue: GeoPos,
+  user: GeoPos,
+  cinema: GeoPos,
+  halfWidthKm: number,
+): boolean {
+  if (haversineKm(user, cinema) < 1e-3) return false;
+  const { t, distKm } = projectOnSegment(venue, user, cinema);
+  if (t < 0 || t > 1) return false;
+  return distKm <= halfWidthKm;
+}

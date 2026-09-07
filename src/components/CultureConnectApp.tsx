@@ -1374,12 +1374,7 @@ export default function CultureConnectApp({
         setRelatedFilmItems(
           filterSeancesForActiveFilters(data.relatedItems ?? [], activeFilter),
         );
-        setAussiCeSoirItems(
-          filterItemsByCommune(
-            data.aussiCeSoir ?? [],
-            selectedCommune || 'Toulouse',
-          ),
-        );
+        setAussiCeSoirItems(data.aussiCeSoir ?? []);
         if (!slim) trackItem(data.item, 'open_card');
       } catch {
         /* slim already shown + tracked; keep fiche as-is */

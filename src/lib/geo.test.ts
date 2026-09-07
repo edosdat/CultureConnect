@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   formatKmLabel,
   haversineKm,
+  isOnUserCinemaCorridor,
   parseLieuCoords,
   TOULOUSE_ORIGIN,
 } from './geo';
@@ -117,6 +118,15 @@ describe('geo crow-flies', () => {
     const labege = { lat: 43.5486, lng: 1.5069 };
     const km = haversineKm(CAPITOLE, labege);
     assert.ok(km > 6 && km < 10, `got ${km}`);
+  });
+
+  it('detects a venue on the user→cinema segment', () => {
+    const user = { lat: 43.6045, lng: 1.41 };
+    const cinema = { lat: 43.6045, lng: 1.4472 };
+    const onPath = { lat: 43.6045, lng: 1.43 };
+    const offPath = { lat: 43.62, lng: 1.43 };
+    assert.equal(isOnUserCinemaCorridor(onPath, user, cinema, 0.6), true);
+    assert.equal(isOnUserCinemaCorridor(offPath, user, cinema, 0.6), false);
   });
 
   it('skips km label when venue has no lat/lng', () => {

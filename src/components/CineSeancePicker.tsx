@@ -128,10 +128,12 @@ export function CineFilmSeances({
   items,
   origin = null,
   onReserve,
+  onActiveChange,
 }: {
   items: DayItem[];
   origin?: GeoPos | null;
   onReserve?: (item: DayItem) => void;
+  onActiveChange?: (item: DayItem) => void;
 }) {
   const [pickedKey, setPickedKey] = useState<string | null>(null);
   const itemKeys = items.map((s) => s.key).join('|');
@@ -142,6 +144,9 @@ export function CineFilmSeances({
     items.find((s) => s.key === pickedKey) ??
     defaultCineSeance(items, origin) ??
     items[0];
+  useEffect(() => {
+    if (active) onActiveChange?.(active);
+  }, [active, onActiveChange]);
   if (!active) return null;
   return (
     <CineSeancePicker
