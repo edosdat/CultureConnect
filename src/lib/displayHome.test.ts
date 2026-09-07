@@ -14,6 +14,7 @@ import {
   resolveSearchSubmit,
   SEARCH_EXAMPLES,
   searchExampleIsVivant,
+  searchExamplesVisible,
   shouldInvalidateProfileRecoCache,
   theatreRows,
   visibleTop3Items,
@@ -550,5 +551,56 @@ describe('search example chips', () => {
       const moods = resolveSearchSubmit(ex.query, NOW).phraseTags?.moods ?? [];
       for (const m of moods) assert.equal(isTasteMood(m), true);
     }
+  });
+
+  it('shows examples on boot / clear-all / date-only, hides on QUOI or query', () => {
+    const empty = {
+      selectedCategories: [] as string[],
+      query: '',
+      committedTitle: '',
+    };
+    assert.equal(searchExamplesVisible(empty), true);
+    assert.equal(
+      searchExamplesVisible({ ...empty, query: '   ' }),
+      true,
+    );
+    for (const scope of [
+      'tous',
+      'aujourdhui',
+      'soir',
+      'weekend',
+      'semaine',
+      'date',
+    ] as const) {
+      assert.equal(
+        searchExamplesVisible({ ...empty, timeScope: scope }),
+        true,
+        `QUAND ${scope} must not hide examples`,
+      );
+    }
+    assert.equal(
+      searchExamplesVisible({ ...empty, selectedCategories: ['cinema'] }),
+      false,
+    );
+    assert.equal(
+      searchExamplesVisible({ ...empty, selectedCategories: ['musique'] }),
+      false,
+    );
+    assert.equal(
+      searchExamplesVisible({
+        selectedCategories: ['cinema'],
+        query: '',
+        timeScope: 'weekend',
+      }),
+      false,
+    );
+    assert.equal(
+      searchExamplesVisible({ ...empty, query: 'envie de rire' }),
+      false,
+    );
+    assert.equal(
+      searchExamplesVisible({ ...empty, committedTitle: 'concert' }),
+      false,
+    );
   });
 });

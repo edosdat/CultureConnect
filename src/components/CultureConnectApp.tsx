@@ -29,6 +29,7 @@ import {
   musiqueRows,
   resolveHomeCardOpen,
   resolveSearchSubmit,
+  searchExamplesVisible,
   shouldInvalidateProfileRecoCache,
   shouldShowTop3Section,
   top3Heading,
@@ -1719,7 +1720,14 @@ export default function CultureConnectApp({
           onSubmit={handleSearchSubmit}
         />
       </div>
-      <SearchExamples onPick={handleExamplePick} activeQuery={query} />
+      {searchExamplesVisible({
+        selectedCategories,
+        query,
+        committedTitle,
+        timeScope,
+      }) ? (
+        <SearchExamples onPick={handleExamplePick} activeQuery={query} />
+      ) : null}
 
       <div className="space-y-2.5 sm:space-y-4">
         <div className="cc-axes-row">
