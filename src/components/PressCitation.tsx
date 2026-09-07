@@ -5,8 +5,8 @@ type Props = {
 };
 
 /**
- * One short press quote + source + optional Télérama badge.
- * Renders nothing when the catalogue has no citation.
+ * Shared living-arts press quote (theatre, concert, artiste).
+ * Renders nothing when the catalogue has no citation. Never used on cinema.
  */
 export default function PressCitation({ citation }: Props) {
   if (!citation) return null;

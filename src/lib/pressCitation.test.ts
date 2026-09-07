@@ -1,12 +1,13 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
+import type { Artiste, DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 import {
+  artistPressCitation,
   cataloguePressRating,
+  fichePressCitation,
   pickPressCatalogueFields,
   pressCitationOf,
   pressItemForFiche,
-  theatrePressCitation,
 } from './pressCitation';
 import { detailDayItem } from './slim';
 
@@ -97,6 +98,13 @@ function item(opts: {
   };
 }
 
+const PRESS = {
+  citation: 'Une pièce d’une rare intensité.',
+  source: 'Télérama',
+  source_url: 'https://www.telerama.fr/scenes/exemple',
+  note_presse: 'TTTT',
+};
+
 describe('cataloguePressRating', () => {
   it('keeps Télérama T→TTTT from catalogue, never invents from scores', () => {
     assert.equal(cataloguePressRating('TTTT'), 'TTTT');
@@ -109,22 +117,17 @@ describe('cataloguePressRating', () => {
 });
 
 describe('pressCitationOf', () => {
-  it('hides when citation fields are empty', () => {
+  it('hides when citation is empty', () => {
     const row = item({ key: 'th-empty', cat: 'theatre_danse' });
     assert.equal(pressCitationOf(row), null);
-    assert.equal(theatrePressCitation(row), null);
+    assert.equal(fichePressCitation(row), null);
   });
 
-  it('reads citation + media + https url + optional Télérama note', () => {
+  it('reads official citation|source|source_url|note_presse', () => {
     const row = item({
       key: 'th-telerama',
       cat: 'theatre_danse',
-      evenement: {
-        citation_presse: 'Une pièce d’une rare intensité.',
-        presse_media: 'Télérama',
-        presse_url: 'https://www.telerama.fr/scenes/exemple',
-        presse_note: 'TTTT',
-      },
+      evenement: PRESS,
     });
     assert.deepEqual(pressCitationOf(row), {
       quote: '« Une pièce d’une rare intensité. »',
@@ -134,15 +137,40 @@ describe('pressCitationOf', () => {
     });
   });
 
+  it('uses score_presse as badge only when it is already T–TTTT', () => {
+    const ok = item({
+      key: 'th-score-ok',
+      cat: 'theatre_danse',
+      evenement: {
+        citation: 'Vif.',
+        source: 'Télérama',
+        source_url: 'https://www.telerama.fr/v',
+        score_presse: 'TTT',
+      },
+    });
+    const no = item({
+      key: 'th-score-no',
+      cat: 'theatre_danse',
+      evenement: {
+        citation: 'Vif.',
+        source: 'Télérama',
+        source_url: 'https://www.telerama.fr/v2',
+        score_presse: '4/5',
+      },
+    });
+    assert.equal(pressCitationOf(ok)?.rating, 'TTT');
+    assert.equal(pressCitationOf(no)?.rating, '');
+  });
+
   it('wraps French guillemets and clips to two sentences', () => {
     const row = item({
       key: 'th-long',
       cat: 'theatre_danse',
       evenement: {
-        citation_presse:
+        citation:
           'Premier souffle. Deuxième souffle. Troisième souffle qu’on ne doit pas voir.',
-        presse_media: 'Sceneweb',
-        presse_url: 'https://sceneweb.fr/article',
+        source: 'Sceneweb',
+        source_url: 'https://sceneweb.fr/article',
       },
     });
     const c = pressCitationOf(row);
@@ -156,10 +184,10 @@ describe('pressCitationOf', () => {
       key: 'th-http',
       cat: 'theatre_danse',
       evenement: {
-        citation_presse: 'Vif et juste.',
-        presse_source: 'La Dépêche',
-        presse_url: 'http://ladepeche.fr/interdit',
-        presse_note: '4',
+        citation: 'Vif et juste.',
+        source: 'La Dépêche',
+        source_url: 'http://ladepeche.fr/interdit',
+        note_presse: '4',
       },
     });
     assert.deepEqual(pressCitationOf(row), {
@@ -175,15 +203,15 @@ describe('pressCitationOf', () => {
       key: 'th-multi',
       cat: 'theatre_danse',
       evenement: {
-        citation_presse: 'Court régional.',
-        presse_media: 'La Dépêche',
-        presse_url: 'https://www.ladepeche.fr/a',
-        citation_presse_2: 'Un peu plus long côté Sceneweb.',
-        presse_media_2: 'Sceneweb',
-        presse_url_2: 'https://www.sceneweb.fr/b',
-        citation_presse_3: 'Regard Télérama.',
-        presse_media_3: 'Télérama',
-        presse_url_3: 'https://www.telerama.fr/c',
+        citation: 'Court régional.',
+        source: 'La Dépêche',
+        source_url: 'https://www.ladepeche.fr/a',
+        citation_2: 'Un peu plus long côté Sceneweb.',
+        source_2: 'Sceneweb',
+        source_url_2: 'https://www.sceneweb.fr/b',
+        citation_3: 'Regard Télérama.',
+        source_3: 'Télérama',
+        source_url_3: 'https://www.telerama.fr/c',
       },
     });
     const c = pressCitationOf(row);
@@ -192,129 +220,7 @@ describe('pressCitationOf', () => {
     assert.equal(c!.quote, '« Regard Télérama. »');
   });
 
-  it('otherwise picks the shortest quote of at most two sentences', () => {
-    const row = item({
-      key: 'th-short',
-      cat: 'theatre_danse',
-      evenement: {
-        citation_presse: 'Très long avis d’un blog local sans nom connu ici vraiment.',
-        presse_media: 'Blog local',
-        presse_url: 'https://example.org/long',
-        citation_presse_2: 'Bref.',
-        presse_media_2: 'Autre blog',
-        presse_url_2: 'https://example.org/short',
-      },
-    });
-    const c = pressCitationOf(row);
-    assert.ok(c);
-    assert.equal(c!.quote, '« Bref. »');
-  });
-
-  it('parses packed citation|media|url|note when other cells are empty', () => {
-    const row = item({
-      key: 'th-pack',
-      cat: 'theatre_danse',
-      evenement: {
-        citation_presse:
-          'Élégant et dru.|La Terrasse|https://www.journal-laterrasse.fr/x|TT',
-      },
-    });
-    assert.deepEqual(pressCitationOf(row), {
-      quote: '« Élégant et dru. »',
-      source: 'La Terrasse',
-      url: 'https://www.journal-laterrasse.fr/x',
-      rating: 'TT',
-    });
-  });
-});
-
-describe('theatrePressCitation', () => {
-  it('stays off cinema and music fiches even when press fields exist', () => {
-    const press = {
-      citation_presse: 'Ne doit pas s’afficher ici.',
-      presse_media: 'Télérama',
-      presse_url: 'https://www.telerama.fr/cine',
-      presse_note: 'TTT',
-    };
-    const cine = item({
-      key: 'cine-1',
-      cat: 'cinema',
-      filmId: 'F0001',
-      evenement: press,
-    });
-    const music = item({
-      key: 'mu-1',
-      cat: 'musique',
-      form: 'concert',
-      evenement: press,
-    });
-    const theatre = item({
-      key: 'th-1',
-      cat: 'theatre_danse',
-      evenement: press,
-    });
-    assert.equal(theatrePressCitation(cine), null);
-    assert.equal(theatrePressCitation(music), null);
-    assert.ok(theatrePressCitation(theatre));
-  });
-
-  it('reuses detail press cells for another séance of the same event', () => {
-    const slim = item({ key: 'th-a', cat: 'theatre_danse' });
-    const detail = item({
-      key: 'th-b',
-      cat: 'theatre_danse',
-      evenement: {
-        event_id: slim.evenement!.event_id,
-        citation_presse: 'Même spectacle.',
-        presse_media: 'Télérama',
-        presse_url: 'https://www.telerama.fr/same',
-      },
-    });
-    const merged = pressItemForFiche(slim, detail);
-    assert.equal(theatrePressCitation(slim), null);
-    assert.equal(theatrePressCitation(merged)?.quote, '« Même spectacle. »');
-  });
-});
-
-describe('pickPressCatalogueFields', () => {
-  it('keeps only presse / citation cells for the detail slim', () => {
-    assert.deepEqual(
-      pickPressCatalogueFields({
-        citation_presse: '  Oui.  ',
-        presse_url: 'https://www.telerama.fr/z',
-        notes: 'scrape debug',
-        url_source: 'https://lieu.fr',
-        citation_presse_2: 'Autre.',
-      }),
-      {
-        citation_presse: 'Oui.',
-        presse_url: 'https://www.telerama.fr/z',
-        citation_presse_2: 'Autre.',
-      },
-    );
-  });
-
-  it('detailDayItem keeps press cells so the fiche can show them', () => {
-    const raw = item({
-      key: 'th-slim',
-      cat: 'theatre_danse',
-      evenement: {
-        citation_presse: 'Gardé après slim.',
-        presse_media: 'Télérama',
-        presse_url: 'https://www.telerama.fr/slim',
-        presse_note: 'T',
-      },
-    });
-    const slim = detailDayItem(raw);
-    assert.deepEqual(theatrePressCitation(slim), {
-      quote: '« Gardé après slim. »',
-      source: 'Télérama',
-      url: 'https://www.telerama.fr/slim',
-      rating: 'T',
-    });
-  });
-
-  it('never treats scrape notes as a press citation', () => {
+  it('never treats scrape notes or source_extrait as a press citation', () => {
     const row = item({
       key: 'th-notes',
       cat: 'theatre_danse',
@@ -326,5 +232,123 @@ describe('pickPressCatalogueFields', () => {
       },
     });
     assert.equal(pressCitationOf(row), null);
+  });
+});
+
+describe('fichePressCitation', () => {
+  it('shows theatre and concert, never cinema', () => {
+    const cine = item({
+      key: 'cine-1',
+      cat: 'cinema',
+      filmId: 'F0001',
+      evenement: PRESS,
+    });
+    const music = item({
+      key: 'mu-1',
+      cat: 'musique',
+      form: 'concert',
+      evenement: PRESS,
+    });
+    const theatre = item({
+      key: 'th-1',
+      cat: 'theatre_danse',
+      evenement: PRESS,
+    });
+    const expo = item({
+      key: 'ex-1',
+      cat: 'expo_patrimoine',
+      evenement: PRESS,
+    });
+    assert.equal(fichePressCitation(cine), null);
+    assert.ok(fichePressCitation(music));
+    assert.ok(fichePressCitation(theatre));
+    assert.equal(fichePressCitation(expo), null);
+  });
+
+  it('reuses detail press cells for another séance of the same event', () => {
+    const slim = item({ key: 'th-a', cat: 'theatre_danse' });
+    const detail = item({
+      key: 'th-b',
+      cat: 'theatre_danse',
+      evenement: {
+        event_id: slim.evenement!.event_id,
+        ...PRESS,
+        citation: 'Même spectacle.',
+      },
+    });
+    const merged = pressItemForFiche(slim, detail);
+    assert.equal(fichePressCitation(slim), null);
+    assert.equal(fichePressCitation(merged)?.quote, '« Même spectacle. »');
+  });
+});
+
+describe('artistPressCitation', () => {
+  it('hides when the artist has no citation, shows official fields', () => {
+    const empty: Artiste = {
+      artiste_id: 'A1',
+      nom: 'Solo',
+      nom_normalise: 'solo',
+      genre_principal: '',
+      genres_secondaires: '',
+      url_photo: '',
+      notes: '',
+    };
+    const filled: Artiste = {
+      ...empty,
+      citation: 'Une voix qui porte loin.',
+      source: 'La Terrasse',
+      source_url: 'https://www.journal-laterrasse.fr/a',
+      note_presse: 'TT',
+    };
+    assert.equal(artistPressCitation(empty), null);
+    assert.deepEqual(artistPressCitation(filled), {
+      quote: '« Une voix qui porte loin. »',
+      source: 'La Terrasse',
+      url: 'https://www.journal-laterrasse.fr/a',
+      rating: 'TT',
+    });
+  });
+});
+
+describe('pickPressCatalogueFields', () => {
+  it('keeps official press cells and ignores scrape notes', () => {
+    assert.deepEqual(
+      pickPressCatalogueFields({
+        citation: '  Oui.  ',
+        source: 'Télérama',
+        source_url: 'https://www.telerama.fr/z',
+        note_presse: 'T',
+        notes: 'scrape debug',
+        url_source: 'https://lieu.fr',
+        source_extrait: 'nope',
+        mood_confiance: 'haute',
+      }),
+      {
+        citation: 'Oui.',
+        source: 'Télérama',
+        source_url: 'https://www.telerama.fr/z',
+        note_presse: 'T',
+      },
+    );
+  });
+
+  it('detailDayItem keeps official press cells so the fiche can show them', () => {
+    const raw = item({
+      key: 'th-slim',
+      cat: 'theatre_danse',
+      evenement: {
+        citation: 'Gardé après slim.',
+        source: 'Télérama',
+        source_url: 'https://www.telerama.fr/slim',
+        note_presse: 'T',
+      },
+    });
+    const slim = detailDayItem(raw);
+    assert.deepEqual(fichePressCitation(slim), {
+      quote: '« Gardé après slim. »',
+      source: 'Télérama',
+      url: 'https://www.telerama.fr/slim',
+      rating: 'T',
+    });
   });
 });

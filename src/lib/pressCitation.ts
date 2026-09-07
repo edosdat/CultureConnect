@@ -1,10 +1,11 @@
 /**
- * Theatre fiche press citation — catalogue fields only.
- * Hide the whole block when no quote exists. Never invent a rating.
+ * Press citation for living-arts fiches (theatre, concert, artiste).
+ * Catalogue fields only. Hide the whole block when no quote exists.
+ * Never invent a rating. Never show on cinema.
  */
 
-import { isTheatreDayItem } from './nouveautesCine';
-import type { DayItem, Evenement, ProgrammeItem } from './types';
+import { isCinemaDayItem, isMusiqueDayItem, isTheatreDayItem } from './nouveautesCine';
+import type { Artiste, DayItem, Evenement, ProgrammeItem } from './types';
 
 export type PressCitation = {
   quote: string;
@@ -14,26 +15,37 @@ export type PressCitation = {
 };
 
 const QUOTE_KEYS = [
+  'citation',
   'citation_presse',
   'presse_citation',
-  'citation',
 ] as const;
 
 const MEDIA_KEYS = [
+  'source',
   'presse_media',
   'media_presse',
   'presse_source',
 ] as const;
 
-const URL_KEYS = ['presse_url', 'url_presse', 'citation_url'] as const;
+const URL_KEYS = [
+  'source_url',
+  'presse_url',
+  'url_presse',
+  'citation_url',
+] as const;
 
-const NOTE_KEYS = ['presse_note', 'note_presse', 'note_telerama'] as const;
+const NOTE_KEYS = [
+  'note_presse',
+  'score_presse',
+  'presse_note',
+  'note_telerama',
+] as const;
 
 const INDEXED_RE =
-  /^(citation_presse|presse_citation|citation|presse_media|media_presse|presse_source|presse_url|url_presse|citation_url|presse_note|note_presse|note_telerama)_(\d+)$/;
+  /^(citation|citation_presse|presse_citation|source|source_url|note_presse|score_presse|confiance|presse_media|media_presse|presse_source|presse_url|url_presse|citation_url|presse_note|note_telerama)_(\d+)$/;
 
 const PRESS_KEY_RE =
-  /^(citation_presse|presse_citation|citation|presse_media|media_presse|presse_source|presse_url|url_presse|citation_url|presse_note|note_presse|note_telerama)(?:_\d+)?$/;
+  /^(citation|source|source_url|note_presse|score_presse|confiance|citation_presse|presse_citation|presse_media|media_presse|presse_source|presse_url|url_presse|citation_url|presse_note|note_telerama)(?:_\d+)?$/;
 
 /** Known outlets for ranking + host → label. Never invent ratings from these. */
 const SOURCE_ALIASES: { test: RegExp; label: string; rank: number }[] = [
@@ -55,8 +67,13 @@ function str(value: unknown): string {
 }
 
 const EMPTY_PRESS_FIELDS: Record<string, string> = {
-  citation_presse: '',
   citation: '',
+  source: '',
+  source_url: '',
+  note_presse: '',
+  score_presse: '',
+  confiance: '',
+  citation_presse: '',
   presse_citation: '',
   presse_media: '',
   media_presse: '',
@@ -65,7 +82,6 @@ const EMPTY_PRESS_FIELDS: Record<string, string> = {
   url_presse: '',
   citation_url: '',
   presse_note: '',
-  note_presse: '',
   note_telerama: '',
 };
 
@@ -137,9 +153,17 @@ function parseJsonCitations(raw: string): PressCitation[] {
             rec.quote ??
             rec.texte,
         ),
-        source: str(rec.media ?? rec.source ?? rec.presse_media ?? rec.media_presse),
-        url: str(rec.url ?? rec.presse_url ?? rec.url_presse ?? rec.lien),
-        rating: str(rec.note ?? rec.presse_note ?? rec.note_presse ?? rec.rating),
+        source: str(rec.source ?? rec.media ?? rec.presse_media ?? rec.media_presse),
+        url: str(
+          rec.source_url ?? rec.url ?? rec.presse_url ?? rec.url_presse ?? rec.lien,
+        ),
+        rating: str(
+          rec.note_presse ??
+            rec.score_presse ??
+            rec.note ??
+            rec.presse_note ??
+            rec.rating,
+        ),
       });
       if (built) out.push(built);
     }
@@ -362,8 +386,24 @@ export function pressItemForFiche(
   return active;
 }
 
-/** Theatre fiche only. Cinema / music / others → null. */
-export function theatrePressCitation(item: DayItem): PressCitation | null {
-  if (!isTheatreDayItem(item)) return null;
+export function pressCitationFromRow(
+  row: Record<string, unknown> | null | undefined,
+): PressCitation | null {
+  return pickBest(collectFromRow(row));
+}
+
+export function artistPressCitation(
+  artiste: Artiste | null | undefined,
+): PressCitation | null {
+  if (!artiste) return null;
+  return pressCitationFromRow(artiste as unknown as Record<string, unknown>);
+}
+
+/**
+ * Theatre + concert / musique fiches. Cinema (and expo/enfants) → null.
+ */
+export function fichePressCitation(item: DayItem): PressCitation | null {
+  if (isCinemaDayItem(item)) return null;
+  if (!isTheatreDayItem(item) && !isMusiqueDayItem(item)) return null;
   return pressCitationOf(item);
 }

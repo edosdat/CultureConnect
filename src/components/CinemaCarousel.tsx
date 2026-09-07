@@ -33,7 +33,7 @@ import ShareButton from './ShareButton';
 import VivantComplementLinks from './VivantComplementLinks';
 import PressCitation from './PressCitation';
 import CineSeancePicker from './CineSeancePicker';
-import { pressItemForFiche, theatrePressCitation } from '@/lib/pressCitation';
+import { fichePressCitation, pressItemForFiche } from '@/lib/pressCitation';
 
 export type CinemaCarouselPack = 'cine' | 'theatre' | 'musique';
 
@@ -556,9 +556,9 @@ export default function CinemaCarousel({
               {itemPitch(item)}
             </p>
           ) : null}
-          {pack === 'theatre' ? (
+          {pack === 'theatre' || pack === 'musique' ? (
             <PressCitation
-              citation={theatrePressCitation(
+              citation={fichePressCitation(
                 pressItemForFiche(active, detailItem),
               )}
             />

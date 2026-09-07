@@ -16,8 +16,13 @@ export type Lieu = {
 
 /**
  * Fill-empty press citation (event / programme / artiste).
+<<<<<<< HEAD
  * Official: citation | source | source_url | note_presse | score_presse | confiance.
  * Hide UI when `citation` is empty. `confiance` ≠ mood_confiance.
+=======
+ * Official columns: citation | source | source_url | note_presse | score_presse | confiance.
+ * Aliases kept so older lots still resolve. Hide UI when `citation` is empty.
+>>>>>>> 46e14aa (feat(press): one citation component for theatre, concert, artist)
  */
 export type PressCatalogueFields = {
   citation?: string;

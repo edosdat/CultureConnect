@@ -21,6 +21,17 @@ Champs historiques + :
 ## programme.csv (grain unitaire)
 + description_item, image_url, billetterie_url, duree_min, public_cible, scraped_at
 
+## Citation presse (fill-empty, optionnel)
+Colonnes officielles sur **evenements**, **programme** et **artistes** (vides tant que Contexte n’a pas rempli) :
+- citation — une citation courte (1–2 phrases)
+- source — média nommé (Télérama, Sceneweb, La Terrasse…)
+- source_url — HTTPS article
+- note_presse — badge Télérama T→TTTT si présent (ne pas inventer)
+- score_presse — score catalogue si présent (ne pas convertir en T)
+- confiance — haute | moyenne | basse (non affiché)
+
+UI : un seul bloc, hide si `citation` vide. Pas de fiche cinéma.
+
 ## artistes.csv
 + bio_courte, url_site, url_reseaux, scraped_at
 

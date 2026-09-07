@@ -38,7 +38,7 @@ import {
   reservePickOf,
 } from '@/lib/reserve';
 import { isCinemaDayItem } from '@/lib/nouveautesCine';
-import { theatrePressCitation } from '@/lib/pressCitation';
+import { fichePressCitation } from '@/lib/pressCitation';
 import type { GeoPos } from '@/lib/nearMe';
 import VivantComplementLinks from './VivantComplementLinks';
 import PressCitation from './PressCitation';
@@ -291,8 +291,8 @@ function sourceUrlOf(item: DayItem): string {
   return page;
 }
 
-function TheatrePressBlock({ item }: { item: DayItem }) {
-  return <PressCitation citation={theatrePressCitation(item)} />;
+function FichePressBlock({ item }: { item: DayItem }) {
+  return <PressCitation citation={fichePressCitation(item)} />;
 }
 
 function pitchOf(item: DayItem): string {
@@ -653,7 +653,7 @@ export default function EventDetail({
               </section>
             )}
 
-            <TheatrePressBlock item={item} />
+            <FichePressBlock item={item} />
 
             <div className="flex flex-wrap items-center gap-2">
               {!hasFilmSeances && (
@@ -893,7 +893,7 @@ export default function EventDetail({
             </section>
           )}
 
-          <TheatrePressBlock item={item} />
+          <FichePressBlock item={item} />
 
           <div className="flex flex-wrap items-center gap-2">
             <ReserveControl
