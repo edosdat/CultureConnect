@@ -7,6 +7,7 @@ import type {
   ProgrammeItem,
 } from './types';
 import type { TimeScopeId } from './timeScope';
+import { pickPressCatalogueFields } from './pressCitation';
 
 /** Venue fields SeanceCard / CityFilter / venue chip need. */
 export function slimLieu(lieu: Lieu | null | undefined): Lieu | null {
@@ -178,6 +179,7 @@ export function detailDayItem(item: DayItem): DayItem {
         image_url: p.image_url || '',
         description_item: p.description_item || '',
         billetterie_url: p.billetterie_url || '',
+        ...pickPressCatalogueFields(p as unknown as Record<string, unknown>),
       },
       evenement: ev
         ? {
@@ -202,6 +204,7 @@ export function detailDayItem(item: DayItem): DayItem {
             billetterie_url: ev.billetterie_url || '',
             casting: ev.casting || '',
             tags: ev.tags || '',
+            ...pickPressCatalogueFields(ev as unknown as Record<string, unknown>),
           }
         : null,
       lieu: detailLieu(item.lieu),
@@ -234,6 +237,7 @@ export function detailDayItem(item: DayItem): DayItem {
       billetterie_url: ev.billetterie_url || '',
       casting: ev.casting || '',
       tags: ev.tags || '',
+      ...pickPressCatalogueFields(ev as unknown as Record<string, unknown>),
     },
     lieu: detailLieu(item.lieu),
   };
