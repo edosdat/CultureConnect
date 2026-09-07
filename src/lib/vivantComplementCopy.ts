@@ -1,5 +1,6 @@
 /**
- * Same-day overlap + complement copy for cinema hero / fiche links.
+ * Interval helpers + suggestion labels for cinema hero / fiche links.
+ * Same civil evening → « ce soir »; other days → date chip.
  * Kept free of reco.ts so the cinema card can import it on the client.
  */
 
@@ -113,16 +114,48 @@ export function weekdayLongFr(iso: string): string {
   return WEEKDAYS_FR[new Date(Date.UTC(y, m - 1, d)).getUTCDay()] ?? '';
 }
 
+const WEEKDAY_CHIP_FR = [
+  'dim.',
+  'lun.',
+  'mar.',
+  'mer.',
+  'jeu.',
+  'ven.',
+  'sam.',
+] as const;
+
+const MONTH_CHIP_FR = [
+  'janv.',
+  'févr.',
+  'mars',
+  'avr.',
+  'mai',
+  'juin',
+  'juil.',
+  'août',
+  'sept.',
+  'oct.',
+  'nov.',
+  'déc.',
+] as const;
+
+/** Clear date chip, e.g. « mar. 9 sept. » — never « ce soir » or 08/09. */
+export function livingSuggestionDateLabel(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  if (!y || !m || !d) return '';
+  const weekday = WEEKDAY_CHIP_FR[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+  const month = MONTH_CHIP_FR[m - 1];
+  if (!weekday || !month) return '';
+  return `${weekday} ${d} ${month}`;
+}
+
+/**
+ * Same civil evening as the séance → « ce soir » only.
+ * Any other calendar day → date chip (never « ce soir »).
+ */
 export function vivantComplementLead(film: DayItem, item: DayItem): string {
   const filmDay = seanceDateIso(film) || film.dayIso;
   const itemDay = seanceDateIso(item) || item.dayIso;
-  if (itemDay && filmDay && itemDay === filmDay) {
-    if (startsAfterScreening(film, item)) return 'Après la séance';
-    if (endsBeforeScreening(film, item)) return 'Avant la séance';
-    return 'Après la séance';
-  }
-  const weekday = weekdayLongFr(itemDay);
-  const commune = (item.lieu?.commune || '').trim() || 'Toulouse';
-  if (weekday) return `${weekday} à ${commune}`;
-  return `à ${commune}`;
+  if (itemDay && filmDay && itemDay === filmDay) return 'ce soir';
+  return livingSuggestionDateLabel(itemDay);
 }

@@ -31,8 +31,11 @@ export default function VivantComplementLinks({
               onClick={() => onSelect(it.key)}
               className="block w-full truncate text-left text-xs leading-snug text-culture-ink hover:text-culture-terracotta"
             >
-              <span className="text-culture-muted">{lead}</span>
-              <span> · {title}</span>
+              {lead ? <span className="text-culture-muted">{lead}</span> : null}
+              <span>
+                {lead ? ' · ' : ''}
+                {title}
+              </span>
               {heure ? <span className="text-culture-muted"> · {heure}</span> : null}
             </button>
           </li>

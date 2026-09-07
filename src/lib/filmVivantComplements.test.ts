@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 import {
   CINE_LIVING_RADIUS_KM,
+  livingSuggestionDateLabel,
   livingSuggestionForm,
+  otherDayStartOk,
   pickFilmVivantComplements,
   sameEveningStartOk,
   vivantComplementLead,
@@ -149,41 +151,7 @@ const film = item({
 });
 
 describe('pickFilmVivantComplements', () => {
-  it('keeps only the same civil day — never J+1 or another evening', () => {
-    const after = item({
-      key: 'th-after',
-      cat: 'theatre',
-      day: '2026-09-04',
-      heure: '22:30',
-      ...NEAR,
-    });
-    const nextNight = item({
-      key: 'th-j1',
-      cat: 'theatre',
-      day: '2026-09-05',
-      heure: '00:30',
-      ...NEAR,
-    });
-    const saturday = item({
-      key: 'th-sat',
-      cat: 'theatre',
-      day: '2026-09-05',
-      heure: '20:00',
-      ...NEAR,
-    });
-    const picked = pickFilmVivantComplements(
-      [after, nextNight, saturday, film],
-      film,
-    );
-    assert.deepEqual(
-      picked.map((p) => p.key),
-      ['th-after'],
-    );
-    assert.ok(picked.every((p) => p.dayIso === '2026-09-04'));
-    assert.equal(sameEveningStartOk(film, nextNight), false);
-  });
-
-  it('allows start before or after the séance clock that same day', () => {
+  it('same evening: only starts after the séance, labelled ce soir', () => {
     const before = item({
       key: 'th-before',
       cat: 'theatre',
@@ -211,11 +179,53 @@ describe('pickFilmVivantComplements', () => {
       film,
     );
     assert.deepEqual(
-      picked.map((p) => p.key).sort(),
-      ['mu-after', 'th-before'],
+      picked.map((p) => p.key),
+      ['mu-after'],
     );
-    assert.equal(vivantComplementLead(film, before), 'Avant la séance');
-    assert.equal(vivantComplementLead(film, after), 'Après la séance');
+    assert.equal(sameEveningStartOk(film, after), true);
+    assert.equal(sameEveningStartOk(film, before), false);
+    assert.equal(sameEveningStartOk(film, sameClock), false);
+    assert.equal(vivantComplementLead(film, after), 'ce soir');
+    assert.equal(vivantComplementLead(film, before), 'ce soir');
+  });
+
+  it('other calendar day: date chip, never ce soir, start that day', () => {
+    const after = item({
+      key: 'th-after',
+      cat: 'theatre',
+      day: '2026-09-04',
+      heure: '22:30',
+      ...NEAR,
+    });
+    const nextNight = item({
+      key: 'th-j1',
+      cat: 'theatre',
+      day: '2026-09-05',
+      heure: '00:30',
+      ...NEAR,
+    });
+    const saturday = item({
+      key: 'th-sat',
+      cat: 'theatre',
+      day: '2026-09-05',
+      heure: '20:00',
+      ...NEAR,
+    });
+    const picked = pickFilmVivantComplements(
+      [after, nextNight, saturday, film],
+      film,
+    );
+    assert.deepEqual(
+      picked.map((p) => p.key),
+      ['th-after', 'th-j1', 'th-sat'],
+    );
+    assert.equal(sameEveningStartOk(film, nextNight), false);
+    assert.equal(otherDayStartOk(film, nextNight), true);
+    assert.equal(vivantComplementLead(film, after), 'ce soir');
+    assert.equal(vivantComplementLead(film, nextNight), 'sam. 5 sept.');
+    assert.equal(vivantComplementLead(film, saturday), 'sam. 5 sept.');
+    assert.equal(livingSuggestionDateLabel('2026-09-09'), 'mer. 9 sept.');
+    assert.ok(!picked.some((p) => vivantComplementLead(film, p) === 'ce soir' && p.dayIso !== '2026-09-04'));
   });
 
   it('excludes venues outside the 1.2 km walking disk', () => {
@@ -223,14 +233,14 @@ describe('pickFilmVivantComplements', () => {
       key: 'th-near',
       cat: 'theatre',
       day: '2026-09-04',
-      heure: '18:00',
+      heure: '21:00',
       ...NEAR,
     });
     const farShow = item({
       key: 'th-far',
       cat: 'theatre',
       day: '2026-09-04',
-      heure: '18:15',
+      heure: '21:15',
       ...FAR,
     });
     const picked = pickFilmVivantComplements([nearShow, farShow, film], film);
@@ -254,14 +264,14 @@ describe('pickFilmVivantComplements', () => {
       key: 'expo',
       cat: 'exposition',
       day: '2026-09-04',
-      heure: '10:00',
+      heure: '21:00',
       ...NEAR,
     });
     const fest = item({
       key: 'fest',
       cat: 'festival',
       day: '2026-09-04',
-      heure: '19:00',
+      heure: '22:00',
       ...NEAR,
     });
     const picked = pickFilmVivantComplements(
@@ -289,7 +299,7 @@ describe('pickFilmVivantComplements', () => {
       key: 'th-wilson',
       cat: 'theatre',
       day: '2026-09-04',
-      heure: '18:00',
+      heure: '21:00',
       ...NEAR,
     });
     const farMusic = item({
@@ -322,7 +332,18 @@ describe('pickFilmVivantComplements', () => {
       lieuId: 'L-cine',
     });
     const at18 = pickFilmVivantComplements(pool, earlier);
-    assert.ok(!at18.some((p) => p.key === 'th-wilson'));
+    assert.ok(at18.some((p) => p.key === 'th-wilson'));
+    const later = item({
+      key: 'film-22h',
+      cat: 'cinema',
+      filmId: 'F1',
+      day: '2026-09-04',
+      heure: '22:00',
+      ...CINEMA,
+      lieuId: 'L-cine',
+    });
+    const at22 = pickFilmVivantComplements(pool, later);
+    assert.ok(!at22.some((p) => p.key === 'th-wilson'));
   });
 
   it('hides the block when no candidate survives the filters', () => {
@@ -333,12 +354,12 @@ describe('pickFilmVivantComplements', () => {
       heure: '22:00',
       ...FAR,
     });
-    const otherDay = item({
+    const otherDayFar = item({
       key: 'th-sat',
       cat: 'theatre',
       day: '2026-09-05',
       heure: '20:00',
-      ...NEAR,
+      ...FAR,
     });
     const noCoords = item({
       key: 'th-nogeo',
@@ -346,8 +367,18 @@ describe('pickFilmVivantComplements', () => {
       day: '2026-09-04',
       heure: '22:00',
     });
+    const untimed = item({
+      key: 'th-notime',
+      cat: 'theatre',
+      day: '2026-09-04',
+      heure: '',
+      ...NEAR,
+    });
     assert.deepEqual(
-      pickFilmVivantComplements([farOnly, otherDay, noCoords, film], film),
+      pickFilmVivantComplements(
+        [farOnly, otherDayFar, noCoords, untimed, film],
+        film,
+      ),
       [],
     );
   });
@@ -357,7 +388,7 @@ describe('pickFilmVivantComplements', () => {
       key: 'th-corridor',
       cat: 'theatre',
       day: '2026-09-04',
-      heure: '18:30',
+      heure: '21:30',
       lat: CORRIDOR.lat,
       lng: CORRIDOR.lng,
     });
@@ -393,14 +424,14 @@ describe('pickFilmVivantComplements', () => {
       key: 'mu-mid',
       cat: 'musique',
       day: '2026-09-04',
-      heure: '18:00',
+      heure: '21:30',
       ...NEAR,
     });
     const farther = item({
       key: 'ex-farther',
       cat: 'exposition',
       day: '2026-09-04',
-      heure: '16:00',
+      heure: '22:15',
       lat: '43.6045',
       lng: '1.4580',
     });
@@ -408,7 +439,7 @@ describe('pickFilmVivantComplements', () => {
       key: 'fest-4',
       cat: 'festival',
       day: '2026-09-04',
-      heure: '19:00',
+      heure: '21:00',
       lat: '43.6045',
       lng: '1.4600',
     });
@@ -419,5 +450,52 @@ describe('pickFilmVivantComplements', () => {
     assert.equal(picked.length, 3);
     assert.equal(picked[0]?.key, 'th-close');
     assert.ok(!picked.some((p) => p.key === 'fest-4'));
+  });
+
+  it('Odyssée 19h: same-evening after 19h = ce soir; other day = date chip', () => {
+    const seance19 = item({
+      key: 'odyssee-19h',
+      cat: 'cinema',
+      filmId: 'F1',
+      day: '2026-09-07',
+      heure: '19:00',
+      ...CINEMA,
+      lieuId: 'L-cine',
+    });
+    const tooEarly = item({
+      key: 'th-18h',
+      cat: 'theatre',
+      day: '2026-09-07',
+      heure: '18:30',
+      ...NEAR,
+    });
+    const tonight = item({
+      key: 'mu-20h',
+      cat: 'musique',
+      day: '2026-09-07',
+      heure: '20:15',
+      ...NEAR,
+    });
+    const tomorrow = item({
+      key: 'th-mardi',
+      cat: 'theatre',
+      day: '2026-09-08',
+      heure: '20:00',
+      ...NEAR,
+    });
+    const picked = pickFilmVivantComplements(
+      [tooEarly, tonight, tomorrow, seance19],
+      seance19,
+    );
+    assert.deepEqual(
+      picked.map((p) => p.key),
+      ['mu-20h', 'th-mardi'],
+    );
+    assert.equal(vivantComplementLead(seance19, tonight), 'ce soir');
+    assert.equal(vivantComplementLead(seance19, tomorrow), 'mar. 8 sept.');
+    assert.ok(!/ce soir/i.test(vivantComplementLead(seance19, tomorrow)));
+    assert.ok(!/\d{2}\/\d{2}/.test(vivantComplementLead(seance19, tomorrow)));
+    assert.equal(tonight.programme.heure_debut, '20:15');
+    assert.equal(tomorrow.programme.heure_debut, '20:00');
   });
 });

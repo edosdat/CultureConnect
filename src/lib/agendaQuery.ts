@@ -28,7 +28,10 @@ import {
   itemsForDay,
 } from './events';
 import { genreSlugsFromItems } from './genreChipMatch';
-import { collectCinemaLivingCandidates } from './filmVivantComplements';
+import {
+  CINE_LIVING_OTHER_DAY_HORIZON,
+  collectCinemaLivingCandidates,
+} from './filmVivantComplements';
 import { withConcertArtistPress } from './pressCitation';
 import {
   filmIdOfItem,
@@ -56,6 +59,7 @@ import {
   type AgendaListResponse,
 } from './slim';
 import {
+  addDaysIso,
   bootTimeScope,
   filterSeancesForDisplay,
   hideSeancesBeforeToday,
@@ -1282,6 +1286,11 @@ export function queryAgendaDetail(
     for (const row of [item, ...relatedItems]) {
       const d = seanceDateIso(row) || row.dayIso;
       if (d) days.add(d);
+    }
+    for (const d of [...days]) {
+      for (let i = 1; i <= CINE_LIVING_OTHER_DAY_HORIZON; i++) {
+        days.add(addDaysIso(d, i));
+      }
     }
     const pool: DayItem[] = [];
     for (const day of days) {
