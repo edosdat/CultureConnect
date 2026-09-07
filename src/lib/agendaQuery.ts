@@ -36,6 +36,7 @@ import { withConcertArtistPress } from './pressCitation';
 import {
   filmIdOfItem,
   isCinemaDayItem,
+  isEnfantsChipItem,
   isEnfantsDayItem,
   isExpoDayItem,
   isMusiqueDayItem,
@@ -942,7 +943,9 @@ export function queryAgenda(
   const cineAll = items.filter(isCinemaDayItem);
   const theatreAll = items.filter(isTheatreDayItem);
   const musiqueAll = items.filter(isMusiqueDayItem);
-  const enfantsAll = items.filter(isEnfantsDayItem);
+  const enfantsAll = items.filter(
+    input.cats.includes('enfants_famille') ? isEnfantsChipItem : isEnfantsDayItem,
+  );
   const expoAll = items.filter(isExpoDayItem);
   const vivantCap = dayPage ? pageMax : 40;
   const vivantItems =

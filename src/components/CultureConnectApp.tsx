@@ -15,7 +15,12 @@ import { filterItemsByCommune, normalizeCommune } from '@/lib/commune';
 import { filterSeancesForActiveFilters } from '@/lib/displayFilter';
 import { densify, densifiedCardCount } from '@/lib/densify';
 import { filmIdOfItem, homePackOfItem, isCinemaDayItem } from '@/lib/nouveautesCine';
-import { catsAllowCinemaPack, genreBelongsToMains, mainFromGenreSlug } from '@/lib/categories';
+import {
+  catsAllowCinemaPack,
+  genreBelongsToMains,
+  isEnfantsOnlyChip,
+  mainFromGenreSlug,
+} from '@/lib/categories';
 import {
   cineFirstPaint,
   cineRows,
@@ -1130,9 +1135,12 @@ export default function CultureConnectApp({
       enfantsRows(
         vivantPool,
         top3Set,
-        gpsOrigin ? { origin: gpsOrigin } : undefined,
+        {
+          origin: gpsOrigin,
+          includeCrossCatKids: isEnfantsOnlyChip(selectedCategories),
+        },
       ),
-    [vivantPool, top3Set, gpsOrigin],
+    [vivantPool, top3Set, gpsOrigin, selectedCategories],
   );
   const visibleEnfantsRows = useMemo(
     () => allEnfantsRows.slice(0, enfantsLimit),

@@ -9,6 +9,7 @@
 import {
   mainFromCategorie,
   mainFromGenreSlug,
+  matchesEnfantsChipContent,
   matchesMainCategories,
   type MainCategoryId,
 } from './categories';
@@ -160,13 +161,48 @@ function itemCatGenre(item: DayItem): { categorie: string; genre: string } {
   };
 }
 
-/** QUOI chip `enfants_famille` — never steal cine / théâtre / musique cards. */
+function enfantsChipFieldsOf(item: DayItem): {
+  categorie: string;
+  genre: string;
+  tags: string;
+  publicCible: string;
+} {
+  const { categorie, genre } = itemCatGenre(item);
+  if (item.kind === 'programme') {
+    return {
+      categorie,
+      genre,
+      tags: item.evenement?.tags || '',
+      publicCible:
+        item.programme.public_cible || item.evenement?.public_cible || '',
+    };
+  }
+  return {
+    categorie,
+    genre,
+    tags: item.evenement.tags || '',
+    publicCible: item.evenement.public_cible || '',
+  };
+}
+
+/**
+ * Default-home Enfants pack — ateliers / cat enfants_famille only.
+ * Never steal cine / théâtre / musique cards (kids films stay in Ciné).
+ */
 export function isEnfantsDayItem(item: DayItem): boolean {
   if (isCinemaDayItem(item) || isTheatreDayItem(item) || isMusiqueDayItem(item)) {
     return false;
   }
   const { categorie, genre } = itemCatGenre(item);
   return matchesMainCategories(categorie, genre, ['enfants_famille']);
+}
+
+/**
+ * Enfants QUOI chip: cat + kids films (`animation_jeune_public`) +
+ * jeune-public theatre (genre / tags famille|enfants). Adult thriller out.
+ */
+export function isEnfantsChipItem(item: DayItem): boolean {
+  return matchesEnfantsChipContent(enfantsChipFieldsOf(item));
 }
 
 /** QUOI chip `expo_patrimoine` (`expo_*` + mapped visite/conférence). */
