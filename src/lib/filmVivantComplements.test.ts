@@ -654,7 +654,6 @@ describe('pickFilmVivantComplements', () => {
         atelier,
         festKids,
         kidsTomorrow,
-        festRue,
         vernissage,
         theatre,
         concert,
@@ -662,14 +661,10 @@ describe('pickFilmVivantComplements', () => {
       ],
       seance19,
     );
-    assert.ok(
-      !picked.some((p) =>
-        ['enf', 'atelier', 'fest-kids', 'enf-j1'].includes(p.key),
-      ),
+    assert.deepEqual(
+      picked.map((p) => p.key).sort(),
+      ['mu', 'th', 'vern'],
     );
-    assert.ok(picked.some((p) => p.key === 'vern'));
-    assert.ok(picked.some((p) => p.key === 'th'));
-    assert.ok(picked.some((p) => p.key === 'mu'));
     assert.ok(
       picked.every(
         (p) =>
