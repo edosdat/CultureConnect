@@ -233,11 +233,19 @@ describe('home pack classifiers', () => {
 
   it('maps expo / enfants to their own packs, not theatre or musique', () => {
     const expo = item({ key: 'e1', cat: 'exposition' });
+    const expoVisit = item({ key: 'ev1', cat: 'expo_visite' });
+    const expoPat = item({ key: 'ep1', cat: 'expo_patrimoine' });
     const kids = item({ key: 'k1', cat: 'enfants_famille' });
+    const atelier = item({ key: 'a1', cat: 'atelier' });
     assert.equal(homePackOfItem(expo), 'expo');
+    assert.equal(homePackOfItem(expoVisit), 'expo');
+    assert.equal(homePackOfItem(expoPat), 'expo');
     assert.equal(homePackOfItem(kids), 'enfants');
+    assert.equal(homePackOfItem(atelier), 'enfants');
     assert.equal(isExpoDayItem(expo), true);
+    assert.equal(isExpoDayItem(expoVisit), true);
     assert.equal(isEnfantsDayItem(kids), true);
+    assert.equal(isEnfantsDayItem(atelier), true);
     assert.equal(isTheatreDayItem(expo), false);
     assert.equal(isMusiqueDayItem(expo), false);
     assert.equal(isTheatreDayItem(kids), false);

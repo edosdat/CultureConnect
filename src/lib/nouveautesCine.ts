@@ -6,7 +6,12 @@
  * repertory one-shots do not qualify.
  */
 
-import { mainFromCategorie, mainFromGenreSlug, type MainCategoryId } from './categories';
+import {
+  mainFromCategorie,
+  mainFromGenreSlug,
+  matchesMainCategories,
+  type MainCategoryId,
+} from './categories';
 import {
   isCinemaPeriodAggregate,
   isPublishableEvent,
@@ -142,20 +147,35 @@ export function isMusiqueDayItem(item: DayItem): boolean {
   return mainOfDayItem(item) === 'musique';
 }
 
-/** Enfants / familles chip — never steal cine / théâtre / musique cards. */
+function itemCatGenre(item: DayItem): { categorie: string; genre: string } {
+  if (item.kind === 'programme') {
+    return {
+      categorie: item.evenement?.categorie ?? '',
+      genre: item.programme.genre || item.evenement?.genre || '',
+    };
+  }
+  return {
+    categorie: item.evenement.categorie,
+    genre: item.evenement.genre || '',
+  };
+}
+
+/** QUOI chip `enfants_famille` — never steal cine / théâtre / musique cards. */
 export function isEnfantsDayItem(item: DayItem): boolean {
   if (isCinemaDayItem(item) || isTheatreDayItem(item) || isMusiqueDayItem(item)) {
     return false;
   }
-  return mainOfDayItem(item) === 'enfants_famille';
+  const { categorie, genre } = itemCatGenre(item);
+  return matchesMainCategories(categorie, genre, ['enfants_famille']);
 }
 
-/** Expo & patrimoine chip — never steal cine / théâtre / musique cards. */
+/** QUOI chip `expo_patrimoine` (`expo_*` + mapped visite/conférence). */
 export function isExpoDayItem(item: DayItem): boolean {
   if (isCinemaDayItem(item) || isTheatreDayItem(item) || isMusiqueDayItem(item)) {
     return false;
   }
-  return mainOfDayItem(item) === 'expo_patrimoine';
+  const { categorie, genre } = itemCatGenre(item);
+  return matchesMainCategories(categorie, genre, ['expo_patrimoine']);
 }
 
 export type HomePackId = 'cine' | 'theatre' | 'musique' | 'enfants' | 'expo';
