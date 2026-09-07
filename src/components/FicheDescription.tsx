@@ -1,7 +1,7 @@
 import type { DayItem } from '@/lib/types';
 import { ficheDescriptionOf } from '@/lib/ficheDescription';
 
-/** Full event synopsis on fiches. Hidden when catalogue copy is empty. */
+/** Long synopsis when present, else courte. Hidden only if every field is empty. */
 export default function FicheDescription({ item }: { item: DayItem }) {
   const text = ficheDescriptionOf(item);
   if (!text) return null;
