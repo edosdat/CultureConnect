@@ -1637,6 +1637,7 @@ export default function CultureConnectApp({
         selectedCategories,
         query,
         committedTitle,
+        timeScope,
       }) ? (
         <SearchExamples onPick={handleExamplePick} activeQuery={query} />
       ) : null}

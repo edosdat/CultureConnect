@@ -56,14 +56,18 @@ export const SEARCH_EXAMPLES = [
 ] as const;
 
 /**
- * Examples under `#cc-search`: hide on QUOI chip or typed/applied query.
- * QUAND (date) chips alone keep the examples visible.
+ * Examples under `#cc-search`.
+ * Hide only when a QUOI chip is on, or a search query is typed / applied.
+ * `timeScope` is accepted so callers can pass QUAND — it is never a hide signal.
+ * Aujourd’hui / Ce soir / Ce WE / … alone keep the examples visible.
  */
 export function searchExamplesVisible(opts: {
   selectedCategories: readonly string[];
   query: string;
   committedTitle?: string;
+  timeScope?: TimeScopeId | null;
 }): boolean {
+  void opts.timeScope;
   if (opts.selectedCategories.length > 0) return false;
   if ((opts.query || '').trim()) return false;
   if ((opts.committedTitle || '').trim()) return false;

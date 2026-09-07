@@ -526,12 +526,34 @@ describe('search example chips', () => {
       searchExamplesVisible({ ...empty, query: '   ' }),
       true,
     );
+    for (const scope of [
+      'tous',
+      'aujourdhui',
+      'soir',
+      'weekend',
+      'semaine',
+      'date',
+    ] as const) {
+      assert.equal(
+        searchExamplesVisible({ ...empty, timeScope: scope }),
+        true,
+        `QUAND ${scope} must not hide examples`,
+      );
+    }
     assert.equal(
       searchExamplesVisible({ ...empty, selectedCategories: ['cinema'] }),
       false,
     );
     assert.equal(
       searchExamplesVisible({ ...empty, selectedCategories: ['musique'] }),
+      false,
+    );
+    assert.equal(
+      searchExamplesVisible({
+        selectedCategories: ['cinema'],
+        query: '',
+        timeScope: 'weekend',
+      }),
       false,
     );
     assert.equal(
