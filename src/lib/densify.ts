@@ -148,6 +148,29 @@ export function displayTitleNorm(item: DayItem): string {
   return titleNorm(item);
 }
 
+/** Programme row title, same source as living-arts cards (`nom_item || titre`). */
+export function programmeDisplayTitleNorm(
+  nomItem?: string,
+  eventTitre?: string,
+): string {
+  return normalizeDisplayTitle(nomItem || eventTitre || '');
+}
+
+/**
+ * Living-arts fiche related seances: same normalised display title.
+ * Multi-show festivals share one event_id — do not join on that id.
+ * Weekly BAR* clones mint a new event_id per night; title still matches.
+ */
+export function isLivingArtsRelatedSeance(
+  openItem: DayItem,
+  nomItem?: string,
+  eventTitre?: string,
+): boolean {
+  const title = displayTitleNorm(openItem);
+  if (!title) return false;
+  return programmeDisplayTitleNorm(nomItem, eventTitre) === title;
+}
+
 /**
  * Strongest visible-card identity (not CSV, not reco):
  * - cinema → work stem (catalogue film_id clones collapse)

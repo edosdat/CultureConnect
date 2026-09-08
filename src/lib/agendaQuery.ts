@@ -19,8 +19,7 @@ import {
   cinemaStemsCompatible,
   cinemaTitleStem,
   densifiedCardCount,
-  displayTitleNorm,
-  normalizeDisplayTitle,
+  isLivingArtsRelatedSeance,
 } from './densify';
 import {
   countItemsByDay,
@@ -1179,11 +1178,6 @@ function withCredits(item: DayItem, artistes: Artiste[]): DayItem {
   return { ...item, evenement: { ...ev, casting: names.join(', ') } };
 }
 
-function eventIdOfItem(item: DayItem): string {
-  if (item.kind === 'programme') return (item.programme.event_id || '').trim();
-  return (item.evenement.event_id || '').trim();
-}
-
 function relatedSeancesFromProgramme(
   rows: ProgrammeWithContext[],
   commune?: string | null,
@@ -1239,7 +1233,6 @@ export function queryAgendaDetail(
 
   let relatedItems: DayItem[] = [];
   const fid = filmIdOfItem(item);
-  const eid = eventIdOfItem(item);
   const cineStem = isCinemaDayItem(item) ? cinemaDisplayStem(item) : '';
   if (fid || cineStem) {
     // Same visible film (official film_id and catalogue title clones).
@@ -1256,19 +1249,17 @@ export function queryAgendaDetail(
       window,
     );
   } else {
-    // Living-arts fiche: same event_id OR same visible title
-    // (weekly BAR* clones mint a new event_id per night).
-    const title = displayTitleNorm(item);
+    // Living-arts fiche: same normalised display title only.
+    // Festival children share one event_id — do not join on that id.
+    // Weekly BAR* clones mint a new event_id per night; title still matches.
     relatedItems = relatedSeancesFromProgramme(
-      data.programmeWithContext.filter((p) => {
-        if (eid && (p.programme.event_id || '').trim() === eid) return true;
-        if (!title) return false;
-        return (
-          normalizeDisplayTitle(
-            p.programme.nom_item || p.evenement?.titre || '',
-          ) === title
-        );
-      }),
+      data.programmeWithContext.filter((p) =>
+        isLivingArtsRelatedSeance(
+          item,
+          p.programme.nom_item,
+          p.evenement?.titre,
+        ),
+      ),
       commune,
       window,
     );
