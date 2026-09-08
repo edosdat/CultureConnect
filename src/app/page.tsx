@@ -13,7 +13,8 @@ import {
 } from '@/lib/displayHome';
 import { formatDateFr } from '@/lib/labels';
 
-export const revalidate = 300;
+/** Dynamic: do not ISR the embedded programme (stale after Paris midnight). */
+export const dynamic = 'force-dynamic';
 
 const DEFAULT_TITLE = 'CultureConnect — Agenda culturel Toulouse';
 const DEFAULT_DESC =

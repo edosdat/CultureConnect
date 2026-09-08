@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  AGENDA_HTTP_CACHE_CONTROL,
   agendaListCacheKeyParts,
   buildAgendaParams,
   listFetchShouldSkipBoot,
@@ -179,6 +180,12 @@ describe('agendaListCacheKeyParts', () => {
       selectedDate: '2026-09-01',
     }).join('|');
     assert.ok(key.includes('date-scope-slim-v2'));
+  });
+
+  it('HTTP agenda is no-store (Paris-day server cache only)', () => {
+    assert.ok(AGENDA_HTTP_CACHE_CONTROL.includes('no-store'));
+    assert.ok(AGENDA_HTTP_CACHE_CONTROL.includes('private'));
+    assert.ok(AGENDA_HTTP_CACHE_CONTROL.includes('max-age=0'));
   });
 });
 
