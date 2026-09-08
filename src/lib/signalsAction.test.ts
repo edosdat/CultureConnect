@@ -4,6 +4,7 @@ import {
   SIGNAL_WEIGHTS,
   applyIncomingSignals,
   applySignalToProfile,
+  backfillStoreTasteTags,
   cancelFavoriteSignals,
   commitTasteSignals,
   dedupAppend,
@@ -15,6 +16,9 @@ import {
   makeSignal,
   inheritTasteTagsFromPeers,
   payloadFromDayItem,
+  rememberDayItemTasteTags,
+  rememberedTagSource,
+  resetRememberedTasteTags,
   resolveLoginMerge,
   shouldMapTasteIngest,
   shouldPostLoginMerge,
@@ -22,7 +26,7 @@ import {
   signalHasMappedTasteTags,
   type Signal,
 } from './signals';
-import { detailDayItem, relatedSeanceDayItem } from './slim';
+import { detailDayItem, relatedSeanceDayItem, slimDayItem } from './slim';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 
 function lieu(): Lieu {
@@ -432,6 +436,173 @@ describe('reserve + outbound_click — no double-count', () => {
     );
     assert.equal(next.events.length, 1);
     assert.deepEqual(next.profile.moods, {});
+  });
+});
+
+describe('Matching A — apply / persist profile.moods', () => {
+  it('signal with moods increases profile.moods weight', () => {
+    const open = makeSignal({
+      kind: 'open_card',
+      event_id: 'ev-simone',
+      programme_id: 'pr-simone',
+      moods: ['critique', 'cerveau', 'tendre'],
+      genres: ['contemporain'],
+    });
+    const afterOpen = commitTasteSignals(
+      { events: [], profile: emptyProfile() },
+      [open],
+      40,
+    );
+    assert.equal(afterOpen.profile.moods.critique?.weight, 2);
+    assert.equal(afterOpen.profile.moods.cerveau?.weight, 2);
+    assert.equal(afterOpen.profile.moods.tendre?.weight, 2);
+
+    const fav = makeSignal({
+      kind: 'favorite',
+      event_id: 'ev-simone',
+      programme_id: 'pr-simone',
+      moods: ['critique', 'cerveau', 'tendre'],
+      genres: ['contemporain'],
+    });
+    const afterFav = commitTasteSignals(afterOpen, [fav], 40);
+    assert.equal(afterFav.profile.moods.critique?.weight, 8);
+    assert.equal(afterFav.profile.moods.tendre?.weight, 8);
+
+    const reserve = makeSignal({
+      kind: 'reserve',
+      event_id: 'ev-simone',
+      programme_id: 'pr-simone',
+      moods: ['critique', 'cerveau', 'tendre'],
+      genres: ['contemporain'],
+    });
+    const afterReserve = commitTasteSignals(afterFav, [reserve], 40);
+    assert.equal(afterReserve.profile.moods.critique?.weight, 14);
+  });
+
+  it('genre-only Réserver still copies moods from open_card', () => {
+    const open = makeSignal({
+      kind: 'open_card',
+      event_id: 'E719',
+      programme_id: 'P1834',
+      moods: ['critique'],
+      genres: ['contemporain'],
+    });
+    const reserve = makeSignal({
+      kind: 'reserve',
+      event_id: 'E719',
+      programme_id: 'P1834',
+      moods: [],
+      genres: ['contemporain'],
+    });
+    assert.equal(signalHasMappedTasteTags(reserve), true);
+    const copied = inheritTasteTagsFromPeers(reserve, [open]);
+    assert.ok(copied.moods.includes('critique'));
+
+    const after = commitTasteSignals(
+      commitTasteSignals({ events: [], profile: emptyProfile() }, [open], 40),
+      [reserve],
+      40,
+    );
+    assert.equal(after.profile.moods.critique?.weight, 8);
+  });
+
+  it('tagless favorite copies open_card moods and bumps +6', () => {
+    const open = makeSignal({
+      kind: 'open_card',
+      event_id: 'E719',
+      programme_id: 'P1834',
+      moods: ['tendre'],
+      genres: [],
+    });
+    const fav = makeSignal({
+      kind: 'favorite',
+      event_id: 'E719',
+      programme_id: 'P1834',
+      moods: [],
+      genres: [],
+    });
+    const copied = inheritTasteTagsFromPeers(fav, [open]);
+    assert.ok(copied.moods.includes('tendre'));
+
+    const after = commitTasteSignals(
+      commitTasteSignals({ events: [], profile: emptyProfile() }, [open], 40),
+      [fav],
+      40,
+    );
+    assert.equal(after.profile.moods.tendre?.weight, 8);
+  });
+
+  it('slim trackItem recovers moods from remembered full / densify fiche', () => {
+    resetRememberedTasteTags();
+    const full = item();
+    const slim = slimDayItem(full);
+    assert.equal(slim.evenement?.moods, undefined);
+
+    rememberDayItemTasteTags(full);
+    const fromSlim = makeSignal(
+      payloadFromDayItem(slim, 'favorite', rememberedTagSource(slim)),
+    );
+    assert.ok(fromSlim.moods.includes('rigolo'));
+
+    const after = commitTasteSignals(
+      { events: [], profile: emptyProfile() },
+      [fromSlim],
+      40,
+    );
+    assert.equal(after.profile.moods.rigolo?.weight, 6);
+    resetRememberedTasteTags();
+  });
+
+  it('backfill stamps moods onto tagless open_card then reserve net +6', () => {
+    resetRememberedTasteTags();
+    const slimOpen = makeSignal({
+      kind: 'open_card',
+      event_id: 'E719',
+      programme_id: 'P1834',
+      moods: [],
+      genres: ['contemporain'],
+    });
+    const afterOpen = commitTasteSignals(
+      { events: [], profile: emptyProfile() },
+      [slimOpen],
+      40,
+    );
+    assert.equal(afterOpen.profile.moods.critique, undefined);
+
+    const fiche = item();
+    if (fiche.kind !== 'programme') assert.fail('expected programme');
+    const tagged: DayItem = {
+      ...fiche,
+      programme: {
+        ...fiche.programme,
+        programme_id: 'P1834',
+        event_id: 'E719',
+        moods: 'critique|cerveau|tendre',
+      },
+      evenement: {
+        ...ev(),
+        event_id: 'E719',
+        moods: 'critique|cerveau|tendre',
+        genre: 'theatre_contemporain',
+      },
+    };
+    const filled = backfillStoreTasteTags(afterOpen, tagged);
+    assert.equal(filled.profile.moods.critique?.weight, 2);
+    assert.equal(filled.profile.moods.tendre?.weight, 2);
+    assert.ok(
+      filled.events.some((s) => s.kind === 'open_card' && s.moods.includes('critique')),
+    );
+
+    const reserve = makeSignal({
+      kind: 'reserve',
+      event_id: 'E719',
+      programme_id: 'P1834',
+      moods: [],
+      genres: [],
+    });
+    const afterReserve = commitTasteSignals(filled, [reserve], 40);
+    assert.equal(afterReserve.profile.moods.critique?.weight, 8);
+    resetRememberedTasteTags();
   });
 });
 

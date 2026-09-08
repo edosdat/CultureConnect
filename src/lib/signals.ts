@@ -126,14 +126,28 @@ const PAIRED_CLICK_KINDS: ReadonlySet<SignalKind> = new Set([
   'outbound_click',
 ]);
 
-/** Same-fiche peers whose mapped tags Réserver may copy when the seance wire is tagless. */
+/** Same-fiche peers whose mapped tags a later action may copy when the wire is tagless. */
 const TASTE_TAG_PEER_KINDS: ReadonlySet<SignalKind> = new Set([
   'open_card',
   'favorite',
+  'unfavorite',
   'reserve',
   'outbound_click',
   'share',
   'agenda_add',
+  'ics',
+]);
+
+/** Heart / Réserver / share / agenda — not only the reserve+outbound pair. */
+const TASTE_INHERIT_KINDS: ReadonlySet<SignalKind> = new Set([
+  'open_card',
+  'agenda_add',
+  'ics',
+  'reserve',
+  'favorite',
+  'unfavorite',
+  'outbound_click',
+  'share',
 ]);
 
 export function isKnownSignalKind(kind: string): kind is SignalKind {
@@ -371,6 +385,28 @@ export function signalTarget(s: Pick<Signal, 'film_id' | 'event_id' | 'programme
     (s.query || '').trim() ||
     ''
   );
+}
+
+/** Same fiche if any id overlaps — film / event / programme. Avoids film_id vs event_id misses. */
+export function ficheIdsOverlap(
+  a: Pick<Signal, 'film_id' | 'event_id' | 'programme_id'>,
+  b: Pick<Signal, 'film_id' | 'event_id' | 'programme_id'>,
+): boolean {
+  const af = (a.film_id || '').trim();
+  const bf = (b.film_id || '').trim();
+  if (af && bf && af === bf) return true;
+  const ae = (a.event_id || '').trim();
+  const be = (b.event_id || '').trim();
+  if (ae && be && ae === be) return true;
+  const ap = (a.programme_id || '').trim();
+  const bp = (b.programme_id || '').trim();
+  return Boolean(ap && bp && ap === bp);
+}
+
+export function signalHasTasteMoods(
+  s: Pick<Signal, 'moods'>,
+): boolean {
+  return (s.moods ?? []).some((m) => isTasteMood(m));
 }
 
 function newId(): string {
@@ -972,24 +1008,22 @@ function copyTasteTags(incoming: Signal, peer: Signal): Signal {
 }
 
 /**
- * Réserver often tracks a skinny related seance (no catalogue moods).
- * Copy moods/genres/themes from a same-target open_card (else another tagged
- * fiche action) so profile buckets bump. Does not invent tags.
+ * Tagless (or genre-only) fiche actions copy moods from a same-fiche peer.
+ * Heart / Réserver both inherit — genres alone must not skip a mood copy.
+ * Does not invent tags.
  */
 export function inheritTasteTagsFromPeers(
   incoming: Signal,
   already: readonly Signal[],
 ): Signal {
-  if (!PAIRED_CLICK_KINDS.has(incoming.kind)) return incoming;
-  if (signalHasMappedTasteTags(incoming)) return incoming;
-  const target = signalTarget(incoming);
-  if (!target) return incoming;
+  if (!TASTE_INHERIT_KINDS.has(incoming.kind)) return incoming;
+  if (signalHasTasteMoods(incoming)) return incoming;
   let fallback: Signal | undefined;
   for (let i = already.length - 1; i >= 0; i--) {
     const s = already[i]!;
     if (!TASTE_TAG_PEER_KINDS.has(s.kind)) continue;
-    if (signalTarget(s) !== target) continue;
-    if (!signalHasMappedTasteTags(s)) continue;
+    if (!ficheIdsOverlap(incoming, s)) continue;
+    if (!signalHasTasteMoods(s)) continue;
     if (s.kind === 'open_card') return copyTasteTags(incoming, s);
     if (!fallback) fallback = s;
   }
@@ -1450,13 +1484,139 @@ export function tasteTagsFromDayItem(item: DayItem): {
   const genres = [
     ...new Set([...genresFromDayItem(item), ...genresMoodFromDayItem(item)]),
   ];
+  const source = moodSourceFromDayItem(item);
   const moods = [
     ...new Set([
       ...moodsFromDayItem(item),
-      ...extractMoods(moodSourceFromDayItem(item), genres.join(' ')),
+      ...extractMoods(source, genres.join(' ')),
     ]),
   ];
+  // Slim first paint may strip catalogue moods; phrase rules still read the pitch.
+  if (!moods.some((m) => isTasteMood(m))) {
+    const fromPitch = parsePhraseRules(source);
+    for (const m of fromPitch.moods) {
+      if (isTasteMood(m)) moods.push(m);
+    }
+  }
   return { genres, moods, themes: themesFromDayItem(item) };
+}
+
+export function idsOfDayItem(item: DayItem): string[] {
+  const ids: string[] = [];
+  const push = (v?: string | null) => {
+    const s = (v || '').trim();
+    if (s) ids.push(s);
+  };
+  if (item.kind === 'programme') {
+    push(item.programme.film_id);
+    push(item.programme.event_id);
+    push(item.evenement?.event_id);
+    push(item.programme.programme_id);
+  } else {
+    push(item.evenement.event_id);
+  }
+  push(item.key);
+  return [...new Set(ids)];
+}
+
+function rawCatalogueTasteBlob(item: DayItem): string {
+  if (item.kind === 'programme') {
+    return [
+      item.programme.moods,
+      item.programme.genres_mood,
+      item.programme.themes,
+      item.evenement?.moods,
+      item.evenement?.genres_mood,
+      item.evenement?.themes,
+    ]
+      .filter(Boolean)
+      .join('|');
+  }
+  return [item.evenement.moods, item.evenement.genres_mood, item.evenement.themes]
+    .filter(Boolean)
+    .join('|');
+}
+
+const rememberedTasteItems = new Map<string, DayItem>();
+
+export function resetRememberedTasteTags(): void {
+  rememberedTasteItems.clear();
+}
+
+/** Keep the richest fiche (catalogue moods) so slim SSR can resolve later. */
+export function rememberDayItemTasteTags(item: DayItem): void {
+  const tags = tasteTagsFromDayItem(item);
+  const raw = rawCatalogueTasteBlob(item);
+  if (!tags.moods.some((m) => isTasteMood(m)) && !raw.trim()) return;
+  for (const id of idsOfDayItem(item)) {
+    const prev = rememberedTasteItems.get(id);
+    if (
+      prev &&
+      tasteTagsFromDayItem(prev).moods.some((m) => isTasteMood(m)) &&
+      !tags.moods.some((m) => isTasteMood(m))
+    ) {
+      continue;
+    }
+    rememberedTasteItems.set(id, item);
+  }
+}
+
+export function rememberedTagSource(item: DayItem): DayItem | null {
+  for (const id of idsOfDayItem(item)) {
+    const hit = rememberedTasteItems.get(id);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+function idsFromItemAsSignal(item: DayItem): Pick<
+  Signal,
+  'film_id' | 'event_id' | 'programme_id'
+> {
+  if (item.kind === 'programme') {
+    return {
+      film_id: (item.programme.film_id || '').trim() || undefined,
+      event_id:
+        (item.programme.event_id || item.evenement?.event_id || '').trim() ||
+        undefined,
+      programme_id: (item.programme.programme_id || '').trim() || undefined,
+    };
+  }
+  return {
+    event_id: (item.evenement.event_id || '').trim() || undefined,
+  };
+}
+
+/**
+ * Slim open_card / heart logged without moods. When the full / densified
+ * fiche arrives, stamp moods onto those events and add their weights.
+ */
+export function backfillStoreTasteTags(
+  current: { events: Signal[]; profile: TasteProfile },
+  tagSource: DayItem,
+): { events: Signal[]; profile: TasteProfile } {
+  const tags = tasteTagsFromDayItem(tagSource);
+  if (!tags.moods.some((m) => isTasteMood(m))) return current;
+  const probe = idsFromItemAsSignal(tagSource);
+  const incoming: Signal[] = [];
+  const events = current.events.map((s) => {
+    if (!ficheIdsOverlap(s, probe)) return s;
+    if (signalHasTasteMoods(s)) return s;
+    const tagged = ingestMapSignal({
+      ...s,
+      moods: [...tags.moods],
+      genres: [...new Set([...s.genres, ...tags.genres])],
+      themes: [...new Set([...(s.themes ?? []), ...tags.themes])],
+    });
+    incoming.push(tagged);
+    return tagged;
+  });
+  if (!incoming.length) return current;
+  const already = events.filter((s) => !incoming.some((i) => i.id === s.id));
+  return {
+    events,
+    profile: applyIncomingSignals(current.profile, incoming, already),
+  };
 }
 
 export function payloadFromDayItem(
