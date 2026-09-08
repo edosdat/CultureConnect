@@ -73,7 +73,7 @@ function CategoryPill({ label }: { label: string }) {
   const cssVar = catCssVar(label);
   return (
     <span
-      className="inline-flex w-fit rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white"
+      className="inline-flex w-fit whitespace-nowrap rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white"
       style={{ backgroundColor: `var(${cssVar})` }}
     >
       {label}
@@ -142,6 +142,11 @@ export default function SeanceCard({
   const showVenueLine = Boolean(lieu) && (!isFilmGroup || salleCount === 1);
   const showCities = isFilmGroup && salleCount > 1 && Boolean(citiesSummary);
   const pitch = seanceCardShowsPitch(resolved, source) ? cardPitch(item) : '';
+  const railDate =
+    resolved === 'rail' && showDate
+      ? formatDateFr(seanceDateIso(item) || item.dayIso)
+      : '';
+  const railMeta = [railDate, metaLine].filter(Boolean).join(' · ');
 
   const media = (
     <div
@@ -173,6 +178,11 @@ export default function SeanceCard({
       {catLabel && resolved !== 'rail' ? (
         <span className="absolute left-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-1">
           <CategoryPill label={catLabel} />
+          <TheatreUrgenceBadge item={item} />
+        </span>
+      ) : null}
+      {resolved === 'rail' ? (
+        <span className="absolute left-0.5 top-0.5 flex max-w-[calc(100%-0.25rem)] flex-col items-start gap-0.5">
           <TheatreUrgenceBadge item={item} />
         </span>
       ) : null}
@@ -256,12 +266,11 @@ export default function SeanceCard({
         }
       >
         {resolved === 'rail' && catLabel ? (
-          <span className="flex flex-wrap items-center gap-1">
+          <span className="min-w-0 truncate">
             <CategoryPill label={catLabel} />
-            <TheatreUrgenceBadge item={item} />
           </span>
         ) : null}
-        {showDate && (
+        {showDate && resolved !== 'rail' && (
           <span className="text-xs font-medium text-culture-terracotta">
             {formatDateFr(seanceDateIso(item) || item.dayIso)}
           </span>
@@ -306,16 +315,14 @@ export default function SeanceCard({
           {pitch}
         </p>
       ) : null}
-      {metaLine ? (
-        <p
-          className={
-            resolved === 'rail'
-              ? 'line-clamp-1 text-xs leading-4 text-culture-muted'
-              : 'text-sm text-culture-muted'
-          }
-        >
-          {metaLine}
-        </p>
+      {resolved === 'rail' ? (
+        railMeta ? (
+          <p className="line-clamp-1 text-xs leading-4 text-culture-muted">
+            {railMeta}
+          </p>
+        ) : null
+      ) : metaLine ? (
+        <p className="text-sm text-culture-muted">{metaLine}</p>
       ) : null}
       {showCities ? (
         <p className="text-xs text-culture-muted">
