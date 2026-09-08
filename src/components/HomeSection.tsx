@@ -1,6 +1,10 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import {
+  HOME_SECTION_TITLE_CLASS,
+  HOME_SECTION_TITLE_RULE_CLASS,
+} from '@/lib/displayHome';
 
 type Props = {
   id: string;
@@ -31,8 +35,8 @@ export default function HomeSection({
   return (
     <section id={id} className={'scroll-mt-16 space-y-3 ' + className}>
       <div className="flex flex-wrap items-end justify-between gap-2">
-        <h2 className="font-display text-xl text-culture-ink sm:text-2xl">
-          <span className="border-b-2 border-culture-terracotta pb-0.5">
+        <h2 className={HOME_SECTION_TITLE_CLASS}>
+          <span className={HOME_SECTION_TITLE_RULE_CLASS}>
             {title}
           </span>
         </h2>

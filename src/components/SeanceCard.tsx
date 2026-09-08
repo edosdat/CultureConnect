@@ -16,6 +16,7 @@ import { MAIN_CATEGORY_LABELS, mainFromCategorie, mainFromGenreSlug } from '@/li
 import { catCssVar, catGradient } from '@/lib/categoryColor';
 import {
   seanceCardShowsPitch,
+  TOP3_RAIL_THUMB_CLASS,
   type SeanceCardPitchSource,
 } from '@/lib/displayHome';
 import EventImage from './EventImage';
@@ -144,11 +145,14 @@ export default function SeanceCard({
 
   const media = (
     <div
+      data-top3-thumb={resolved === 'rail' ? '' : undefined}
       className={
-        'relative overflow-hidden ' +
+        (resolved === 'rail'
+          ? TOP3_RAIL_THUMB_CLASS + ' '
+          : 'relative overflow-hidden ') +
         catGradient(catLabel) +
         (resolved === 'rail'
-          ? ' h-full w-[4.25rem] shrink-0 self-stretch sm:w-[4.75rem] lg:w-[5.75rem]'
+          ? ''
           : resolved === 'live'
             ? ' aspect-[4/3] w-full'
             : resolved === 'compact'
@@ -240,7 +244,7 @@ export default function SeanceCard({
         (resolved === 'compact'
           ? 'p-2.5 sm:p-3 '
           : resolved === 'rail'
-            ? 'px-2.5 py-2 sm:px-3 sm:py-2.5 '
+            ? 'px-2 py-1.5 sm:px-2.5 sm:py-2 '
             : 'p-3.5 sm:p-4 ')
       }
     >
@@ -272,7 +276,7 @@ export default function SeanceCard({
       <h3
         className={
           'font-display leading-snug text-culture-ink line-clamp-2 ' +
-          (resolved === 'compact'
+          (resolved === 'compact' || resolved === 'rail'
             ? 'text-base'
             : resolved === 'live'
               ? 'text-xl sm:text-2xl'
@@ -317,7 +321,7 @@ export default function SeanceCard({
       onClick={() => onSelect(item.key)}
       className={
         'group flex w-full min-w-0 overflow-hidden rounded-card border border-culture-line border-l-4 bg-culture-surface text-left shadow-card transition duration-200 ease-out ' +
-        (resolved === 'rail' ? 'h-full flex-row items-stretch ' : 'flex-col ') +
+        (resolved === 'rail' ? 'flex-row items-stretch ' : 'flex-col ') +
         (resolved === 'compact' ? 'hover:shadow-md' : 'hover:-translate-y-0.5 hover:shadow-md')
       }
       style={accentStyle}

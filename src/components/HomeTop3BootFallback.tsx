@@ -1,3 +1,8 @@
+import {
+  HOME_SECTION_TITLE_CLASS,
+  HOME_SECTION_TITLE_RULE_CLASS,
+  TOP3_SECTION_CLASS,
+} from '@/lib/displayHome';
 import HomeBootChrome from './HomeBootChrome';
 import Top3GuestCta from './Top3GuestCta';
 import Top3Skeleton from './Top3Skeleton';
@@ -14,13 +19,15 @@ export default function HomeTop3BootFallback() {
       <h1 className="sr-only">Agenda CultureConnect</h1>
       <HomeBootChrome>
         <section
-          className="w-full space-y-3 rounded-card-lg border border-culture-soft/80 bg-culture-surface/80 p-3 sm:p-4"
+          className={TOP3_SECTION_CLASS}
           data-top3=""
           data-top3-boot-fallback=""
           data-top3-pending=""
         >
-          <h2 className="w-full font-display text-xl leading-tight text-culture-ink sm:text-2xl">
-            Le top 3 du moment
+          <h2 className={HOME_SECTION_TITLE_CLASS}>
+            <span className={HOME_SECTION_TITLE_RULE_CLASS}>
+              Le top 3 du moment
+            </span>
           </h2>
           <Top3GuestCta />
           <Top3Skeleton />
