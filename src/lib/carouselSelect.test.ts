@@ -1,15 +1,24 @@
-import { describe, it } from 'node:test';
+import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   HERO_SCROLL_DEFER_MS,
+  HERO_SWIPE_LOCK_MS,
   HOME_STICKY_OFFSET_PX,
   THUMB_SELECT_LOCK_MS,
+  adoptFirstPaintHero,
+  clearPackHeroPins,
   holdThumbFocus,
   heroWindowScrollY,
+  mergePinnedHeroRow,
+  pinFromHeroRow,
+  readPackHeroPin,
   resolveHeroAfterRowsChange,
   resolveHeroIndex,
   resolveThumbSelectIndex,
+  rowMatchesHeroPin,
+  shouldIgnoreHeroSwipe,
   shouldIgnoreRepeatThumbSelect,
+  writePackHeroPin,
   type CarouselHeroRow,
 } from './carouselSelect';
 
@@ -209,5 +218,163 @@ describe('resolveHeroAfterRowsChange', () => {
     });
     assert.equal(next.key, kyoto.groupKey);
     assert.equal(next.pendingAdvance, true);
+  });
+
+  it('does not auto-advance after remount when only the module pin remains', () => {
+    const pin = pinFromHeroRow(kyoto);
+    const next = resolveHeroAfterRowsChange({
+      rows: [triangle, kyoto, extra],
+      selectedKey: kyoto.groupKey,
+      pendingAdvance: true,
+      pinnedBySelect: false,
+      hasMore: true,
+      rowsGrew: true,
+      pin,
+    });
+    assert.equal(next.key, kyoto.groupKey);
+    assert.equal(next.index, 1);
+    assert.equal(next.pendingAdvance, false);
+  });
+
+  it('retargets the pin when densify remints groupKey (stub → full title)', () => {
+    const stub = film('film:w:sous le ciel de', 'kyoto-1');
+    const full = film('film:w:sous le ciel de kyoto', 'kyoto-1');
+    const pin = pinFromHeroRow(stub);
+    const next = resolveHeroAfterRowsChange({
+      rows: [triangle, full],
+      selectedKey: stub.groupKey,
+      pendingAdvance: false,
+      pinnedBySelect: true,
+      hasMore: false,
+      pin,
+    });
+    assert.equal(next.key, full.groupKey);
+    assert.equal(next.index, 1);
+  });
+});
+
+describe('adoptFirstPaintHero', () => {
+  const film1 = film('film:w:la regle du jeu', 'regle-1');
+  const film2 = film('film:w:l odyssee', 'odyssee-1');
+  const film3 = film('film:w:the dog stars', 'dog-1');
+
+  it('pins rows[0] on first paint', () => {
+    const first = adoptFirstPaintHero([film1, film2, film3], null);
+    assert.equal(first.key, film1.groupKey);
+    assert.equal(first.pin?.groupKey, film1.groupKey);
+  });
+
+  it('does not follow a new rows[0] after densify / shuffle / reco hydrate', () => {
+    const first = adoptFirstPaintHero([film1, film2, film3], null);
+    const shuffled = [film3, film2, film1];
+    const next = resolveHeroAfterRowsChange({
+      rows: shuffled,
+      selectedKey: first.key,
+      pendingAdvance: false,
+      pinnedBySelect: false,
+      hasMore: false,
+      pin: first.pin,
+    });
+    assert.equal(next.key, film1.groupKey);
+    assert.equal(next.index, 2);
+    assert.equal(resolveHeroIndex(shuffled, null), 0);
+    assert.notEqual(shuffled[0]!.groupKey, film1.groupKey);
+  });
+
+  it('keeps the first-paint film when it drops out of the new strip', () => {
+    const first = adoptFirstPaintHero([film1, film2], null);
+    const next = resolveHeroAfterRowsChange({
+      rows: [film2, film3],
+      selectedKey: first.key,
+      pendingAdvance: false,
+      pinnedBySelect: true,
+      hasMore: false,
+      pin: first.pin,
+    });
+    assert.equal(next.key, film1.groupKey);
+    assert.equal(next.index, -1);
+  });
+});
+
+describe('rowMatchesHeroPin / remount restore', () => {
+  beforeEach(() => clearPackHeroPins());
+
+  it('matches a reminted groupKey via seance identity', () => {
+    const pin = pinFromHeroRow(film('film:w:c', 'caire-stub'), 'film:w:c');
+    const full = {
+      groupKey: 'film:w:le caire confidentiel',
+      itemKey: 'caire-full',
+      seanceKeys: ['caire-stub', 'caire-full'],
+    };
+    assert.equal(rowMatchesHeroPin(full, pin), true);
+    assert.equal(resolveHeroIndex([film('film:w:other'), full], pin.key, pin), 1);
+  });
+
+  it('survives a remount: store → resolveHeroIndex, not rows[0]', () => {
+    const kyoto = film('film:w:sous le ciel de kyoto', 'kyoto-1');
+    const triangle = film('film:w:triangle d or', 'triangle-1');
+    writePackHeroPin('cine', pinFromHeroRow(kyoto));
+    const restored = readPackHeroPin('cine');
+    assert.ok(restored);
+    assert.equal(
+      resolveHeroIndex([triangle, kyoto], null, restored),
+      1,
+    );
+  });
+
+  it('does not snap to index 0 when the pin misses the visible slice', () => {
+    const kyoto = film('film:w:sous le ciel de kyoto', 'kyoto-1');
+    const triangle = film('film:w:triangle d or', 'triangle-1');
+    assert.equal(
+      resolveHeroIndex([triangle], kyoto.groupKey, pinFromHeroRow(kyoto)),
+      -1,
+    );
+  });
+});
+
+describe('mergePinnedHeroRow', () => {
+  it('appends the pinned work when cineLimit dropped it', () => {
+    const kyoto = film('film:w:sous le ciel de kyoto', 'kyoto-1');
+    const triangle = film('film:w:triangle d or', 'triangle-1');
+    const cairo = film('film:w:le caire', 'caire-1');
+    const merged = mergePinnedHeroRow(
+      [triangle],
+      [triangle, cairo, kyoto],
+      pinFromHeroRow(kyoto),
+    );
+    assert.equal(merged.length, 2);
+    assert.equal(merged[1]?.groupKey, kyoto.groupKey);
+  });
+});
+
+describe('shouldIgnoreHeroSwipe', () => {
+  const base = {
+    startX: 200,
+    startY: 400,
+    endX: 80,
+    endY: 400,
+    didMove: true,
+    lockUntil: 1_000,
+    now: 3_000,
+  };
+
+  it('accepts a real horizontal swipe after the lock', () => {
+    assert.equal(shouldIgnoreHeroSwipe(base), false);
+  });
+
+  it('ignores touchend without touchmove (scrollIntoView / layout shift)', () => {
+    assert.equal(shouldIgnoreHeroSwipe({ ...base, didMove: false }), true);
+  });
+
+  it('ignores swipe during the programmatic-scroll lock', () => {
+    assert.equal(shouldIgnoreHeroSwipe({ ...base, now: 999 }), true);
+    assert.ok(HERO_SWIPE_LOCK_MS >= 1_500);
+  });
+
+  it('ignores a vertical-dominant gesture', () => {
+    assert.equal(
+      shouldIgnoreHeroSwipe({ ...base, endX: 180, endY: 280 }),
+      true,
+    );
   });
 });
