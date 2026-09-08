@@ -4,6 +4,7 @@ import { filterSeancesForActiveFilters } from './displayFilter';
 import { itemMatchesCommune } from './commune';
 import {
   cineRows,
+  DISPLAY_SLOT_ORDER,
   fillEmptyCineFromPool,
   findDayItemByKey,
   enfantsRows,
@@ -22,6 +23,7 @@ import {
   HOME_LIST_WAIT_SLOT_CLASS,
   shouldShowTop3Section,
   theatreRows,
+  TOP3_CAROUSEL_TRACK_CLASS,
   top3CardFrameClass,
   top3GridClass,
   top3IndicatorLabel,
@@ -372,6 +374,23 @@ describe('pack rows + date filter', () => {
     ]);
     assert.equal(top.length, 3);
     assert.ok(top.some((row) => slotFormOfItem(row) === 'cine'));
+  });
+
+  it('paints théâtre first, then ciné, then concert when all slots exist', () => {
+    assert.deepEqual(DISPLAY_SLOT_ORDER, ['theatre', 'cine', 'concert']);
+    const top = visibleTop3Items([
+      item({ key: 'co', cat: 'concert' }),
+      item({ key: 'cine', cat: 'cinema', filmId: 'F1' }),
+      item({ key: 'th', cat: 'theatre' }),
+    ]);
+    assert.deepEqual(
+      top.map((row) => slotFormOfItem(row)),
+      ['theatre', 'cine', 'concert'],
+    );
+    assert.deepEqual(
+      top.map((row) => row.key),
+      ['th', 'cine', 'co'],
+    );
   });
 
   it('tous reco does not re-apply day/soir window', () => {
@@ -919,6 +938,12 @@ describe('Top 3 mobile carousel (<md)', () => {
     const two = top3TrackClass(2);
     assert.ok(two.includes('sm:grid-cols-2'));
     assert.ok(two.includes('md:grid'));
+  });
+
+  it('allows vertical page pan as well as horizontal snap (not pan-x only)', () => {
+    assert.equal(TOP3_CAROUSEL_TRACK_CLASS.includes('touch-pan-x'), false);
+    assert.ok(TOP3_CAROUSEL_TRACK_CLASS.includes('[touch-action:pan-x_pan-y]'));
+    assert.ok(top3TrackClass(3).includes('[touch-action:pan-x_pan-y]'));
   });
 
   it('peeks the next card at ~85% width on mobile; md+ fills the cell', () => {
