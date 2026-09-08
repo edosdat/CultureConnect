@@ -1,6 +1,7 @@
 /**
  * Thumb-strip selection in CinemaCarousel (cine / théâtre / musique / …).
- * Touch + overflow-x + scroll-to-hero used to retarget the tap onto a neighbor.
+ * On a phone, overflow-x focus-scroll + mid-gesture hero scroll retarget
+ * the tap onto a neighbor. Desktop-narrow mouse clicks do not reproduce it.
  * Hero identity is a stable group/item key — numeric index follows rows
  * when requestMore / densify / GPS / agenda refresh reorders the strip.
  */
@@ -9,7 +10,13 @@
 export const HOME_STICKY_OFFSET_PX = 64;
 
 /** Ignore a second activation from the same gesture (ghost / retargeted click). */
-export const THUMB_SELECT_LOCK_MS = 400;
+export const THUMB_SELECT_LOCK_MS = 500;
+
+/**
+ * Run scroll-to-hero and requestMore after the touch+click sequence.
+ * setTimeout(0) still fires while the finger is down.
+ */
+export const HERO_SCROLL_DEFER_MS = 500;
 
 export type CarouselHeroRow = {
   groupKey: string;
@@ -26,9 +33,26 @@ export function shouldIgnoreRepeatThumbSelect(
 }
 
 /**
+ * The film under the finger at touchstart — not the click target after
+ * the overflow strip jumped. Works for numeric index or groupKey.
+ */
+export function resolveThumbSelectIndex<T>(
+  armed: T | null,
+  eventValue: T,
+): T {
+  return armed ?? eventValue;
+}
+
+export function holdThumbFocus(el: {
+  focus: (opts?: { preventScroll?: boolean }) => void;
+}): void {
+  el.focus({ preventScroll: true });
+}
+
+/**
  * Window Y to pin the hero under the sticky search, or `null` if the fiche
- * is already on-screen. Snapping a visible hero to `block: start` scrolls
- * the page mid-tap and the strip jump lands on a second film.
+ * is already on-screen. Snapping a visible hero to `block: start` mid-tap
+ * moves the strip under the finger.
  */
 export function heroWindowScrollY(opts: {
   heroTop: number;

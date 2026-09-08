@@ -1,13 +1,16 @@
 'use client';
 
-import { useEffect, useRef, useState, type PointerEvent, type TouchEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type PointerEvent, type TouchEvent } from 'react';
 import type { DayItem } from '@/lib/types';
 import type { AgendaDetailResponse } from '@/lib/slim';
 import type { DenseRow } from '@/lib/densify';
 import {
+  HERO_SCROLL_DEFER_MS,
+  holdThumbFocus,
   heroWindowScrollY,
   resolveHeroAfterRowsChange,
   resolveHeroIndex,
+  resolveThumbSelectIndex,
   shouldIgnoreRepeatThumbSelect,
   type CarouselHeroRow,
 } from '@/lib/carouselSelect';
@@ -132,11 +135,14 @@ function webcalHref(itemKey: string): string {
 
 function FilmThumb({
   row,
+  onArm,
   onSelect,
   active,
   distanceKm,
 }: {
   row: DenseRow;
+  /** Touchstart: remember this film before the strip can jump. */
+  onArm?: () => void;
   onSelect: () => void;
   active?: boolean;
   /** Default (nearest) cinema km only — never a pile of salles. */
@@ -149,20 +155,24 @@ function FilmThumb({
   return (
     <button
       type="button"
+      onTouchStart={(e) => {
+        holdThumbFocus(e.currentTarget);
+        onArm?.();
+      }}
       onPointerDown={(e: PointerEvent<HTMLButtonElement>) => {
         if (e.button !== 0) return;
-        // Prevent UA focus-scroll of the overflow-x strip — that shift
-        // retargets the tap onto the neighboring film.
-        e.preventDefault();
+        holdThumbFocus(e.currentTarget);
+        // Touch: arm only — commit on click with the armed groupKey.
+        // Mouse: desktop-narrow clicks are reliable; commit now.
+        if (e.pointerType === 'touch') {
+          onArm?.();
+          return;
+        }
         onSelect();
       }}
-      onClick={(e) => {
-        // Keyboard (Enter/Space): detail is 0. Pointer already selected.
-        if (e.detail !== 0) return;
-        onSelect();
-      }}
+      onClick={onSelect}
       aria-current={active ? 'true' : undefined}
-      className="group flex w-[7.5rem] shrink-0 flex-col text-left focus-visible:!outline-none sm:w-[8.5rem]"
+      className="group flex w-[7.5rem] shrink-0 flex-col touch-manipulation text-left focus-visible:!outline-none sm:w-[8.5rem]"
     >
       <div
         className={
@@ -344,6 +354,7 @@ export default function CinemaCarousel({
   const rowsLen = useRef(rows.length);
   const touchX = useRef<number | null>(null);
   const selectAt = useRef<number | null>(null);
+  const armedKey = useRef<string | null>(null);
 
   function markMoved() {
     userMoved.current = true;
@@ -366,6 +377,26 @@ export default function CinemaCarousel({
 
   useEffect(() => {
     setMobileCal(isLikelyMobile());
+  }, []);
+
+  const stripTouchCleanup = useRef<(() => void) | null>(null);
+  const bindStrip = useCallback((el: HTMLDivElement | null) => {
+    stripRef.current = el;
+    stripTouchCleanup.current?.();
+    stripTouchCleanup.current = null;
+    if (!el) return;
+    const onTouchStart = (e: globalThis.TouchEvent) => {
+      const btn = (e.target as Element | null)?.closest?.('button');
+      if (btn instanceof HTMLElement && el.contains(btn)) {
+        holdThumbFocus(btn);
+      }
+    };
+    el.addEventListener('touchstart', onTouchStart, {
+      capture: true,
+      passive: true,
+    });
+    stripTouchCleanup.current = () =>
+      el.removeEventListener('touchstart', onTouchStart, true);
   }, []);
 
   useEffect(() => {
@@ -469,36 +500,51 @@ export default function CinemaCarousel({
     requestMore();
   }
 
-  /** Thumb strip sits below the fiche — bring the hero back under sticky search. */
-  function queueHeroScroll() {
-    window.setTimeout(() => {
-      const hero = heroCardRef.current;
-      if (!hero) return;
-      const rect = hero.getBoundingClientRect();
-      const top = heroWindowScrollY({
+  /** After the tap — not mid-gesture, when scrollIntoView retargets the click. */
+  function scrollHeroIntoView() {
+    const card = heroCardRef.current;
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    if (
+      heroWindowScrollY({
         heroTop: rect.top,
         heroBottom: rect.bottom,
         scrollY: window.scrollY,
         viewportHeight: window.innerHeight,
-      });
-      if (top == null) return;
-      window.scrollTo({ top, behavior: 'smooth' });
-    }, 0);
+      }) == null
+    ) {
+      return;
+    }
+    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function queueHeroScroll() {
+    window.setTimeout(scrollHeroIntoView, HERO_SCROLL_DEFER_MS);
+  }
+
+  function armThumb(row: DenseRow) {
+    armedKey.current = row.groupKey;
+    window.setTimeout(() => {
+      if (armedKey.current === row.groupKey) armedKey.current = null;
+    }, HERO_SCROLL_DEFER_MS);
   }
 
   function selectThumb(row: DenseRow) {
+    const key = resolveThumbSelectIndex(armedKey.current, row.groupKey);
+    armedKey.current = null;
     const now = Date.now();
     if (shouldIgnoreRepeatThumbSelect(selectAt.current, now)) return;
     selectAt.current = now;
     markMoved();
     pinnedBySelect.current = true;
     pendingAdvance.current = false;
-    pinnedRow.current = row;
-    setHeroKey(row.groupKey);
+    const pinned = rows.find((r) => r.groupKey === key) ?? row;
+    pinnedRow.current = pinned;
+    setHeroKey(key);
     queueHeroScroll();
-    const i = rows.findIndex((r) => r.groupKey === row.groupKey);
+    const i = rows.findIndex((r) => r.groupKey === key);
     if (i >= rows.length - 1) {
-      window.setTimeout(() => requestMore(), 0);
+      window.setTimeout(() => requestMore(), HERO_SCROLL_DEFER_MS);
     }
   }
 
@@ -573,7 +619,7 @@ export default function CinemaCarousel({
   const thumbs = (
     <div className="relative">
       <div
-        ref={stripRef}
+        ref={bindStrip}
         onScroll={onStripScroll}
         className="flex gap-3 overflow-x-auto overscroll-x-contain scroll-px-2 pb-1 [overflow-anchor:none] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
@@ -581,6 +627,7 @@ export default function CinemaCarousel({
           <FilmThumb
             key={row.groupKey}
             row={row}
+            onArm={() => armThumb(row)}
             onSelect={() => selectThumb(row)}
             active={hero ? row.groupKey === hero.groupKey : i === 0}
             distanceKm={
