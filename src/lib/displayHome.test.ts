@@ -13,6 +13,7 @@ import {
   musiqueRows,
   resolveHomeCardOpen,
   itemPitch,
+  rowDisplayTitle,
   resolveSearchSubmit,
   SEARCH_EXAMPLES,
   SEARCH_PLACEHOLDER,
@@ -964,5 +965,28 @@ describe('Top 3 mobile carousel (<md)', () => {
     assert.equal(top3IndicatorLabel(0, 3), '1/3');
     assert.equal(top3IndicatorLabel(1, 3), '2/3');
     assert.equal(top3IndicatorLabel(2, 2), '2/2');
+  });
+});
+
+describe('rowDisplayTitle', () => {
+  it('prefers a full sibling title over a catalogue stub like C…', () => {
+    const stub = item({
+      key: 'caire-stub',
+      cat: 'cinema',
+      title: 'C…',
+      filmId: 'F-CAIRE',
+    });
+    const full = item({
+      key: 'caire-full',
+      cat: 'cinema',
+      title: 'Le Caire confidentiel',
+      filmId: 'F-CAIRE',
+    });
+    assert.equal(rowDisplayTitle({ item: stub, seances: [stub, full] }), 'Le Caire confidentiel');
+  });
+
+  it('keeps a lone stub when the group has no fuller title', () => {
+    const stub = item({ key: 'c-only', cat: 'cinema', title: 'C…' });
+    assert.equal(rowDisplayTitle({ item: stub, seances: [stub] }), 'C…');
   });
 });

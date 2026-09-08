@@ -6,7 +6,10 @@ import type { AgendaDetailResponse } from '@/lib/slim';
 import type { DenseRow } from '@/lib/densify';
 import {
   heroWindowScrollY,
+  resolveHeroAfterRowsChange,
+  resolveHeroIndex,
   shouldIgnoreRepeatThumbSelect,
+  type CarouselHeroRow,
 } from '@/lib/carouselSelect';
 import {
   calendarPayloadFromDayItem,
@@ -24,7 +27,7 @@ import { seanceDateIso } from '@/lib/timeScope';
 import {
   isLikelyMobile,
   itemPitch,
-  itemTitle,
+  rowDisplayTitle,
   seanceWhen,
 } from '@/lib/displayHome';
 import { itemKmLabel, minKmLabel, type GeoPos } from '@/lib/nearMe';
@@ -141,6 +144,7 @@ function FilmThumb({
 }) {
   const item = row.item;
   const image = posterUrl(item);
+  const title = rowDisplayTitle(row);
   const when = seanceWhen(item, row.earliestHeure);
   return (
     <button
@@ -185,8 +189,11 @@ function FilmThumb({
           <TheatreUrgenceBadge item={item} />
         </span>
       </div>
-      <p className="mt-1.5 line-clamp-2 text-sm font-semibold leading-snug text-culture-ink">
-        {itemTitle(item)}
+      <p
+        title={title}
+        className="mt-1.5 min-w-0 w-full break-words line-clamp-2 text-sm font-semibold leading-snug text-culture-ink"
+      >
+        {title}
       </p>
       {itemPitch(item) ? (
         <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-culture-muted">
@@ -227,6 +234,14 @@ function seanceLine(rel: DayItem): string {
 function seanceOptionLabel(rel: DayItem): string {
   const date = formatDateShort(seanceDateIso(rel) || rel.dayIso);
   return [date, seanceHeure(rel), compactVenue(rel)].filter(Boolean).join(' · ');
+}
+
+function toHeroRow(row: DenseRow): CarouselHeroRow {
+  return {
+    groupKey: row.groupKey,
+    itemKey: row.item.key,
+    seanceKeys: row.seances?.map((s) => s.key),
+  };
 }
 
 function sourceUrlOf(item: DayItem): string {
@@ -309,7 +324,7 @@ export default function CinemaCarousel({
 }: Props) {
   const copy = PACK_COPY[pack];
   const seancesDomId = `${pack}-seances`;
-  const [heroIndex, setHeroIndex] = useState(0);
+  const [heroKey, setHeroKey] = useState<string | null>(null);
   const [pickedKey, setPickedKey] = useState<string | null>(null);
   const stripRef = useRef<HTMLDivElement | null>(null);
   const heroCardRef = useRef<HTMLDivElement | null>(null);
@@ -324,6 +339,9 @@ export default function CinemaCarousel({
   moreApi.current = { hasMore, onNeedMore };
   const userMoved = useRef(false);
   const pendingAdvance = useRef(false);
+  const pinnedBySelect = useRef(false);
+  const pinnedRow = useRef<DenseRow | null>(null);
+  const rowsLen = useRef(rows.length);
   const touchX = useRef<number | null>(null);
   const selectAt = useRef<number | null>(null);
 
@@ -339,21 +357,23 @@ export default function CinemaCarousel({
     load();
   }
 
+  const heroRows = rows.map(toHeroRow);
+  const resolvedIndex = resolveHeroIndex(heroRows, heroKey);
+  const heroFromRows = resolvedIndex >= 0 ? rows[resolvedIndex] : null;
+  if (heroFromRows) pinnedRow.current = heroFromRows;
+  const hero = heroFromRows ?? pinnedRow.current ?? rows[0];
+  const heroIndex = resolvedIndex >= 0 ? resolvedIndex : 0;
+
   useEffect(() => {
     setMobileCal(isLikelyMobile());
   }, []);
 
   useEffect(() => {
     if (!focusKey) return;
-    const i = rows.findIndex((r) => r.item.key === focusKey);
-    if (i >= 0) setHeroIndex(i);
-  }, [focusKey, rows]);
-
-  useEffect(() => {
-    if (heroIndex > rows.length - 1) setHeroIndex(0);
-  }, [heroIndex, rows.length]);
-
-  const hero = rows[heroIndex] ?? rows[0];
+    pinnedBySelect.current = false;
+    pendingAdvance.current = false;
+    setHeroKey(focusKey);
+  }, [focusKey]);
 
   useEffect(() => {
     setPickedKey(null);
@@ -412,19 +432,25 @@ export default function CinemaCarousel({
   ]);
 
   useEffect(() => {
-    if (!pendingAdvance.current) return;
-    if (heroIndex < rows.length - 1) {
-      pendingAdvance.current = false;
-      setHeroIndex((i) => Math.min(i + 1, rows.length - 1));
-    } else if (!hasMore) {
-      pendingAdvance.current = false;
-    }
-  }, [rows.length, heroIndex, hasMore]);
+    const grew = rows.length > rowsLen.current;
+    rowsLen.current = rows.length;
+    const next = resolveHeroAfterRowsChange({
+      rows: rows.map(toHeroRow),
+      selectedKey: heroKey,
+      pendingAdvance: pendingAdvance.current,
+      pinnedBySelect: pinnedBySelect.current,
+      hasMore,
+      rowsGrew: grew,
+    });
+    pendingAdvance.current = next.pendingAdvance;
+    if (next.key !== heroKey) setHeroKey(next.key);
+  }, [rows, heroKey, hasMore]);
 
   function scrollStrip(dir: -1 | 1) {
     const el = stripRef.current;
     if (!el) return;
     markMoved();
+    pinnedBySelect.current = false;
     if (dir === 1) {
       const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 24;
       if (atEnd || heroIndex >= rows.length - 1) {
@@ -460,13 +486,17 @@ export default function CinemaCarousel({
     }, 0);
   }
 
-  function selectThumb(i: number) {
+  function selectThumb(row: DenseRow) {
     const now = Date.now();
     if (shouldIgnoreRepeatThumbSelect(selectAt.current, now)) return;
     selectAt.current = now;
     markMoved();
-    setHeroIndex(i);
+    pinnedBySelect.current = true;
+    pendingAdvance.current = false;
+    pinnedRow.current = row;
+    setHeroKey(row.groupKey);
     queueHeroScroll();
+    const i = rows.findIndex((r) => r.groupKey === row.groupKey);
     if (i >= rows.length - 1) {
       window.setTimeout(() => requestMore(), 0);
     }
@@ -489,15 +519,16 @@ export default function CinemaCarousel({
     const dx = x - start;
     if (Math.abs(dx) < 40) return;
     markMoved();
+    pinnedBySelect.current = false;
     if (dx < 0) {
       if (heroIndex < rows.length - 1) {
-        setHeroIndex(heroIndex + 1);
+        setHeroKey(rows[heroIndex + 1]!.groupKey);
       } else {
         pendingAdvance.current = true;
         requestMore();
       }
-    } else {
-      setHeroIndex(Math.max(0, heroIndex - 1));
+    } else if (heroIndex > 0) {
+      setHeroKey(rows[heroIndex - 1]!.groupKey);
     }
   }
 
@@ -550,8 +581,8 @@ export default function CinemaCarousel({
           <FilmThumb
             key={row.groupKey}
             row={row}
-            onSelect={() => selectThumb(i)}
-            active={i === heroIndex}
+            onSelect={() => selectThumb(row)}
+            active={hero ? row.groupKey === hero.groupKey : i === 0}
             distanceKm={
               pack === 'cine'
                 ? minKmLabel(row.seances, cineDistanceOrigin(origin)) ??
@@ -605,8 +636,8 @@ export default function CinemaCarousel({
         </span>
         <FavoriteButton item={item} />
       </div>
-      <h3 className="font-display text-base leading-snug text-culture-ink md:text-2xl">
-        {itemTitle(item)}
+      <h3 className="min-w-0 break-words font-display text-base leading-snug text-culture-ink md:text-2xl">
+        {rowDisplayTitle(hero)}
       </h3>
       <p className="text-sm leading-snug text-culture-muted">
         {[venue, km, when].filter(Boolean).join(' • ')}

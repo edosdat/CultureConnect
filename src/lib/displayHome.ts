@@ -84,6 +84,29 @@ export function itemTitle(item: DayItem): string {
     : item.evenement.titre;
 }
 
+/** Catalogue stubs like « C… » / « J... » lose to a fuller sibling title. */
+function titleDisplayScore(title: string): number {
+  const trimmed = title.trim();
+  if (!trimmed) return 0;
+  const stem = trimmed.replace(/[.…]+$/u, '').trim();
+  const stub = /[.…]$/u.test(trimmed) && stem.length < 24;
+  return stub ? stem.length : trimmed.length + 100;
+}
+
+/** Longest / least-truncated title in a densified row (thumb + hero). */
+export function rowDisplayTitle(row: {
+  item: DayItem;
+  seances?: DayItem[];
+}): string {
+  const titles = [itemTitle(row.item), ...(row.seances ?? []).map(itemTitle)]
+    .map((t) => t.trim())
+    .filter(Boolean);
+  if (!titles.length) return '';
+  return titles.reduce((best, title) =>
+    titleDisplayScore(title) > titleDisplayScore(best) ? title : best,
+  );
+}
+
 export function itemPitch(item: DayItem): string {
   if (item.kind === 'programme') {
     return (
