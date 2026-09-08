@@ -24,6 +24,7 @@ import type {
   ProgrammeItem,
   ProgrammeWithContext,
 } from './types';
+import { catalogueVersion } from './catalogueVersion';
 import { pressFieldDefaults } from './pressCitation';
 
 function readCsv<T extends Record<string, string>>(filename: string): T[] {
@@ -143,6 +144,7 @@ export function loadArtistes(): Artiste[] {
 }
 
 let cachedCulture: CultureData | null = null;
+let cachedCultureVersion = '';
 
 function buildCultureData(): CultureData {
   const lieux = loadLieux();
@@ -284,8 +286,10 @@ function buildCultureData(): CultureData {
 }
 
 export function loadCultureData(): CultureData {
-  if (cachedCulture) return cachedCulture;
+  const version = catalogueVersion();
+  if (cachedCulture && cachedCultureVersion === version) return cachedCulture;
   cachedCulture = buildCultureData();
+  cachedCultureVersion = version;
   return cachedCulture;
 }
 

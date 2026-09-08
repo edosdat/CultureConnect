@@ -83,6 +83,12 @@ import {
   buildAgendaParams,
   listFetchShouldSkipBoot,
 } from '@/lib/agendaParams';
+import { AGENDA_GET_FETCH_INIT } from '@/lib/httpCache';
+import {
+  clearProfileRecoCache,
+  readProfileRecoCache,
+  writeProfileRecoCache,
+} from '@/lib/profileRecoCache';
 import {
   requestBrowserPosition,
   resolveNearMeResult,
@@ -101,6 +107,7 @@ type Props = {
   initialDensifiedTotal: number;
   initialCsvEvents?: number;
   initialCsvProgramme?: number;
+  initialCatalogueVersion?: string;
   initialVenues: Lieu[];
   initialGenreSlugs: string[];
   communes: string[];
@@ -177,75 +184,6 @@ function hydrateRecoCache(
   return out;
 }
 
-/** Public card payloads only — no email, no tastes text. */
-const PROFILE_RECO_CACHE_KEY = 'cc.profileReco.v1';
-
-type ProfileRecoCacheFile = {
-  parisIso: string;
-  commune: string;
-  pools: Record<string, DayItem[]>;
-};
-
-function readProfileRecoCache(
-  parisIso: string,
-  commune: string | null,
-): Record<string, DayItem[]> {
-  if (typeof window === 'undefined') return {};
-  try {
-    const raw = sessionStorage.getItem(PROFILE_RECO_CACHE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as ProfileRecoCacheFile;
-    if (!parsed || typeof parsed !== 'object') return {};
-    if (parsed.parisIso !== parisIso) return {};
-    if (normalizeCommune(parsed.commune) !== normalizeCommune(commune)) {
-      return {};
-    }
-    if (!parsed.pools || typeof parsed.pools !== 'object') return {};
-    const out: Record<string, DayItem[]> = {};
-    for (const [key, items] of Object.entries(parsed.pools)) {
-      if (!key.endsWith('|profile') || !Array.isArray(items)) continue;
-      out[key] = items;
-    }
-    return out;
-  } catch {
-    return {};
-  }
-}
-
-function writeProfileRecoCache(
-  parisIso: string,
-  commune: string | null,
-  pools: Record<string, DayItem[]>,
-): void {
-  if (typeof window === 'undefined') return;
-  try {
-    const slim: Record<string, DayItem[]> = {};
-    for (const [key, items] of Object.entries(pools)) {
-      if (!key.endsWith('|profile') || !Array.isArray(items)) continue;
-      slim[key] = items;
-    }
-    sessionStorage.setItem(
-      PROFILE_RECO_CACHE_KEY,
-      JSON.stringify({
-        parisIso,
-        commune: commune ?? '',
-        pools: slim,
-      }),
-    );
-  } catch {
-    /* quota / private mode */
-  }
-}
-
-function clearProfileRecoCache(): void {
-  if (typeof window === 'undefined') return;
-  try {
-    sessionStorage.removeItem(PROFILE_RECO_CACHE_KEY);
-  } catch {
-    /* ignore */
-  }
-}
-
 const AGENDA_PAGE_SIZE = 20;
 
 export default function CultureConnectApp({
@@ -257,6 +195,7 @@ export default function CultureConnectApp({
   initialDensifiedTotal,
   initialCsvEvents = 0,
   initialCsvProgramme = 0,
+  initialCatalogueVersion = '',
   initialVenues,
   initialGenreSlugs,
   communes,
@@ -350,6 +289,11 @@ export default function CultureConnectApp({
   );
   const [csvEvents, setCsvEvents] = useState(initialCsvEvents);
   const [csvProgramme, setCsvProgramme] = useState(initialCsvProgramme);
+  const [catalogueVersion, setCatalogueVersion] = useState(
+    initialCatalogueVersion,
+  );
+  const catalogueVersionRef = useRef(initialCatalogueVersion);
+  catalogueVersionRef.current = catalogueVersion;
   const [venueOptions, setVenueOptions] = useState<Lieu[]>(initialVenues);
   const [availableGenreSlugs, setAvailableGenreSlugs] =
     useState<string[]>(initialGenreSlugs);
@@ -544,6 +488,17 @@ export default function CultureConnectApp({
   );
 
   function applyList(data: AgendaListResponse, append = false) {
+    if (
+      data.catalogueVersion &&
+      data.catalogueVersion !== catalogueVersionRef.current
+    ) {
+      catalogueVersionRef.current = data.catalogueVersion;
+      setCatalogueVersion(data.catalogueVersion);
+      clearProfileRecoCache();
+      recoFetchedKeysRef.current.clear();
+      recoPostedWithChipsRef.current.clear();
+      setRecoPoolByKey({});
+    }
     setListItems((prev) => (append ? [...prev, ...data.items] : data.items));
     if (!append) {
       setNouveautesItems(
@@ -684,7 +639,12 @@ export default function CultureConnectApp({
           recoFetchedKeysRef.current.add(key);
           if (key.endsWith('|profile') && recoKindRef.current === 'profile') {
             if (sendProfile) recoPostedWithChipsRef.current.add(key);
-            writeProfileRecoCache(initialParisIso, selectedCommune, next);
+            writeProfileRecoCache(
+              initialParisIso,
+              selectedCommune,
+              catalogueVersion,
+              next,
+            );
           }
           return next;
         });
@@ -706,6 +666,7 @@ export default function CultureConnectApp({
     recoKind,
     currentRecoKey,
     initialParisIso,
+    catalogueVersion,
     tasteState,
     cineTotal,
     listItems,
@@ -758,7 +719,12 @@ export default function CultureConnectApp({
             };
             recoFetchedKeysRef.current.add(job.key);
             if (recoKindRef.current === 'profile') {
-              writeProfileRecoCache(initialParisIso, commune, next);
+              writeProfileRecoCache(
+                initialParisIso,
+                commune,
+                catalogueVersion,
+                next,
+              );
             }
             return next;
           });
@@ -767,11 +733,15 @@ export default function CultureConnectApp({
         }
       }),
     );
-  }, [recoKind, selectedCommune, year, month, initialParisIso]);
+  }, [recoKind, selectedCommune, year, month, initialParisIso, catalogueVersion]);
 
   // Reload first-paint: merge public profile card cache (no tastes / email).
   useEffect(() => {
-    const cached = readProfileRecoCache(initialParisIso, selectedCommune);
+    const cached = readProfileRecoCache(
+      initialParisIso,
+      selectedCommune,
+      catalogueVersion,
+    );
     if (Object.keys(cached).length === 0) return;
     let droppedStale = false;
     setRecoPoolByKey((prev) => {
@@ -799,7 +769,7 @@ export default function CultureConnectApp({
         }
       }
       if (droppedStale) {
-        writeProfileRecoCache(initialParisIso, selectedCommune, {
+        writeProfileRecoCache(initialParisIso, selectedCommune, catalogueVersion, {
           ...next,
           ...kept,
         });
@@ -809,6 +779,7 @@ export default function CultureConnectApp({
   }, [
     initialParisIso,
     selectedCommune,
+    catalogueVersion,
     initialListByScope,
     initialScope,
     initialCineTotal,
@@ -863,7 +834,10 @@ export default function CultureConnectApp({
       startListSlowWatch(gen, 'top');
       void (async () => {
         try {
-          const res = await fetch(`/api/agenda?${params.toString()}`);
+          const res = await fetch(
+            `/api/agenda?${params.toString()}`,
+            AGENDA_GET_FETCH_INIT,
+          );
           if (!res.ok) return;
           const data = (await res.json()) as AgendaListResponse;
           if (cancelled || gen !== listFetchGen.current) return;
@@ -913,7 +887,10 @@ export default function CultureConnectApp({
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch(`/api/agenda?${params.toString()}`);
+        const res = await fetch(
+          `/api/agenda?${params.toString()}`,
+          AGENDA_GET_FETCH_INIT,
+        );
         if (!res.ok) return;
         const data = (await res.json()) as AgendaListResponse;
         if (cancelled || gen !== countsFetchGen.current) return;
@@ -1175,7 +1152,12 @@ export default function CultureConnectApp({
       if (!(visibleRecoKey in prev)) return prev;
       const next = { ...prev };
       delete next[visibleRecoKey];
-      writeProfileRecoCache(initialParisIso, selectedCommune, next);
+      writeProfileRecoCache(
+        initialParisIso,
+        selectedCommune,
+        catalogueVersion,
+        next,
+      );
       return next;
     });
   }, [
@@ -1185,6 +1167,7 @@ export default function CultureConnectApp({
     cineCount,
     initialParisIso,
     selectedCommune,
+    catalogueVersion,
   ]);
   const theatreCount = allTheatreRows.length;
   const musiqueCount = allMusiqueRows.length;
@@ -1377,7 +1360,7 @@ export default function CultureConnectApp({
       phraseMode,
       phraseTags,
     });
-    void fetch(`/api/agenda?${params.toString()}`)
+    void fetch(`/api/agenda?${params.toString()}`, AGENDA_GET_FETCH_INIT)
       .then((res) => (res.ok ? res.json() : null))
       .then((data: AgendaListResponse | null) => {
         if (!data || gen !== listFetchGen.current) return;
@@ -1456,7 +1439,10 @@ export default function CultureConnectApp({
         if (scopeRange.startIso) qs.set('date_from', scopeRange.startIso);
         if (scopeRange.endIso) qs.set('date_to', scopeRange.endIso);
         if (timeScope === 'soir') qs.set('soir', '1');
-        const res = await fetch(`/api/agenda?${qs.toString()}`);
+        const res = await fetch(
+          `/api/agenda?${qs.toString()}`,
+          AGENDA_GET_FETCH_INIT,
+        );
         if (!res.ok) return;
         const data = (await res.json()) as AgendaDetailResponse;
         if (cancelled || gen !== detailFetchGen.current) return;

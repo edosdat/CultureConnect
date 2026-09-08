@@ -23,3 +23,12 @@ export function writeFavoriteKeys(keys: string[]): void {
     /* quota / private mode */
   }
 }
+
+/** Drop « à voir » keys that left the catalogue. Empty live set keeps all. */
+export function pruneFavoriteKeys(
+  keys: string[],
+  liveKeys: Set<string>,
+): string[] {
+  if (liveKeys.size === 0) return keys;
+  return keys.filter((key) => liveKeys.has(key));
+}

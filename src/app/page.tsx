@@ -116,6 +116,7 @@ async function HomePageContent({
         initialDensifiedTotal={boot.densifiedTotal}
         initialCsvEvents={boot.csvEvents}
         initialCsvProgramme={boot.csvProgramme}
+        initialCatalogueVersion={boot.catalogueVersion ?? ''}
         initialVenues={boot.venues}
         initialGenreSlugs={boot.genreSlugs}
         communes={boot.communes}

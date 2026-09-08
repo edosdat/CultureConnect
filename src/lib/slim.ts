@@ -288,6 +288,8 @@ export type AgendaListResponse = {
   csvEvents: number;
   /** Raw programme.csv rows (unfiltered). */
   csvProgramme: number;
+  /** Short hash of programme/events/films mtime (+ deploy id). Slim string. */
+  catalogueVersion?: string;
   nouveautes: DayItem[];
   communes: string[];
   venues: Lieu[];

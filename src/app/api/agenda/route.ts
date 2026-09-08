@@ -8,6 +8,13 @@ import {
   queryAgendaDetail,
   queryAgendaListCached,
 } from '@/lib/agendaQuery';
+import { catalogueVersion } from '@/lib/catalogueVersion';
+import {
+  agendaEtag,
+  ifNoneMatchHits,
+  privateNoStoreHeaders,
+  publicRevalidateHeaders,
+} from '@/lib/httpCache';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -37,33 +44,51 @@ function isRateLimited(ip: string): boolean {
   return false;
 }
 
+function agendaGetResponse(req: Request, body: unknown, vary: string) {
+  const etag = agendaEtag(catalogueVersion(), vary);
+  const headers = publicRevalidateHeaders(etag);
+  if (ifNoneMatchHits(req.headers.get('if-none-match'), etag)) {
+    return new NextResponse(null, { status: 304, headers });
+  }
+  return NextResponse.json(body, { headers });
+}
+
 export async function GET(req: Request) {
   if (isRateLimited(clientIp(req))) {
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429, headers: privateNoStoreHeaders() },
+    );
   }
   const url = new URL(req.url);
+  const vary = url.search || 'home';
   if ((url.searchParams.get('window') || '').trim() === 'home') {
     const boot = await loadHomeWindow();
-    return NextResponse.json({
-      scope: boot.scope,
-      commune: 'Toulouse',
-      items: boot.items,
-      total: boot.total,
-      densifiedTotal: boot.densifiedTotal,
-      csvEvents: boot.csvEvents,
-      csvProgramme: boot.csvProgramme,
-      nouveautes: boot.nouveautes,
-      communes: boot.communes,
-      venues: boot.venues,
-      genreSlugs: boot.genreSlugs,
-      parisIso: boot.parisIso,
-      weekday: boot.weekday,
-      genresLegend: boot.genresLegend,
-      nouveauFilmIds: boot.nouveauFilmIds,
-      vivantItems: boot.vivantItems,
-      vivantTotal: boot.vivantTotal,
-      cineTotal: boot.cineTotal,
-    });
+    return agendaGetResponse(
+      req,
+      {
+        scope: boot.scope,
+        commune: 'Toulouse',
+        items: boot.items,
+        total: boot.total,
+        densifiedTotal: boot.densifiedTotal,
+        csvEvents: boot.csvEvents,
+        csvProgramme: boot.csvProgramme,
+        catalogueVersion: boot.catalogueVersion,
+        nouveautes: boot.nouveautes,
+        communes: boot.communes,
+        venues: boot.venues,
+        genreSlugs: boot.genreSlugs,
+        parisIso: boot.parisIso,
+        weekday: boot.weekday,
+        genresLegend: boot.genresLegend,
+        nouveauFilmIds: boot.nouveauFilmIds,
+        vivantItems: boot.vivantItems,
+        vivantTotal: boot.vivantTotal,
+        cineTotal: boot.cineTotal,
+      },
+      vary,
+    );
   }
   const id = (url.searchParams.get('id') || '').trim();
   if (id) {
@@ -73,9 +98,12 @@ export async function GET(req: Request) {
       soir: url.searchParams.get('soir') === '1',
     });
     if (!detail) {
-      return NextResponse.json({ error: 'Introuvable' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Introuvable' },
+        { status: 404, headers: privateNoStoreHeaders() },
+      );
     }
-    return NextResponse.json(detail);
+    return agendaGetResponse(req, detail, vary);
   }
 
   const yearRaw = Number(url.searchParams.get('year') || '2026');
@@ -129,12 +157,15 @@ export async function GET(req: Request) {
     recoProfile: null,
   });
 
-  return NextResponse.json(result);
+  return agendaGetResponse(req, result, vary);
 }
 
 export async function POST(req: Request) {
   if (isRateLimited(clientIp(req))) {
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429, headers: privateNoStoreHeaders() },
+    );
   }
   const url = new URL(req.url);
   const recoUpcoming = url.searchParams.get('reco') === '1';
@@ -175,6 +206,5 @@ export async function POST(req: Request) {
     recoUpcoming,
     recoProfile: parseRecoProfile(body.profile),
   });
-  return NextResponse.json(result);
+  return NextResponse.json(result, { headers: privateNoStoreHeaders() });
 }
-

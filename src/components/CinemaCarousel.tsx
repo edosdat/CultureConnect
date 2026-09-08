@@ -365,7 +365,7 @@ export default function CinemaCarousel({
     if (dateFrom) qs.set('date_from', dateFrom);
     if (dateTo) qs.set('date_to', dateTo);
     if (soir) qs.set('soir', '1');
-    void fetch(`/api/agenda?${qs.toString()}`)
+    void fetch(`/api/agenda?${qs.toString()}`, { cache: 'no-cache' })
       .then((res) => (res.ok ? res.json() : null))
       .then((data: AgendaDetailResponse | null) => {
         if (cancelled || !data) return;

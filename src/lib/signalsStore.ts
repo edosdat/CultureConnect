@@ -10,6 +10,7 @@ import {
   emptyGuestStore,
   applyIncomingSignals,
   parseGuestStore,
+  pruneDeadItemSignals,
   profileHasZeroWeights,
   sanitizeTasteProfile,
   unzeroKeysTouchedBySignal,
@@ -164,6 +165,18 @@ export function wipeGuestProfileKey(
 
 export function addGuestPhraseSignal(signal: Signal): GuestSignalsStore {
   return appendGuestSignal(signal);
+}
+
+/** Drop guest action signals that pin removed catalogue ids. Empty live = no-op. */
+export function pruneGuestStoreDeadItems(live: {
+  eventIds?: Set<string>;
+  programmeIds?: Set<string>;
+  filmIds?: Set<string>;
+}): GuestSignalsStore {
+  const current = readGuestStore();
+  const events = pruneDeadItemSignals(current.events, live);
+  if (events.length === current.events.length) return current;
+  return writeGuestStore({ ...current, events });
 }
 
 export const SIGNALS_CHANGED_EVENT = 'cc-signals-changed';

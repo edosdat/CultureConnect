@@ -79,6 +79,7 @@ export function agendaListCacheKeyParts(input: {
   limit?: number;
   includeListMeta?: boolean;
   parisDay: string;
+  catalogueVersion?: string;
 }): string[] {
   const catKey = [...input.cats]
     .map((c) => c.trim().toLowerCase())
@@ -105,5 +106,6 @@ export function agendaListCacheKeyParts(input: {
     String(input.offset ?? 0),
     String(input.limit ?? ''),
     input.includeListMeta ? '1' : '0',
+    (input.catalogueVersion || '').trim(),
   ];
 }

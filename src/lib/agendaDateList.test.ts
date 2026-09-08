@@ -180,6 +180,19 @@ describe('agendaListCacheKeyParts', () => {
     }).join('|');
     assert.ok(key.includes('date-scope-slim-v2'));
   });
+
+  it('includes the catalogue version so a CSV rotate misses the 5 min list cache', () => {
+    const a = agendaListCacheKeyParts({
+      ...base,
+      catalogueVersion: 'aaa111bbb222',
+    }).join('|');
+    const b = agendaListCacheKeyParts({
+      ...base,
+      catalogueVersion: 'ccc333ddd444',
+    }).join('|');
+    assert.ok(a.includes('aaa111bbb222'));
+    assert.notEqual(a, b);
+  });
 });
 
 describe('calendar day vs upcoming first page', () => {

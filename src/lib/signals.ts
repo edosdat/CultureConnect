@@ -1038,6 +1038,33 @@ export function parseGuestStore(raw: unknown): GuestSignalsStore {
   };
 }
 
+/**
+ * Drop action signals that pin a programme / event / film no longer in the
+ * live catalogue. Chip / search / tastes_text rows stay. Empty live sets =
+ * keep everything (slim boot is not the full catalogue).
+ */
+export function pruneDeadItemSignals(
+  signals: Signal[],
+  live: {
+    eventIds?: Set<string>;
+    programmeIds?: Set<string>;
+    filmIds?: Set<string>;
+  },
+): Signal[] {
+  const events = live.eventIds;
+  const programmes = live.programmeIds;
+  const films = live.filmIds;
+  if (!events?.size && !programmes?.size && !films?.size) return signals;
+  return signals.filter((s) => {
+    const pinned = Boolean(s.event_id || s.programme_id || s.film_id);
+    if (!pinned) return true;
+    if (s.programme_id && programmes?.has(s.programme_id)) return true;
+    if (s.event_id && events?.has(s.event_id)) return true;
+    if (s.film_id && films?.has(s.film_id)) return true;
+    return false;
+  });
+}
+
 export function isCinemaSignal(s: Signal): boolean {
   if (s.film_id) return true;
   const main = mappedCategorie(s.categorie);

@@ -11,6 +11,7 @@ import type {
   ProgrammeItem,
   ProgrammeWithContext,
 } from './types';
+import { catalogueVersion } from './catalogueVersion';
 import { loadCultureData } from './data';
 import { catsAllowCinemaPack, formFromCategorieAndForm, mainFromForm } from './categories';
 import { filterItemsByCommune } from './commune';
@@ -150,11 +151,15 @@ export function parseRecoProfile(raw: unknown): TasteProfile | null {
   return profileHasChipWeight(profile) ? profile : null;
 }
 
-function csvRowCounts(): Pick<AgendaListResponse, 'csvEvents' | 'csvProgramme'> {
+function csvRowCounts(): Pick<
+  AgendaListResponse,
+  'csvEvents' | 'csvProgramme' | 'catalogueVersion'
+> {
   const data = loadCultureData();
   return {
     csvEvents: data.evenements.length,
     csvProgramme: data.programme.length,
+    catalogueVersion: catalogueVersion(),
   };
 }
 
@@ -171,6 +176,7 @@ function emptyRecoExtras(): Pick<
   | 'cineTotal'
   | 'csvEvents'
   | 'csvProgramme'
+  | 'catalogueVersion'
 > {
   return {
     nouveautes: [],
@@ -1142,7 +1148,7 @@ export async function loadHomeWindow(
   const day = parisParts(now).iso;
   return unstable_cache(
     async () => computeHomeWindow(new Date()),
-    ['home-window-slim-v2', day],
+    ['home-window-slim-v2', day, catalogueVersion()],
     { revalidate: 300 },
   )();
 }
@@ -1385,6 +1391,7 @@ export async function queryAgendaListCached(
       limit: input.limit,
       includeListMeta: input.includeListMeta,
       parisDay: day,
+      catalogueVersion: catalogueVersion(),
     }),
     { revalidate: 300 },
   )();
