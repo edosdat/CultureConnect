@@ -9,7 +9,6 @@ import {
   cinemaKeyOf,
   cinemaOptionLabel,
   cineDistanceOrigin,
-  cineSeanceLineLabel,
   defaultCineSeance,
   groupCinemasForFilm,
   horaireOptionLabel,
@@ -132,31 +131,6 @@ export default function CineSeancePicker({
           <SeanceReserveLink item={active} onReserve={onReserve} />
         </div>
       </div>
-      <ul
-        data-testid="cine-seance-lines"
-        className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-sm"
-      >
-        {horaireRows.map((rel) => {
-          const version = seanceVersionLabel(rel);
-          return (
-            <li key={rel.key}>
-              <button
-                type="button"
-                onClick={() => onPick(rel.key)}
-                data-testid="cine-seance-line"
-                data-langue={version ?? ''}
-                className={
-                  rel.key === active.key
-                    ? 'font-medium text-culture-ink'
-                    : 'text-culture-muted hover:text-culture-ink'
-                }
-              >
-                {cineSeanceLineLabel(rel, horaireRows)}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
     </div>
   );
 }
