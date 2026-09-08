@@ -853,6 +853,30 @@ describe('login merge — empty guest must not wipe JWT', () => {
     assert.deepEqual(p.genres, {});
   });
 
+  it('adds guest favorite onto stored email tastes without inventing moods', () => {
+    const stored = state({
+      profile: profile({ moods: { tendre: { weight: 3, pct: 100 } } }),
+    });
+    const out = resolveLoginMerge({
+      stored,
+      jwt: state(),
+      guestSignals: [
+        makeSignal({
+          kind: 'favorite',
+          event_id: 'ev-1',
+          moods: ['humour', 'sortie'],
+          genres: ['standup'],
+        }),
+      ],
+      guestProfile: emptyProfile(),
+    });
+    assert.equal(out.wroteGuest, true);
+    assert.ok((out.state.profile.moods.tendre?.weight ?? 0) >= 3);
+    assert.ok((out.state.profile.moods.rigolo?.weight ?? 0) > 0);
+    assert.equal(out.state.profile.moods.humour, undefined);
+    assert.equal(out.state.profile.moods.sortie, undefined);
+  });
+
   it('sanitize drops cats and sortie', () => {
     const clean = sanitizeTasteProfile({
       ...emptyProfile(),

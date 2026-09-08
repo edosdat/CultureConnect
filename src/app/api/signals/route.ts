@@ -7,17 +7,15 @@ import {
 } from '@/lib/accountTasteStore';
 import {
   ACCOUNT_CAP,
-  applyIncomingSignals,
   coerceProfile,
+  commitTasteSignals,
   concatTastesText,
   ingestMapSignal,
-  isTasteWritingSignal,
+  isKnownSignalKind,
   makeSignal,
-  mergeSignalLists,
   parseTasteState,
   rebuildTasteState,
   resolveLoginMerge,
-  unzeroKeysTouchedBySignal,
   wipeProfileKey,
   type AccountTasteState,
   type ProfileBucket,
@@ -28,7 +26,10 @@ import {
 
 function isTrackPayload(v: unknown): v is TrackPayload {
   return Boolean(
-    v && typeof v === 'object' && typeof (v as TrackPayload).kind === 'string',
+    v &&
+      typeof v === 'object' &&
+      typeof (v as TrackPayload).kind === 'string' &&
+      isKnownSignalKind((v as TrackPayload).kind),
   );
 }
 
@@ -37,6 +38,7 @@ function isSignalLike(v: unknown): v is Signal {
   const s = v as Partial<Signal>;
   return (
     typeof s.kind === 'string' &&
+    isKnownSignalKind(s.kind) &&
     typeof s.weight === 'number' &&
     Array.isArray(s.genres) &&
     Array.isArray(s.moods)
@@ -182,6 +184,7 @@ export async function POST(req: Request) {
       | undefined;
     return NextResponse.json({
       ok: true,
+      wroteGuest: merged.wroteGuest,
       tasteState: nextUser?.tasteState ?? tasteState,
       tastes: nextUser?.tastes ?? tasteState.tastesText ?? '',
       tastesSetAt: nextUser?.tastesSetAt ?? tasteState.tastesSetAt,
@@ -204,27 +207,19 @@ export async function POST(req: Request) {
     );
   }
 
-  // chip_cat stays on the wire (Cinéma grid filter). L() does not increment cats.
-  const signals = mergeSignalLists(
-    current.signalsRecent,
+  // Same commit path as guest track — map ingest, collapse paired clicks.
+  const committed = commitTasteSignals(
+    { events: current.signalsRecent, profile: current.profile },
     incomingSignals,
     ACCOUNT_CAP,
   );
 
-  // Incoming signals only — do not inventory signalsRecent history.
-  let overlayPrev = current.profile;
-  const incomingTaste = incomingSignals.filter(isTasteWritingSignal);
-  for (const s of incomingTaste) {
-    overlayPrev = unzeroKeysTouchedBySignal(overlayPrev, s);
-  }
-  overlayPrev = applyIncomingSignals(overlayPrev, incomingTaste);
-
   let tasteState = rebuildTasteState(
-    signals,
+    committed.events,
     tastesText,
     tastesSetAt,
     ACCOUNT_CAP,
-    overlayPrev,
+    committed.profile,
   );
 
   if (wipe) {

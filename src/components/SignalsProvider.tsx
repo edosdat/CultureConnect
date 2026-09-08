@@ -16,8 +16,8 @@ import { phraseToTrackPayload } from '@/lib/pourToi';
 import {
   LOGIN_NUDGE_DISMISS_KEY,
   emptyGuestStore,
-  guestHasMergeableTastes,
   hasScorableState,
+  shouldPostLoginMerge,
   makeSignal,
   payloadFromDayItem,
   profileHasZeroWeights,
@@ -79,6 +79,7 @@ async function postSignals(body: unknown): Promise<{
   tasteState?: AccountTasteState;
   tastes?: string;
   tastesSetAt?: string;
+  wroteGuest?: boolean;
 } | null> {
   const res = await fetch('/api/signals', {
     method: 'POST',
@@ -90,6 +91,7 @@ async function postSignals(body: unknown): Promise<{
     tasteState?: AccountTasteState;
     tastes?: string;
     tastesSetAt?: string;
+    wroteGuest?: boolean;
   };
 }
 
@@ -127,9 +129,8 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
     if (mergedRef.current) return;
     const jwtTaste = session.user.tasteState ?? null;
     const guest = readGuestStore();
-    const guestMergeable = guestHasMergeableTastes(guest.events, guest.profile);
-    // zv(JWT) → show JWT. Empty / cinema-only guest never passes zv — no POST, no wipe.
-    if (hasScorableState(jwtTaste) || !guestMergeable) {
+    // Additive merge even when JWT/email already has tastes. Empty guest → no POST.
+    if (!shouldPostLoginMerge(jwtTaste, guest.events, guest.profile)) {
       mergedRef.current = true;
       return;
     }
@@ -151,8 +152,9 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
         tastes: data.tastes ?? data.tasteState.tastesText ?? '',
         tastesSetAt: data.tastesSetAt ?? data.tasteState.tastesSetAt,
       });
-      // Wipe cc_signals_v1 only if zv(response). Cinema-only never passes.
-      if (hasScorableState(data.tasteState)) {
+      // Clear guest after additive merge (including tagless audit-only).
+      // Cinema-only / empty guest never posts, so they never reach here.
+      if (data.wroteGuest || hasScorableState(data.tasteState)) {
         clearGuestStore();
         setGuestStore(emptyGuestStore());
         notifySignalsChanged();
