@@ -1779,11 +1779,13 @@ export default function CultureConnectApp({
           </div>
         </div>
 
-        {/* Genres only: collapsed behind Filtres on mobile; always on md+ */}
+        {/* Genres: mobile shows them as soon as a QUOI chip is on (or Filtres);
+            always on md+. hideWhenNoCategory keeps the block empty until QUOI. */}
         <div
           className={
-            (showFiltersMobile ? 'flex' : 'hidden') +
-            ' flex-col gap-2.5 md:flex md:gap-4'
+            (showFiltersMobile || selectedCategories.length > 0
+              ? 'flex'
+              : 'hidden') + ' flex-col gap-2.5 md:flex md:gap-4'
           }
         >
           <GenreFilter
