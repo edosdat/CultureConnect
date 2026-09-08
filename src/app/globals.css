@@ -197,7 +197,7 @@ body {
 .cc-axes__more {
   flex: 0 0 auto;
 }
-/* Compact landscape hero. Cinema: blurred cover + sharp contain. Else letterbox. */
+/* Compact landscape hero (all packs). Blurred cover + sharp contain, no crop. */
 .cine-hero-frame {
   position: relative;
   isolation: isolate;

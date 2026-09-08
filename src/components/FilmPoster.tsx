@@ -8,20 +8,20 @@ type Props = {
   src: string;
   item?: DayItem;
   className?: string;
-  /** YouTube-style blurred full-bleed. Cinema fiche / film-card hero only. */
+  /** YouTube-style blurred full-bleed behind a sharp contain poster. All packs. */
   blurBackdrop?: boolean;
 };
 
 /**
- * Compact landscape cine hero (16:7 / 16:9, height-capped).
- * Cinema: same affiche twice — blurred cover behind a sharp contain poster.
- * Theatre/music: contain only (letterbox). Never crop the foreground.
+ * Compact landscape pack hero (16:7 / 16:9, height-capped).
+ * Same image twice — blurred cover behind a sharp contain poster.
+ * Used by cine, theatre, musique, enfants, expo. Never crop the foreground.
  */
 export default function FilmPoster({
   src,
   item,
   className = '',
-  blurBackdrop = false,
+  blurBackdrop = true,
 }: Props) {
   const [failed, setFailed] = useState(false);
   useEffect(() => {
