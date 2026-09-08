@@ -21,6 +21,8 @@ import {
   makeSignal,
   payloadFromDayItem,
   profileHasZeroWeights,
+  rememberDayItemTasteTags,
+  rememberedTagSource,
   shouldPromptLogin,
   wipeProfileKey,
   type AccountTasteState,
@@ -36,6 +38,7 @@ import {
   clearGuestStore,
   notifySignalsChanged,
   readGuestStore,
+  rememberGuestItemTags,
   wipeGuestProfileKey,
 } from '@/lib/signalsStore';
 import { notifyTasteCookieOnce } from './TasteCookieNotice';
@@ -48,6 +51,7 @@ type SignalsValue = {
     kind: ItemSignalKind,
     tagSource?: DayItem | null,
   ) => void;
+  rememberItem: (item: DayItem) => void;
   wipeKey: (bucket: ProfileBucket, key: string) => void;
   addPhrase: (text: string) => void;
   guestStore: GuestSignalsStore;
@@ -62,6 +66,7 @@ type SignalsValue = {
 const SignalsContext = createContext<SignalsValue>({
   track: () => {},
   trackItem: () => {},
+  rememberItem: () => {},
   wipeKey: () => {},
   addPhrase: () => {},
   guestStore: emptyGuestStore(),
@@ -203,13 +208,29 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
     [applyAccountTaste, session?.user, status],
   );
 
+  const rememberItem = useCallback(
+    (item: DayItem) => {
+      if (status === 'authenticated') {
+        rememberDayItemTasteTags(item);
+        return;
+      }
+      const next = rememberGuestItemTags(item);
+      if (!next) return;
+      setGuestStore(next);
+      notifySignalsChanged();
+    },
+    [status],
+  );
+
   const trackItem = useCallback(
     (
       item: DayItem,
       kind: ItemSignalKind,
       tagSource?: DayItem | null,
     ) => {
-      track(payloadFromDayItem(item, kind, tagSource));
+      if (tagSource) rememberDayItemTasteTags(tagSource);
+      rememberDayItemTasteTags(item);
+      track(payloadFromDayItem(item, kind, tagSource ?? rememberedTagSource(item)));
     },
     [track],
   );
@@ -300,6 +321,7 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
     () => ({
       track,
       trackItem,
+      rememberItem,
       wipeKey,
       addPhrase,
       guestStore,
@@ -312,6 +334,7 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
     [
       track,
       trackItem,
+      rememberItem,
       wipeKey,
       addPhrase,
       guestStore,

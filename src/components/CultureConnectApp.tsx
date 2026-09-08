@@ -277,7 +277,8 @@ export default function CultureConnectApp({
   initialVivantTotal = 0,
   initialCineTotal = 0,
 }: Props) {
-  const { track, trackItem, tasteState, sessionStatus } = useSignals();
+  const { track, trackItem, rememberItem, tasteState, sessionStatus } =
+    useSignals();
   const { data: session, status: authStatus } = useSession();
   // Session email only — never searchParams / analytics / page copy.
   const showAdminCounts =
@@ -1031,6 +1032,12 @@ export default function CultureConnectApp({
     () => visibleTop3Items(pourToiFilled),
     [pourToiFilled],
   );
+
+  useEffect(() => {
+    for (const item of top3Cards) rememberItem(item);
+    for (const item of pourToiFilled) rememberItem(item);
+    if (detailItem) rememberItem(detailItem);
+  }, [top3Cards, pourToiFilled, detailItem, rememberItem]);
   const top3Mode = top3PaintMode({
     ready: recoReady,
     wiped: recoWiped,
@@ -1472,6 +1479,7 @@ export default function CultureConnectApp({
         );
         setAussiCeSoirItems(data.aussiCeSoir ?? []);
         if (!slim) trackItem(data.item, 'open_card');
+        else rememberItem(data.item);
       } catch {
         /* slim already shown + tracked; keep fiche as-is */
       }

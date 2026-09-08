@@ -894,6 +894,7 @@ export default function EventDetail({
               url={reserveUrlOf(item)}
               soldOut={reserveSoldOut(item)}
               item={item}
+              tagSource={item}
               onReserve={() => {
                 markEngaged();
                 onReserve?.();
