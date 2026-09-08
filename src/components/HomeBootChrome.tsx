@@ -28,11 +28,11 @@ function homeBootMonthLabel(now = new Date()): string {
  * Inert first-paint chrome above Top 3. Mirrors CultureConnectApp so the
  * streaming Suspense fallback does not leave [data-top3] too high.
  *
- * Reserved at ~380px (Design LAYOUT_JUMP):
- * - sticky search: h-10 + py-1.5 + border-b + mb-2 (~61px)
- * - SEARCH_EXAMPLES: 3 chips, wrap, min-h-8 + mt-1.5 + mb-2 (~2 rows)
- * - .cc-axes QUAND/QUOI + Filtres: nowrap overflow-x (~24px)
+ * Reserved at 380×844 (measured):
+ * - sticky search + SEARCH_EXAMPLES (`[data-home-boot-chrome]`): 131px
+ * - .cc-axes QUAND/QUOI + Filtres (nowrap overflow-x)
  * - Toulouse + Près de moi + Voir le mois (Paris month; wraps)
+ * - `[data-top3]` top stays 317px on fallback → live chrome swap (0px jump)
  *
  * SiteNav is already in the root layout. GenreFilter is null without QUOI.
  */
