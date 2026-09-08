@@ -4,8 +4,15 @@ import {
   HOME_STICKY_OFFSET_PX,
   THUMB_SELECT_LOCK_MS,
   heroWindowScrollY,
+  resolveHeroAfterRowsChange,
+  resolveHeroIndex,
   shouldIgnoreRepeatThumbSelect,
+  type CarouselHeroRow,
 } from './carouselSelect';
+
+function film(groupKey: string, itemKey = groupKey): CarouselHeroRow {
+  return { groupKey, itemKey, seanceKeys: [itemKey] };
+}
 
 describe('shouldIgnoreRepeatThumbSelect', () => {
   it('allows the first tap', () => {
@@ -74,5 +81,96 @@ describe('heroWindowScrollY', () => {
       }),
       500 - 400 - HOME_STICKY_OFFSET_PX,
     );
+  });
+});
+
+describe('resolveHeroIndex', () => {
+  const kyoto = film('film:w:sous le ciel de kyoto', 'kyoto-1');
+  const triangle = film('film:w:triangle d or', 'triangle-1');
+  const cairo = film('film:w:le caire', 'caire-1');
+
+  it('follows the same work after densify / GPS reorder', () => {
+    const before = [kyoto, triangle, cairo];
+    const after = [cairo, kyoto, triangle];
+    const key = before[0]!.groupKey;
+    assert.equal(resolveHeroIndex(before, key), 0);
+    assert.equal(resolveHeroIndex(after, key), 1);
+  });
+
+  it('keeps the pin when requestMore appends rows', () => {
+    const first = [kyoto, triangle];
+    const grown = [kyoto, triangle, cairo, film('film:w:extra')];
+    assert.equal(resolveHeroIndex(first, triangle.groupKey), 1);
+    assert.equal(resolveHeroIndex(grown, triangle.groupKey), 1);
+  });
+
+  it('matches a seance / item key from a press deeplink', () => {
+    const row = {
+      groupKey: 'film:w:sous le ciel de kyoto',
+      itemKey: 'kyoto-rep',
+      seanceKeys: ['kyoto-1', 'kyoto-2'],
+    };
+    assert.equal(resolveHeroIndex([row, triangle], 'kyoto-2'), 0);
+  });
+
+  it('returns -1 when the pinned work dropped out of the strip', () => {
+    assert.equal(resolveHeroIndex([triangle], kyoto.groupKey), -1);
+  });
+});
+
+describe('resolveHeroAfterRowsChange', () => {
+  const kyoto = film('film:w:sous le ciel de kyoto', 'kyoto-1');
+  const triangle = film('film:w:triangle d or', 'triangle-1');
+  const extra = film('film:w:extra', 'extra-1');
+
+  it('does not auto-advance after an explicit thumb select', () => {
+    const next = resolveHeroAfterRowsChange({
+      rows: [triangle, kyoto, extra],
+      selectedKey: kyoto.groupKey,
+      pendingAdvance: true,
+      pinnedBySelect: true,
+      hasMore: true,
+    });
+    assert.equal(next.key, kyoto.groupKey);
+    assert.equal(next.index, 1);
+    assert.equal(next.pendingAdvance, false);
+  });
+
+  it('advances to the next work only for swipe-at-end after load-more', () => {
+    const next = resolveHeroAfterRowsChange({
+      rows: [kyoto, extra],
+      selectedKey: kyoto.groupKey,
+      pendingAdvance: true,
+      pinnedBySelect: false,
+      hasMore: true,
+    });
+    assert.equal(next.key, extra.groupKey);
+    assert.equal(next.index, 1);
+    assert.equal(next.pendingAdvance, false);
+  });
+
+  it('stays on the tapped film when the strip reorders (Sous le ciel → not Triangle)', () => {
+    const next = resolveHeroAfterRowsChange({
+      rows: [triangle, kyoto],
+      selectedKey: kyoto.groupKey,
+      pendingAdvance: false,
+      pinnedBySelect: true,
+      hasMore: false,
+    });
+    assert.equal(next.key, kyoto.groupKey);
+    assert.equal(next.index, 1);
+  });
+
+  it('does not consume pendingAdvance on reorder without growth', () => {
+    const next = resolveHeroAfterRowsChange({
+      rows: [extra, kyoto],
+      selectedKey: kyoto.groupKey,
+      pendingAdvance: true,
+      pinnedBySelect: false,
+      hasMore: true,
+      rowsGrew: false,
+    });
+    assert.equal(next.key, kyoto.groupKey);
+    assert.equal(next.pendingAdvance, true);
   });
 });
