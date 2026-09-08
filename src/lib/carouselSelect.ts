@@ -137,22 +137,25 @@ export function holdThumbFocus(el: {
 }
 
 /**
- * Window Y to pin the hero under the sticky search, or `null` if the fiche
- * is already on-screen. Snapping a visible hero to `block: start` mid-tap
- * moves the strip under the finger.
+ * Window Y to pin the pack hero under the sticky search.
+ * Always a number — thumb select must scroll even when the fiche is
+ * already partially visible (desktop). Phone still defers the call so
+ * mid-gesture strip retarget does not apply.
  */
 export function heroWindowScrollY(opts: {
   heroTop: number;
-  heroBottom: number;
+  heroBottom?: number;
   scrollY: number;
-  viewportHeight: number;
+  viewportHeight?: number;
   stickyOffset?: number;
-}): number | null {
+}): number {
   const sticky = opts.stickyOffset ?? HOME_STICKY_OFFSET_PX;
-  const { heroTop, heroBottom, scrollY, viewportHeight } = opts;
-  const sliver = sticky + 24;
-  if (heroBottom > sliver && heroTop < viewportHeight) return null;
-  return Math.max(0, scrollY + heroTop - sticky);
+  return Math.max(0, opts.scrollY + opts.heroTop - sticky);
+}
+
+/** Desktop mouse: scroll immediately. Coarse pointer: wait out the tap. */
+export function heroScrollDeferMs(coarsePointer: boolean): number {
+  return coarsePointer ? HERO_SCROLL_DEFER_MS : 0;
 }
 
 export function rowMatchesHeroKey(

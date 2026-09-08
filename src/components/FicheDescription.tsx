@@ -2,8 +2,15 @@ import type { DayItem } from '@/lib/types';
 import { ficheDescriptionOf } from '@/lib/ficheDescription';
 
 /** Programme: description_item, then longue, then courte. Hidden only if empty. */
-export default function FicheDescription({ item }: { item: DayItem }) {
-  const text = ficheDescriptionOf(item);
+export default function FicheDescription({
+  item,
+  lockText,
+}: {
+  item: DayItem;
+  /** Carousel: keep first-paint copy; do not swap in detail longue. */
+  lockText?: string;
+}) {
+  const text = lockText ?? ficheDescriptionOf(item);
   if (!text) return null;
   return (
     <section data-testid="fiche-description" className="mt-3">

@@ -2,7 +2,10 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 import { detailDayItem, slimDayItem } from './slim';
-import { ficheDescriptionOf } from './ficheDescription';
+import {
+  ficheDescriptionOf,
+  pickStableCarouselDescription,
+} from './ficheDescription';
 
 const LONG_PITCH =
   'Taïwan, 1988. Hsiao-lee, une jeune adolescente timide, peine à trouver sa place à l’école. ' +
@@ -251,5 +254,27 @@ describe('ficheDescriptionOf', () => {
       ),
       'Seul court.',
     );
+  });
+});
+
+describe('pickStableCarouselDescription', () => {
+  it('does not replace a painted short pitch with detail longue', () => {
+    const next = pickStableCarouselDescription({
+      workKey: 'film:w:fjord',
+      paintedKey: 'film:w:fjord',
+      paintedText: 'Pitch court.',
+      incomingText: LONG_PITCH,
+    });
+    assert.equal(next.text, 'Pitch court.');
+  });
+
+  it('adopts incoming copy on a new work', () => {
+    const next = pickStableCarouselDescription({
+      workKey: 'film:w:odyssee',
+      paintedKey: 'film:w:fjord',
+      paintedText: 'Ancien pitch.',
+      incomingText: 'Nouveau pitch.',
+    });
+    assert.equal(next.text, 'Nouveau pitch.');
   });
 });

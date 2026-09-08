@@ -10,6 +10,7 @@ import {
   adoptFirstPaintHero,
   clearPackHeroPins,
   holdThumbFocus,
+  heroScrollDeferMs,
   heroWindowScrollY,
   mergePinnedHeroRow,
   pinFromHeroRow,
@@ -83,7 +84,7 @@ describe('holdThumbFocus', () => {
 });
 
 describe('heroWindowScrollY', () => {
-  it('does not snap when the fiche is already on-screen', () => {
+  it('pins under the sticky bar even when the fiche is already on-screen', () => {
     assert.equal(
       heroWindowScrollY({
         heroTop: HOME_STICKY_OFFSET_PX + 12,
@@ -91,7 +92,7 @@ describe('heroWindowScrollY', () => {
         scrollY: 80,
         viewportHeight: 740,
       }),
-      null,
+      80 + HOME_STICKY_OFFSET_PX + 12 - HOME_STICKY_OFFSET_PX,
     );
   });
 
@@ -119,16 +120,9 @@ describe('heroWindowScrollY', () => {
     );
   });
 
-  it('does not treat a sliver under the sticky bar as on-screen', () => {
-    assert.equal(
-      heroWindowScrollY({
-        heroTop: -400,
-        heroBottom: HOME_STICKY_OFFSET_PX + 8,
-        scrollY: 500,
-        viewportHeight: 740,
-      }),
-      500 - 400 - HOME_STICKY_OFFSET_PX,
-    );
+  it('defers only on coarse pointer so desktop scroll is immediate', () => {
+    assert.equal(heroScrollDeferMs(false), 0);
+    assert.equal(heroScrollDeferMs(true), HERO_SCROLL_DEFER_MS);
   });
 });
 

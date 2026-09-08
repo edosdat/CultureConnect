@@ -8,6 +8,7 @@ import {
   HERO_SCROLL_DEFER_MS,
   HERO_SWIPE_LOCK_MS,
   adoptFirstPaintHero,
+  heroScrollDeferMs,
   holdThumbFocus,
   heroWindowScrollY,
   pinFromHeroRow,
@@ -56,6 +57,10 @@ import PressCitation from './PressCitation';
 import CineSeancePicker from './CineSeancePicker';
 import FicheDescription from './FicheDescription';
 import { fichePressCitation, pressItemForFiche } from '@/lib/pressCitation';
+import {
+  ficheDescriptionOf,
+  pickStableCarouselDescription,
+} from '@/lib/ficheDescription';
 
 export type CinemaCarouselPack =
   | 'cine'
@@ -395,6 +400,7 @@ export default function CinemaCarousel({
   rowsRef.current = rows;
   const onHeroPinRef = useRef(onHeroPin);
   onHeroPinRef.current = onHeroPin;
+  const descPainted = useRef<{ key: string; text: string }>({ key: '', text: '' });
   const pinScopeRef = useRef(pinScope);
   if (pinScopeRef.current !== pinScope) {
     pinScopeRef.current = pinScope;
@@ -613,26 +619,24 @@ export default function CinemaCarousel({
     requestMore();
   }
 
-  /** After the tap — not mid-gesture, when scrollIntoView retargets the click. */
+  /** Thumb select: always pin the fiche under the sticky search. */
   function scrollHeroIntoView() {
     const card = heroCardRef.current;
     if (!card) return;
     const rect = card.getBoundingClientRect();
-    if (
-      heroWindowScrollY({
-        heroTop: rect.top,
-        heroBottom: rect.bottom,
-        scrollY: window.scrollY,
-        viewportHeight: window.innerHeight,
-      }) == null
-    ) {
-      return;
-    }
-    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const top = heroWindowScrollY({
+      heroTop: rect.top,
+      scrollY: window.scrollY,
+    });
+    lockHeroSwipe();
+    window.scrollTo({ top, behavior: 'smooth' });
   }
 
   function queueHeroScroll() {
-    window.setTimeout(scrollHeroIntoView, HERO_SCROLL_DEFER_MS);
+    const coarse =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(pointer: coarse)').matches;
+    window.setTimeout(scrollHeroIntoView, heroScrollDeferMs(coarse));
   }
 
   function armThumb(row: DenseRow) {
@@ -699,6 +703,12 @@ export default function CinemaCarousel({
     const t = e.changedTouches[0];
     if (!t) return;
     if (
+      selectAt.current != null &&
+      Date.now() - selectAt.current < HERO_SWIPE_LOCK_MS
+    ) {
+      return;
+    }
+    if (
       shouldIgnoreHeroSwipe({
         startX,
         startY,
@@ -736,6 +746,14 @@ export default function CinemaCarousel({
   if (!hero) return null;
 
   const item = hero.item;
+  const incomingDesc = ficheDescriptionOf(item);
+  const paintedDesc = pickStableCarouselDescription({
+    workKey: hero.groupKey,
+    paintedKey: descPainted.current.key || null,
+    paintedText: descPainted.current.text,
+    incomingText: incomingDesc,
+  });
+  descPainted.current = { key: paintedDesc.workKey, text: paintedDesc.text };
   const image = posterUrl(item);
   const cat = categoryLabelOf(item);
   const groupSeances = filterSeancesForActiveFilters(
@@ -873,7 +891,7 @@ export default function CinemaCarousel({
               />
             </div>
           ) : null}
-          <FicheDescription item={detailItem ?? item} />
+          <FicheDescription item={item} lockText={paintedDesc.text} />
           {pack === 'theatre' || pack === 'musique' ? (
             <PressCitation
               citation={fichePressCitation(
