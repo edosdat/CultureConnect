@@ -1,6 +1,14 @@
 import { phraseUsesTitleQ, type PhraseTags } from './phraseTags';
 import type { TimeScopeId } from './timeScope';
 
+/**
+ * Browser / CDN must not keep yesterday's cards after Paris midnight
+ * or a daily CSV rotate. Server `unstable_cache` (5 min, keyed by
+ * Paris day) is the only cache — HTTP stays no-store.
+ */
+export const AGENDA_HTTP_CACHE_CONTROL =
+  'private, no-cache, no-store, max-age=0, must-revalidate';
+
 export type AgendaParamsInput = {
   scope: TimeScopeId;
   commune: string | null;

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { AGENDA_HTTP_CACHE_CONTROL } from '@/lib/agendaParams';
 import {
   loadHomeWindow,
   parseCsvParam,
@@ -8,6 +9,13 @@ import {
   queryAgendaDetail,
   queryAgendaListCached,
 } from '@/lib/agendaQuery';
+
+function agendaJson(data: unknown, status = 200) {
+  return NextResponse.json(data, {
+    status,
+    headers: { 'Cache-Control': AGENDA_HTTP_CACHE_CONTROL },
+  });
+}
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -39,12 +47,12 @@ function isRateLimited(ip: string): boolean {
 
 export async function GET(req: Request) {
   if (isRateLimited(clientIp(req))) {
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    return agendaJson({ error: 'Too many requests' }, 429);
   }
   const url = new URL(req.url);
   if ((url.searchParams.get('window') || '').trim() === 'home') {
     const boot = await loadHomeWindow();
-    return NextResponse.json({
+    return agendaJson({
       scope: boot.scope,
       commune: 'Toulouse',
       items: boot.items,
@@ -73,9 +81,9 @@ export async function GET(req: Request) {
       soir: url.searchParams.get('soir') === '1',
     });
     if (!detail) {
-      return NextResponse.json({ error: 'Introuvable' }, { status: 404 });
+      return agendaJson({ error: 'Introuvable' }, 404);
     }
-    return NextResponse.json(detail);
+    return agendaJson(detail);
   }
 
   const yearRaw = Number(url.searchParams.get('year') || '2026');
@@ -129,12 +137,12 @@ export async function GET(req: Request) {
     recoProfile: null,
   });
 
-  return NextResponse.json(result);
+  return agendaJson(result);
 }
 
 export async function POST(req: Request) {
   if (isRateLimited(clientIp(req))) {
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    return agendaJson({ error: 'Too many requests' }, 429);
   }
   const url = new URL(req.url);
   const recoUpcoming = url.searchParams.get('reco') === '1';
@@ -175,6 +183,6 @@ export async function POST(req: Request) {
     recoUpcoming,
     recoProfile: parseRecoProfile(body.profile),
   });
-  return NextResponse.json(result);
+  return agendaJson(result);
 }
 
