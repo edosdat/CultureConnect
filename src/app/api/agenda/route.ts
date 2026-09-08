@@ -63,7 +63,6 @@ export async function GET(req: Request) {
       vivantItems: boot.vivantItems,
       vivantTotal: boot.vivantTotal,
       cineTotal: boot.cineTotal,
-      listByScope: boot.listByScope,
     });
   }
   const id = (url.searchParams.get('id') || '').trim();
