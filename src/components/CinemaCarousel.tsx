@@ -36,6 +36,7 @@ import {
 } from '@/lib/displayFilter';
 import { seanceDateIso } from '@/lib/timeScope';
 import {
+  HOME_PACK_MORE_LABEL,
   isLikelyMobile,
   itemPitch,
   rowDisplayTitle,
@@ -70,31 +71,31 @@ const PACK_COPY: Record<
   { more: string; prev: string; next: string; fallbackCat: string }
 > = {
   cine: {
-    more: 'Plus de films',
+    more: HOME_PACK_MORE_LABEL.cine,
     prev: 'Films précédents',
     next: 'Films suivants',
     fallbackCat: 'Cinéma',
   },
   theatre: {
-    more: 'Plus de spectacles',
+    more: HOME_PACK_MORE_LABEL.theatre,
     prev: 'Spectacles précédents',
     next: 'Spectacles suivants',
     fallbackCat: 'Théâtre',
   },
   musique: {
-    more: 'Plus de concerts',
+    more: HOME_PACK_MORE_LABEL.musique,
     prev: 'Concerts précédents',
     next: 'Concerts suivants',
     fallbackCat: 'Musique',
   },
   enfants: {
-    more: 'Plus pour les enfants',
+    more: HOME_PACK_MORE_LABEL.enfants,
     prev: 'Précédent',
     next: 'Suivant',
     fallbackCat: 'Enfants',
   },
   expo: {
-    more: 'Plus d’expos',
+    more: HOME_PACK_MORE_LABEL.expo,
     prev: 'Expos précédentes',
     next: 'Expos suivantes',
     fallbackCat: 'Expos',
@@ -779,9 +780,9 @@ export default function CinemaCarousel({
             data-pack-more={pack}
             onClick={onNeedMore}
             aria-label={copy.more}
-            className="flex aspect-[2/3] w-[4.5rem] shrink-0 items-center justify-center text-3xl font-light leading-none tracking-[0.2em] text-culture-muted/80 hover:text-culture-ink sm:w-[5rem]"
+            className="flex aspect-[2/3] w-[7.5rem] shrink-0 flex-col items-center justify-center px-2 text-center text-sm font-medium leading-snug text-culture-muted hover:text-culture-ink sm:w-[8.5rem]"
           >
-            …
+            {copy.more}
           </button>
         ) : null}
       </div>

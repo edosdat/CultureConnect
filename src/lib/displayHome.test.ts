@@ -7,6 +7,7 @@ import {
   cineRows,
   DISPLAY_SLOT_ORDER,
   HOME_PACK_MORE_CAT,
+  HOME_PACK_MORE_LABEL,
   HOME_SECTION_TITLE_CLASS,
   HOME_SECTION_TITLE_RULE_CLASS,
   fillEmptyCineFromPool,
@@ -379,6 +380,15 @@ describe('appendOnlyPackRows', () => {
     assert.equal(HOME_PACK_MORE_CAT.musique, 'musique');
     assert.equal(HOME_PACK_MORE_CAT.enfants, 'enfants_famille');
     assert.equal(HOME_PACK_MORE_CAT.expo, 'expo_patrimoine');
+  });
+
+  it('names the rail CTA after the pack, not a bare ellipsis', () => {
+    assert.equal(HOME_PACK_MORE_LABEL.theatre, 'Plus de théâtre');
+    assert.equal(HOME_PACK_MORE_LABEL.cine, 'Plus de ciné');
+    assert.equal(HOME_PACK_MORE_LABEL.musique, 'Plus de musique');
+    assert.equal(HOME_PACK_MORE_LABEL.enfants, 'Plus d’enfants');
+    assert.equal(HOME_PACK_MORE_LABEL.expo, 'Plus d’expos');
+    assert.equal(HOME_PACK_MORE_LABEL.theatre.includes('…'), false);
   });
 });
 

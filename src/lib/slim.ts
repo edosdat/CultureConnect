@@ -31,7 +31,7 @@ export function slimLieu(lieu: Lieu | null | undefined): Lieu | null {
  * Unique works per living-arts pack on the home wire (not raw séances).
  * A raw slice of 20 séances densifies to ~15 theatre cards; the Théâtre
  * chip’s first pages are 50+ séances → 60+ works. Cap unique works so the
- * home rail matches that catalogue. « … » / requestMore appends more.
+ * home rail matches that catalogue. « Plus de théâtre » / requestMore appends more.
  */
 export const HOME_PACK_WIRE_CAP = 80;
 

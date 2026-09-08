@@ -736,6 +736,15 @@ export const HOME_PACK_MORE_CAT: Record<
   expo: 'expo_patrimoine',
 };
 
+/** Visible + aria-label rail CTA — pack title, not a bare ellipsis. */
+export const HOME_PACK_MORE_LABEL: Record<HomePackId, string> = {
+  cine: 'Plus de ciné',
+  theatre: 'Plus de théâtre',
+  musique: 'Plus de musique',
+  enfants: 'Plus d’enfants',
+  expo: 'Plus d’expos',
+};
+
 const FIRST_PERF_RE =
   /premi[eè]re|cr[eé]ation|ouverture|avant[- ]?premi[eè]re|premi[eè]re représentation/i;
 
