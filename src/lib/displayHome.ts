@@ -330,16 +330,23 @@ export const HOME_SECTION_TITLE_CLASS =
 export const HOME_SECTION_TITLE_RULE_CLASS =
   'border-b-2 border-culture-terracotta pb-0.5';
 
-/** Compact chrome around Top 3; desktop keeps the existing sm: padding. */
+/**
+ * Stack between QUAND/QUOI, city row, list-wait, and Top 3.
+ * Tight on mobile so the first screen has no empty hole.
+ */
+export const HOME_CHROME_STACK_CLASS = 'space-y-1.5 sm:space-y-3';
+
+/** Compact chrome around Top 3; desktop keeps a bit more padding. */
 export const TOP3_SECTION_CLASS =
-  'w-full space-y-2 rounded-card-lg border border-culture-soft/80 bg-culture-surface/80 px-2 py-2.5 sm:space-y-3 sm:p-4';
+  'w-full space-y-1 rounded-card-lg border border-culture-soft/80 bg-culture-surface/80 px-2 py-1.5 sm:space-y-2 sm:p-3';
 
 /**
  * Locked height for every Top 3 rail / carousel card (1–3, mobile + md).
- * Compact at ~380px; content is clamped so titles / reasons cannot grow
- * the slide. Parent height is explicit so `h-full` on the thumb works.
+ * Short at ~380px (« plus bas » = less tall); content is clamped so
+ * titles / reasons cannot grow the slide. Parent height is explicit
+ * so `h-full` on the thumb works.
  */
-export const TOP3_RAIL_CARD_HEIGHT_CLASS = 'h-[9rem]';
+export const TOP3_RAIL_CARD_HEIGHT_CLASS = 'h-[7.5rem]';
 
 /**
  * Side poster on rail cards. Same image area on every slide: fills the
@@ -375,7 +382,7 @@ export function top3IndicatorLabel(index: number, count: number): string {
 }
 
 export const TOP3_INDICATOR_CLASS =
-  'mt-2 flex items-center justify-center gap-2 md:hidden';
+  'mt-1 flex items-center justify-center gap-2 md:hidden';
 
 /** Where the card is painted. Top 3 never shows pitch, even on compact. */
 export type SeanceCardPitchSource = 'top3' | 'catalogue';
@@ -397,9 +404,9 @@ export function seanceCardShowsPitch(
 
 /**
  * Reserved list-wait chrome above Top 3 (LAYOUT_JUMP at ~380px).
- * 32px — list-wait dots (12px) + stack gap, so the slot does not collapse.
+ * 20px — list-wait dots are 12px; keep a short slot so Top 3 does not drop.
  */
-export const HOME_LIST_WAIT_SLOT_CLASS = 'h-8';
+export const HOME_LIST_WAIT_SLOT_CLASS = 'h-5';
 
 export type Top3SectionOpts = {
   ready: boolean;

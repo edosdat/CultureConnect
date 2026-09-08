@@ -23,6 +23,7 @@ import {
   searchExamplesVisible,
   shouldInvalidateProfileRecoCache,
   seanceCardShowsPitch,
+  HOME_CHROME_STACK_CLASS,
   HOME_LIST_WAIT_SLOT_CLASS,
   shouldShowTop3Section,
   theatreRows,
@@ -911,8 +912,18 @@ describe('Top 3 cards — compact scan, no pitch', () => {
 });
 
 describe('Home list-wait reserve (LAYOUT_JUMP)', () => {
-  it('reserves 32px so Top 3 does not drop when dots appear', () => {
-    assert.equal(HOME_LIST_WAIT_SLOT_CLASS, 'h-8');
+  it('reserves 20px so Top 3 does not drop when dots appear', () => {
+    assert.equal(HOME_LIST_WAIT_SLOT_CLASS, 'h-5');
+  });
+});
+
+describe('Home chrome → Top 3 gap', () => {
+  it('keeps a tight stack between filters and Top 3', () => {
+    assert.ok(HOME_CHROME_STACK_CLASS.includes('space-y-1.5'));
+    assert.equal(HOME_CHROME_STACK_CLASS.includes('space-y-2.5'), false);
+    assert.ok(TOP3_SECTION_CLASS.includes('py-1.5'));
+    assert.ok(TOP3_SECTION_CLASS.includes('space-y-1'));
+    assert.equal(TOP3_SECTION_CLASS.includes('py-2.5'), false);
   });
 });
 
@@ -967,7 +978,7 @@ describe('Top 3 mobile carousel (<md)', () => {
   });
 
   it('locks every Top 3 card to the same compact height', () => {
-    assert.equal(TOP3_RAIL_CARD_HEIGHT_CLASS, 'h-[9rem]');
+    assert.equal(TOP3_RAIL_CARD_HEIGHT_CLASS, 'h-[7.5rem]');
     for (const n of [1, 2, 3]) {
       const frame = top3CardFrameClass(n);
       assert.ok(frame.includes(TOP3_RAIL_CARD_HEIGHT_CLASS), `count ${n}`);

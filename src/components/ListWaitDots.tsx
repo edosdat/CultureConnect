@@ -17,7 +17,7 @@ export default function ListWaitDots() {
 }
 
 /**
- * Always-on 32px slot above Top 3. Dots fade in here when the list is slow
+ * Always-on 20px slot above Top 3. Dots fade in here when the list is slow
  * so [data-top3] does not drop (LAYOUT_JUMP). Keep in sync with HomeBootChrome.
  */
 export function HomeListWaitSlot({ active = false }: { active?: boolean }) {

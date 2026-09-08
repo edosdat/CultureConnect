@@ -38,6 +38,7 @@ import {
   resolveHomeCardOpen,
   resolveSearchSubmit,
   shouldInvalidateProfileRecoCache,
+  HOME_CHROME_STACK_CLASS,
   HOME_SECTION_TITLE_CLASS,
   HOME_SECTION_TITLE_RULE_CLASS,
   TOP3_SECTION_CLASS,
@@ -1729,7 +1730,7 @@ export default function CultureConnectApp({
           onSubmit={handleSearchSubmit}
         />
       </div>
-      <div className="space-y-2.5 sm:space-y-4">
+      <div className={HOME_CHROME_STACK_CLASS}>
         <div className="cc-axes-row">
           <div
             className="cc-axes"
@@ -1802,7 +1803,7 @@ export default function CultureConnectApp({
         </div>
 
         {/* Toulouse + Salles + month (Venue gated by Filtres on mobile) */}
-        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 pt-0.5 sm:pt-1">
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             {showAdminCounts ? (
               <p

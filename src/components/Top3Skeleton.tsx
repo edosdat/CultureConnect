@@ -24,7 +24,7 @@ export default function Top3Skeleton() {
                 className={TOP3_RAIL_THUMB_CLASS + ' bg-culture-sand/70'}
                 data-top3-thumb=""
               />
-              <div className="min-h-0 min-w-0 flex-1 px-2 py-1.5">
+              <div className="min-h-0 min-w-0 flex-1 px-2 py-1">
                 <div className="h-4 w-4/5 rounded bg-culture-sand/80" />
                 <div className="mt-2 h-3 w-2/3 rounded bg-culture-sand/60" />
                 <div className="mt-2 h-3 w-1/2 rounded bg-culture-sand/50" />

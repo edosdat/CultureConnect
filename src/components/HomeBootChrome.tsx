@@ -4,7 +4,7 @@ import {
   HOME_CATEGORY_CHIPS,
   type MainCategoryId,
 } from '@/lib/categories';
-import { SEARCH_PLACEHOLDER } from '@/lib/displayHome';
+import { HOME_CHROME_STACK_CLASS, SEARCH_PLACEHOLDER } from '@/lib/displayHome';
 import { MONTH_NAMES_FR } from '@/lib/labels';
 import { NEAR_ME_CHIP_LABEL, TOULOUSE_CHIP_DEFAULT } from '@/lib/nearMe';
 import { parisParts, TIME_SCOPE_CHIPS } from '@/lib/timeScope';
@@ -35,7 +35,7 @@ function homeBootMonthLabel(now = new Date()): string {
  * - .cc-axes: two wrapping groups on <md — QUAND then QUOI, labels on
  *   (~2 wrap rows each at 380px, Filtres with Quoi)
  * - Toulouse + Près de moi + Voir le mois (Paris month; wraps)
- * - HomeListWaitSlot: 32px (list-wait dots + stack gap)
+ * - HomeListWaitSlot: 20px (list-wait dots are 12px)
  *
  * SiteNav is already in the root layout. GenreFilter is null without QUOI.
  * Chips / city / wait slot are siblings of [data-top3] (same as live).
@@ -67,7 +67,7 @@ export default function HomeBootChrome({ children }: { children: ReactNode }) {
           </div>
         </div>
       </div>
-      <div className="space-y-2.5 sm:space-y-4">
+      <div className={HOME_CHROME_STACK_CLASS}>
         <div inert aria-hidden className="cc-axes-row">
           <div className="cc-axes">
             <div className="cc-axes__group">
@@ -118,7 +118,7 @@ export default function HomeBootChrome({ children }: { children: ReactNode }) {
         <div
           inert
           aria-hidden
-          className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 pt-0.5 sm:pt-1"
+          className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1"
         >
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <span className="shrink-0 rounded-full border border-culture-terracotta bg-culture-soft px-3 py-1.5 text-sm text-culture-clay shadow-sm">
