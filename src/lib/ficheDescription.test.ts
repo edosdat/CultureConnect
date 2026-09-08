@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 import { detailDayItem, slimDayItem } from './slim';
-import { ficheDescriptionOf } from './ficheDescription';
+import { ficheDescriptionOf, ficheDescriptionView } from './ficheDescription';
 
 const LONG_PITCH =
   'Taïwan, 1988. Hsiao-lee, une jeune adolescente timide, peine à trouver sa place à l’école. ' +
@@ -103,6 +103,31 @@ function fallbackItem(evenement: Partial<Evenement> = {}): DayItem {
 }
 
 describe('ficheDescriptionOf', () => {
+  it('holds the list pitch until agenda detail settles', () => {
+    const slim = slimDayItem(
+      programmeItem({
+        cat: 'cinema',
+        evenement: { description_longue: LONG_PITCH, description_courte: 'Court.' },
+      }),
+    );
+    assert.equal(ficheDescriptionOf(slim), 'Court.');
+    assert.deepEqual(ficheDescriptionView(slim, { pending: true }), {
+      kind: 'pending',
+    });
+    assert.deepEqual(ficheDescriptionView(slim), { kind: 'text', text: 'Court.' });
+    assert.deepEqual(
+      ficheDescriptionView(
+        detailDayItem(
+          programmeItem({
+            cat: 'cinema',
+            evenement: { description_longue: LONG_PITCH, description_courte: 'Court.' },
+          }),
+        ),
+      ),
+      { kind: 'text', text: LONG_PITCH },
+    );
+  });
+
   it('prefers description_longue over description_courte', () => {
     const item = detailDayItem(
       programmeItem({

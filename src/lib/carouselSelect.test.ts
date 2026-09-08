@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  HERO_PIN_EPSILON_PX,
   HERO_SCROLL_DEFER_MS,
   HOME_STICKY_OFFSET_PX,
   THUMB_SELECT_LOCK_MS,
@@ -72,7 +73,8 @@ describe('holdThumbFocus', () => {
 });
 
 describe('heroWindowScrollY', () => {
-  it('does not snap when the fiche is already on-screen', () => {
+  it('does not snap when the fiche is already pinned under the sticky bar', () => {
+    assert.ok(HERO_PIN_EPSILON_PX >= 12);
     assert.equal(
       heroWindowScrollY({
         heroTop: HOME_STICKY_OFFSET_PX + 12,
@@ -81,6 +83,30 @@ describe('heroWindowScrollY', () => {
         viewportHeight: 740,
       }),
       null,
+    );
+  });
+
+  it('pins a partially visible fiche (desktop: bottom still in view)', () => {
+    assert.equal(
+      heroWindowScrollY({
+        heroTop: -180,
+        heroBottom: 260,
+        scrollY: 420,
+        viewportHeight: 900,
+      }),
+      420 - 180 - HOME_STICKY_OFFSET_PX,
+    );
+  });
+
+  it('pins a fully visible fiche that sits below the sticky bar', () => {
+    assert.equal(
+      heroWindowScrollY({
+        heroTop: 220,
+        heroBottom: 640,
+        scrollY: 40,
+        viewportHeight: 900,
+      }),
+      40 + 220 - HOME_STICKY_OFFSET_PX,
     );
   });
 
@@ -108,7 +134,7 @@ describe('heroWindowScrollY', () => {
     );
   });
 
-  it('does not treat a sliver under the sticky bar as on-screen', () => {
+  it('does not treat a sliver under the sticky bar as pinned', () => {
     assert.equal(
       heroWindowScrollY({
         heroTop: -400,
