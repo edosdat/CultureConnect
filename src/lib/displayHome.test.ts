@@ -5,6 +5,8 @@ import { itemMatchesCommune } from './commune';
 import {
   cineRows,
   DISPLAY_SLOT_ORDER,
+  HOME_SECTION_TITLE_CLASS,
+  HOME_SECTION_TITLE_RULE_CLASS,
   fillEmptyCineFromPool,
   findDayItemByKey,
   enfantsRows,
@@ -23,7 +25,10 @@ import {
   HOME_LIST_WAIT_SLOT_CLASS,
   shouldShowTop3Section,
   theatreRows,
+  TOP3_CAROUSEL_CARD_CLASS,
   TOP3_CAROUSEL_TRACK_CLASS,
+  TOP3_RAIL_THUMB_CLASS,
+  TOP3_SECTION_CLASS,
   top3CardFrameClass,
   top3GridClass,
   top3IndicatorLabel,
@@ -946,12 +951,32 @@ describe('Top 3 mobile carousel (<md)', () => {
     assert.ok(top3TrackClass(3).includes('[touch-action:pan-x_pan-y]'));
   });
 
-  it('peeks the next card at ~85% width on mobile; md+ fills the cell', () => {
-    assert.equal(top3CardFrameClass(1), 'min-w-0 h-full w-full');
+  it('peeks the next card at ~78% width on mobile; md+ fills the cell', () => {
+    assert.equal(top3CardFrameClass(1), 'min-w-0 w-full');
     const card = top3CardFrameClass(3);
-    assert.ok(card.includes('w-[85%]'));
+    assert.ok(card.includes('w-[78%]'));
+    assert.equal(card.includes('w-[85%]'), false);
     assert.ok(card.includes('snap-start'));
     assert.ok(card.includes('md:w-full'));
+    assert.ok(TOP3_CAROUSEL_CARD_CLASS.includes('w-[78%]'));
+  });
+
+  it('keeps a visible rail poster (min height, no collapsing h-full)', () => {
+    assert.ok(TOP3_RAIL_THUMB_CLASS.includes('min-h-[5.5rem]'));
+    assert.ok(TOP3_RAIL_THUMB_CLASS.includes('self-stretch'));
+    assert.ok(TOP3_RAIL_THUMB_CLASS.includes('w-[4.25rem]'));
+    assert.equal(/(?:^|\s)h-full(?:\s|$)/.test(TOP3_RAIL_THUMB_CLASS), false);
+  });
+
+  it('uses the same H2 type + scale as pack titles (Ciné)', () => {
+    assert.equal(
+      HOME_SECTION_TITLE_CLASS,
+      'font-display text-xl text-culture-ink sm:text-2xl',
+    );
+    assert.ok(HOME_SECTION_TITLE_RULE_CLASS.includes('border-culture-terracotta'));
+    assert.equal(HOME_SECTION_TITLE_CLASS.includes('w-full'), false);
+    assert.equal(HOME_SECTION_TITLE_CLASS.includes('leading-tight'), false);
+    assert.ok(TOP3_SECTION_CLASS.includes('px-2'));
   });
 
   it('maps scroll position to a 1-based 1/3 label', () => {
