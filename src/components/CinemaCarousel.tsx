@@ -367,6 +367,7 @@ export default function CinemaCarousel({
   const [related, setRelated] = useState<DayItem[]>([]);
   const [aussi, setAussi] = useState<DayItem[]>([]);
   const [detailItem, setDetailItem] = useState<DayItem | null>(null);
+  const [detailSettled, setDetailSettled] = useState(false);
   const [mobileCal, setMobileCal] = useState(false);
   const moreLock = useRef(0);
   const moreApi = useRef({ hasMore, onNeedMore });
@@ -494,9 +495,16 @@ export default function CinemaCarousel({
     else setHeroKey(focusKey);
   }, [focusKey]);
 
+  const heroItemKey = hero?.item.key ?? null;
+  const [detailHeroKey, setDetailHeroKey] = useState<string | null>(heroItemKey);
+  if (heroItemKey !== detailHeroKey) {
+    setDetailHeroKey(heroItemKey);
+    setDetailItem(null);
+    setDetailSettled(false);
+  }
+
   useEffect(() => {
     setPickedKey(null);
-    setDetailItem(null);
   }, [hero?.item.key]);
   const livingArts = pack !== 'cine';
   const displayFilter: DisplayFilter = {
@@ -528,14 +536,19 @@ export default function CinemaCarousel({
     void fetch(`/api/agenda?${qs.toString()}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data: AgendaDetailResponse | null) => {
-        if (cancelled || !data) return;
-        setDetailItem(data.item);
-        setRelated(
-          filterSeancesForActiveFilters(data.relatedItems ?? [], displayFilter),
-        );
-        setAussi(data.aussiCeSoir ?? []);
+        if (cancelled) return;
+        if (data) {
+          setDetailItem(data.item);
+          setRelated(
+            filterSeancesForActiveFilters(data.relatedItems ?? [], displayFilter),
+          );
+          setAussi(data.aussiCeSoir ?? []);
+        }
+        setDetailSettled(true);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!cancelled) setDetailSettled(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -598,17 +611,14 @@ export default function CinemaCarousel({
     const card = heroCardRef.current;
     if (!card) return;
     const rect = card.getBoundingClientRect();
-    if (
-      heroWindowScrollY({
-        heroTop: rect.top,
-        heroBottom: rect.bottom,
-        scrollY: window.scrollY,
-        viewportHeight: window.innerHeight,
-      }) == null
-    ) {
-      return;
-    }
-    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const top = heroWindowScrollY({
+      heroTop: rect.top,
+      heroBottom: rect.bottom,
+      scrollY: window.scrollY,
+      viewportHeight: window.innerHeight,
+    });
+    if (top == null) return;
+    window.scrollTo({ top, behavior: 'smooth' });
   }
 
   function queueHeroScroll() {
@@ -839,7 +849,10 @@ export default function CinemaCarousel({
               />
             </div>
           ) : null}
-          <FicheDescription item={detailItem ?? item} />
+          <FicheDescription
+            item={detailItem ?? item}
+            pending={!detailSettled}
+          />
           {pack === 'theatre' || pack === 'musique' ? (
             <PressCitation
               citation={fichePressCitation(

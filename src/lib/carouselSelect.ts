@@ -132,10 +132,15 @@ export function holdThumbFocus(el: {
   el.focus({ preventScroll: true });
 }
 
+/** Treat the fiche as already pinned if it is this close to the sticky offset. */
+export const HERO_PIN_EPSILON_PX = 16;
+
 /**
- * Window Y to pin the hero under the sticky search, or `null` if the fiche
- * is already on-screen. Snapping a visible hero to `block: start` mid-tap
- * moves the strip under the finger.
+ * Window Y to pin the hero under the sticky search.
+ * Returns `null` only when already aligned (within epsilon). A thumb tap
+ * must still scroll a partially visible fiche — "any pixel on-screen" used
+ * to no-op on desktop. Mid-tap strip jump is avoided by
+ * `HERO_SCROLL_DEFER_MS`, not by skipping a visible hero.
  */
 export function heroWindowScrollY(opts: {
   heroTop: number;
@@ -145,10 +150,10 @@ export function heroWindowScrollY(opts: {
   stickyOffset?: number;
 }): number | null {
   const sticky = opts.stickyOffset ?? HOME_STICKY_OFFSET_PX;
-  const { heroTop, heroBottom, scrollY, viewportHeight } = opts;
-  const sliver = sticky + 24;
-  if (heroBottom > sliver && heroTop < viewportHeight) return null;
-  return Math.max(0, scrollY + heroTop - sticky);
+  const { heroTop, scrollY } = opts;
+  const target = Math.max(0, scrollY + heroTop - sticky);
+  if (Math.abs(target - scrollY) <= HERO_PIN_EPSILON_PX) return null;
+  return target;
 }
 
 export function rowMatchesHeroKey(

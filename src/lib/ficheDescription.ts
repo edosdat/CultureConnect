@@ -4,6 +4,25 @@ function filled(raw?: string | null): string {
   return (raw || '').trim();
 }
 
+export type FicheDescriptionView =
+  | { kind: 'pending' }
+  | { kind: 'empty' }
+  | { kind: 'text'; text: string };
+
+/**
+ * Carousel fiche: hold the list pitch until /api/agenda detail settles
+ * so we never swap short → long mid-flight (layout jump).
+ */
+export function ficheDescriptionView(
+  item: DayItem,
+  opts?: { pending?: boolean },
+): FicheDescriptionView {
+  if (opts?.pending) return { kind: 'pending' };
+  const text = ficheDescriptionOf(item);
+  if (!text) return { kind: 'empty' };
+  return { kind: 'text', text };
+}
+
 /**
  * Fiche copy for programme rows: piece pitch first (description_item),
  * then event description_longue, then description_courte.
