@@ -8,6 +8,7 @@ import { SEARCH_EXAMPLES, SEARCH_PLACEHOLDER } from '@/lib/displayHome';
 import { MONTH_NAMES_FR } from '@/lib/labels';
 import { NEAR_ME_CHIP_LABEL, TOULOUSE_CHIP_DEFAULT } from '@/lib/nearMe';
 import { parisParts, TIME_SCOPE_CHIPS } from '@/lib/timeScope';
+import { HomeListWaitSlot } from './ListWaitDots';
 
 /** Same --cc-cat-* hex as CategoryFilter home chips. */
 const CHIP_VAR: Record<MainCategoryId, string> = {
@@ -33,8 +34,10 @@ function homeBootMonthLabel(now = new Date()): string {
  * - SEARCH_EXAMPLES: 3 chips, wrap, min-h-8 + mt-1.5 + mb-2 (~2 rows)
  * - .cc-axes QUAND/QUOI + Filtres: nowrap overflow-x (~24px)
  * - Toulouse + Près de moi + Voir le mois (Paris month; wraps)
+ * - HomeListWaitSlot: 32px (list-wait dots + stack gap)
  *
  * SiteNav is already in the root layout. GenreFilter is null without QUOI.
+ * Chips / city / wait slot are siblings of [data-top3] (same as live).
  */
 export default function HomeBootChrome({ children }: { children: ReactNode }) {
   const monthLabel = homeBootMonthLabel();
@@ -68,64 +71,67 @@ export default function HomeBootChrome({ children }: { children: ReactNode }) {
         </ul>
       </div>
       <div className="space-y-2.5 sm:space-y-4">
-        <div inert aria-hidden className="space-y-2.5 sm:space-y-4">
-          <div className="cc-axes-row">
-            <div className="cc-axes">
-              <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
-                Quand
-              </p>
-              {TIME_SCOPE_CHIPS.map(({ id, label }) => (
+        <div inert aria-hidden className="cc-axes-row">
+          <div className="cc-axes">
+            <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
+              Quand
+            </p>
+            {TIME_SCOPE_CHIPS.map(({ id, label }) => (
+              <span
+                key={id}
+                className="cc-axes__chip shrink-0 whitespace-nowrap rounded-full border border-culture-line bg-culture-surface font-medium text-culture-ink"
+              >
+                {label}
+              </span>
+            ))}
+            <span className="cc-axes__rule" />
+            <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
+              Quoi
+            </p>
+            {homeCats.map(({ id, label }) => {
+              const tint = `var(${CHIP_VAR[id]})`;
+              return (
                 <span
                   key={id}
-                  className="cc-axes__chip shrink-0 whitespace-nowrap rounded-full border border-culture-line bg-culture-surface font-medium text-culture-ink"
+                  className="cc-axes__chip shrink-0 whitespace-nowrap rounded-full"
+                  style={{
+                    borderWidth: 1.5,
+                    borderStyle: 'solid',
+                    borderColor: tint,
+                    backgroundColor: 'var(--cc-surface)',
+                    color: 'var(--cc-ink)',
+                  }}
                 >
                   {label}
                 </span>
-              ))}
-              <span className="cc-axes__rule" />
-              <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
-                Quoi
-              </p>
-              {homeCats.map(({ id, label }) => {
-                const tint = `var(${CHIP_VAR[id]})`;
-                return (
-                  <span
-                    key={id}
-                    className="cc-axes__chip shrink-0 whitespace-nowrap rounded-full"
-                    style={{
-                      borderWidth: 1.5,
-                      borderStyle: 'solid',
-                      borderColor: tint,
-                      backgroundColor: 'var(--cc-surface)',
-                      color: 'var(--cc-ink)',
-                    }}
-                  >
-                    {label}
-                  </span>
-                );
-              })}
-            </div>
-            <div className="cc-axes__more md:hidden">
-              <span className="cc-axes__chip inline-flex items-center gap-1 rounded-full border border-culture-line bg-culture-surface font-medium text-culture-ink">
-                Filtres
-                <span className="text-culture-muted">▾</span>
-              </span>
-            </div>
+              );
+            })}
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 pt-0.5 sm:pt-1">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <span className="shrink-0 rounded-full border border-culture-terracotta bg-culture-soft px-3 py-1.5 text-sm text-culture-clay shadow-sm">
-                {TOULOUSE_CHIP_DEFAULT}
-              </span>
-              <span className="shrink-0 rounded-full border border-culture-line bg-culture-surface px-3 py-1.5 text-sm font-medium text-culture-ink">
-                {NEAR_ME_CHIP_LABEL}
-              </span>
-            </div>
-            <span className="text-sm font-medium text-culture-terracotta">
-              Voir le mois ({monthLabel})
+          <div className="cc-axes__more md:hidden">
+            <span className="cc-axes__chip inline-flex items-center gap-1 rounded-full border border-culture-line bg-culture-surface font-medium text-culture-ink">
+              Filtres
+              <span className="text-culture-muted">▾</span>
             </span>
           </div>
         </div>
+        <div
+          inert
+          aria-hidden
+          className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 pt-0.5 sm:pt-1"
+        >
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="shrink-0 rounded-full border border-culture-terracotta bg-culture-soft px-3 py-1.5 text-sm text-culture-clay shadow-sm">
+              {TOULOUSE_CHIP_DEFAULT}
+            </span>
+            <span className="shrink-0 rounded-full border border-culture-line bg-culture-surface px-3 py-1.5 text-sm font-medium text-culture-ink">
+              {NEAR_ME_CHIP_LABEL}
+            </span>
+          </div>
+          <span className="text-sm font-medium text-culture-terracotta">
+            Voir le mois ({monthLabel})
+          </span>
+        </div>
+        <HomeListWaitSlot />
         {children}
       </div>
     </>

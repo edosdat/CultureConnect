@@ -18,6 +18,7 @@ import {
   searchExamplesVisible,
   shouldInvalidateProfileRecoCache,
   seanceCardShowsPitch,
+  HOME_LIST_WAIT_SLOT_CLASS,
   shouldShowTop3Section,
   theatreRows,
   top3PaintMode,
@@ -854,9 +855,24 @@ describe('Top 3 cards — compact scan, no pitch', () => {
     assert.equal(seanceCardShowsPitch('compact'), true);
   });
 
+  it('top3 source hides pitch on rail and compact scan paths', () => {
+    assert.equal(seanceCardShowsPitch('rail', 'top3'), false);
+    assert.equal(seanceCardShowsPitch('compact', 'top3'), false);
+    assert.equal(seanceCardShowsPitch('default', 'top3'), false);
+    assert.equal(seanceCardShowsPitch('live', 'top3'), false);
+    assert.equal(seanceCardShowsPitch('compact', 'catalogue'), true);
+  });
+
   it('itemPitch stays on the model so fiches / packs still have copy', () => {
     const cine = item({ key: 'p:P-pitch', cat: 'cinema', filmId: 'F1' });
     assert.equal(itemPitch(cine), 'Pitch court');
     assert.equal(seanceCardShowsPitch('rail'), false);
+    assert.equal(seanceCardShowsPitch('compact', 'top3'), false);
+  });
+});
+
+describe('Home list-wait reserve (LAYOUT_JUMP)', () => {
+  it('reserves 32px so Top 3 does not drop when dots appear', () => {
+    assert.equal(HOME_LIST_WAIT_SLOT_CLASS, 'h-8');
   });
 });

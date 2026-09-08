@@ -14,7 +14,10 @@ import { seanceTimeLabel } from '@/lib/eventTimes';
 import { seanceDateIso } from '@/lib/timeScope';
 import { MAIN_CATEGORY_LABELS, mainFromCategorie, mainFromGenreSlug } from '@/lib/categories';
 import { catCssVar, catGradient } from '@/lib/categoryColor';
-import { seanceCardShowsPitch } from '@/lib/displayHome';
+import {
+  seanceCardShowsPitch,
+  type SeanceCardPitchSource,
+} from '@/lib/displayHome';
 import EventImage from './EventImage';
 import VisualFallback from './VisualFallback';
 import FavoriteButton from './FavoriteButton';
@@ -34,6 +37,8 @@ type Props = {
   compact?: boolean;
   nouveau?: boolean;
   variant?: SeanceCardVariant;
+  /** Top 3 never shows pitch, even if variant is compact. */
+  source?: SeanceCardPitchSource;
   reason?: string | null;
   /** Crow-flies label, e.g. « 2,3 km ». Omit when venue coords are missing. */
   distanceKm?: string | null;
@@ -93,6 +98,7 @@ export default function SeanceCard({
   compact = false,
   nouveau = false,
   variant,
+  source = 'catalogue',
   reason = null,
   distanceKm = null,
 }: Props) {
@@ -134,7 +140,7 @@ export default function SeanceCard({
 
   const showVenueLine = Boolean(lieu) && (!isFilmGroup || salleCount === 1);
   const showCities = isFilmGroup && salleCount > 1 && Boolean(citiesSummary);
-  const pitch = seanceCardShowsPitch(resolved) ? cardPitch(item) : '';
+  const pitch = seanceCardShowsPitch(resolved, source) ? cardPitch(item) : '';
 
   const media = (
     <div
@@ -277,6 +283,7 @@ export default function SeanceCard({
       </h3>
       {pitch ? (
         <p
+          data-seance-pitch=""
           className={
             'text-sm leading-snug text-culture-ink ' +
             (resolved === 'compact' || resolved === 'rail'

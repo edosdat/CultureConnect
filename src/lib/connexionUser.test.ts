@@ -570,6 +570,8 @@ describe('top 3 adaptive layout', () => {
     assert.ok(top3GridClass(2).includes('items-start'));
     assert.ok(top3GridClass(3).includes('items-start'));
     assert.equal(seanceCardShowsPitch('rail'), false);
+    assert.equal(seanceCardShowsPitch('compact', 'top3'), false);
+    assert.equal(seanceCardShowsPitch('compact'), true);
   });
 
   it('H2 says Le top N du moment for guests (1 / 2 / 3 cards)', () => {
