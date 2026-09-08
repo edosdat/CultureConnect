@@ -1,11 +1,14 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  HERO_SCROLL_DEFER_MS,
   HOME_STICKY_OFFSET_PX,
   THUMB_SELECT_LOCK_MS,
+  holdThumbFocus,
   heroWindowScrollY,
   resolveHeroAfterRowsChange,
   resolveHeroIndex,
+  resolveThumbSelectIndex,
   shouldIgnoreRepeatThumbSelect,
   type CarouselHeroRow,
 } from './carouselSelect';
@@ -31,6 +34,40 @@ describe('shouldIgnoreRepeatThumbSelect', () => {
       shouldIgnoreRepeatThumbSelect(1_000, 1_000 + THUMB_SELECT_LOCK_MS),
       false,
     );
+  });
+
+  it('covers a delayed iOS click (~300ms) plus slack', () => {
+    assert.ok(THUMB_SELECT_LOCK_MS >= 500);
+    assert.equal(HERO_SCROLL_DEFER_MS, THUMB_SELECT_LOCK_MS);
+  });
+});
+
+describe('resolveThumbSelectIndex', () => {
+  it('keeps the touchstart film when the click lands on a neighbor', () => {
+    assert.equal(resolveThumbSelectIndex(4, 5), 4);
+  });
+
+  it('uses the event index when nothing was armed (keyboard / mouse)', () => {
+    assert.equal(resolveThumbSelectIndex(null, 2), 2);
+  });
+
+  it('keeps the touchstart groupKey when the click lands on a neighbor', () => {
+    assert.equal(
+      resolveThumbSelectIndex('film:w:kyoto', 'film:w:triangle'),
+      'film:w:kyoto',
+    );
+  });
+});
+
+describe('holdThumbFocus', () => {
+  it('focuses with preventScroll so the overflow strip does not jump', () => {
+    const calls: unknown[] = [];
+    holdThumbFocus({
+      focus: (opts) => {
+        calls.push(opts);
+      },
+    });
+    assert.deepEqual(calls, [{ preventScroll: true }]);
   });
 });
 
