@@ -45,6 +45,7 @@ import VivantComplementLinks from './VivantComplementLinks';
 import PressCitation from './PressCitation';
 import FicheDescription from './FicheDescription';
 import { CineFilmSeances } from './CineSeancePicker';
+import { useSignals } from './SignalsProvider';
 
 type Props = {
   item: DayItem | null;
@@ -82,14 +83,17 @@ function useEscapeClose(active: boolean, onClose: () => void) {
 function ReserveControl({
   url,
   soldOut,
+  item,
   onReserve,
   shrink = false,
 }: {
   url: string;
   soldOut: boolean;
+  item?: DayItem;
   onReserve?: () => void;
   shrink?: boolean;
 }) {
+  const { trackItem } = useSignals();
   const width = shrink ? ' shrink-0' : '';
   if (soldOut) {
     return (
@@ -110,7 +114,10 @@ function ReserveControl({
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      onClick={() => onReserve?.()}
+      onClick={() => {
+        if (item) trackItem(item, 'outbound_click');
+        onReserve?.();
+      }}
       className={
           'inline-flex min-h-10 items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-medium text-white hover:bg-culture-clay' +
         width
@@ -128,6 +135,7 @@ type VenueGroup = {
   rows: { key: string; date: string; heure: string }[];
   reserveUrl: string;
   soldOut: boolean;
+  item: DayItem;
 };
 
 function groupSeancesByVenue(items: DayItem[]): VenueGroup[] {
@@ -143,7 +151,15 @@ function groupSeancesByVenue(items: DayItem[]): VenueGroup[] {
     const commune = rel.lieu?.commune || '';
     const key = lieuId || `label:${label}`;
     if (!map.has(key)) {
-      map.set(key, { label, lieuId, commune, rows: [], reserveUrl: '', soldOut: false });
+      map.set(key, {
+        label,
+        lieuId,
+        commune,
+        rows: [],
+        reserveUrl: '',
+        soldOut: false,
+        item: rel,
+      });
       seancesByKey.set(key, []);
       order.push(key);
     }
@@ -224,6 +240,7 @@ function FilmSeancesList({
             <ReserveControl
               url={g.reserveUrl}
               soldOut={g.soldOut}
+              item={g.item}
               onReserve={onReserve}
               shrink
             />
@@ -634,6 +651,7 @@ export default function EventDetail({
                 <ReserveControl
                   url={reserveUrlOf(item)}
                   soldOut={reserveSoldOut(item)}
+                  item={item}
                   onReserve={() => {
                     markEngaged();
                     onReserve?.();
@@ -681,7 +699,7 @@ export default function EventDetail({
                 </>
               )}
               <ShareButton item={item} />
-              <FavoriteButton itemKey={item.key} />
+              <FavoriteButton item={item} />
               {sourceUrlOf(item) && (
                 <a
                   href={sourceUrlOf(item)}
@@ -868,6 +886,7 @@ export default function EventDetail({
             <ReserveControl
               url={reserveUrlOf(item)}
               soldOut={reserveSoldOut(item)}
+              item={item}
               onReserve={() => {
                 markEngaged();
                 onReserve?.();
@@ -914,7 +933,7 @@ export default function EventDetail({
               </>
             )}
             <ShareButton item={item} />
-            <FavoriteButton itemKey={item.key} />
+            <FavoriteButton item={item} />
             {sourceUrlOf(item) && (
               <a
                 href={sourceUrlOf(item)}

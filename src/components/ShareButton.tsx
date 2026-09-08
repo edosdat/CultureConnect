@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { DayItem } from '@/lib/types';
 import { deepLinkUrl, isLikelyMobile, sharePrefill } from '@/lib/displayHome';
+import { useSignals } from './SignalsProvider';
 
 type Props = {
   item: DayItem;
@@ -11,6 +12,7 @@ type Props = {
 
 export default function ShareButton({ item, className = '' }: Props) {
   const [copied, setCopied] = useState(false);
+  const { trackItem } = useSignals();
 
   async function handleShare() {
     const origin = window.location.origin;
@@ -23,6 +25,7 @@ export default function ShareButton({ item, className = '' }: Props) {
           text: prefill.text,
           url: prefill.url,
         });
+        trackItem(item, 'share');
         return;
       } catch {
         /* cancelled or unsupported — fall through */
@@ -49,10 +52,12 @@ export default function ShareButton({ item, className = '' }: Props) {
       }
     }
     if (copiedOk) {
+      trackItem(item, 'share');
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2200);
     } else {
       window.prompt('Copier le lien', payload);
+      trackItem(item, 'share');
     }
   }
 

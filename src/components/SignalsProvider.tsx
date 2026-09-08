@@ -26,7 +26,7 @@ import {
   type AccountTasteState,
   type GuestSignalsStore,
   type ProfileBucket,
-  type SignalKind,
+  type ItemSignalKind,
   type TrackPayload,
 } from '@/lib/signals';
 import {
@@ -45,7 +45,7 @@ type SignalsValue = {
   track: (payload: TrackPayload) => void;
   trackItem: (
     item: DayItem,
-    kind: Extract<SignalKind, 'open_card' | 'agenda_add' | 'ics' | 'reserve'>,
+    kind: ItemSignalKind,
   ) => void;
   wipeKey: (bucket: ProfileBucket, key: string) => void;
   addPhrase: (text: string) => void;
@@ -203,7 +203,7 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
   const trackItem = useCallback(
     (
       item: DayItem,
-      kind: Extract<SignalKind, 'open_card' | 'agenda_add' | 'ics' | 'reserve'>,
+      kind: ItemSignalKind,
     ) => {
       track(payloadFromDayItem(item, kind));
     },

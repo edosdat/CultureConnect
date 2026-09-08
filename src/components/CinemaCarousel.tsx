@@ -33,6 +33,7 @@ import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 import FilmPoster from './FilmPoster';
 import FavoriteButton from './FavoriteButton';
 import ShareButton from './ShareButton';
+import { useSignals } from './SignalsProvider';
 import VivantComplementLinks from './VivantComplementLinks';
 import PressCitation from './PressCitation';
 import CineSeancePicker from './CineSeancePicker';
@@ -231,6 +232,7 @@ function SeanceReserveLink({
   compact?: boolean;
   wide?: boolean;
 }) {
+  const { trackItem } = useSignals();
   const pick = reservePickOf(item);
   const wideCls = wide
     ? 'flex w-full items-center justify-center'
@@ -255,7 +257,10 @@ function SeanceReserveLink({
       href={pick.url}
       target="_blank"
       rel="noopener noreferrer"
-      onClick={() => onReserve?.(item)}
+      onClick={() => {
+        trackItem(item, 'outbound_click');
+        onReserve?.(item);
+      }}
       className={
         compact
           ? 'shrink-0 rounded-full bg-culture-terracotta px-2.5 py-1 text-xs font-semibold text-white hover:bg-culture-clay'
@@ -563,7 +568,7 @@ export default function CinemaCarousel({
           </span>
           <TheatreUrgenceBadge item={item} />
         </span>
-        <FavoriteButton itemKey={item.key} />
+        <FavoriteButton item={item} />
       </div>
       <h3 className="font-display text-base leading-snug text-culture-ink md:text-2xl">
         {itemTitle(item)}
