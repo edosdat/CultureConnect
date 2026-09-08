@@ -1,7 +1,7 @@
 import type { DayItem } from '@/lib/types';
 import { ficheDescriptionOf } from '@/lib/ficheDescription';
 
-/** Long synopsis when present, else courte. Hidden only if every field is empty. */
+/** Programme: description_item, then longue, then courte. Hidden only if empty. */
 export default function FicheDescription({ item }: { item: DayItem }) {
   const text = ficheDescriptionOf(item);
   if (!text) return null;

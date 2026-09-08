@@ -157,6 +157,59 @@ describe('ficheDescriptionOf', () => {
     assert.equal(ficheDescriptionOf(viaItem), 'Pitch programme entier.');
   });
 
+  it('prefers filled description_item over the shared festival longue', () => {
+    const festivalBlurb =
+      'Premier festival des arts de la rue. Une trentaine de compagnies.';
+    const itemPitch = 'Solo circassien: Fleur de peau, pitch pièce.';
+    const item = detailDayItem(
+      programmeItem({
+        cat: 'festival',
+        evenement: {
+          event_id: 'EHG007',
+          titre: 'Festival de rue de Ramonville',
+          description_longue: festivalBlurb,
+          description_courte: '39e édition ARTO.',
+        },
+        programme: {
+          nom_item: 'Fleur de peau - L\'An 01',
+          description_item: itemPitch,
+        },
+      }),
+    );
+    assert.equal(ficheDescriptionOf(item), itemPitch);
+    assert.notEqual(ficheDescriptionOf(item), festivalBlurb);
+  });
+
+  it('falls back to longue then courte when description_item is empty or whitespace', () => {
+    const longue = 'Blurb festival partagé.';
+    const emptyItem = detailDayItem(
+      programmeItem({
+        cat: 'festival',
+        evenement: { description_longue: longue, description_courte: 'Court.' },
+        programme: { description_item: '' },
+      }),
+    );
+    assert.equal(ficheDescriptionOf(emptyItem), longue);
+
+    const wsItem = detailDayItem(
+      programmeItem({
+        cat: 'festival',
+        evenement: { description_longue: longue, description_courte: 'Court.' },
+        programme: { description_item: '   ' },
+      }),
+    );
+    assert.equal(ficheDescriptionOf(wsItem), longue);
+
+    const courteOnly = detailDayItem(
+      programmeItem({
+        cat: 'festival',
+        evenement: { description_longue: '', description_courte: 'Court festival.' },
+        programme: { description_item: '' },
+      }),
+    );
+    assert.equal(ficheDescriptionOf(courteOnly), 'Court festival.');
+  });
+
   it('keeps newlines and does not invent copy', () => {
     const text = 'Acte I.\n\nActe II, la forêt.';
     const item = detailDayItem(
