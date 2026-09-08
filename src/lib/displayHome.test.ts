@@ -21,9 +21,12 @@ import {
   shouldInvalidateProfileRecoCache,
   seanceCardShowsPitch,
   HOME_LIST_WAIT_SLOT_CLASS,
+  HOME_SECTION_TITLE_ACCENT_CLASS,
+  HOME_SECTION_TITLE_CLASS,
   shouldShowTop3Section,
   theatreRows,
   TOP3_CAROUSEL_TRACK_CLASS,
+  TOP3_RAIL_IMAGE_CLASS,
   top3CardFrameClass,
   top3GridClass,
   top3IndicatorLabel,
@@ -910,12 +913,34 @@ describe('Home list-wait reserve (LAYOUT_JUMP)', () => {
 });
 
 describe('Top 3 rail — equal-height row', () => {
-  it('stretches cards so rail thumbs can fill the row height', () => {
+  it('stretches cards so the row shares height; poster stays a petite box', () => {
     for (const n of [1, 2, 3]) {
       const cls = top3GridClass(n);
       assert.ok(cls.includes('items-stretch'), `count ${n}`);
       assert.equal(cls.includes('items-start'), false, `count ${n}`);
     }
+  });
+});
+
+describe('Top 3 H2 matches Cinema section title', () => {
+  it('uses the same display scale as HomeSection (not louder)', () => {
+    assert.equal(HOME_SECTION_TITLE_CLASS, 'font-display text-xl text-culture-ink sm:text-2xl');
+    assert.equal(HOME_SECTION_TITLE_ACCENT_CLASS, 'border-b-2 border-culture-terracotta pb-0.5');
+    assert.equal(HOME_SECTION_TITLE_CLASS.includes('leading-tight'), false);
+    assert.equal(HOME_SECTION_TITLE_CLASS.includes('w-full'), false);
+    assert.equal(HOME_SECTION_TITLE_CLASS.includes('text-3xl'), false);
+  });
+});
+
+describe('Top 3 rail — petite cinema vignette', () => {
+  it('keeps a 2/3 poster box that cannot collapse to 0 height', () => {
+    assert.ok(TOP3_RAIL_IMAGE_CLASS.includes('aspect-[2/3]'));
+    assert.ok(TOP3_RAIL_IMAGE_CLASS.includes('w-[4.25rem]'));
+    assert.ok(TOP3_RAIL_IMAGE_CLASS.includes('min-w-[4.25rem]'));
+    assert.ok(TOP3_RAIL_IMAGE_CLASS.includes('shrink-0'));
+    assert.ok(TOP3_RAIL_IMAGE_CLASS.includes('self-start'));
+    assert.equal(TOP3_RAIL_IMAGE_CLASS.includes('h-full'), false);
+    assert.equal(TOP3_RAIL_IMAGE_CLASS.includes('self-stretch'), false);
   });
 });
 

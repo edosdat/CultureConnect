@@ -273,7 +273,25 @@ export function fillEmptyCineFromPool(
   return fillEmptyCineSlot(recoItems, films);
 }
 
-/** 0 → hide; 1 → full width; 2 → 50/50; 3 → current 3-up. Stretch so rail thumbs fill the row. */
+/**
+ * Pack section titles (Ciné, Théâtre…) and Top 3 share this type.
+ * Same scale + weight family so Top 3 is not louder on mobile ~380.
+ */
+export const HOME_SECTION_TITLE_CLASS =
+  'font-display text-xl text-culture-ink sm:text-2xl';
+
+export const HOME_SECTION_TITLE_ACCENT_CLASS =
+  'border-b-2 border-culture-terracotta pb-0.5';
+
+/**
+ * Petite left poster on Top 3 rail cards — cinema 2/3 vignette.
+ * Fixed width + aspect-ratio so the thumb cannot collapse in the
+ * #75 flex snap carousel (`h-full` + absolute img had circular height).
+ */
+export const TOP3_RAIL_IMAGE_CLASS =
+  'aspect-[2/3] w-[4.25rem] min-w-[4.25rem] shrink-0 self-start sm:w-[4.75rem] sm:min-w-[4.75rem] lg:w-[5.75rem] lg:min-w-[5.75rem]';
+
+/** 0 → hide; 1 → full width; 2 → 50/50; 3 → current 3-up. Stretch so cards share row height. */
 export function top3GridClass(count: number): string {
   if (count <= 1) return 'grid w-full grid-cols-1 items-stretch gap-3';
   if (count === 2) return 'grid w-full grid-cols-1 items-stretch gap-3 sm:grid-cols-2';

@@ -1,5 +1,6 @@
 import {
   TOP3_INDICATOR_CLASS,
+  TOP3_RAIL_IMAGE_CLASS,
   top3CardFrameClass,
   top3TrackClass,
 } from '@/lib/displayHome';
@@ -19,8 +20,8 @@ export default function Top3Skeleton() {
       >
         {SLOTS.map((slot) => (
           <li key={slot} className={top3CardFrameClass(count)}>
-            <div className="flex h-full animate-pulse overflow-hidden rounded-card border border-culture-soft bg-culture-surface">
-              <div className="w-[4.25rem] shrink-0 self-stretch bg-culture-sand/70 sm:w-[4.75rem] lg:w-[5.75rem]" />
+            <div className="flex h-full animate-pulse items-start overflow-hidden rounded-card border border-culture-soft bg-culture-surface">
+              <div className={TOP3_RAIL_IMAGE_CLASS + ' bg-culture-sand/70'} />
               <div className="min-w-0 flex-1 px-2.5 py-2 sm:px-3 sm:py-2.5">
                 <div className="h-4 w-4/5 rounded bg-culture-sand/80" />
                 <div className="mt-2 h-3 w-2/3 rounded bg-culture-sand/60" />

@@ -38,6 +38,8 @@ import {
   resolveHomeCardOpen,
   resolveSearchSubmit,
   shouldInvalidateProfileRecoCache,
+  HOME_SECTION_TITLE_ACCENT_CLASS,
+  HOME_SECTION_TITLE_CLASS,
   top3Heading,
   top3PaintMode,
   theatreRows,
@@ -1876,11 +1878,13 @@ export default function CultureConnectApp({
           data-top3-count={recoReady ? top3Cards.length : undefined}
           data-top3-pending={top3Mode === 'skeleton' ? '' : undefined}
         >
-          <h2 className="w-full font-display text-xl leading-tight text-culture-ink sm:text-2xl">
-            {top3Heading(
-              recoReady ? top3Cards.length : 3,
-              sessionStatus === 'authenticated',
-            )}
+          <h2 className={HOME_SECTION_TITLE_CLASS}>
+            <span className={HOME_SECTION_TITLE_ACCENT_CLASS}>
+              {top3Heading(
+                recoReady ? top3Cards.length : 3,
+                sessionStatus === 'authenticated',
+              )}
+            </span>
           </h2>
           {sessionStatus !== 'authenticated' ? (
             <Top3GuestCta

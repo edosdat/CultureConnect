@@ -1,3 +1,7 @@
+import {
+  HOME_SECTION_TITLE_ACCENT_CLASS,
+  HOME_SECTION_TITLE_CLASS,
+} from '@/lib/displayHome';
 import HomeBootChrome from './HomeBootChrome';
 import Top3GuestCta from './Top3GuestCta';
 import Top3Skeleton from './Top3Skeleton';
@@ -19,8 +23,10 @@ export default function HomeTop3BootFallback() {
           data-top3-boot-fallback=""
           data-top3-pending=""
         >
-          <h2 className="w-full font-display text-xl leading-tight text-culture-ink sm:text-2xl">
-            Le top 3 du moment
+          <h2 className={HOME_SECTION_TITLE_CLASS}>
+            <span className={HOME_SECTION_TITLE_ACCENT_CLASS}>
+              Le top 3 du moment
+            </span>
           </h2>
           <Top3GuestCta />
           <Top3Skeleton />

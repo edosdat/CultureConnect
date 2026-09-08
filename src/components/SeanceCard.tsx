@@ -16,6 +16,7 @@ import { MAIN_CATEGORY_LABELS, mainFromCategorie, mainFromGenreSlug } from '@/li
 import { catCssVar, catGradient } from '@/lib/categoryColor';
 import {
   seanceCardShowsPitch,
+  TOP3_RAIL_IMAGE_CLASS,
   type SeanceCardPitchSource,
 } from '@/lib/displayHome';
 import EventImage from './EventImage';
@@ -148,7 +149,7 @@ export default function SeanceCard({
         'relative overflow-hidden ' +
         catGradient(catLabel) +
         (resolved === 'rail'
-          ? ' h-full w-[4.25rem] shrink-0 self-stretch sm:w-[4.75rem] lg:w-[5.75rem]'
+          ? ' ' + TOP3_RAIL_IMAGE_CLASS
           : resolved === 'live'
             ? ' aspect-[4/3] w-full'
             : resolved === 'compact'
@@ -162,7 +163,7 @@ export default function SeanceCard({
         loading="lazy"
         className={
           'h-full w-full object-cover transition duration-200 ease-out group-hover:scale-[1.03]' +
-          (resolved === 'rail' ? ' absolute inset-0 object-center' : '')
+          (resolved === 'rail' ? ' object-top' : '')
         }
         fallback={<VisualFallback item={item} compact={resolved !== 'live'} />}
       />
@@ -317,7 +318,7 @@ export default function SeanceCard({
       onClick={() => onSelect(item.key)}
       className={
         'group flex w-full min-w-0 overflow-hidden rounded-card border border-culture-line border-l-4 bg-culture-surface text-left shadow-card transition duration-200 ease-out ' +
-        (resolved === 'rail' ? 'h-full flex-row items-stretch ' : 'flex-col ') +
+        (resolved === 'rail' ? 'h-full flex-row items-start ' : 'flex-col ') +
         (resolved === 'compact' ? 'hover:shadow-md' : 'hover:-translate-y-0.5 hover:shadow-md')
       }
       style={accentStyle}
