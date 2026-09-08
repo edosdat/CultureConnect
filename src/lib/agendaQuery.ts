@@ -1068,7 +1068,14 @@ function listSnapshotForScope(scope: RecoBootScope, now: Date): ScopeListSnapsho
 
 /** Empty guest reco — SSR first paint must not wait on recommendForProfile. */
 export function deferredRecoByScope(): RecoByScope {
-  return Object.fromEntries(RECO_BOOT_SCOPES.map((s) => [s, []])) as RecoByScope;
+  const empty: DayItem[] = [];
+  return {
+    tous: empty,
+    soir: empty,
+    aujourdhui: empty,
+    weekend: empty,
+    semaine: empty,
+  };
 }
 
 function computeHomeWindow(now = new Date()): HomeWindow {

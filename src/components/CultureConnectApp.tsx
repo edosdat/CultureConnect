@@ -1891,6 +1891,7 @@ export default function CultureConnectApp({
           className="w-full space-y-3 rounded-card-lg border border-culture-soft/80 bg-culture-surface/80 p-3 sm:p-4"
           data-top3=""
           data-top3-count={recoReady ? top3Cards.length : undefined}
+          data-top3-pending={top3Mode === 'skeleton' ? '' : undefined}
         >
           <h2 className="w-full font-display text-xl leading-tight text-culture-ink sm:text-2xl">
             {top3Heading(
