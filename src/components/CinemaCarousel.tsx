@@ -119,6 +119,8 @@ type Props = {
   onIcs?: (item: DayItem) => void;
   onReserve?: (item: DayItem) => void;
   onSelectLive?: (key: string) => void;
+  /** Parent-held groupKey — survives remount when GPS/list hydrate remounts us. */
+  onHeroPin?: (key: string) => void;
   origin?: GeoPos | null;
 };
 
@@ -339,15 +341,17 @@ export default function CinemaCarousel({
   onIcs,
   onReserve,
   onSelectLive,
+  onHeroPin,
   origin = null,
 }: Props) {
   const copy = PACK_COPY[pack];
   const seancesDomId = `${pack}-seances`;
+  // Do not key the pin on commune: boot GPS sets commune null after 1–8s
+  // on a real phone/tablet (Design desktop-narrow never grants geolocation).
   const pinScope = [
     pack,
     dateFrom ?? '',
     dateTo ?? '',
-    selectedCommune ?? '',
     selectedLieuId ?? '',
     soir ? '1' : '0',
   ].join('|');
@@ -384,8 +388,13 @@ export default function CinemaCarousel({
   const swipeLockUntil = useRef(0);
   const selectAt = useRef<number | null>(null);
   const armedKey = useRef<string | null>(null);
+  const stripTouched = useRef(false);
+  const touchScrollY = useRef(0);
+  const touchVisualTop = useRef(0);
   const rowsRef = useRef(rows);
   rowsRef.current = rows;
+  const onHeroPinRef = useRef(onHeroPin);
+  onHeroPinRef.current = onHeroPin;
   const pinScopeRef = useRef(pinScope);
   if (pinScopeRef.current !== pinScope) {
     pinScopeRef.current = pinScope;
@@ -419,6 +428,8 @@ export default function CinemaCarousel({
     pendingAdvance.current = false;
     lastEmittedKey.current = key;
     writePackHeroPin(pinScope, pin);
+    writePackHeroPin(pack, pin);
+    onHeroPinRef.current?.(key);
     setHeroKey(key);
   }
 
@@ -435,6 +446,7 @@ export default function CinemaCarousel({
       heroPin.current = adopted.pin;
       pinnedBySelect.current = true;
       writePackHeroPin(pinScope, adopted.pin);
+      writePackHeroPin(pack, adopted.pin);
       if (adopted.key && adopted.key !== heroKey) setHeroKey(adopted.key);
     }
   }
@@ -448,6 +460,7 @@ export default function CinemaCarousel({
     ) {
       heroPin.current = pinFromHeroRow(toHeroRow(heroFromRows), heroFromRows.groupKey);
       writePackHeroPin(pinScope, heroPin.current);
+      writePackHeroPin(pack, heroPin.current);
     }
   }
   const hero = heroFromRows ?? pinnedRow.current ?? rows[0];
@@ -457,6 +470,10 @@ export default function CinemaCarousel({
     setMobileCal(isLikelyMobile());
   }, []);
 
+  useEffect(() => {
+    if (heroKey) onHeroPinRef.current?.(heroKey);
+  }, [heroKey]);
+
   const stripTouchCleanup = useRef<(() => void) | null>(null);
   const bindStrip = useCallback((el: HTMLDivElement | null) => {
     stripRef.current = el;
@@ -464,6 +481,7 @@ export default function CinemaCarousel({
     stripTouchCleanup.current = null;
     if (!el) return;
     const onTouchStart = (e: globalThis.TouchEvent) => {
+      stripTouched.current = true;
       const btn = (e.target as Element | null)?.closest?.('button');
       if (btn instanceof HTMLElement && el.contains(btn)) {
         holdThumbFocus(btn);
@@ -588,6 +606,8 @@ export default function CinemaCarousel({
   function onStripScroll() {
     const el = stripRef.current;
     if (!el) return;
+    // iOS fires overflow-x scroll on layout / rubber-band without a drag.
+    if (!stripTouched.current) return;
     markMoved();
     if (el.scrollLeft + el.clientWidth < el.scrollWidth - 96) return;
     requestMore();
@@ -650,6 +670,14 @@ export default function CinemaCarousel({
     touchX.current = t?.clientX ?? null;
     touchY.current = t?.clientY ?? null;
     touchMoved.current = false;
+    touchScrollY.current = window.scrollY;
+    touchVisualTop.current = window.visualViewport?.offsetTop ?? 0;
+  }
+
+  function onHeroTouchCancel() {
+    touchX.current = null;
+    touchY.current = null;
+    touchMoved.current = false;
   }
 
   function onHeroTouchMove(e: TouchEvent) {
@@ -679,6 +707,10 @@ export default function CinemaCarousel({
         didMove,
         lockUntil: swipeLockUntil.current,
         now: Date.now(),
+        startScrollY: touchScrollY.current,
+        endScrollY: window.scrollY,
+        startVisualTop: touchVisualTop.current,
+        endVisualTop: window.visualViewport?.offsetTop ?? 0,
       })
     ) {
       return;
@@ -693,6 +725,7 @@ export default function CinemaCarousel({
         pinnedBySelect.current = false;
         heroPin.current = null;
         writePackHeroPin(pinScope, null);
+        writePackHeroPin(pack, null);
         requestMore();
       }
     } else if (heroIndex > 0) {
@@ -822,6 +855,7 @@ export default function CinemaCarousel({
         onTouchStart={onHeroTouchStart}
         onTouchMove={onHeroTouchMove}
         onTouchEnd={onHeroTouchEnd}
+        onTouchCancel={onHeroTouchCancel}
         className="scroll-mt-16 overflow-hidden rounded-card-lg border border-culture-line bg-culture-surface shadow-card"
       >
         <FilmPoster src={image} item={item} blurBackdrop />

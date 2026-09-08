@@ -81,6 +81,7 @@ import {
   searchSubmitAppliesChips,
   type SearchChipParse,
 } from '@/lib/parseSearchChips';
+import { mergePinnedHeroRow } from '@/lib/carouselSelect';
 import { normalizeDeepLinkId } from '@/lib/deepLink';
 import {
   buildAgendaParams,
@@ -1083,8 +1084,13 @@ export default function CultureConnectApp({
     [cineSource, top3Set, gpsOrigin],
   );
   const visibleCineRows = useMemo(
-    () => allCineRows.slice(0, cineLimit),
-    [allCineRows, cineLimit],
+    () =>
+      mergePinnedHeroRow(
+        allCineRows.slice(0, cineLimit),
+        allCineRows,
+        cineFocusKey,
+      ),
+    [allCineRows, cineLimit, cineFocusKey],
   );
   const vivantPool = useMemo(() => {
     const seen = new Set<string>();
@@ -1106,8 +1112,13 @@ export default function CultureConnectApp({
     [vivantPool, top3Set, gpsOrigin],
   );
   const visibleTheatreRows = useMemo(
-    () => allTheatreRows.slice(0, theatreLimit),
-    [allTheatreRows, theatreLimit],
+    () =>
+      mergePinnedHeroRow(
+        allTheatreRows.slice(0, theatreLimit),
+        allTheatreRows,
+        theatreFocusKey,
+      ),
+    [allTheatreRows, theatreLimit, theatreFocusKey],
   );
   const allMusiqueRows = useMemo(
     () =>
@@ -1119,8 +1130,13 @@ export default function CultureConnectApp({
     [vivantPool, top3Set, gpsOrigin],
   );
   const visibleMusiqueRows = useMemo(
-    () => allMusiqueRows.slice(0, musiqueLimit),
-    [allMusiqueRows, musiqueLimit],
+    () =>
+      mergePinnedHeroRow(
+        allMusiqueRows.slice(0, musiqueLimit),
+        allMusiqueRows,
+        musiqueFocusKey,
+      ),
+    [allMusiqueRows, musiqueLimit, musiqueFocusKey],
   );
   const allEnfantsRows = useMemo(
     () =>
@@ -1135,8 +1151,13 @@ export default function CultureConnectApp({
     [vivantPool, top3Set, gpsOrigin, selectedCategories],
   );
   const visibleEnfantsRows = useMemo(
-    () => allEnfantsRows.slice(0, enfantsLimit),
-    [allEnfantsRows, enfantsLimit],
+    () =>
+      mergePinnedHeroRow(
+        allEnfantsRows.slice(0, enfantsLimit),
+        allEnfantsRows,
+        enfantsFocusKey,
+      ),
+    [allEnfantsRows, enfantsLimit, enfantsFocusKey],
   );
   const allExpoRows = useMemo(
     () =>
@@ -1148,8 +1169,13 @@ export default function CultureConnectApp({
     [vivantPool, top3Set, gpsOrigin],
   );
   const visibleExpoRows = useMemo(
-    () => allExpoRows.slice(0, expoLimit),
-    [allExpoRows, expoLimit],
+    () =>
+      mergePinnedHeroRow(
+        allExpoRows.slice(0, expoLimit),
+        allExpoRows,
+        expoFocusKey,
+      ),
+    [allExpoRows, expoLimit, expoFocusKey],
   );
   const sectionVis = homeSectionsVisible(selectedCategories);
 
@@ -2015,6 +2041,7 @@ export default function CultureConnectApp({
               pack="cine"
               mobile={narrowHome}
               focusKey={cineFocusKey}
+              onHeroPin={setCineFocusKey}
               selectedCommune={selectedCommune}
               selectedLieuId={selectedLieuId}
               dateFrom={scopeRange.startIso}
@@ -2066,6 +2093,7 @@ export default function CultureConnectApp({
                   pack="theatre"
                   mobile={narrowHome}
                   focusKey={theatreFocusKey}
+                  onHeroPin={setTheatreFocusKey}
                   selectedCommune={selectedCommune}
                   selectedLieuId={selectedLieuId}
                   dateFrom={scopeRange.startIso}
@@ -2112,6 +2140,7 @@ export default function CultureConnectApp({
                   pack="musique"
                   mobile={narrowHome}
                   focusKey={musiqueFocusKey}
+                  onHeroPin={setMusiqueFocusKey}
                   selectedCommune={selectedCommune}
                   selectedLieuId={selectedLieuId}
                   dateFrom={scopeRange.startIso}
@@ -2160,6 +2189,7 @@ export default function CultureConnectApp({
               pack="enfants"
               mobile={narrowHome}
               focusKey={enfantsFocusKey}
+              onHeroPin={setEnfantsFocusKey}
               selectedCommune={selectedCommune}
               selectedLieuId={selectedLieuId}
               dateFrom={scopeRange.startIso}
@@ -2204,6 +2234,7 @@ export default function CultureConnectApp({
               pack="expo"
               mobile={narrowHome}
               focusKey={expoFocusKey}
+              onHeroPin={setExpoFocusKey}
               selectedCommune={selectedCommune}
               selectedLieuId={selectedLieuId}
               dateFrom={scopeRange.startIso}

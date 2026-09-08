@@ -2,7 +2,9 @@ import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   HERO_SCROLL_DEFER_MS,
+  HERO_SWIPE_AXIS_RATIO,
   HERO_SWIPE_LOCK_MS,
+  HERO_SWIPE_MIN_DX,
   HOME_STICKY_OFFSET_PX,
   THUMB_SELECT_LOCK_MS,
   adoptFirstPaintHero,
@@ -264,6 +266,21 @@ describe('adoptFirstPaintHero', () => {
     assert.equal(first.pin?.groupKey, film1.groupKey);
   });
 
+  it('keeps first-paint hero after GPS nearest-first reorder', () => {
+    const first = adoptFirstPaintHero([film1, film2, film3], null);
+    const gpsOrder = [film3, film2, film1];
+    const next = resolveHeroAfterRowsChange({
+      rows: gpsOrder,
+      selectedKey: first.key,
+      pendingAdvance: false,
+      pinnedBySelect: false,
+      hasMore: false,
+      pin: first.pin,
+    });
+    assert.equal(next.key, film1.groupKey);
+    assert.equal(next.index, 2);
+  });
+
   it('does not follow a new rows[0] after densify / shuffle / reco hydrate', () => {
     const first = adoptFirstPaintHero([film1, film2, film3], null);
     const shuffled = [film3, film2, film1];
@@ -333,6 +350,19 @@ describe('rowMatchesHeroPin / remount restore', () => {
 });
 
 describe('mergePinnedHeroRow', () => {
+  it('keeps the first-paint film in the mobile slice after GPS reorder', () => {
+    const fjord = film('film:w:la regle du jeu', 'fjord-1');
+    const near = film('film:w:l odyssee', 'near-1');
+    const near2 = film('film:w:the dog stars', 'near-2');
+    const near3 = film('film:w:spider', 'near-3');
+    const merged = mergePinnedHeroRow(
+      [near, near2, near3],
+      [near, near2, near3, fjord],
+      fjord.groupKey,
+    );
+    assert.equal(merged[merged.length - 1]?.groupKey, fjord.groupKey);
+  });
+
   it('appends the pinned work when cineLimit dropped it', () => {
     const kyoto = film('film:w:sous le ciel de kyoto', 'kyoto-1');
     const triangle = film('film:w:triangle d or', 'triangle-1');
@@ -359,6 +389,7 @@ describe('shouldIgnoreHeroSwipe', () => {
   };
 
   it('accepts a real horizontal swipe after the lock', () => {
+    assert.ok(Math.abs(base.endX - base.startX) >= HERO_SWIPE_MIN_DX);
     assert.equal(shouldIgnoreHeroSwipe(base), false);
   });
 
@@ -371,9 +402,29 @@ describe('shouldIgnoreHeroSwipe', () => {
     assert.ok(HERO_SWIPE_LOCK_MS >= 1_500);
   });
 
-  it('ignores a vertical-dominant gesture', () => {
+  it('ignores a vertical-dominant or diagonal page scroll', () => {
     assert.equal(
       shouldIgnoreHeroSwipe({ ...base, endX: 180, endY: 280 }),
+      true,
+    );
+    assert.ok(HERO_SWIPE_AXIS_RATIO >= 2);
+    assert.equal(
+      shouldIgnoreHeroSwipe({ ...base, endX: 140, endY: 330 }),
+      true,
+    );
+  });
+
+  it('ignores a gesture while the window / visualViewport scrolled', () => {
+    assert.equal(
+      shouldIgnoreHeroSwipe({ ...base, startScrollY: 80, endScrollY: 220 }),
+      true,
+    );
+    assert.equal(
+      shouldIgnoreHeroSwipe({
+        ...base,
+        startVisualTop: 0,
+        endVisualTop: 64,
+      }),
       true,
     );
   });

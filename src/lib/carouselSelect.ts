@@ -29,7 +29,11 @@ export const HERO_SCROLL_DEFER_MS = 500;
  */
 export const HERO_SWIPE_LOCK_MS = 1_500;
 
-export const HERO_SWIPE_MIN_DX = 40;
+/** Real-device page scroll often drifts ~40px sideways — require a clear flick. */
+export const HERO_SWIPE_MIN_DX = 72;
+
+/** |dx| must beat |dy| by this factor (page scroll is mostly vertical). */
+export const HERO_SWIPE_AXIS_RATIO = 2;
 
 /** Same threshold as densify `STEM_PREFIX_MIN` — truncated catalogue titles. */
 const STEM_PREFIX_MIN = 20;
@@ -266,26 +270,38 @@ export function resolveHeroAfterRowsChange(opts: {
  * Keep a thumb that fell outside the first-paint slice (mobile cap = 3)
  * so remount / cineLimit shrink cannot hide the pinned work.
  */
-export function mergePinnedHeroRow<T extends CarouselHeroRow>(
+export function mergePinnedHeroRow<T extends { groupKey: string }>(
   visible: readonly T[],
   all: readonly T[],
   pin: HeroPin | string | null | undefined,
 ): T[] {
-  const resolved: HeroPin | null =
-    typeof pin === 'string'
-      ? { key: pin, groupKey: pin, itemKey: pin, seanceKeys: [pin] }
-      : pin ?? null;
-  if (!resolved) return [...visible];
-  if (visible.some((row) => rowMatchesHeroPin(row, resolved))) {
-    return [...visible];
-  }
-  const extra = all.find((row) => rowMatchesHeroPin(row, resolved));
+  if (!pin) return [...visible];
+  const key = typeof pin === 'string' ? pin : pin.key;
+  const matches = (row: T) => {
+    if (row.groupKey === key) return true;
+    if (typeof pin === 'string') return false;
+    return rowMatchesHeroPin(
+      {
+        groupKey: row.groupKey,
+        itemKey:
+          'itemKey' in row && typeof row.itemKey === 'string' ? row.itemKey : '',
+        seanceKeys:
+          'seanceKeys' in row && Array.isArray(row.seanceKeys)
+            ? (row.seanceKeys as string[])
+            : undefined,
+      },
+      pin,
+    );
+  };
+  if (visible.some(matches)) return [...visible];
+  const extra = all.find(matches);
   return extra ? [...visible, extra] : [...visible];
 }
 
 /**
  * True when the hero touchend is not a deliberate horizontal swipe.
  * Missing touchmove = scrollIntoView / layout shift moved the card.
+ * A changing window scrollY / visualViewport means the page moved, not the finger.
  */
 export function shouldIgnoreHeroSwipe(opts: {
   startX: number | null;
@@ -296,14 +312,26 @@ export function shouldIgnoreHeroSwipe(opts: {
   lockUntil: number;
   now: number;
   minDx?: number;
+  axisRatio?: number;
+  startScrollY?: number | null;
+  endScrollY?: number | null;
+  startVisualTop?: number | null;
+  endVisualTop?: number | null;
 }): boolean {
   if (opts.startX == null) return true;
   if (opts.now < opts.lockUntil) return true;
   if (!opts.didMove) return true;
+  const startScroll = opts.startScrollY ?? 0;
+  const endScroll = opts.endScrollY ?? startScroll;
+  if (Math.abs(endScroll - startScroll) > 8) return true;
+  const startVV = opts.startVisualTop ?? 0;
+  const endVV = opts.endVisualTop ?? startVV;
+  if (Math.abs(endVV - startVV) > 8) return true;
   const dx = opts.endX - opts.startX;
   const dy = opts.endY - (opts.startY ?? opts.endY);
   const min = opts.minDx ?? HERO_SWIPE_MIN_DX;
+  const ratio = opts.axisRatio ?? HERO_SWIPE_AXIS_RATIO;
   if (Math.abs(dx) < min) return true;
-  if (Math.abs(dx) <= Math.abs(dy)) return true;
+  if (Math.abs(dx) < Math.abs(dy) * ratio) return true;
   return false;
 }
