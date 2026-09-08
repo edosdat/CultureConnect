@@ -292,6 +292,7 @@ export default function CinemaCarousel({
   const [heroIndex, setHeroIndex] = useState(0);
   const [pickedKey, setPickedKey] = useState<string | null>(null);
   const stripRef = useRef<HTMLDivElement | null>(null);
+  const heroCardRef = useRef<HTMLDivElement | null>(null);
   const seancesRef = useRef<HTMLDivElement | null>(null);
   const selectRef = useRef<HTMLSelectElement | null>(null);
   const [related, setRelated] = useState<DayItem[]>([]);
@@ -421,6 +422,11 @@ export default function CinemaCarousel({
     requestMore();
   }
 
+  /** Thumb strip sits below the fiche — bring the hero back under sticky search. */
+  function scrollHeroIntoView() {
+    heroCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   function onHeroTouchStart(e: TouchEvent) {
     if (e.target instanceof Element && e.target.closest('button, a, select, input, textarea, label')) {
       touchX.current = null;
@@ -502,6 +508,7 @@ export default function CinemaCarousel({
             onSelect={() => {
               markMoved();
               setHeroIndex(i);
+              scrollHeroIntoView();
               if (i >= rows.length - 1) requestMore();
             }}
             active={i === heroIndex}
@@ -570,9 +577,11 @@ export default function CinemaCarousel({
   return (
     <div className="space-y-3">
       <div
+        ref={heroCardRef}
+        data-carousel-hero=""
         onTouchStart={onHeroTouchStart}
         onTouchEnd={onHeroTouchEnd}
-        className="overflow-hidden rounded-card-lg border border-culture-line bg-culture-surface shadow-card"
+        className="scroll-mt-16 overflow-hidden rounded-card-lg border border-culture-line bg-culture-surface shadow-card"
       >
         <FilmPoster src={image} item={item} blurBackdrop />
         <div className="flex min-w-0 flex-col gap-2 p-3 md:p-4">
