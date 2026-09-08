@@ -195,7 +195,7 @@ export default function SeanceCard({
           resolved === 'live'
             ? 'mt-auto pt-1 text-sm font-semibold text-culture-ink'
             : resolved === 'rail'
-              ? 'pt-0.5 text-sm text-culture-muted'
+              ? 'line-clamp-1 pt-0 text-xs leading-4 text-culture-muted'
               : 'mt-auto pt-1 text-sm text-culture-muted'
         }
       >
@@ -240,15 +240,21 @@ export default function SeanceCard({
     <div
       className={
         'flex min-w-0 flex-1 flex-col ' +
-        (resolved === 'rail' ? 'gap-0.5 ' : 'gap-1 ') +
+        (resolved === 'rail' ? 'min-h-0 gap-0.5 overflow-hidden px-2 py-1.5 ' : 'gap-1 ') +
         (resolved === 'compact'
           ? 'p-2.5 sm:p-3 '
           : resolved === 'rail'
-            ? 'px-2 py-1.5 sm:px-2.5 sm:py-2 '
+            ? ''
             : 'p-3.5 sm:p-4 ')
       }
     >
-      <div className="flex flex-wrap items-start justify-between gap-2">
+      <div
+        className={
+          resolved === 'rail'
+            ? 'flex min-h-7 shrink-0 items-center gap-1'
+            : 'flex flex-wrap items-start justify-between gap-2'
+        }
+      >
         {resolved === 'rail' && catLabel ? (
           <span className="flex flex-wrap items-center gap-1">
             <CategoryPill label={catLabel} />
@@ -268,7 +274,7 @@ export default function SeanceCard({
           >
             <FavoriteButton
               item={item}
-              className={resolved === 'rail' ? 'h-8 w-8' : 'h-9 w-9'}
+              className={resolved === 'rail' ? '!h-7 !w-7' : 'h-9 w-9'}
             />
           </span>
         ) : null}
@@ -276,11 +282,13 @@ export default function SeanceCard({
       <h3
         className={
           'font-display leading-snug text-culture-ink line-clamp-2 ' +
-          (resolved === 'compact' || resolved === 'rail'
-            ? 'text-base'
-            : resolved === 'live'
-              ? 'text-xl sm:text-2xl'
-              : 'text-lg')
+          (resolved === 'rail'
+            ? 'min-h-[2.75rem] text-base'
+            : resolved === 'compact'
+              ? 'text-base'
+              : resolved === 'live'
+                ? 'text-xl sm:text-2xl'
+                : 'text-lg')
         }
       >
         {title}
@@ -298,7 +306,17 @@ export default function SeanceCard({
           {pitch}
         </p>
       ) : null}
-      {metaLine ? <p className="text-sm text-culture-muted">{metaLine}</p> : null}
+      {metaLine ? (
+        <p
+          className={
+            resolved === 'rail'
+              ? 'line-clamp-1 text-xs leading-4 text-culture-muted'
+              : 'text-sm text-culture-muted'
+          }
+        >
+          {metaLine}
+        </p>
+      ) : null}
       {showCities ? (
         <p className="text-xs text-culture-muted">
           {citiesSummary}
@@ -309,7 +327,11 @@ export default function SeanceCard({
         <p className="text-xs text-culture-terracotta">{distanceKm}</p>
       ) : null}
       {venueNode}
-      {reason ? (
+      {resolved === 'rail' ? (
+        <p className="mt-auto line-clamp-1 min-h-4 text-xs italic leading-4 text-culture-terracotta">
+          {reason || '\u00a0'}
+        </p>
+      ) : reason ? (
         <p className="text-xs italic text-culture-terracotta">{reason}</p>
       ) : null}
     </div>
@@ -321,7 +343,7 @@ export default function SeanceCard({
       onClick={() => onSelect(item.key)}
       className={
         'group flex w-full min-w-0 overflow-hidden rounded-card border border-culture-line border-l-4 bg-culture-surface text-left shadow-card transition duration-200 ease-out ' +
-        (resolved === 'rail' ? 'flex-row items-stretch ' : 'flex-col ') +
+        (resolved === 'rail' ? 'h-full flex-row items-stretch ' : 'flex-col ') +
         (resolved === 'compact' ? 'hover:shadow-md' : 'hover:-translate-y-0.5 hover:shadow-md')
       }
       style={accentStyle}
