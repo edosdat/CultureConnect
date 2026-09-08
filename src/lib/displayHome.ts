@@ -45,11 +45,11 @@ import { parseSearchChips, type SearchChipParse } from './parseSearchChips';
 import { seanceDateIso, type TimeScopeId } from './timeScope';
 import { sortItemsNearestFirst, type GeoPos } from './nearMe';
 
-/** Living-led visual order for Top 3 (scoring order in reco.ts is unchanged). */
+/** Visual order for Top 3: théâtre, then ciné, then concert. Scoring in reco.ts is unchanged. */
 export const DISPLAY_SLOT_ORDER: RecoSlotForm[] = [
-  'concert',
   'theatre',
   'cine',
+  'concert',
 ];
 
 /** Locked FR example chips — same axes as Enter / QUAND-QUOI / Ambiances. */
@@ -290,7 +290,7 @@ export function top3UsesMobileCarousel(count: number): boolean {
  * Leading `grid` is dropped so mobile stays `display: flex`.
  */
 export const TOP3_CAROUSEL_TRACK_CLASS =
-  'flex w-full snap-x snap-mandatory touch-pan-x items-stretch gap-3 overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:overflow-x-visible md:snap-none';
+  'flex w-full snap-x snap-mandatory [touch-action:pan-x_pan-y] items-stretch gap-3 overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:overflow-x-visible md:snap-none';
 
 export function top3TrackClass(count: number): string {
   if (!top3UsesMobileCarousel(count)) return top3GridClass(count);

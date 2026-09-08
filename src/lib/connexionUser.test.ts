@@ -505,7 +505,7 @@ describe('top 3 adaptive layout', () => {
     assert.equal(two.length, 2);
     assert.deepEqual(
       two.map((row) => slotFormOfItem(row)),
-      ['concert', 'theatre'],
+      ['theatre', 'concert'],
     );
 
     const one = visibleTop3Items([
