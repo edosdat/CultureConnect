@@ -7,6 +7,7 @@ import {
   omitBootScopeSnapshot,
   slimDayItem,
   detailDayItem,
+  relatedSeanceDayItem,
 } from './slim';
 
 const LONG =
@@ -118,6 +119,21 @@ describe('slimDayItem list wire', () => {
     if (detail.kind !== 'programme') assert.fail('expected programme');
     assert.equal(detail.programme.url, 'https://allocine.example/film');
     assert.equal(detail.programme.billetterie_url, 'https://tickets.example/buy');
+  });
+
+  it('detail and related seances keep catalogue mood tags for Réserver', () => {
+    const raw = item();
+    const detail = detailDayItem(raw);
+    const related = relatedSeanceDayItem(raw);
+    if (detail.kind !== 'programme') assert.fail('expected programme');
+    if (related.kind !== 'programme') assert.fail('expected programme');
+    assert.equal(detail.programme.moods, 'sombre');
+    assert.equal(detail.programme.genres_mood, 'drame');
+    assert.equal(detail.evenement?.moods, 'sombre');
+    assert.equal(related.programme.moods, 'sombre');
+    assert.equal(related.programme.genres_mood, 'drame');
+    assert.equal(related.evenement?.moods, 'sombre');
+    assert.equal(related.programme.billetterie_url, 'https://tickets.example/buy');
   });
 
   it('JSON of a slim card is much smaller than the fat source', () => {

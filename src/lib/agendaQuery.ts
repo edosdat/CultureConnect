@@ -57,6 +57,7 @@ import {
   relatedSeanceDayItem,
   slimDayItem,
   slimLieu,
+  withTasteTags,
   type AgendaDetailResponse,
   type AgendaListResponse,
 } from './slim';
@@ -775,42 +776,7 @@ function venuesFromWindow(items: DayItem[], selectedLieuId: string | null): Lieu
 }
 
 function withRecoTags(item: DayItem): DayItem {
-  const slim = slimDayItem(item);
-  const evSrc = item.evenement;
-  if (slim.kind === 'programme' && item.kind === 'programme') {
-    return {
-      ...slim,
-      programme: {
-        ...slim.programme,
-        form: item.programme.form || '',
-        moods: item.programme.moods || '',
-        genres_mood: item.programme.genres_mood || '',
-        themes: item.programme.themes || '',
-      },
-      evenement: slim.evenement
-        ? {
-            ...slim.evenement,
-            form: evSrc?.form || '',
-            moods: evSrc?.moods || '',
-            genres_mood: evSrc?.genres_mood || '',
-            themes: evSrc?.themes || '',
-          }
-        : slim.evenement,
-    };
-  }
-  if (slim.kind === 'fallback') {
-    return {
-      ...slim,
-      evenement: {
-        ...slim.evenement,
-        form: evSrc?.form || '',
-        moods: evSrc?.moods || '',
-        genres_mood: evSrc?.genres_mood || '',
-        themes: evSrc?.themes || '',
-      },
-    };
-  }
-  return slim;
+  return withTasteTags(slimDayItem(item), item);
 }
 
 

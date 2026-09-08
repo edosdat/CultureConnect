@@ -46,6 +46,7 @@ type SignalsValue = {
   trackItem: (
     item: DayItem,
     kind: ItemSignalKind,
+    tagSource?: DayItem | null,
   ) => void;
   wipeKey: (bucket: ProfileBucket, key: string) => void;
   addPhrase: (text: string) => void;
@@ -206,8 +207,9 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
     (
       item: DayItem,
       kind: ItemSignalKind,
+      tagSource?: DayItem | null,
     ) => {
-      track(payloadFromDayItem(item, kind));
+      track(payloadFromDayItem(item, kind, tagSource));
     },
     [track],
   );

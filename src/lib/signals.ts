@@ -126,6 +126,16 @@ const PAIRED_CLICK_KINDS: ReadonlySet<SignalKind> = new Set([
   'outbound_click',
 ]);
 
+/** Same-fiche peers whose mapped tags Réserver may copy when the seance wire is tagless. */
+const TASTE_TAG_PEER_KINDS: ReadonlySet<SignalKind> = new Set([
+  'open_card',
+  'favorite',
+  'reserve',
+  'outbound_click',
+  'share',
+  'agenda_add',
+]);
+
 export function isKnownSignalKind(kind: string): kind is SignalKind {
   return KNOWN_SIGNAL_KINDS.has(kind);
 }
@@ -952,6 +962,54 @@ export function profileHasPositiveTastes(profile?: TasteProfile | null): boolean
   );
 }
 
+function copyTasteTags(incoming: Signal, peer: Signal): Signal {
+  return ingestMapSignal({
+    ...incoming,
+    moods: [...peer.moods],
+    genres: [...peer.genres],
+    themes: [...(peer.themes ?? incoming.themes ?? [])],
+  });
+}
+
+/**
+ * Réserver often tracks a skinny related seance (no catalogue moods).
+ * Copy moods/genres/themes from a same-target open_card (else another tagged
+ * fiche action) so profile buckets bump. Does not invent tags.
+ */
+export function inheritTasteTagsFromPeers(
+  incoming: Signal,
+  already: readonly Signal[],
+): Signal {
+  if (!PAIRED_CLICK_KINDS.has(incoming.kind)) return incoming;
+  if (signalHasMappedTasteTags(incoming)) return incoming;
+  const target = signalTarget(incoming);
+  if (!target) return incoming;
+  let fallback: Signal | undefined;
+  for (let i = already.length - 1; i >= 0; i--) {
+    const s = already[i]!;
+    if (!TASTE_TAG_PEER_KINDS.has(s.kind)) continue;
+    if (signalTarget(s) !== target) continue;
+    if (!signalHasMappedTasteTags(s)) continue;
+    if (s.kind === 'open_card') return copyTasteTags(incoming, s);
+    if (!fallback) fallback = s;
+  }
+  return fallback ? copyTasteTags(incoming, fallback) : incoming;
+}
+
+function enrichIncomingTasteSignals(
+  incoming: readonly Signal[],
+  already: readonly Signal[],
+): Signal[] {
+  const out: Signal[] = [];
+  const peers: Signal[] = [...already];
+  for (const s of incoming) {
+    const tagged = inheritTasteTagsFromPeers(s, peers);
+    out.push(tagged);
+    peers.push(tagged);
+  }
+  return out;
+}
+
 /** Apply incoming signals only. Never inventory signalsRecent history. */
 export function applyIncomingSignals(
   profile: TasteProfile,
@@ -960,7 +1018,7 @@ export function applyIncomingSignals(
 ): TasteProfile {
   const next = sanitizeTasteProfile(profile);
   const seen: Signal[] = [...already];
-  for (const s of incoming) {
+  for (const s of enrichIncomingTasteSignals(incoming, already)) {
     if (!isTasteWritingSignal(s)) continue;
     const w = pairedClickApplyWeight(s, seen);
     if (w && signalHasMappedTasteTags(s)) {
@@ -977,9 +1035,10 @@ export function commitTasteSignals(
   incoming: readonly Signal[],
   cap: number,
 ): { events: Signal[]; profile: TasteProfile } {
-  const mapped = incoming
-    .filter((s) => isKnownSignalKind(s.kind))
-    .map((s) => ingestMapSignal(s));
+  const mapped = enrichIncomingTasteSignals(
+    incoming.filter((s) => isKnownSignalKind(s.kind)).map((s) => ingestMapSignal(s)),
+    current.events,
+  );
   let profile = current.profile;
   const taste = mapped.filter(isTasteWritingSignal);
   for (const s of taste) profile = unzeroKeysTouchedBySignal(profile, s);
@@ -1383,10 +1442,11 @@ export function moodSourceFromDayItem(item: DayItem): string {
     .join(' ');
 }
 
-export function payloadFromDayItem(
-  item: DayItem,
-  kind: ItemSignalKind,
-): TrackPayload {
+export function tasteTagsFromDayItem(item: DayItem): {
+  genres: string[];
+  moods: string[];
+  themes: string[];
+} {
   const genres = [
     ...new Set([...genresFromDayItem(item), ...genresMoodFromDayItem(item)]),
   ];
@@ -1396,7 +1456,23 @@ export function payloadFromDayItem(
       ...extractMoods(moodSourceFromDayItem(item), genres.join(' ')),
     ]),
   ];
-  const themes = themesFromDayItem(item);
+  return { genres, moods, themes: themesFromDayItem(item) };
+}
+
+export function payloadFromDayItem(
+  item: DayItem,
+  kind: ItemSignalKind,
+  tagSource?: DayItem | null,
+): TrackPayload {
+  const fromItem = tasteTagsFromDayItem(item);
+  const fromPeer = tagSource ? tasteTagsFromDayItem(tagSource) : null;
+  const genres = [
+    ...new Set([...fromItem.genres, ...(fromPeer?.genres ?? [])]),
+  ];
+  const moods = [...new Set([...fromItem.moods, ...(fromPeer?.moods ?? [])])];
+  const themes = [
+    ...new Set([...fromItem.themes, ...(fromPeer?.themes ?? [])]),
+  ];
   const categorie = categorieFromDayItem(item);
   const payload: TrackPayload = {
     kind,

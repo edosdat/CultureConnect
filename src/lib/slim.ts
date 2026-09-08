@@ -105,6 +105,49 @@ function slimProgramme(p: ProgrammeItem): ProgrammeItem {
   };
 }
 
+type TasteTagFields = Pick<
+  ProgrammeItem,
+  'form' | 'moods' | 'genres_mood' | 'themes'
+>;
+
+function tasteTagFields(src: {
+  form?: string;
+  moods?: string;
+  genres_mood?: string;
+  themes?: string;
+} | null | undefined): TasteTagFields {
+  return {
+    form: src?.form || '',
+    moods: src?.moods || '',
+    genres_mood: src?.genres_mood || '',
+    themes: src?.themes || '',
+  };
+}
+
+/**
+ * Re-attach hidden catalogue taste fields after slimDayItem.
+ * List first-paint stays tagless (wire + cosine). Reco / fiche / related keep
+ * them so trackItem(open_card) and Réserver share the same mood mapping.
+ */
+export function withTasteTags<T extends DayItem>(slim: T, source: DayItem): T {
+  if (slim.kind === 'programme' && source.kind === 'programme') {
+    return {
+      ...slim,
+      programme: { ...slim.programme, ...tasteTagFields(source.programme) },
+      evenement: slim.evenement
+        ? { ...slim.evenement, ...tasteTagFields(source.evenement) }
+        : slim.evenement,
+    };
+  }
+  if (slim.kind === 'fallback' && source.kind === 'fallback') {
+    return {
+      ...slim,
+      evenement: { ...slim.evenement, ...tasteTagFields(source.evenement) },
+    };
+  }
+  return slim;
+}
+
 /**
  * First-paint card: id, titre, heure, lieu, cat, image, film_id
  * (+ prix / genre / type so SeanceCard + densify + Pour toi still work).
@@ -139,7 +182,7 @@ export function slimDayItem(item: DayItem): DayItem {
  * FilmSeancesList reads (no pitch / description / nested blobs).
  */
 export function relatedSeanceDayItem(item: DayItem): DayItem {
-  const slim = slimDayItem(item);
+  const slim = withTasteTags(slimDayItem(item), item);
   if (slim.kind === 'programme' && item.kind === 'programme') {
     return {
       ...slim,
@@ -192,6 +235,7 @@ export function detailDayItem(item: DayItem): DayItem {
         image_url: p.image_url || '',
         description_item: p.description_item || '',
         billetterie_url: p.billetterie_url || '',
+        ...tasteTagFields(p),
         ...pickPressCatalogueFields(p as unknown as Record<string, unknown>),
       },
       evenement: ev
@@ -219,6 +263,7 @@ export function detailDayItem(item: DayItem): DayItem {
             billetterie_url: ev.billetterie_url || '',
             casting: ev.casting || '',
             tags: ev.tags || '',
+            ...tasteTagFields(ev),
             ...pickPressCatalogueFields(ev as unknown as Record<string, unknown>),
           }
         : null,
@@ -254,6 +299,7 @@ export function detailDayItem(item: DayItem): DayItem {
       billetterie_url: ev.billetterie_url || '',
       casting: ev.casting || '',
       tags: ev.tags || '',
+      ...tasteTagFields(ev),
       ...pickPressCatalogueFields(ev as unknown as Record<string, unknown>),
     },
     lieu: detailLieu(item.lieu),
