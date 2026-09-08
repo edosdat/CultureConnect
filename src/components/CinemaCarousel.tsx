@@ -26,7 +26,7 @@ import {
 import { itemKmLabel, minKmLabel, type GeoPos } from '@/lib/nearMe';
 import { cineDistanceOrigin, defaultCineSeance } from '@/lib/cineSeances';
 import { pickFilmVivantComplements } from '@/lib/filmVivantComplements';
-import { reservePickOf } from '@/lib/reserve';
+import { rawUrls, reservePickOf } from '@/lib/reserve';
 import EventImage from './EventImage';
 import VisualFallback, { categoryLabelOf } from './VisualFallback';
 import TheatreUrgenceBadge from './TheatreUrgenceBadge';
@@ -206,6 +206,13 @@ function seanceLine(rel: DayItem): string {
 function seanceOptionLabel(rel: DayItem): string {
   const date = formatDateShort(seanceDateIso(rel) || rel.dayIso);
   return [date, seanceHeure(rel), compactVenue(rel)].filter(Boolean).join(' · ');
+}
+
+function sourceUrlOf(item: DayItem): string {
+  const { page } = rawUrls(item);
+  const reserve = reservePickOf(item).url;
+  if (!page || page === reserve) return '';
+  return page;
 }
 
 function SeanceReserveLink({
@@ -707,6 +714,16 @@ export default function CinemaCarousel({
               </>
             ) : null}
             <ShareButton item={active} />
+            {pack !== 'cine' && sourceUrlOf(active) ? (
+              <a
+                href={sourceUrlOf(active)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-10 items-center rounded-full border border-culture-line bg-white px-3 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
+              >
+                Voir la source
+              </a>
+            ) : null}
           </div>
         </div>
       </div>
