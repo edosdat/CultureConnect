@@ -1726,6 +1726,7 @@ export default function CultureConnectApp({
     <div className="mx-auto max-w-7xl min-w-0 overflow-x-hidden px-4 pb-16 pt-3 sm:px-6 sm:pt-6">
       <h1 className="sr-only">Agenda CultureConnect</h1>
 
+      {/* Heights: keep HomeBootChrome in sync (LAYOUT_JUMP / first paint). */}
       <div className="sticky top-0 z-20 -mx-4 mb-2 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-1.5 backdrop-blur sm:-mx-6 sm:px-6">
         <SearchOmnibox
           value={query}
