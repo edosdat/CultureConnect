@@ -20,6 +20,7 @@ import {
   cinemaTitleStem,
   densifiedCardCount,
   isLivingArtsRelatedSeance,
+  takeUniqueWorkItems,
 } from './densify';
 import {
   countItemsByDay,
@@ -170,6 +171,10 @@ function emptyRecoExtras(): Pick<
   | 'vivantItems'
   | 'vivantTotal'
   | 'cineTotal'
+  | 'theatreTotal'
+  | 'musiqueTotal'
+  | 'enfantsTotal'
+  | 'expoTotal'
   | 'csvEvents'
   | 'csvProgramme'
 > {
@@ -183,6 +188,10 @@ function emptyRecoExtras(): Pick<
     vivantItems: [],
     vivantTotal: 0,
     cineTotal: 0,
+    theatreTotal: 0,
+    musiqueTotal: 0,
+    enfantsTotal: 0,
+    expoTotal: 0,
     ...csvRowCounts(),
   };
 }
@@ -932,16 +941,20 @@ function assembleListFromItems(
   const vivantItems =
     !searching && offset === 0
       ? [
-          ...theatreAll.slice(0, vivantCap),
-          ...musiqueAll.slice(0, vivantCap),
-          ...enfantsAll.slice(0, vivantCap),
-          ...expoAll.slice(0, vivantCap),
+          ...takeUniqueWorkItems(theatreAll, vivantCap),
+          ...takeUniqueWorkItems(musiqueAll, vivantCap),
+          ...takeUniqueWorkItems(enfantsAll, vivantCap),
+          ...takeUniqueWorkItems(expoAll, vivantCap),
         ]
           .filter((item, i, all) => all.findIndex((x) => x.key === item.key) === i)
           .map(slimDayItem)
       : [];
   const vivantTotal = densifiedCardCount(vivantAll);
   const cineTotal = densifiedCardCount(cineAll);
+  const theatreTotal = densifiedCardCount(theatreAll);
+  const musiqueTotal = densifiedCardCount(musiqueAll);
+  const enfantsTotal = densifiedCardCount(enfantsAll);
+  const expoTotal = densifiedCardCount(expoAll);
 
   let counts: Record<string, number> | undefined;
   if (input.includeCounts) {
@@ -988,6 +1001,10 @@ function assembleListFromItems(
     vivantItems,
     vivantTotal,
     cineTotal,
+    theatreTotal,
+    musiqueTotal,
+    enfantsTotal,
+    expoTotal,
   };
 }
 
@@ -1006,6 +1023,10 @@ export type ScopeListSnapshot = {
   vivantItems?: DayItem[];
   vivantTotal?: number;
   cineTotal?: number;
+  theatreTotal?: number;
+  musiqueTotal?: number;
+  enfantsTotal?: number;
+  expoTotal?: number;
 };
 
 export type ListByScope = Partial<Record<RecoBootScope, ScopeListSnapshot>>;
@@ -1025,6 +1046,10 @@ function snapshotFromList(res: AgendaListResponse): ScopeListSnapshot {
     vivantItems: res.vivantItems,
     vivantTotal: res.vivantTotal,
     cineTotal: res.cineTotal,
+    theatreTotal: res.theatreTotal,
+    musiqueTotal: res.musiqueTotal,
+    enfantsTotal: res.enfantsTotal,
+    expoTotal: res.expoTotal,
   };
 }
 

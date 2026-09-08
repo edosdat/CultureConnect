@@ -149,8 +149,8 @@ describe('slimDayItem list wire', () => {
 });
 
 describe('home boot snapshots', () => {
-  it('caps living-arts first-paint wire at 20', () => {
-    assert.equal(HOME_PACK_WIRE_CAP, 20);
+  it('caps living-arts first-paint wire at 80 unique works', () => {
+    assert.equal(HOME_PACK_WIRE_CAP, 80);
   });
 
   it('omits the boot scope duplicate from listByScope', () => {

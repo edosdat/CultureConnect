@@ -3,8 +3,10 @@ import assert from 'node:assert/strict';
 import { filterSeancesForActiveFilters } from './displayFilter';
 import { itemMatchesCommune } from './commune';
 import {
+  appendOnlyPackRows,
   cineRows,
   DISPLAY_SLOT_ORDER,
+  HOME_PACK_MORE_CAT,
   HOME_SECTION_TITLE_CLASS,
   HOME_SECTION_TITLE_RULE_CLASS,
   fillEmptyCineFromPool,
@@ -333,6 +335,50 @@ describe('home pack classifiers', () => {
     ).map((r) => r.item.key);
     assert.equal(defaultRows.includes('kf1'), false);
     assert.equal(defaultRows.includes('kt1'), false);
+  });
+});
+
+describe('appendOnlyPackRows', () => {
+  it('uses incoming order on first paint', () => {
+    const a = { groupKey: 'a' };
+    const b = { groupKey: 'b' };
+    assert.deepEqual(
+      appendOnlyPackRows([], [b, a]).map((row) => row.groupKey),
+      ['b', 'a'],
+    );
+  });
+
+  it('appends new keys to the right and never inserts left', () => {
+    const painted = [{ groupKey: 'a' }, { groupKey: 'b' }];
+    const incoming = [
+      { groupKey: 'x' },
+      { groupKey: 'a' },
+      { groupKey: 'y' },
+      { groupKey: 'b' },
+      { groupKey: 'z' },
+    ];
+    assert.deepEqual(
+      appendOnlyPackRows(painted, incoming).map((row) => row.groupKey),
+      ['a', 'b', 'x', 'y', 'z'],
+    );
+  });
+
+  it('keeps a painted thumb that dropped out of incoming', () => {
+    const out = appendOnlyPackRows(
+      [{ groupKey: 'a' }, { groupKey: 'b' }],
+      [{ groupKey: 'b' }, { groupKey: 'c' }],
+    );
+    assert.deepEqual(
+      out.map((row) => row.groupKey),
+      ['a', 'b', 'c'],
+    );
+  });
+
+  it('maps living packs to the same cats as the QUOI chips', () => {
+    assert.equal(HOME_PACK_MORE_CAT.theatre, 'theatre_danse');
+    assert.equal(HOME_PACK_MORE_CAT.musique, 'musique');
+    assert.equal(HOME_PACK_MORE_CAT.enfants, 'enfants_famille');
+    assert.equal(HOME_PACK_MORE_CAT.expo, 'expo_patrimoine');
   });
 });
 

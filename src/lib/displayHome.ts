@@ -702,6 +702,40 @@ export function capLiveRows(rows: DenseRow[]): DenseRow[] {
   return rows.slice(0, LIVE_DISPLAY_CAP);
 }
 
+/**
+ * Product lock (#95): pack rails never insert to the LEFT while browsing.
+ * Keep the already-shown order; new densify / requestMore keys append right.
+ */
+export function appendOnlyPackRows<T extends { groupKey: string }>(
+  previous: readonly T[],
+  incoming: readonly T[],
+): T[] {
+  if (previous.length === 0) return [...incoming];
+  const incomingByKey = new Map(incoming.map((row) => [row.groupKey, row]));
+  const kept: T[] = [];
+  const keptKeys = new Set<string>();
+  for (const old of previous) {
+    kept.push(incomingByKey.get(old.groupKey) ?? old);
+    keptKeys.add(old.groupKey);
+  }
+  for (const row of incoming) {
+    if (keptKeys.has(row.groupKey)) continue;
+    kept.push(row);
+    keptKeys.add(row.groupKey);
+  }
+  return kept;
+}
+
+export const HOME_PACK_MORE_CAT: Record<
+  Exclude<HomePackId, 'cine'>,
+  'theatre_danse' | 'musique' | 'enfants_famille' | 'expo_patrimoine'
+> = {
+  theatre: 'theatre_danse',
+  musique: 'musique',
+  enfants: 'enfants_famille',
+  expo: 'expo_patrimoine',
+};
+
 const FIRST_PERF_RE =
   /premi[eè]re|cr[eé]ation|ouverture|avant[- ]?premi[eè]re|premi[eè]re représentation/i;
 

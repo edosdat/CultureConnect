@@ -71,6 +71,10 @@ export async function GET(req: Request) {
       vivantItems: boot.vivantItems,
       vivantTotal: boot.vivantTotal,
       cineTotal: boot.cineTotal,
+      theatreTotal: boot.theatreTotal,
+      musiqueTotal: boot.musiqueTotal,
+      enfantsTotal: boot.enfantsTotal,
+      expoTotal: boot.expoTotal,
     });
   }
   const id = (url.searchParams.get('id') || '').trim();

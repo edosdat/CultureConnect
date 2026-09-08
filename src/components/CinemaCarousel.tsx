@@ -777,9 +777,10 @@ export default function CinemaCarousel({
           <button
             type="button"
             onClick={onNeedMore}
-            className="flex w-[7.5rem] shrink-0 flex-col items-center justify-center rounded-lg border border-dashed border-culture-line bg-culture-surface text-sm font-medium text-culture-terracotta sm:w-[8.5rem]"
+            aria-label={copy.more}
+            className="flex w-8 shrink-0 items-center justify-center text-2xl font-light leading-none tracking-[0.25em] text-culture-muted hover:text-culture-ink sm:w-9"
           >
-            {copy.more}
+            …
           </button>
         ) : null}
       </div>
