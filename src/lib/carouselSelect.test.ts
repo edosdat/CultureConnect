@@ -7,10 +7,14 @@ import {
   HOME_STICKY_OFFSET_PX,
   THUMB_SELECT_LOCK_MS,
   adoptFirstPaintHero,
+  appendOnlyStripRows,
+  applyStoredStripOrder,
   clearPackHeroPins,
+  ensureHeroKey,
   holdThumbFocus,
   heroScrollDeferMs,
   heroWindowScrollY,
+  keysInsertedBefore,
   mergePinnedHeroRow,
   pinFromHeroRow,
   readPackHeroPin,
@@ -20,6 +24,7 @@ import {
   rowMatchesHeroPin,
   shouldIgnoreHeroSwipe,
   shouldIgnoreRepeatThumbSelect,
+  stripScrollLeftToHoldThumb,
   writePackHeroPin,
   type CarouselHeroRow,
 } from './carouselSelect';
@@ -377,6 +382,80 @@ describe('mergePinnedHeroRow', () => {
     );
     assert.equal(merged.length, 2);
     assert.equal(merged[1]?.groupKey, kyoto.groupKey);
+  });
+});
+
+describe('appendOnlyStripRows — never insert left', () => {
+  const a = film('film:w:a', 'a-1');
+  const b = film('film:w:b', 'b-1');
+  const c = film('film:w:c', 'c-1');
+  const x = film('film:w:x', 'x-1');
+  const y = film('film:w:y', 'y-1');
+
+  it('uses incoming order on first paint', () => {
+    assert.deepEqual(
+      appendOnlyStripRows([], [x, a, b]).map((row) => row.groupKey),
+      [x, a, b].map((row) => row.groupKey),
+    );
+  });
+
+  it('never prepends hydrate/densify keys left of the painted list or selected thumb', () => {
+    const painted = [a, b, c];
+    const incoming = [x, y, a, b, c];
+    const out = appendOnlyStripRows(painted, incoming, b.groupKey);
+    assert.deepEqual(
+      out.map((row) => row.groupKey),
+      [a, b, c, x, y].map((row) => row.groupKey),
+    );
+    assert.equal(
+      keysInsertedBefore(
+        painted.map((row) => row.groupKey),
+        out.map((row) => row.groupKey),
+        b.groupKey,
+      ),
+      0,
+    );
+    assert.equal(
+      keysInsertedBefore(
+        painted.map((row) => row.groupKey),
+        out.map((row) => row.groupKey),
+        a.groupKey,
+      ),
+      0,
+    );
+  });
+
+  it('keeps the painted prefix when reco/GPS drop those films from incoming', () => {
+    const out = appendOnlyStripRows([a, b, c], [x, y]);
+    assert.deepEqual(
+      out.map((row) => row.groupKey),
+      [a, b, c, x, y].map((row) => row.groupKey),
+    );
+  });
+
+  it('ensureHeroKey pins rows[0] and keeps it across a reshuffle', () => {
+    const key = ensureHeroKey([a, b, c], null);
+    assert.equal(key, a.groupKey);
+    assert.equal(ensureHeroKey([x, y, b], key), a.groupKey);
+  });
+
+  it('restores scrollLeft so the selected thumb stays in the same slot', () => {
+    assert.equal(
+      stripScrollLeftToHoldThumb({
+        prevScrollLeft: 80,
+        prevThumbOffset: 240,
+        nextThumbOffset: 480,
+      }),
+      320,
+    );
+  });
+
+  it('applyStoredStripOrder appends new keys to the right', () => {
+    const stored = applyStoredStripOrder([x, a, b, y], [a.groupKey, b.groupKey]);
+    assert.deepEqual(
+      stored.map((row) => row.groupKey),
+      [a, b, x, y].map((row) => row.groupKey),
+    );
   });
 });
 
