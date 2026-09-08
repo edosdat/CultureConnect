@@ -79,7 +79,7 @@ function FixedSlotsGrid({
   if (visible.length === 0) return null;
   // Compact horizontal rail for every Top 3 count (1–3). Stacked default
   // tiles are catalogue-only — they are taller than these reco thumbs.
-  // `rail` also hides pitch/synopsis (seanceCardShowsPitch).
+  // source=top3 hides pitch on rail and compact scan (seanceCardShowsPitch).
   const cardVariant = 'rail';
   return (
     <div className="space-y-4">
@@ -96,6 +96,7 @@ function FixedSlotsGrid({
               onSelectVenue={onSelectVenue}
               nouveau={cardNouveau(item, nouveauFilmIds)}
               variant={cardVariant}
+              source="top3"
               reason={reasonFor?.(item) ?? null}
               distanceKm={itemKmLabel(item, origin)}
             />

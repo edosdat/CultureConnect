@@ -60,7 +60,8 @@ import Top3Skeleton from './Top3Skeleton';
 import TimeScopeBar from './TimeScopeBar';
 import SearchOmnibox from './SearchOmnibox';
 import SearchExamples from './SearchExamples';
-import ListWaitDots from './ListWaitDots';
+import ListWaitDots, { HomeListWaitSlot } from './ListWaitDots';
+import Top3GuestCta from './Top3GuestCta';
 import EventDetail from './EventDetail';
 import TastesOverlayHost from './TastesOverlayHost';
 import LoginNudge from './LoginNudge';
@@ -1726,7 +1727,7 @@ export default function CultureConnectApp({
     <div className="mx-auto max-w-7xl min-w-0 overflow-x-hidden px-4 pb-16 pt-3 sm:px-6 sm:pt-6">
       <h1 className="sr-only">Agenda CultureConnect</h1>
 
-      {/* Heights: keep HomeBootChrome in sync (LAYOUT_JUMP / first paint). */}
+      {/* Heights: keep HomeBootChrome + HomeListWaitSlot in sync (LAYOUT_JUMP). */}
       <div className="sticky top-0 z-20 -mx-4 mb-2 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-1.5 backdrop-blur sm:-mx-6 sm:px-6">
         <SearchOmnibox
           value={query}
@@ -1870,14 +1871,7 @@ export default function CultureConnectApp({
           </button>
         </div>
 
-        {listSlowWhere === 'top' ? (
-          <div
-            className="pointer-events-none flex justify-center"
-            style={{ marginTop: 8 }}
-          >
-            <ListWaitDots />
-          </div>
-        ) : null}
+        <HomeListWaitSlot active={listSlowWhere === 'top'} />
 
         <MonthCalendarDrawer
           open={showMonthPanel}
@@ -1900,14 +1894,14 @@ export default function CultureConnectApp({
               sessionStatus === 'authenticated',
             )}
           </h2>
-          {sessionStatus === 'unauthenticated' ? (
-            <button
-              type="button"
-              onClick={() => signIn('google', { callbackUrl: '/' })}
-              className="block text-left text-[14px] font-medium text-culture-terracotta hover:underline"
-            >
-              Connecte-toi pour tes suggestions
-            </button>
+          {sessionStatus !== 'authenticated' ? (
+            <Top3GuestCta
+              onClick={
+                sessionStatus === 'unauthenticated'
+                  ? () => signIn('google', { callbackUrl: '/' })
+                  : undefined
+              }
+            />
           ) : null}
           {top3Mode === 'skeleton' ? (
             <Top3Skeleton />

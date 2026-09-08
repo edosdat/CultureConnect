@@ -1,10 +1,12 @@
 import HomeBootChrome from './HomeBootChrome';
+import Top3GuestCta from './Top3GuestCta';
 import Top3Skeleton from './Top3Skeleton';
 
 /**
  * Streaming first paint for home. Same Top 3 chrome as CultureConnectApp
  * so the section is never blank while loadHomeWindow / reco=1 are in flight.
- * HomeBootChrome reserves search + examples + chips so Top 3 does not jump.
+ * HomeBootChrome reserves search + examples + chips + list-wait so Top 3
+ * does not jump. Guest CTA is reserved inside the section (~32px).
  */
 export default function HomeTop3BootFallback() {
   return (
@@ -20,6 +22,7 @@ export default function HomeTop3BootFallback() {
           <h2 className="w-full font-display text-xl leading-tight text-culture-ink sm:text-2xl">
             Le top 3 du moment
           </h2>
+          <Top3GuestCta />
           <Top3Skeleton />
         </section>
       </HomeBootChrome>

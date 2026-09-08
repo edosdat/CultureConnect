@@ -281,16 +281,29 @@ export function top3GridClass(count: number): string {
   return 'grid w-full grid-cols-1 items-start gap-3 lg:grid-cols-3';
 }
 
+/** Where the card is painted. Top 3 never shows pitch, even on compact. */
+export type SeanceCardPitchSource = 'top3' | 'catalogue';
+
 /**
- * Pitch / synopsis on SeanceCard. Home Top 3 uses the `rail` variant —
- * scan only (image, title, short meta, CTA). Never a short, long, or
- * 2-line-clamped description. Catalogue / live / compact / fiches keep copy.
+ * Pitch / synopsis on SeanceCard.
+ * Home Top 3 (`source: 'top3'` — rail or compact scan) is image, title,
+ * short meta, CTA only. Never a short, long, or 2-line-clamped description.
+ * The `rail` variant is also scan-only. Catalogue `default` / `live` /
+ * `compact` cards and fiches keep copy.
  */
 export function seanceCardShowsPitch(
   variant: 'default' | 'rail' | 'live' | 'compact',
+  source: SeanceCardPitchSource = 'catalogue',
 ): boolean {
+  if (source === 'top3') return false;
   return variant !== 'rail';
 }
+
+/**
+ * Reserved list-wait chrome above Top 3 (LAYOUT_JUMP at ~380px).
+ * 32px — list-wait dots (12px) + stack gap, so the slot does not collapse.
+ */
+export const HOME_LIST_WAIT_SLOT_CLASS = 'h-8';
 
 export type Top3SectionOpts = {
   ready: boolean;
