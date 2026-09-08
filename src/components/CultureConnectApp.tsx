@@ -409,13 +409,9 @@ export default function CultureConnectApp({
   const [expoTotal, setExpoTotal] = useState(initialExpoTotal);
   const [cineExpanded, setCineExpanded] = useState(false);
   const [cineLimit, setCineLimit] = useState(() => cineFirstPaint(false));
-  const [theatreExpanded, setTheatreExpanded] = useState(false);
   const [theatreLimit, setTheatreLimit] = useState(HOME_PACK_WIRE_CAP);
-  const [musiqueExpanded, setMusiqueExpanded] = useState(false);
   const [musiqueLimit, setMusiqueLimit] = useState(HOME_PACK_WIRE_CAP);
-  const [enfantsExpanded, setEnfantsExpanded] = useState(false);
   const [enfantsLimit, setEnfantsLimit] = useState(HOME_PACK_WIRE_CAP);
-  const [expoExpanded, setExpoExpanded] = useState(false);
   const [expoLimit, setExpoLimit] = useState(HOME_PACK_WIRE_CAP);
   const [narrowHome, setNarrowHome] = useState(false);
 
@@ -1433,13 +1429,9 @@ export default function CultureConnectApp({
     setVisibleCount(AGENDA_PAGE_SIZE);
     setCineExpanded(false);
     setCineLimit(cineFirstPaint(narrowHome));
-    setTheatreExpanded(false);
     setTheatreLimit(HOME_PACK_WIRE_CAP);
-    setMusiqueExpanded(false);
     setMusiqueLimit(HOME_PACK_WIRE_CAP);
-    setEnfantsExpanded(false);
     setEnfantsLimit(HOME_PACK_WIRE_CAP);
-    setExpoExpanded(false);
     setExpoLimit(HOME_PACK_WIRE_CAP);
   }, [
     timeScope,
@@ -1508,16 +1500,12 @@ export default function CultureConnectApp({
     (pack: LivingPackId, expandAll = false) => {
       const bump = expandAll ? Number.POSITIVE_INFINITY : HOME_PACK_WIRE_CAP;
       if (pack === 'theatre') {
-        setTheatreExpanded(true);
         setTheatreLimit((n) => (expandAll ? bump : n + bump));
       } else if (pack === 'musique') {
-        setMusiqueExpanded(true);
         setMusiqueLimit((n) => (expandAll ? bump : n + bump));
       } else if (pack === 'enfants') {
-        setEnfantsExpanded(true);
         setEnfantsLimit((n) => (expandAll ? bump : n + bump));
       } else {
-        setExpoExpanded(true);
         setExpoLimit((n) => (expandAll ? bump : n + bump));
       }
       const have = livingPackRowsRef.current[pack];

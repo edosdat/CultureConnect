@@ -755,7 +755,7 @@ export default function CinemaCarousel({
       <div
         ref={bindStrip}
         onScroll={onStripScroll}
-        className="flex gap-3 overflow-x-auto overscroll-x-contain scroll-px-2 pb-1 [overflow-anchor:none] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex gap-3 overflow-x-auto overscroll-x-contain scroll-px-2 pb-1 md:scroll-px-12 md:pr-12 [overflow-anchor:none] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {rows.map((row, i) => (
           <FilmThumb
@@ -776,9 +776,10 @@ export default function CinemaCarousel({
         {hasMore && onNeedMore ? (
           <button
             type="button"
+            data-pack-more={pack}
             onClick={onNeedMore}
             aria-label={copy.more}
-            className="flex w-8 shrink-0 items-center justify-center text-2xl font-light leading-none tracking-[0.25em] text-culture-muted hover:text-culture-ink sm:w-9"
+            className="flex aspect-[2/3] w-[4.5rem] shrink-0 items-center justify-center text-3xl font-light leading-none tracking-[0.2em] text-culture-muted/80 hover:text-culture-ink sm:w-[5rem]"
           >
             …
           </button>
