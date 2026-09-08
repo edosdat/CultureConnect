@@ -19,12 +19,12 @@ export default function Top3Skeleton() {
       >
         {DISPLAY_SLOT_ORDER.map((slot) => (
           <li key={slot} className={top3CardFrameClass(count)}>
-            <div className="flex animate-pulse overflow-hidden rounded-card border border-culture-soft bg-culture-surface">
+            <div className="flex h-full animate-pulse overflow-hidden rounded-card border border-culture-soft bg-culture-surface">
               <div
                 className={TOP3_RAIL_THUMB_CLASS + ' bg-culture-sand/70'}
                 data-top3-thumb=""
               />
-              <div className="min-w-0 flex-1 px-2 py-1.5 sm:px-2.5 sm:py-2">
+              <div className="min-h-0 min-w-0 flex-1 px-2 py-1.5">
                 <div className="h-4 w-4/5 rounded bg-culture-sand/80" />
                 <div className="mt-2 h-3 w-2/3 rounded bg-culture-sand/60" />
                 <div className="mt-2 h-3 w-1/2 rounded bg-culture-sand/50" />

@@ -335,19 +335,27 @@ export const TOP3_SECTION_CLASS =
   'w-full space-y-2 rounded-card-lg border border-culture-soft/80 bg-culture-surface/80 px-2 py-2.5 sm:space-y-3 sm:p-4';
 
 /**
- * Side poster on rail cards. No `h-full` — that is 0 when the parent
- * height is auto. `self-stretch` fills the card; `min-h` keeps a visible
- * vignette if stretch has not resolved yet.
+ * Locked height for every Top 3 rail / carousel card (1–3, mobile + md).
+ * Compact at ~380px; content is clamped so titles / reasons cannot grow
+ * the slide. Parent height is explicit so `h-full` on the thumb works.
+ */
+export const TOP3_RAIL_CARD_HEIGHT_CLASS = 'h-[9rem]';
+
+/**
+ * Side poster on rail cards. Same image area on every slide: fills the
+ * locked card height, fixed portrait width. Vignette stays visible.
  */
 export const TOP3_RAIL_THUMB_CLASS =
-  'relative min-h-[5.5rem] w-[4.25rem] shrink-0 self-stretch overflow-hidden sm:w-[4.75rem] lg:w-[5.75rem]';
+  'relative h-full w-[4.25rem] shrink-0 overflow-hidden sm:w-[4.75rem] lg:w-[5.75rem]';
 
 /** ~78% of the scroller so the next poster peeks clearly at ~380px. md+ fills the grid cell. */
 export const TOP3_CAROUSEL_CARD_CLASS =
-  'min-w-0 w-[78%] shrink-0 snap-start md:h-full md:w-full md:shrink';
+  `flex min-w-0 ${TOP3_RAIL_CARD_HEIGHT_CLASS} w-[78%] shrink-0 snap-start md:w-full md:shrink`;
 
 export function top3CardFrameClass(count: number): string {
-  if (!top3UsesMobileCarousel(count)) return 'min-w-0 w-full';
+  if (!top3UsesMobileCarousel(count)) {
+    return `flex min-w-0 ${TOP3_RAIL_CARD_HEIGHT_CLASS} w-full`;
+  }
   return TOP3_CAROUSEL_CARD_CLASS;
 }
 

@@ -28,6 +28,7 @@ import {
   theatreRows,
   TOP3_CAROUSEL_CARD_CLASS,
   TOP3_CAROUSEL_TRACK_CLASS,
+  TOP3_RAIL_CARD_HEIGHT_CLASS,
   TOP3_RAIL_THUMB_CLASS,
   TOP3_SECTION_CLASS,
   top3CardFrameClass,
@@ -953,7 +954,10 @@ describe('Top 3 mobile carousel (<md)', () => {
   });
 
   it('peeks the next card at ~78% width on mobile; md+ fills the cell', () => {
-    assert.equal(top3CardFrameClass(1), 'min-w-0 w-full');
+    assert.equal(
+      top3CardFrameClass(1),
+      `flex min-w-0 ${TOP3_RAIL_CARD_HEIGHT_CLASS} w-full`,
+    );
     const card = top3CardFrameClass(3);
     assert.ok(card.includes('w-[78%]'));
     assert.equal(card.includes('w-[85%]'), false);
@@ -962,11 +966,21 @@ describe('Top 3 mobile carousel (<md)', () => {
     assert.ok(TOP3_CAROUSEL_CARD_CLASS.includes('w-[78%]'));
   });
 
-  it('keeps a visible rail poster (min height, no collapsing h-full)', () => {
-    assert.ok(TOP3_RAIL_THUMB_CLASS.includes('min-h-[5.5rem]'));
-    assert.ok(TOP3_RAIL_THUMB_CLASS.includes('self-stretch'));
+  it('locks every Top 3 card to the same compact height', () => {
+    assert.equal(TOP3_RAIL_CARD_HEIGHT_CLASS, 'h-[9rem]');
+    for (const n of [1, 2, 3]) {
+      const frame = top3CardFrameClass(n);
+      assert.ok(frame.includes(TOP3_RAIL_CARD_HEIGHT_CLASS), `count ${n}`);
+    }
+    assert.ok(TOP3_CAROUSEL_CARD_CLASS.includes(TOP3_RAIL_CARD_HEIGHT_CLASS));
+    assert.equal(TOP3_CAROUSEL_CARD_CLASS.includes('md:h-full'), false);
+  });
+
+  it('gives every rail poster the same image area (full card height, fixed width)', () => {
+    assert.ok(/(?:^|\s)h-full(?:\s|$)/.test(TOP3_RAIL_THUMB_CLASS));
     assert.ok(TOP3_RAIL_THUMB_CLASS.includes('w-[4.25rem]'));
-    assert.equal(/(?:^|\s)h-full(?:\s|$)/.test(TOP3_RAIL_THUMB_CLASS), false);
+    assert.equal(TOP3_RAIL_THUMB_CLASS.includes('min-h-'), false);
+    assert.equal(TOP3_RAIL_THUMB_CLASS.includes('self-stretch'), false);
   });
 
   it('uses the same H2 type + scale as pack titles (Ciné)', () => {
