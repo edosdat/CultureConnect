@@ -26,8 +26,13 @@ import {
   type HomePackId,
 } from './nouveautesCine';
 import { seanceTimeLabel } from './eventTimes';
-import { formatDateFr, formatHeure, formatLieuAffiche } from './labels';
-import { isEnfantsOnlyChip, type MainCategoryId } from './categories';
+import { formatDateFr, formatHeure, formatLieuAffiche, MONTH_NAMES_FR } from './labels';
+import {
+  EXTRA_CATEGORY_CHIPS,
+  HOME_CATEGORY_CHIPS,
+  isEnfantsOnlyChip,
+  type MainCategoryId,
+} from './categories';
 import { profileChips } from './pourToi';
 import {
   hasPhraseSignal,
@@ -42,8 +47,13 @@ import {
 import type { RecoSlotForm } from './reco';
 import { fillEmptyCineSlot, slotFormOfItem } from './reco';
 import { parseSearchChips, type SearchChipParse } from './parseSearchChips';
-import { seanceDateIso, type TimeScopeId } from './timeScope';
-import { sortItemsNearestFirst, type GeoPos } from './nearMe';
+import { parisParts, seanceDateIso, TIME_SCOPE_CHIPS, type TimeScopeId } from './timeScope';
+import {
+  NEAR_ME_CHIP_LABEL,
+  sortItemsNearestFirst,
+  TOULOUSE_CHIP_DEFAULT,
+  type GeoPos,
+} from './nearMe';
 
 /** Living-led visual order for Top 3 (scoring order in reco.ts is unchanged). */
 export const DISPLAY_SLOT_ORDER: RecoSlotForm[] = [
@@ -126,6 +136,43 @@ export function seanceWhen(item: DayItem, earliestHeure?: string): string {
 
 export const SEARCH_PLACEHOLDER =
   'Qu’est-ce qui te ferait vibrer ? (un truc intimiste ce WE, envie de rire, concert près du centre)';
+
+/** Month link copy on first paint — same formula as CultureConnectApp. */
+export function homeBootMonthLinkLabel(now = new Date()): string {
+  const { year, month } = parisParts(now);
+  return `Voir le mois (${MONTH_NAMES_FR[month - 1]} ${year})`;
+}
+
+export type HomeBootFilterChrome = {
+  searchPlaceholder: string;
+  exampleLabels: readonly string[];
+  dateChipLabels: readonly string[];
+  quoiChipLabels: readonly string[];
+  commune: string;
+  nearMe: string;
+  monthLink: string;
+  filtersLabel: string;
+};
+
+/**
+ * Default agenda header + filter chrome on boot (no QUOI, no query).
+ * HomeTop3BootFallback paints this so Top 3 is not flush under the nav
+ * and does not jump when CultureConnectApp hydrates.
+ */
+export function homeBootFilterChrome(now = new Date()): HomeBootFilterChrome {
+  return {
+    searchPlaceholder: SEARCH_PLACEHOLDER,
+    exampleLabels: SEARCH_EXAMPLES.map((e) => e.label),
+    dateChipLabels: TIME_SCOPE_CHIPS.map((c) => c.label),
+    quoiChipLabels: [...HOME_CATEGORY_CHIPS, ...EXTRA_CATEGORY_CHIPS].map(
+      (c) => c.label,
+    ),
+    commune: TOULOUSE_CHIP_DEFAULT,
+    nearMe: NEAR_ME_CHIP_LABEL,
+    monthLink: homeBootMonthLinkLabel(now),
+    filtersLabel: 'Filtres',
+  };
+}
 
 /**
  * Extra existing chips for the 3 example taps.

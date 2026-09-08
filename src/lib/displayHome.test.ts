@@ -8,12 +8,15 @@ import {
   findDayItemByKey,
   enfantsRows,
   expoRows,
+  homeBootFilterChrome,
+  homeBootMonthLinkLabel,
   homeSectionsVisible,
   musiqueRows,
   resolveHomeCardOpen,
   itemPitch,
   resolveSearchSubmit,
   SEARCH_EXAMPLES,
+  SEARCH_PLACEHOLDER,
   searchExampleIsVivant,
   searchExamplesVisible,
   shouldInvalidateProfileRecoCache,
@@ -823,6 +826,34 @@ describe('shouldShowTop3Section — hide on QUOI / search, keep on date', () => 
         phraseActive: true,
       }),
       'hidden',
+    );
+  });
+});
+
+describe('home boot filter chrome — reserve header height (#LAYOUT_JUMP)', () => {
+  it('paints search, examples, date chips and where/month on boot', () => {
+    const chrome = homeBootFilterChrome(new Date('2026-09-08T12:00:00Z'));
+    assert.equal(chrome.searchPlaceholder, SEARCH_PLACEHOLDER);
+    assert.deepEqual(chrome.exampleLabels, SEARCH_EXAMPLES.map((e) => e.label));
+    assert.ok(chrome.dateChipLabels.includes("Aujourd'hui"));
+    assert.ok(chrome.dateChipLabels.includes('Ce soir'));
+    assert.ok(chrome.dateChipLabels.includes('Ce WE'));
+    assert.ok(chrome.quoiChipLabels.includes('Musique'));
+    assert.equal(chrome.commune, 'Toulouse');
+    assert.equal(chrome.nearMe, 'Près de moi');
+    assert.equal(chrome.filtersLabel, 'Filtres');
+    assert.equal(chrome.monthLink, 'Voir le mois (Septembre 2026)');
+    assert.equal(
+      homeBootMonthLinkLabel(new Date('2026-09-08T12:00:00Z')),
+      chrome.monthLink,
+    );
+    assert.equal(
+      searchExamplesVisible({
+        selectedCategories: [],
+        query: '',
+        committedTitle: '',
+      }),
+      true,
     );
   });
 });
