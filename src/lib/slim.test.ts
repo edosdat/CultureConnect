@@ -2,7 +2,6 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 import {
-  clipListPitch,
   HOME_PACK_WIRE_CAP,
   omitBootScopeSnapshot,
   slimDayItem,
@@ -88,9 +87,9 @@ function item(): DayItem {
 }
 
 describe('slimDayItem list wire', () => {
-  it('drops longue, tickets URLs and mood tags', () => {
+  it('keeps full fiche copy; drops tickets URLs and mood tags', () => {
     const slim = slimDayItem(item());
-    assert.equal(slim.evenement?.description_longue, undefined);
+    assert.equal(slim.evenement?.description_longue, LONG);
     assert.equal(slim.evenement?.url_source, '');
     assert.equal(slim.evenement?.billetterie_url, undefined);
     assert.equal(slim.evenement?.form, undefined);
@@ -98,7 +97,7 @@ describe('slimDayItem list wire', () => {
     if (slim.kind !== 'programme') assert.fail('expected programme');
     assert.equal(slim.programme.url, '');
     assert.equal(slim.programme.billetterie_url, undefined);
-    assert.equal(slim.programme.description_item, clipListPitch(LONG));
+    assert.equal(slim.programme.description_item, LONG);
     assert.equal(slim.evenement?.description_courte, '');
   });
 
@@ -144,7 +143,7 @@ describe('slimDayItem list wire', () => {
     const fat = Buffer.byteLength(fatJson, 'utf8');
     const wire = Buffer.byteLength(wireJson, 'utf8');
     assert.ok(wire < fat, `slim ${wire} vs fat ${fat}`);
-    assert.ok(!wireJson.includes('description_longue'));
+    assert.ok(wireJson.includes('description_longue'));
     assert.ok(!wireJson.includes('tickets.example'));
   });
 });

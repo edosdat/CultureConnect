@@ -4,6 +4,7 @@
  */
 
 import type { DayItem } from './types';
+import { clipListPitch } from './slim';
 import type { AccountTasteState } from './signals';
 import {
   cinemaDisplayStem,
@@ -109,12 +110,12 @@ export function rowDisplayTitle(row: {
 
 export function itemPitch(item: DayItem): string {
   if (item.kind === 'programme') {
-    return (
+    return clipListPitch(
       (item.programme.description_item || '').trim() ||
-      (item.evenement?.description_courte || '').trim()
+        (item.evenement?.description_courte || '').trim(),
     );
   }
-  return (item.evenement.description_courte || '').trim();
+  return clipListPitch((item.evenement.description_courte || '').trim());
 }
 
 export function itemImageUrl(item: DayItem): string {
