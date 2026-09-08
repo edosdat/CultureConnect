@@ -15,7 +15,9 @@ import { seanceDateIso } from '@/lib/timeScope';
 import { MAIN_CATEGORY_LABELS, mainFromCategorie, mainFromGenreSlug } from '@/lib/categories';
 import { catCssVar, catGradient } from '@/lib/categoryColor';
 import {
+  itemPitch,
   seanceCardShowsPitch,
+  TOP3_RAIL_IMAGE_CLASS,
   TOP3_RAIL_THUMB_CLASS,
   type SeanceCardPitchSource,
 } from '@/lib/displayHome';
@@ -46,13 +48,7 @@ type Props = {
 };
 
 function cardPitch(item: DayItem): string {
-  if (item.kind === 'programme') {
-    return (
-      (item.programme.description_item || '').trim() ||
-      (item.evenement?.description_courte || '').trim()
-    );
-  }
-  return (item.evenement.description_courte || '').trim();
+  return itemPitch(item);
 }
 
 function categoryLabelFor(item: DayItem): string {
@@ -165,8 +161,9 @@ export default function SeanceCard({
         alt=""
         loading="lazy"
         className={
-          'h-full w-full object-cover transition duration-200 ease-out group-hover:scale-[1.03]' +
-          (resolved === 'rail' ? ' absolute inset-0 object-center' : '')
+          resolved === 'rail'
+            ? TOP3_RAIL_IMAGE_CLASS
+            : 'h-full w-full object-cover transition duration-200 ease-out group-hover:scale-[1.03]'
         }
         fallback={<VisualFallback item={item} compact={resolved !== 'live'} />}
       />

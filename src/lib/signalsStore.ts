@@ -2,14 +2,17 @@
  * Guest signal store: sessionStorage + first-party cookie (14d, SameSite=Lax).
  * Client-only — do not import from server components.
  */
+import type { DayItem } from '@/lib/types';
 import {
   COOKIE_MAX_AGE_SEC,
   GUEST_CAP,
   GUEST_STORAGE_KEY,
   emptyGuestStore,
+  backfillStoreTasteTags,
   commitTasteSignals,
   parseGuestStore,
   profileHasZeroWeights,
+  rememberDayItemTasteTags,
   sanitizeTasteProfile,
   wipeProfileKey,
   type GuestSignalsStore,
@@ -164,6 +167,15 @@ export function wipeGuestProfileKey(
 
 export function addGuestPhraseSignal(signal: Signal): GuestSignalsStore {
   return appendGuestSignal(signal);
+}
+
+/** Full / reco fiche arrived — stamp moods onto tagless guest events and apply. */
+export function rememberGuestItemTags(item: DayItem): GuestSignalsStore | null {
+  rememberDayItemTasteTags(item);
+  const current = readGuestStore();
+  const next = backfillStoreTasteTags(current, item);
+  if (next.events === current.events) return null;
+  return writeGuestStore(next);
 }
 
 export const SIGNALS_CHANGED_EVENT = 'cc-signals-changed';

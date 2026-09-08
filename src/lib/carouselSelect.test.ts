@@ -13,6 +13,7 @@ import {
   clearPackHeroPins,
   clearPackStripKeys,
   holdThumbFocus,
+  heroScrollDeferMs,
   heroWindowScrollY,
   keysInsertedBefore,
   mergePinnedHeroRow,
@@ -57,6 +58,12 @@ describe('shouldIgnoreRepeatThumbSelect', () => {
   it('covers a delayed iOS click (~300ms) plus slack', () => {
     assert.ok(THUMB_SELECT_LOCK_MS >= 500);
     assert.equal(HERO_SCROLL_DEFER_MS, THUMB_SELECT_LOCK_MS);
+  });
+
+  it('defers hero scroll only on touch, not mouse', () => {
+    assert.equal(heroScrollDeferMs('touch'), HERO_SCROLL_DEFER_MS);
+    assert.equal(heroScrollDeferMs('mouse'), 0);
+    assert.equal(heroScrollDeferMs(), 0);
   });
 });
 

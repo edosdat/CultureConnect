@@ -4,6 +4,7 @@
  */
 
 import type { DayItem } from './types';
+import { clipListPitch } from './slim';
 import type { AccountTasteState } from './signals';
 import {
   cinemaDisplayStem,
@@ -109,12 +110,12 @@ export function rowDisplayTitle(row: {
 
 export function itemPitch(item: DayItem): string {
   if (item.kind === 'programme') {
-    return (
+    return clipListPitch(
       (item.programme.description_item || '').trim() ||
-      (item.evenement?.description_courte || '').trim()
+        (item.evenement?.description_courte || '').trim(),
     );
   }
-  return (item.evenement.description_courte || '').trim();
+  return clipListPitch((item.evenement.description_courte || '').trim());
 }
 
 export function itemImageUrl(item: DayItem): string {
@@ -342,11 +343,15 @@ export const TOP3_SECTION_CLASS =
 export const TOP3_RAIL_CARD_HEIGHT_CLASS = 'h-[9rem]';
 
 /**
- * Side poster on rail cards. Same image area on every slide: fills the
- * locked card height, fixed portrait width. Vignette stays visible.
+ * 2/3 cinema vignette on every Top 3 card. Height follows the locked
+ * 9rem frame (`h-full`) so slides stay equal; width comes from aspect.
  */
 export const TOP3_RAIL_THUMB_CLASS =
-  'relative h-full w-[4.25rem] shrink-0 overflow-hidden sm:w-[4.75rem] lg:w-[5.75rem]';
+  'relative h-full aspect-[2/3] shrink-0 overflow-hidden rounded-lg bg-culture-sand';
+
+/** Same cover / object-top as solid Ciné thumbs. In-flow — not absolute. */
+export const TOP3_RAIL_IMAGE_CLASS =
+  'h-full w-full object-cover object-top';
 
 /** ~78% of the scroller so the next poster peeks clearly at ~380px. md+ fills the grid cell. */
 export const TOP3_CAROUSEL_CARD_CLASS =

@@ -25,6 +25,11 @@ export const THUMB_SELECT_LOCK_MS = 500;
  */
 export const HERO_SCROLL_DEFER_MS = 500;
 
+/** Touch keeps the #85 defer; mouse / keyboard pin immediately. */
+export function heroScrollDeferMs(pointerType?: string): number {
+  return pointerType === 'touch' ? HERO_SCROLL_DEFER_MS : 0;
+}
+
 /**
  * Ignore hero-card swipe while scroll-to-hero / layout shift is in flight.
  * Smooth scrollIntoView plus fiche growth after /api/agenda?id= can move
