@@ -1,14 +1,13 @@
 import {
+  DISPLAY_SLOT_ORDER,
   TOP3_INDICATOR_CLASS,
   top3CardFrameClass,
   top3TrackClass,
 } from '@/lib/displayHome';
 
-const SLOTS = ['cine', 'theatre', 'concert'] as const;
-
 /** In-place wait for the 3 reco slots. CSS only — no fetch, no GIF. */
 export default function Top3Skeleton() {
-  const count = SLOTS.length;
+  const count = DISPLAY_SLOT_ORDER.length;
   return (
     <div>
       <ul
@@ -17,7 +16,7 @@ export default function Top3Skeleton() {
         aria-label="Chargement du top 3"
         data-top3-carousel=""
       >
-        {SLOTS.map((slot) => (
+        {DISPLAY_SLOT_ORDER.map((slot) => (
           <li key={slot} className={top3CardFrameClass(count)}>
             <div className="flex h-full animate-pulse overflow-hidden rounded-card border border-culture-soft bg-culture-surface">
               <div className="w-[4.25rem] shrink-0 self-stretch bg-culture-sand/70 sm:w-[4.75rem] lg:w-[5.75rem]" />
