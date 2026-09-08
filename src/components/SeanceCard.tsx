@@ -208,9 +208,7 @@ export default function SeanceCard({
         className={
           resolved === 'live'
             ? 'mt-auto pt-1 text-sm font-semibold text-culture-ink'
-            : resolved === 'rail'
-              ? 'line-clamp-1 pt-0 text-xs leading-4 text-culture-muted'
-              : 'mt-auto pt-1 text-sm text-culture-muted'
+            : 'mt-auto pt-1 text-sm text-culture-muted'
         }
       >
         <span
