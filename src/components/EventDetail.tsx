@@ -85,12 +85,14 @@ function ReserveControl({
   soldOut,
   item,
   onReserve,
+  tagSource,
   shrink = false,
 }: {
   url: string;
   soldOut: boolean;
   item?: DayItem;
   onReserve?: () => void;
+  tagSource?: DayItem | null;
   shrink?: boolean;
 }) {
   const { trackItem } = useSignals();
@@ -115,7 +117,7 @@ function ReserveControl({
       target="_blank"
       rel="noopener noreferrer"
       onClick={() => {
-        if (item) trackItem(item, 'outbound_click');
+        if (item) trackItem(item, 'outbound_click', tagSource);
         onReserve?.();
       }}
       className={
@@ -206,12 +208,14 @@ function FilmSeancesList({
   items,
   onSelectVenue,
   onReserve,
+  tagSource,
   selectedCommune,
   selectedLieuId,
 }: {
   items: DayItem[];
   onSelectVenue?: (lieuId: string) => void;
   onReserve?: () => void;
+  tagSource?: DayItem | null;
   selectedCommune?: string | null;
   selectedLieuId?: string | null;
 }) {
@@ -241,6 +245,7 @@ function FilmSeancesList({
               url={g.reserveUrl}
               soldOut={g.soldOut}
               item={g.item}
+              tagSource={tagSource}
               onReserve={onReserve}
               shrink
             />
@@ -462,6 +467,7 @@ export default function EventDetail({
                       items={seancesForList}
                       origin={origin}
                       onActiveChange={setActiveSeance}
+                      tagSource={item}
                       onReserve={() => {
                         markEngaged();
                         onReserve?.();
@@ -572,6 +578,7 @@ export default function EventDetail({
                         }
                       : undefined
                   }
+                  tagSource={item}
                   onReserve={() => {
                     markEngaged();
                     onReserve?.();

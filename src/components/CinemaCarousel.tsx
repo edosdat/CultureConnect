@@ -254,11 +254,13 @@ function sourceUrlOf(item: DayItem): string {
 function SeanceReserveLink({
   item,
   onReserve,
+  tagSource,
   compact = false,
   wide = false,
 }: {
   item: DayItem;
   onReserve?: (item: DayItem) => void;
+  tagSource?: DayItem | null;
   compact?: boolean;
   wide?: boolean;
 }) {
@@ -288,7 +290,7 @@ function SeanceReserveLink({
       target="_blank"
       rel="noopener noreferrer"
       onClick={() => {
-        trackItem(item, 'outbound_click');
+        trackItem(item, 'outbound_click', tagSource);
         onReserve?.(item);
       }}
       className={
@@ -665,6 +667,7 @@ export default function CinemaCarousel({
                 origin={origin}
                 onPick={setPickedKey}
                 onReserve={onReserve}
+                tagSource={item}
               />
             </div>
           ) : null}
@@ -685,7 +688,12 @@ export default function CinemaCarousel({
           ) : null}
           {pack !== 'cine' ? (
             <div className="md:hidden">
-              <SeanceReserveLink item={active} onReserve={onReserve} wide />
+              <SeanceReserveLink
+                item={active}
+                onReserve={onReserve}
+                tagSource={item}
+                wide
+              />
             </div>
           ) : null}
           {pack !== 'cine' ? (
@@ -725,6 +733,7 @@ export default function CinemaCarousel({
                           <SeanceReserveLink
                             item={rel}
                             onReserve={onReserve}
+                            tagSource={item}
                             compact
                           />
                         </span>
@@ -752,7 +761,11 @@ export default function CinemaCarousel({
                       ))}
                     </select>
                     <span className="hidden md:inline">
-                      <SeanceReserveLink item={active} onReserve={onReserve} />
+                      <SeanceReserveLink
+                        item={active}
+                        onReserve={onReserve}
+                        tagSource={item}
+                      />
                     </span>
                   </div>
                 </div>

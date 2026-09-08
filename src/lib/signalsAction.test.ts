@@ -13,6 +13,7 @@ import {
   isKnownSignalKind,
   isTasteWritingSignal,
   makeSignal,
+  inheritTasteTagsFromPeers,
   payloadFromDayItem,
   resolveLoginMerge,
   shouldMapTasteIngest,
@@ -21,6 +22,7 @@ import {
   signalHasMappedTasteTags,
   type Signal,
 } from './signals';
+import { detailDayItem, relatedSeanceDayItem } from './slim';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 
 function lieu(): Lieu {
@@ -199,9 +201,15 @@ describe('favorite / unfavorite cancel', () => {
 });
 
 describe('UI tracking paths — payloadFromDayItem', () => {
-  it('favorite / unfavorite / share / outbound_click carry event + programme ids', () => {
+  it('favorite / unfavorite / share / outbound_click / reserve carry event + programme ids', () => {
     const fiche = item();
-    for (const kind of ['favorite', 'unfavorite', 'share', 'outbound_click'] as const) {
+    for (const kind of [
+      'favorite',
+      'unfavorite',
+      'share',
+      'outbound_click',
+      'reserve',
+    ] as const) {
       const payload = payloadFromDayItem(fiche, kind);
       const signal = makeSignal(payload);
       assert.equal(payload.kind, kind, kind);
@@ -215,11 +223,60 @@ describe('UI tracking paths — payloadFromDayItem', () => {
     }
   });
 
+  it('tagSource supplies fiche moods when the seance wire is tagless', () => {
+    const fiche = item();
+    if (fiche.kind !== 'programme') assert.fail('expected programme');
+    const seance: DayItem = {
+      kind: 'programme',
+      key: 'pr-seance',
+      dayIso: fiche.dayIso,
+      programme: {
+        ...fiche.programme,
+        programme_id: 'pr-seance',
+        film_id: 'F9',
+        moods: '',
+        genres_mood: '',
+        genre: '',
+        nom_item: 'Séance 20h',
+      },
+      evenement: {
+        ...ev(),
+        titre: 'Séance 20h',
+        genre: '',
+        moods: '',
+        categorie: 'cinema',
+      },
+      lieu: fiche.lieu,
+    };
+    const bare = makeSignal(payloadFromDayItem(seance, 'outbound_click'));
+    assert.equal(signalHasMappedTasteTags(bare), false);
+    const withFiche = makeSignal(
+      payloadFromDayItem(seance, 'outbound_click', fiche),
+    );
+    assert.ok(withFiche.moods.includes('rigolo'));
+    assert.equal(withFiche.film_id, 'F9');
+  });
+
+  it('detail / related reserve maps the same moods as open_card', () => {
+    const fiche = item();
+    const open = makeSignal(payloadFromDayItem(fiche, 'open_card'));
+    const fromDetail = makeSignal(
+      payloadFromDayItem(detailDayItem(fiche), 'reserve'),
+    );
+    const fromRelated = makeSignal(
+      payloadFromDayItem(relatedSeanceDayItem(fiche), 'outbound_click'),
+    );
+    assert.ok(open.moods.includes('rigolo'));
+    assert.deepEqual(fromDetail.moods, open.moods);
+    assert.deepEqual(fromRelated.moods, open.moods);
+  });
+
   it('shouldMapTasteIngest covers new fiche actions', () => {
     assert.equal(shouldMapTasteIngest('favorite', []), true);
     assert.equal(shouldMapTasteIngest('unfavorite', []), true);
     assert.equal(shouldMapTasteIngest('outbound_click', []), true);
     assert.equal(shouldMapTasteIngest('share', []), true);
+    assert.equal(shouldMapTasteIngest('reserve', []), true);
   });
 
   it('favorite / share / outbound_click prompt login like other strong actions', () => {
@@ -300,6 +357,81 @@ describe('reserve + outbound_click — no double-count', () => {
     });
     const p = applyIncomingSignals(emptyProfile(), [a, b]);
     assert.equal(p.moods.rigolo?.weight, 10);
+  });
+
+  it('tagless Réserver copies open_card moods — net +6, no double-count', () => {
+    const open = makeSignal({
+      kind: 'open_card',
+      film_id: 'F1',
+      event_id: 'ev-1',
+      programme_id: 'pr-1',
+      moods: ['rigolo'],
+      genres: ['standup'],
+    });
+    const outbound = makeSignal({
+      kind: 'outbound_click',
+      film_id: 'F1',
+      event_id: 'ev-1',
+      programme_id: 'pr-seance',
+      moods: [],
+      genres: [],
+    });
+    const reserve = makeSignal({
+      kind: 'reserve',
+      film_id: 'F1',
+      event_id: 'ev-1',
+      programme_id: 'pr-seance',
+      moods: [],
+      genres: [],
+    });
+    assert.equal(signalHasMappedTasteTags(outbound), false);
+    assert.equal(signalHasMappedTasteTags(reserve), false);
+
+    const copied = inheritTasteTagsFromPeers(reserve, [open]);
+    assert.ok(copied.moods.includes('rigolo'));
+    assert.ok(copied.genres.includes('standup'));
+
+    const afterOpen = commitTasteSignals(
+      { events: [], profile: emptyProfile() },
+      [open],
+      40,
+    );
+    assert.equal(afterOpen.profile.moods.rigolo?.weight, 2);
+
+    const afterPair = commitTasteSignals(afterOpen, [outbound, reserve], 40);
+    assert.equal(afterPair.profile.moods.rigolo?.weight, 8);
+    assert.equal(
+      afterPair.events.some(
+        (s) => s.kind === 'reserve' && s.moods.includes('rigolo'),
+      ),
+      true,
+    );
+    assert.equal(
+      afterPair.events.some(
+        (s) => s.kind === 'outbound_click' && s.moods.includes('rigolo'),
+      ),
+      true,
+    );
+
+    const sequential = commitTasteSignals(afterOpen, [outbound], 40);
+    const afterReserve = commitTasteSignals(sequential, [reserve], 40);
+    assert.equal(afterReserve.profile.moods.rigolo?.weight, 8);
+  });
+
+  it('tagless reserve without a tagged peer stays audit-only', () => {
+    const reserve = makeSignal({
+      kind: 'reserve',
+      event_id: 'ev-bare',
+      moods: [],
+      genres: [],
+    });
+    const next = commitTasteSignals(
+      { events: [], profile: emptyProfile() },
+      [reserve],
+      40,
+    );
+    assert.equal(next.events.length, 1);
+    assert.deepEqual(next.profile.moods, {});
   });
 });
 

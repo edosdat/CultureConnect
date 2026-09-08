@@ -20,9 +20,11 @@ import {
 function SeanceReserveLink({
   item,
   onReserve,
+  tagSource,
 }: {
   item: DayItem;
   onReserve?: (item: DayItem) => void;
+  tagSource?: DayItem | null;
 }) {
   const { trackItem } = useSignals();
   const pick = reservePickOf(item);
@@ -43,7 +45,7 @@ function SeanceReserveLink({
       target="_blank"
       rel="noopener noreferrer"
       onClick={() => {
-        trackItem(item, 'outbound_click');
+        trackItem(item, 'outbound_click', tagSource);
         onReserve?.(item);
       }}
       className="inline-flex h-11 shrink-0 items-center whitespace-nowrap rounded-full bg-culture-terracotta px-3 text-sm font-semibold text-white hover:bg-culture-clay sm:px-4"
@@ -59,6 +61,7 @@ type PickerProps = {
   origin: GeoPos | null;
   onPick: (key: string) => void;
   onReserve?: (item: DayItem) => void;
+  tagSource?: DayItem | null;
 };
 
 /** Cinema then horaire then Réserver. Never `hidden md` — must stay on 380. */
@@ -68,6 +71,7 @@ export default function CineSeancePicker({
   origin,
   onPick,
   onReserve,
+  tagSource,
 }: PickerProps) {
   const kmOrigin = cineDistanceOrigin(origin);
   const groups = groupCinemasForFilm(seances, kmOrigin);
@@ -128,7 +132,11 @@ export default function CineSeancePicker({
               </option>
             ))}
           </select>
-          <SeanceReserveLink item={active} onReserve={onReserve} />
+          <SeanceReserveLink
+            item={active}
+            onReserve={onReserve}
+            tagSource={tagSource}
+          />
         </div>
       </div>
     </div>
@@ -141,11 +149,13 @@ export function CineFilmSeances({
   origin = null,
   onReserve,
   onActiveChange,
+  tagSource,
 }: {
   items: DayItem[];
   origin?: GeoPos | null;
   onReserve?: (item: DayItem) => void;
   onActiveChange?: (item: DayItem) => void;
+  tagSource?: DayItem | null;
 }) {
   const [pickedKey, setPickedKey] = useState<string | null>(null);
   const itemKeys = items.map((s) => s.key).join('|');
@@ -167,6 +177,7 @@ export function CineFilmSeances({
       origin={origin}
       onPick={setPickedKey}
       onReserve={onReserve}
+      tagSource={tagSource}
     />
   );
 }
