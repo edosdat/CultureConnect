@@ -6,13 +6,20 @@ import type { AgendaDetailResponse } from '@/lib/slim';
 import type { DenseRow } from '@/lib/densify';
 import {
   HERO_SCROLL_DEFER_MS,
+  HERO_SWIPE_LOCK_MS,
+  adoptFirstPaintHero,
   holdThumbFocus,
   heroWindowScrollY,
+  pinFromHeroRow,
+  readPackHeroPin,
   resolveHeroAfterRowsChange,
   resolveHeroIndex,
   resolveThumbSelectIndex,
+  shouldIgnoreHeroSwipe,
   shouldIgnoreRepeatThumbSelect,
+  writePackHeroPin,
   type CarouselHeroRow,
+  type HeroPin,
 } from '@/lib/carouselSelect';
 import {
   calendarPayloadFromDayItem,
@@ -336,7 +343,22 @@ export default function CinemaCarousel({
 }: Props) {
   const copy = PACK_COPY[pack];
   const seancesDomId = `${pack}-seances`;
-  const [heroKey, setHeroKey] = useState<string | null>(null);
+  const pinScope = [
+    pack,
+    dateFrom ?? '',
+    dateTo ?? '',
+    selectedCommune ?? '',
+    selectedLieuId ?? '',
+    soir ? '1' : '0',
+  ].join('|');
+  const restoredPin = readPackHeroPin(pinScope);
+  const [heroKey, setHeroKey] = useState<string | null>(() => {
+    return adoptFirstPaintHero(
+      rows.map(toHeroRow),
+      focusKey ?? restoredPin?.key ?? null,
+      restoredPin,
+    ).key;
+  });
   const [pickedKey, setPickedKey] = useState<string | null>(null);
   const stripRef = useRef<HTMLDivElement | null>(null);
   const heroCardRef = useRef<HTMLDivElement | null>(null);
@@ -353,10 +375,29 @@ export default function CinemaCarousel({
   const pendingAdvance = useRef(false);
   const pinnedBySelect = useRef(false);
   const pinnedRow = useRef<DenseRow | null>(null);
+  const heroPin = useRef<HeroPin | null>(restoredPin);
+  const lastEmittedKey = useRef<string | null>(focusKey ?? restoredPin?.key ?? null);
   const rowsLen = useRef(rows.length);
   const touchX = useRef<number | null>(null);
+  const touchY = useRef<number | null>(null);
+  const touchMoved = useRef(false);
+  const swipeLockUntil = useRef(0);
   const selectAt = useRef<number | null>(null);
   const armedKey = useRef<string | null>(null);
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+  const pinScopeRef = useRef(pinScope);
+  if (pinScopeRef.current !== pinScope) {
+    pinScopeRef.current = pinScope;
+    heroPin.current = readPackHeroPin(pinScope);
+    pinnedBySelect.current = false;
+    pinnedRow.current = null;
+    lastEmittedKey.current = heroPin.current?.key ?? null;
+    pendingAdvance.current = false;
+    if (heroKey !== (heroPin.current?.key ?? null)) {
+      setHeroKey(heroPin.current?.key ?? null);
+    }
+  }
 
   function markMoved() {
     userMoved.current = true;
@@ -370,10 +411,45 @@ export default function CinemaCarousel({
     load();
   }
 
+  function persistHero(row: DenseRow, key = row.groupKey) {
+    const pin = pinFromHeroRow(toHeroRow(row), key);
+    heroPin.current = pin;
+    pinnedRow.current = row;
+    pinnedBySelect.current = true;
+    pendingAdvance.current = false;
+    lastEmittedKey.current = key;
+    writePackHeroPin(pinScope, pin);
+    setHeroKey(key);
+  }
+
+  function lockHeroSwipe(now = Date.now()) {
+    swipeLockUntil.current = now + HERO_SWIPE_LOCK_MS;
+  }
+
   const heroRows = rows.map(toHeroRow);
-  const resolvedIndex = resolveHeroIndex(heroRows, heroKey);
+  // First paint (and remount): lock the film already on screen so later
+  // cineRows / displayShuffle / reco-top3 hydrates cannot follow a new rows[0].
+  if (!heroPin.current && rows[0]) {
+    const adopted = adoptFirstPaintHero(heroRows, heroKey, restoredPin);
+    if (adopted.pin) {
+      heroPin.current = adopted.pin;
+      pinnedBySelect.current = true;
+      writePackHeroPin(pinScope, adopted.pin);
+      if (adopted.key && adopted.key !== heroKey) setHeroKey(adopted.key);
+    }
+  }
+  const resolvedIndex = resolveHeroIndex(heroRows, heroKey, heroPin.current);
   const heroFromRows = resolvedIndex >= 0 ? rows[resolvedIndex] : null;
-  if (heroFromRows) pinnedRow.current = heroFromRows;
+  if (heroFromRows) {
+    pinnedRow.current = heroFromRows;
+    if (
+      heroPin.current &&
+      heroFromRows.groupKey !== heroPin.current.groupKey
+    ) {
+      heroPin.current = pinFromHeroRow(toHeroRow(heroFromRows), heroFromRows.groupKey);
+      writePackHeroPin(pinScope, heroPin.current);
+    }
+  }
   const hero = heroFromRows ?? pinnedRow.current ?? rows[0];
   const heroIndex = resolvedIndex >= 0 ? resolvedIndex : 0;
 
@@ -403,9 +479,19 @@ export default function CinemaCarousel({
 
   useEffect(() => {
     if (!focusKey) return;
-    pinnedBySelect.current = false;
+    if (focusKey === lastEmittedKey.current || focusKey === heroKey) {
+      pinnedBySelect.current = true;
+      return;
+    }
+    lastEmittedKey.current = focusKey;
     pendingAdvance.current = false;
-    setHeroKey(focusKey);
+    pinnedBySelect.current = true;
+    const current = rowsRef.current;
+    const row =
+      current.find((r) => r.groupKey === focusKey || r.item.key === focusKey) ??
+      current.find((r) => r.seances?.some((s) => s.key === focusKey));
+    if (row) persistHero(row, row.groupKey);
+    else setHeroKey(focusKey);
   }, [focusKey]);
 
   useEffect(() => {
@@ -474,9 +560,14 @@ export default function CinemaCarousel({
       pinnedBySelect: pinnedBySelect.current,
       hasMore,
       rowsGrew: grew,
+      pin: heroPin.current,
     });
     pendingAdvance.current = next.pendingAdvance;
-    if (next.key !== heroKey) setHeroKey(next.key);
+    if (next.key == null) return;
+    if (next.key === heroKey) return;
+    const row = rows.find((r) => r.groupKey === next.key);
+    if (row) persistHero(row, next.key);
+    else setHeroKey(next.key);
   }, [rows, heroKey, hasMore]);
 
   function scrollStrip(dir: -1 | 1) {
@@ -538,11 +629,9 @@ export default function CinemaCarousel({
     if (shouldIgnoreRepeatThumbSelect(selectAt.current, now)) return;
     selectAt.current = now;
     markMoved();
-    pinnedBySelect.current = true;
-    pendingAdvance.current = false;
     const pinned = rows.find((r) => r.groupKey === key) ?? row;
-    pinnedRow.current = pinned;
-    setHeroKey(key);
+    persistHero(pinned, key);
+    lockHeroSwipe(now);
     queueHeroScroll();
     const i = rows.findIndex((r) => r.groupKey === key);
     if (i >= rows.length - 1) {
@@ -553,30 +642,61 @@ export default function CinemaCarousel({
   function onHeroTouchStart(e: TouchEvent) {
     if (e.target instanceof Element && e.target.closest('button, a, select, input, textarea, label')) {
       touchX.current = null;
+      touchY.current = null;
+      touchMoved.current = false;
       return;
     }
-    touchX.current = e.changedTouches[0]?.clientX ?? null;
+    const t = e.changedTouches[0];
+    touchX.current = t?.clientX ?? null;
+    touchY.current = t?.clientY ?? null;
+    touchMoved.current = false;
+  }
+
+  function onHeroTouchMove(e: TouchEvent) {
+    if (touchX.current == null) return;
+    const t = e.changedTouches[0];
+    if (!t) return;
+    const dx = t.clientX - touchX.current;
+    const dy = t.clientY - (touchY.current ?? t.clientY);
+    if (Math.abs(dx) >= 8 || Math.abs(dy) >= 8) touchMoved.current = true;
   }
 
   function onHeroTouchEnd(e: TouchEvent) {
-    if (touchX.current == null) return;
-    const x = e.changedTouches[0]?.clientX;
-    const start = touchX.current;
+    const startX = touchX.current;
+    const startY = touchY.current;
+    const didMove = touchMoved.current;
     touchX.current = null;
-    if (x == null) return;
-    const dx = x - start;
-    if (Math.abs(dx) < 40) return;
+    touchY.current = null;
+    touchMoved.current = false;
+    const t = e.changedTouches[0];
+    if (!t) return;
+    if (
+      shouldIgnoreHeroSwipe({
+        startX,
+        startY,
+        endX: t.clientX,
+        endY: t.clientY,
+        didMove,
+        lockUntil: swipeLockUntil.current,
+        now: Date.now(),
+      })
+    ) {
+      return;
+    }
+    const dx = t.clientX - (startX ?? t.clientX);
     markMoved();
-    pinnedBySelect.current = false;
     if (dx < 0) {
       if (heroIndex < rows.length - 1) {
-        setHeroKey(rows[heroIndex + 1]!.groupKey);
+        persistHero(rows[heroIndex + 1]!);
       } else {
         pendingAdvance.current = true;
+        pinnedBySelect.current = false;
+        heroPin.current = null;
+        writePackHeroPin(pinScope, null);
         requestMore();
       }
     } else if (heroIndex > 0) {
-      setHeroKey(rows[heroIndex - 1]!.groupKey);
+      persistHero(rows[heroIndex - 1]!);
     }
   }
 
@@ -700,6 +820,7 @@ export default function CinemaCarousel({
         ref={heroCardRef}
         data-carousel-hero=""
         onTouchStart={onHeroTouchStart}
+        onTouchMove={onHeroTouchMove}
         onTouchEnd={onHeroTouchEnd}
         className="scroll-mt-16 overflow-hidden rounded-card-lg border border-culture-line bg-culture-surface shadow-card"
       >
