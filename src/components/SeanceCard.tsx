@@ -16,6 +16,7 @@ import { MAIN_CATEGORY_LABELS, mainFromCategorie, mainFromGenreSlug } from '@/li
 import { catCssVar, catGradient } from '@/lib/categoryColor';
 import {
   seanceCardShowsPitch,
+  TOP3_RAIL_IMAGE_CLASS,
   TOP3_RAIL_THUMB_CLASS,
   type SeanceCardPitchSource,
 } from '@/lib/displayHome';
@@ -165,8 +166,9 @@ export default function SeanceCard({
         alt=""
         loading="lazy"
         className={
-          'h-full w-full object-cover transition duration-200 ease-out group-hover:scale-[1.03]' +
-          (resolved === 'rail' ? ' absolute inset-0 object-center' : '')
+          resolved === 'rail'
+            ? TOP3_RAIL_IMAGE_CLASS
+            : 'h-full w-full object-cover transition duration-200 ease-out group-hover:scale-[1.03]'
         }
         fallback={<VisualFallback item={item} compact={resolved !== 'live'} />}
       />

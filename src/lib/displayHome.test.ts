@@ -29,6 +29,7 @@ import {
   TOP3_CAROUSEL_CARD_CLASS,
   TOP3_CAROUSEL_TRACK_CLASS,
   TOP3_RAIL_CARD_HEIGHT_CLASS,
+  TOP3_RAIL_IMAGE_CLASS,
   TOP3_RAIL_THUMB_CLASS,
   TOP3_SECTION_CLASS,
   top3CardFrameClass,
@@ -976,11 +977,14 @@ describe('Top 3 mobile carousel (<md)', () => {
     assert.equal(TOP3_CAROUSEL_CARD_CLASS.includes('md:h-full'), false);
   });
 
-  it('gives every rail poster the same image area (full card height, fixed width)', () => {
+  it('gives every rail poster the same 2/3 vignette (full card height)', () => {
     assert.ok(/(?:^|\s)h-full(?:\s|$)/.test(TOP3_RAIL_THUMB_CLASS));
-    assert.ok(TOP3_RAIL_THUMB_CLASS.includes('w-[4.25rem]'));
+    assert.ok(TOP3_RAIL_THUMB_CLASS.includes('aspect-[2/3]'));
     assert.equal(TOP3_RAIL_THUMB_CLASS.includes('min-h-'), false);
     assert.equal(TOP3_RAIL_THUMB_CLASS.includes('self-stretch'), false);
+    assert.ok(TOP3_RAIL_IMAGE_CLASS.includes('object-cover'));
+    assert.ok(TOP3_RAIL_IMAGE_CLASS.includes('object-top'));
+    assert.equal(TOP3_RAIL_IMAGE_CLASS.includes('absolute'), false);
   });
 
   it('uses the same H2 type + scale as pack titles (Ciné)', () => {
