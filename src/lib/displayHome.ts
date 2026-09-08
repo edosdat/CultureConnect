@@ -274,11 +274,11 @@ export function fillEmptyCineFromPool(
   return fillEmptyCineSlot(recoItems, films);
 }
 
-/** 0 → hide; 1 → full width; 2 → 50/50; 3 → current 3-up. */
+/** 0 → hide; 1 → full width; 2 → 50/50; 3 → current 3-up. Stretch so rail thumbs fill the row. */
 export function top3GridClass(count: number): string {
-  if (count <= 1) return 'grid w-full grid-cols-1 items-start gap-3';
-  if (count === 2) return 'grid w-full grid-cols-1 items-start gap-3 sm:grid-cols-2';
-  return 'grid w-full grid-cols-1 items-start gap-3 lg:grid-cols-3';
+  if (count <= 1) return 'grid w-full grid-cols-1 items-stretch gap-3';
+  if (count === 2) return 'grid w-full grid-cols-1 items-stretch gap-3 sm:grid-cols-2';
+  return 'grid w-full grid-cols-1 items-stretch gap-3 lg:grid-cols-3';
 }
 
 /** Where the card is painted. Top 3 never shows pitch, even on compact. */
