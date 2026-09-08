@@ -202,8 +202,24 @@ export function rowMatchesHeroPin(
 }
 
 /**
+ * Once any row has painted, heroKey must be that work — never left null
+ * so a later cineRows / top3 / GPS rewrite cannot follow the new rows[0].
+ */
+export function ensureHeroKey(
+  rows: readonly CarouselHeroRow[],
+  selectedKey: string | null | undefined,
+  pin?: HeroPin | null,
+): string | null {
+  if (selectedKey) return selectedKey;
+  if (pin?.key) return pin.key;
+  return rows[0]?.groupKey ?? null;
+}
+
+/**
  * Index of the pinned film in the current `rows`, or `-1` when a key/pin is
  * set but that work is no longer in the strip. `null` key and no pin → `0`.
+ * Callers must `ensureHeroKey` after first paint so this 0-fallback is
+ * only the first empty→non-empty frame.
  */
 export function resolveHeroIndex(
   rows: readonly CarouselHeroRow[],

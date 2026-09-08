@@ -8,6 +8,7 @@ import {
   THUMB_SELECT_LOCK_MS,
   adoptFirstPaintHero,
   appendOnlyStripRows,
+  ensureHeroKey,
   applyStoredStripOrder,
   clearPackHeroPins,
   clearPackStripKeys,
@@ -312,6 +313,12 @@ describe('adoptFirstPaintHero', () => {
     assert.equal(next.index, 2);
     assert.equal(resolveHeroIndex(shuffled, null), 0);
     assert.notEqual(shuffled[0]!.groupKey, film1.groupKey);
+  });
+
+  it('ensureHeroKey never stays null after the first non-empty rows', () => {
+    assert.equal(ensureHeroKey([film1, film2, film3], null), film1.groupKey);
+    assert.equal(ensureHeroKey([film2, film3], film1.groupKey), film1.groupKey);
+    assert.equal(ensureHeroKey([], null), null);
   });
 
   it('keeps the first-paint film when it drops out of the new strip', () => {

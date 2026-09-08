@@ -9,6 +9,7 @@ import {
   HERO_SWIPE_LOCK_MS,
   adoptFirstPaintHero,
   appendOnlyStripRows,
+  ensureHeroKey,
   applyStoredStripOrder,
   holdThumbFocus,
   heroWindowScrollY,
@@ -420,11 +421,10 @@ export default function CinemaCarousel({
       readPackHeroPin(pinScope) ?? readPackHeroPin(browseScope);
     pinnedBySelect.current = Boolean(heroPin.current);
     pinnedRow.current = null;
-    lastEmittedKey.current = heroPin.current?.key ?? null;
+    lastEmittedKey.current = heroPin.current?.key ?? heroKey;
     pendingAdvance.current = false;
-    if (heroKey !== (heroPin.current?.key ?? null)) {
-      setHeroKey(heroPin.current?.key ?? null);
-    }
+    const nextKey = heroPin.current?.key ?? heroKey;
+    if (nextKey && nextKey !== heroKey) setHeroKey(nextKey);
   }
   if (browseScopeRef.current !== browseScope) {
     browseScopeRef.current = browseScope;
@@ -484,17 +484,28 @@ export default function CinemaCarousel({
   const heroRows = rows.map(toHeroRow);
   // First paint (and remount): lock the film already on screen so later
   // cineRows / displayShuffle / reco-top3 hydrates cannot follow a new rows[0].
-  if (!heroPin.current && rows[0]) {
-    const adopted = adoptFirstPaintHero(heroRows, heroKey, restoredPin);
+  // Never leave heroKey null after the first non-empty rows — that fallback
+  // is resolveHeroIndex(..., null) === 0 (A→B→C in the same slot).
+  const lockedHeroKey = ensureHeroKey(heroRows, heroKey, heroPin.current);
+  if (rows[0] && (!heroPin.current || !heroKey)) {
+    const adopted = adoptFirstPaintHero(
+      heroRows,
+      lockedHeroKey,
+      heroPin.current ?? restoredPin,
+    );
     if (adopted.pin) {
       heroPin.current = adopted.pin;
       pinnedBySelect.current = true;
       writePackHeroPin(pinScope, adopted.pin);
       writePackHeroPin(browseScope, adopted.pin);
-      if (adopted.key && adopted.key !== heroKey) setHeroKey(adopted.key);
     }
+    if (adopted.key && adopted.key !== heroKey) setHeroKey(adopted.key);
   }
-  const resolvedIndex = resolveHeroIndex(heroRows, heroKey, heroPin.current);
+  const resolvedIndex = resolveHeroIndex(
+    heroRows,
+    heroKey ?? lockedHeroKey,
+    heroPin.current,
+  );
   const heroFromRows = resolvedIndex >= 0 ? rows[resolvedIndex] : null;
   if (heroFromRows) {
     pinnedRow.current = heroFromRows;
