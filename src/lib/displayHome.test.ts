@@ -619,16 +619,17 @@ describe('search example chips', () => {
     }
   });
 
-  it('shows examples on boot / clear-all / date-only, hides on QUOI or query', () => {
+  it('never mounts examples (retired under the search field)', () => {
     const empty = {
       selectedCategories: [] as string[],
       query: '',
       committedTitle: '',
     };
-    assert.equal(searchExamplesVisible(empty), true);
+    assert.equal(searchExamplesVisible(empty), false);
+    assert.equal(searchExamplesVisible(), false);
     assert.equal(
       searchExamplesVisible({ ...empty, query: '   ' }),
-      true,
+      false,
     );
     for (const scope of [
       'tous',
@@ -640,24 +641,11 @@ describe('search example chips', () => {
     ] as const) {
       assert.equal(
         searchExamplesVisible({ ...empty, timeScope: scope }),
-        true,
-        `QUAND ${scope} must not hide examples`,
+        false,
       );
     }
     assert.equal(
       searchExamplesVisible({ ...empty, selectedCategories: ['cinema'] }),
-      false,
-    );
-    assert.equal(
-      searchExamplesVisible({ ...empty, selectedCategories: ['musique'] }),
-      false,
-    );
-    assert.equal(
-      searchExamplesVisible({
-        selectedCategories: ['cinema'],
-        query: '',
-        timeScope: 'weekend',
-      }),
       false,
     );
     assert.equal(

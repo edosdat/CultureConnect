@@ -7,7 +7,7 @@ type Props = {
   value: string;
   /** Draft text only — never parse / apply chips. Empty string drops title q. */
   onChange: (value: string) => void;
-  /** Enter or mobile Search key only. */
+  /** Enter, mobile Search key, or the visible ↵ submit control. */
   onSubmit?: (value: string) => void;
   placeholder?: string;
 };
@@ -73,20 +73,32 @@ export default function SearchOmnibox({
         aria-label={placeholder}
         autoComplete="off"
         enterKeyHint="search"
-        className="h-10 w-full rounded-full border border-culture-line bg-culture-surface py-0 pl-9 pr-10 text-sm text-culture-ink shadow-sm placeholder:truncate placeholder:text-culture-muted/70 focus:border-culture-terracotta focus:outline-none focus:ring-2 focus:ring-culture-terracotta/30"
+        className={
+          'h-10 w-full rounded-full border border-culture-line bg-culture-surface py-0 pl-9 text-sm text-culture-ink shadow-sm placeholder:truncate placeholder:text-culture-muted/70 focus:border-culture-terracotta focus:outline-none focus:ring-2 focus:ring-culture-terracotta/30 ' +
+          (value ? 'pr-[4.5rem]' : 'pr-11')
+        }
       />
-      {value ? (
+      <div className="absolute inset-y-0 right-1 flex items-center">
+        {value ? (
+          <button
+            type="button"
+            onPointerDown={clearDraft}
+            onMouseDown={clearDraft}
+            onClick={clearDraft}
+            className="grid h-8 w-8 place-items-center text-base leading-none text-culture-muted hover:text-culture-terracotta"
+            aria-label="Effacer la recherche"
+          >
+            ×
+          </button>
+        ) : null}
         <button
-          type="button"
-          onPointerDown={clearDraft}
-          onMouseDown={clearDraft}
-          onClick={clearDraft}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-culture-muted hover:text-culture-terracotta"
-          aria-label="Effacer la recherche"
+          type="submit"
+          className="grid h-8 w-8 place-items-center rounded-full text-base font-medium leading-none text-culture-terracotta hover:bg-culture-soft"
+          aria-label="Rechercher"
         >
-          ×
+          ↵
         </button>
-      ) : null}
+      </div>
     </form>
   );
 }
