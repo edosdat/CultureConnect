@@ -92,7 +92,7 @@ export function agendaListCacheKeyParts(input: {
     .join(',');
   return [
     'agenda-list',
-    'date-scope-v1',
+    'date-scope-slim-v2',
     input.parisDay,
     input.scope,
     (input.selectedDate || '').trim(),

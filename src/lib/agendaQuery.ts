@@ -52,6 +52,8 @@ import {
 } from './phraseTags';
 import {
   detailDayItem,
+  HOME_PACK_WIRE_CAP,
+  omitBootScopeSnapshot,
   relatedSeanceDayItem,
   slimDayItem,
   slimLieu,
@@ -63,6 +65,7 @@ import {
   bootTimeScope,
   filterSeancesForDisplay,
   hideSeancesBeforeToday,
+  itemInDateWindow,
   parisParts,
   resolveScopeRange,
   seanceDateIso,
@@ -843,26 +846,6 @@ export function queryAgenda(
   const paris = parisParts(now);
   const { items, searching, rangeDays } = listForRange(input, now);
 
-  const showNouveautes =
-    !input.recoUpcoming &&
-    !searching &&
-    !hasPhraseFilters(input) &&
-    catsAllowCinemaPack(input.cats) &&
-    (input.scope === 'tous' ||
-      input.scope === 'aujourdhui' ||
-      input.scope === 'soir' ||
-      input.scope === 'semaine');
-  const nouveautes = filterItemsByCommune(
-    hideSeancesBeforeToday(
-      showNouveautes ? nouveautesCine(data.programmeWithContext, now) : [],
-      paris.iso,
-    ),
-    input.commune,
-  );
-
-  const total = items.length;
-  const densifiedTotal = densifiedCardCount(items);
-
   if (input.recoUpcoming) {
     // aujourdhui/semaine: skip started séances. tous must not — that glued
     // boot top 3 onto today's soonest trio.
@@ -919,7 +902,7 @@ export function queryAgenda(
     return {
       scope: input.scope,
       commune: input.commune,
-      items: picked.map(slimDayItem),
+      items: picked.map(withRecoTags),
       total: picked.length,
       densifiedTotal: densifiedCardCount(picked),
       ...emptyRecoExtras(),
@@ -930,6 +913,39 @@ export function queryAgenda(
     };
   }
 
+  return assembleListFromItems(items, input, now, { searching, rangeDays });
+}
+
+function assembleListFromItems(
+  items: DayItem[],
+  input: AgendaQueryInput,
+  now: Date,
+  opts: { searching: boolean; rangeDays: string[] },
+): AgendaListResponse {
+  const data = loadCultureData();
+  const paris = parisParts(now);
+  const { searching } = opts;
+  void opts.rangeDays;
+
+  const showNouveautes =
+    !input.recoUpcoming &&
+    !searching &&
+    !hasPhraseFilters(input) &&
+    catsAllowCinemaPack(input.cats) &&
+    (input.scope === 'tous' ||
+      input.scope === 'aujourdhui' ||
+      input.scope === 'soir' ||
+      input.scope === 'semaine');
+  const nouveautes = filterItemsByCommune(
+    hideSeancesBeforeToday(
+      showNouveautes ? nouveautesCine(data.programmeWithContext, now) : [],
+      paris.iso,
+    ),
+    input.commune,
+  );
+
+  const total = items.length;
+  const densifiedTotal = densifiedCardCount(items);
   const offset = Math.max(0, input.offset ?? 0);
   const dayPage =
     input.scope === 'date' && Boolean((input.selectedDate || '').trim());
@@ -946,7 +962,7 @@ export function queryAgenda(
     input.cats.includes('enfants_famille') ? isEnfantsChipItem : isEnfantsDayItem,
   );
   const expoAll = items.filter(isExpoDayItem);
-  const vivantCap = dayPage ? pageMax : 40;
+  const vivantCap = dayPage ? pageMax : HOME_PACK_WIRE_CAP;
   const vivantItems =
     !searching && offset === 0
       ? [
@@ -981,9 +997,6 @@ export function queryAgenda(
     counts = Object.fromEntries(map);
   }
 
-  void rangeDays;
-
-  // Venues / genres from the already-filtered set — never re-scan days.
   const venues = venuesFromWindow(items, input.lieuId);
   const genreSlugs =
     input.cats.length > 0 ? genreSlugsFromItems(items) : [];
@@ -1029,30 +1042,14 @@ export type ScopeListSnapshot = {
   cineTotal?: number;
 };
 
-export type ListByScope = Record<RecoBootScope, ScopeListSnapshot>;
+export type ListByScope = Partial<Record<RecoBootScope, ScopeListSnapshot>>;
 
 export type HomeWindow = AgendaListResponse & {
   recoByScope: RecoByScope;
   listByScope: ListByScope;
 };
 
-function listSnapshotForScope(scope: RecoBootScope, now: Date): ScopeListSnapshot {
-  const { year, month } = parisParts(now);
-  const res = queryAgenda(
-    {
-      scope,
-      commune: 'Toulouse',
-      q: '',
-      cats: [],
-      genres: [],
-      lieuId: null,
-      selectedDate: null,
-      year,
-      month,
-      recoUpcoming: false,
-    },
-    now,
-  );
+function snapshotFromList(res: AgendaListResponse): ScopeListSnapshot {
   return {
     items: res.items,
     total: res.total,
@@ -1063,6 +1060,22 @@ function listSnapshotForScope(scope: RecoBootScope, now: Date): ScopeListSnapsho
     vivantTotal: res.vivantTotal,
     cineTotal: res.cineTotal,
   };
+}
+
+function itemsForBootScope(
+  upcoming: DayItem[],
+  scope: RecoBootScope,
+  now: Date,
+): DayItem[] {
+  if (scope === 'tous') return upcoming;
+  const range = resolveScopeRange(scope, null, now, parisParts(now));
+  const scoped = upcoming.filter((item) =>
+    itemInDateWindow(item, range.startIso, range.endIso),
+  );
+  if (scope === 'soir') {
+    return filterSoirItems(scoped, loadCultureData().programmeWithContext);
+  }
+  return scoped;
 }
 
 /** Empty guest reco — SSR first paint must not wait on recommendForProfile. */
@@ -1080,27 +1093,46 @@ export function deferredRecoByScope(): RecoByScope {
 function computeHomeWindow(now = new Date()): HomeWindow {
   const scope = bootTimeScope();
   const { year, month } = parisParts(now);
-  const boot = queryAgenda(
-    {
-      scope,
-      commune: 'Toulouse',
-      q: '',
-      cats: [],
-      genres: [],
-      lieuId: null,
-      selectedDate: null,
-      year,
-      month,
-      includeListMeta: true,
-    },
-    now,
-  );
-  // Reco stays off the boot critical path (client POST reco=1 fills Top 3).
+  const bootInput: AgendaQueryInput = {
+    scope,
+    commune: 'Toulouse',
+    q: '',
+    cats: [],
+    genres: [],
+    lieuId: null,
+    selectedDate: null,
+    year,
+    month,
+    includeListMeta: true,
+  };
+  // One upcoming scan — date chips are filtered subsets (no 5× queryAgenda).
+  const { items: upcoming, searching, rangeDays } = listForRange(bootInput, now);
+  const boot = assembleListFromItems(upcoming, bootInput, now, {
+    searching,
+    rangeDays,
+  });
   const recoByScope = deferredRecoByScope();
-  const listByScope = Object.fromEntries(
-    RECO_BOOT_SCOPES.map((s) => [s, listSnapshotForScope(s, now)]),
-  ) as ListByScope;
-  return { ...boot, recoByScope, listByScope };
+  const listByScope: ListByScope = {};
+  for (const s of RECO_BOOT_SCOPES) {
+    if (s === scope) continue;
+    const snapInput: AgendaQueryInput = {
+      ...bootInput,
+      scope: s,
+      includeListMeta: false,
+    };
+    const scoped = itemsForBootScope(upcoming, s, now);
+    listByScope[s] = snapshotFromList(
+      assembleListFromItems(scoped, snapInput, now, {
+        searching: false,
+        rangeDays: resolveScopeRange(s, null, now, { year, month }).days,
+      }),
+    );
+  }
+  return {
+    ...boot,
+    recoByScope,
+    listByScope: omitBootScopeSnapshot(listByScope, scope),
+  };
 }
 
 /** Home boot: cached 5 min, keyed by Paris calendar day. Reco is deferred. */
@@ -1110,7 +1142,7 @@ export async function loadHomeWindow(
   const day = parisParts(now).iso;
   return unstable_cache(
     async () => computeHomeWindow(new Date()),
-    ['home-window-defer-reco', day],
+    ['home-window-slim-v2', day],
     { revalidate: 300 },
   )();
 }

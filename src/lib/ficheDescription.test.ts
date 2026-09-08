@@ -114,14 +114,15 @@ describe('ficheDescriptionOf', () => {
     assert.ok(ficheDescriptionOf(item).length > 200);
   });
 
-  it('does not hide the long field on slim first-paint', () => {
-    const slim = slimDayItem(
-      programmeItem({
-        cat: 'theatre_danse',
-        evenement: { description_longue: LONG_PITCH, description_courte: 'Court.' },
-      }),
-    );
-    assert.equal(ficheDescriptionOf(slim), LONG_PITCH);
+  it('list slim drops longue — fiche uses detailDayItem', () => {
+    const raw = programmeItem({
+      cat: 'theatre_danse',
+      evenement: { description_longue: LONG_PITCH, description_courte: 'Court.' },
+    });
+    const slim = slimDayItem(raw);
+    assert.equal(slim.evenement?.description_longue, undefined);
+    assert.equal(ficheDescriptionOf(slim), 'Court.');
+    assert.equal(ficheDescriptionOf(detailDayItem(raw)), LONG_PITCH);
   });
 
   it('uses short alone when no long field is filled', () => {
@@ -227,9 +228,17 @@ describe('ficheDescriptionOf', () => {
     );
     assert.equal(ficheDescriptionOf(full), LONG_PITCH);
     assert.equal(
-      ficheDescriptionOf(slimDayItem(fallbackItem({ description_longue: LONG_PITCH }))),
+      ficheDescriptionOf(detailDayItem(fallbackItem({ description_longue: LONG_PITCH }))),
       LONG_PITCH,
     );
+    const slimFallback = slimDayItem(
+      fallbackItem({ description_longue: LONG_PITCH, description_courte: '' }),
+    );
+    const slimEv = slimFallback.evenement;
+    assert.ok(slimEv);
+    assert.equal(slimEv.description_longue, undefined);
+    assert.ok((slimEv.description_courte || '').length > 0);
+    assert.ok((slimEv.description_courte || '').length <= 320);
     assert.equal(
       ficheDescriptionOf(
         detailDayItem(fallbackItem({ description_longue: '', description_courte: '' })),
