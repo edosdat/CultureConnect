@@ -875,7 +875,7 @@ export default function CultureConnectApp({
         selectedDate: selectedDay,
         year,
         month,
-        includeListMeta: true,
+        includeListMeta: false,
         phraseMode,
         phraseTags,
       });

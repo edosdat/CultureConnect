@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import {
+  loadHomeWindow,
   parseCsvParam,
   parseRecoProfile,
   parseTimeScope,
@@ -41,6 +42,30 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
   const url = new URL(req.url);
+  if ((url.searchParams.get('window') || '').trim() === 'home') {
+    const boot = await loadHomeWindow();
+    return NextResponse.json({
+      scope: boot.scope,
+      commune: 'Toulouse',
+      items: boot.items,
+      total: boot.total,
+      densifiedTotal: boot.densifiedTotal,
+      csvEvents: boot.csvEvents,
+      csvProgramme: boot.csvProgramme,
+      nouveautes: boot.nouveautes,
+      communes: boot.communes,
+      venues: boot.venues,
+      genreSlugs: boot.genreSlugs,
+      parisIso: boot.parisIso,
+      weekday: boot.weekday,
+      genresLegend: boot.genresLegend,
+      nouveauFilmIds: boot.nouveauFilmIds,
+      vivantItems: boot.vivantItems,
+      vivantTotal: boot.vivantTotal,
+      cineTotal: boot.cineTotal,
+      listByScope: boot.listByScope,
+    });
+  }
   const id = (url.searchParams.get('id') || '').trim();
   if (id) {
     const detail = queryAgendaDetail(id, url.searchParams.get('commune'), {

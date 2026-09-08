@@ -172,6 +172,14 @@ describe('agendaListCacheKeyParts', () => {
     }).join('|');
     assert.notEqual(tous, day);
   });
+
+  it('uses the slim list cache generation', () => {
+    const key = agendaListCacheKeyParts({
+      ...base,
+      selectedDate: '2026-09-01',
+    }).join('|');
+    assert.ok(key.includes('date-scope-slim-v2'));
+  });
 });
 
 describe('calendar day vs upcoming first page', () => {

@@ -27,6 +27,22 @@ export function slimLieu(lieu: Lieu | null | undefined): Lieu | null {
   };
 }
 
+/**
+ * Living-arts cards on the list wire (desktop first paint is 10).
+ * « Voir plus » loads the next page; fiche copy comes from /api/agenda?id=.
+ */
+export const HOME_PACK_WIRE_CAP = 20;
+
+/** Drop the boot scope copy — page already sends items + vivantItems. */
+export function omitBootScopeSnapshot<T extends Record<string, unknown>>(
+  listByScope: T,
+  bootScope: string,
+): Partial<T> {
+  const out = { ...listByScope };
+  delete out[bootScope];
+  return out;
+}
+
 /** 1–2 phrases for list cards. Never the full description_longue. */
 export function clipListPitch(raw?: string | null): string {
   const t = (raw || '').replace(/\s+/g, ' ').trim();
@@ -41,8 +57,12 @@ export function clipListPitch(raw?: string | null): string {
 
 function slimEvenement(
   ev: Evenement | EventWithDetails | null | undefined,
+  opts?: { skipCourte?: boolean },
 ): Evenement | null {
   if (!ev) return null;
+  const courte = opts?.skipCourte
+    ? ''
+    : clipListPitch(ev.description_courte) || clipListPitch(ev.description_longue);
   return {
     event_id: ev.event_id,
     lieu_id: ev.lieu_id,
@@ -53,23 +73,13 @@ function slimEvenement(
     last_seance_date: ev.last_seance_date || '',
     heure_debut: ev.heure_debut,
     heure_fin: ev.heure_fin,
-    duree_min: ev.duree_min || '',
     prix: ev.prix,
     gratuit: ev.gratuit,
-    langue: ev.langue || '',
-    url_source: ev.url_source || '',
-    description_courte:
-      clipListPitch(ev.description_courte) || clipListPitch(ev.description_longue),
-    /** Keep the long field so fiches can prefer it over courte. */
-    description_longue: ev.description_longue || '',
+    url_source: '',
+    description_courte: courte,
     statut: ev.statut,
     genre: ev.genre,
     image_url: ev.image_url || '',
-    publication: ev.publication || '',
-    form: ev.form || '',
-    moods: ev.moods || '',
-    genres_mood: ev.genres_mood || '',
-    billetterie_url: ev.billetterie_url || '',
   };
 }
 
@@ -83,39 +93,35 @@ function slimProgramme(p: ProgrammeItem): ProgrammeItem {
     date: p.date,
     heure_debut: p.heure_debut || '',
     heure_fin: p.heure_fin || '',
-    duree_min: p.duree_min || '',
     scene_salle: p.scene_salle || '',
     prix_item: p.prix_item || '',
-    langue: p.langue || '',
-    url: p.url || '',
+    url: '',
     notes: '',
-    billetterie_url: p.billetterie_url || '',
     genre: p.genre || '',
     artiste_id: p.artiste_id || '',
     film_id: p.film_id || '',
     image_url: p.image_url || '',
     description_item: clipListPitch(p.description_item),
-    form: p.form || '',
-    moods: p.moods || '',
-    genres_mood: p.genres_mood || '',
   };
 }
 
 /**
  * First-paint card: id, titre, heure, lieu, cat, image, film_id
  * (+ prix / genre / type so SeanceCard + densify + Pour toi still work).
- * Keeps a 1–2 sentence pitch (description_courte / description_item)
- * plus unclipped description_longue for fiches.
- * Drops nested programme[] and source blobs.
+ * Keeps a 1–2 sentence pitch. Drops description_longue, tickets URLs,
+ * mood tags, and nested programme[] — fiches use detailDayItem.
  */
 export function slimDayItem(item: DayItem): DayItem {
   if (item.kind === 'programme') {
+    const programme = slimProgramme(item.programme);
     return {
       kind: 'programme',
       key: item.key,
       dayIso: item.dayIso,
-      programme: slimProgramme(item.programme),
-      evenement: slimEvenement(item.evenement),
+      programme,
+      evenement: slimEvenement(item.evenement, {
+        skipCourte: Boolean(programme.description_item),
+      }),
       lieu: slimLieu(item.lieu),
     };
   }
@@ -293,10 +299,26 @@ export type AgendaListResponse = {
   nouveauFilmIds?: string[];
   date_from?: string;
   date_to?: string;
-  /** All living-arts cards in the window (display sections). */
+  /** Living-arts first-paint cards (capped). */
   vivantItems?: DayItem[];
   vivantTotal?: number;
   cineTotal?: number;
+  /** Date-chip snapshots — boot scope omitted (already in items). */
+  listByScope?: Partial<
+    Record<
+      TimeScopeId,
+      {
+        items: DayItem[];
+        total: number;
+        densifiedTotal: number;
+        nouveautes: DayItem[];
+        venues: Lieu[];
+        vivantItems?: DayItem[];
+        vivantTotal?: number;
+        cineTotal?: number;
+      }
+    >
+  >;
 };
 
 export type AgendaDetailResponse = {
