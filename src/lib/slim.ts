@@ -77,6 +77,7 @@ function slimEvenement(
     gratuit: ev.gratuit,
     url_source: '',
     description_courte: courte,
+    description_longue: (ev.description_longue || '').trim(),
     statut: ev.statut,
     genre: ev.genre,
     image_url: ev.image_url || '',
@@ -101,7 +102,7 @@ function slimProgramme(p: ProgrammeItem): ProgrammeItem {
     artiste_id: p.artiste_id || '',
     film_id: p.film_id || '',
     image_url: p.image_url || '',
-    description_item: clipListPitch(p.description_item),
+    description_item: (p.description_item || '').trim(),
   };
 }
 
@@ -151,8 +152,9 @@ export function withTasteTags<T extends DayItem>(slim: T, source: DayItem): T {
 /**
  * First-paint card: id, titre, heure, lieu, cat, image, film_id
  * (+ prix / genre / type so SeanceCard + densify + Pour toi still work).
- * Keeps a 1–2 sentence pitch. Drops description_longue, tickets URLs,
- * mood tags, and nested programme[] — fiches use detailDayItem.
+ * Keeps full fiche copy (description_item + description_longue) so the
+ * pack hero can paint once — thumbs still clip via itemPitch.
+ * Drops tickets URLs, mood tags, and nested programme[].
  */
 export function slimDayItem(item: DayItem): DayItem {
   if (item.kind === 'programme') {

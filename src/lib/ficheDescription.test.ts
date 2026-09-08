@@ -103,29 +103,22 @@ function fallbackItem(evenement: Partial<Evenement> = {}): DayItem {
 }
 
 describe('ficheDescriptionOf', () => {
-  it('holds the list pitch until agenda detail settles', () => {
-    const slim = slimDayItem(
-      programmeItem({
-        cat: 'cinema',
-        evenement: { description_longue: LONG_PITCH, description_courte: 'Court.' },
-      }),
-    );
-    assert.equal(ficheDescriptionOf(slim), 'Court.');
+  it('list slim already has the full fiche copy (no pitch→longue swap)', () => {
+    const raw = programmeItem({
+      cat: 'cinema',
+      evenement: { description_longue: LONG_PITCH, description_courte: 'Court.' },
+    });
+    const slim = slimDayItem(raw);
+    const detail = detailDayItem(raw);
+    assert.equal(ficheDescriptionOf(slim), LONG_PITCH);
+    assert.equal(ficheDescriptionOf(slim), ficheDescriptionOf(detail));
     assert.deepEqual(ficheDescriptionView(slim, { pending: true }), {
       kind: 'pending',
     });
-    assert.deepEqual(ficheDescriptionView(slim), { kind: 'text', text: 'Court.' });
-    assert.deepEqual(
-      ficheDescriptionView(
-        detailDayItem(
-          programmeItem({
-            cat: 'cinema',
-            evenement: { description_longue: LONG_PITCH, description_courte: 'Court.' },
-          }),
-        ),
-      ),
-      { kind: 'text', text: LONG_PITCH },
-    );
+    assert.deepEqual(ficheDescriptionView(slim), {
+      kind: 'text',
+      text: LONG_PITCH,
+    });
   });
 
   it('prefers description_longue over description_courte', () => {
@@ -139,14 +132,14 @@ describe('ficheDescriptionOf', () => {
     assert.ok(ficheDescriptionOf(item).length > 200);
   });
 
-  it('list slim drops longue — fiche uses detailDayItem', () => {
+  it('list slim keeps longue so the fiche does not grow after /api/agenda', () => {
     const raw = programmeItem({
       cat: 'theatre_danse',
       evenement: { description_longue: LONG_PITCH, description_courte: 'Court.' },
     });
     const slim = slimDayItem(raw);
-    assert.equal(slim.evenement?.description_longue, undefined);
-    assert.equal(ficheDescriptionOf(slim), 'Court.');
+    assert.equal(slim.evenement?.description_longue, LONG_PITCH);
+    assert.equal(ficheDescriptionOf(slim), LONG_PITCH);
     assert.equal(ficheDescriptionOf(detailDayItem(raw)), LONG_PITCH);
   });
 
@@ -261,9 +254,8 @@ describe('ficheDescriptionOf', () => {
     );
     const slimEv = slimFallback.evenement;
     assert.ok(slimEv);
-    assert.equal(slimEv.description_longue, undefined);
-    assert.ok((slimEv.description_courte || '').length > 0);
-    assert.ok((slimEv.description_courte || '').length <= 320);
+    assert.equal(slimEv.description_longue, LONG_PITCH);
+    assert.equal(ficheDescriptionOf(slimFallback), LONG_PITCH);
     assert.equal(
       ficheDescriptionOf(
         detailDayItem(fallbackItem({ description_longue: '', description_courte: '' })),

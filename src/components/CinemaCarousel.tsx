@@ -9,6 +9,7 @@ import {
   HERO_SWIPE_LOCK_MS,
   adoptFirstPaintHero,
   holdThumbFocus,
+  heroScrollDeferMs,
   heroWindowScrollY,
   pinFromHeroRow,
   readPackHeroPin,
@@ -150,7 +151,7 @@ function FilmThumb({
   row: DenseRow;
   /** Touchstart: remember this film before the strip can jump. */
   onArm?: () => void;
-  onSelect: () => void;
+  onSelect: (opts?: { immediateScroll?: boolean }) => void;
   active?: boolean;
   /** Default (nearest) cinema km only — never a pile of salles. */
   distanceKm?: string | null;
@@ -175,9 +176,12 @@ function FilmThumb({
           onArm?.();
           return;
         }
-        onSelect();
+        onSelect({ immediateScroll: true });
       }}
-      onClick={onSelect}
+      onClick={(e) => {
+        if (e.detail === 0) onSelect({ immediateScroll: true });
+        else onSelect();
+      }}
       aria-current={active ? 'true' : undefined}
       className="group flex w-[7.5rem] shrink-0 flex-col touch-manipulation text-left focus-visible:!outline-none sm:w-[8.5rem]"
     >
@@ -367,7 +371,6 @@ export default function CinemaCarousel({
   const [related, setRelated] = useState<DayItem[]>([]);
   const [aussi, setAussi] = useState<DayItem[]>([]);
   const [detailItem, setDetailItem] = useState<DayItem | null>(null);
-  const [detailSettled, setDetailSettled] = useState(false);
   const [mobileCal, setMobileCal] = useState(false);
   const moreLock = useRef(0);
   const moreApi = useRef({ hasMore, onNeedMore });
@@ -500,7 +503,6 @@ export default function CinemaCarousel({
   if (heroItemKey !== detailHeroKey) {
     setDetailHeroKey(heroItemKey);
     setDetailItem(null);
-    setDetailSettled(false);
   }
 
   useEffect(() => {
@@ -544,11 +546,8 @@ export default function CinemaCarousel({
           );
           setAussi(data.aussiCeSoir ?? []);
         }
-        setDetailSettled(true);
       })
-      .catch(() => {
-        if (!cancelled) setDetailSettled(true);
-      });
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
@@ -621,8 +620,11 @@ export default function CinemaCarousel({
     window.scrollTo({ top, behavior: 'smooth' });
   }
 
-  function queueHeroScroll() {
-    window.setTimeout(scrollHeroIntoView, HERO_SCROLL_DEFER_MS);
+  function queueHeroScroll(immediate = false) {
+    window.setTimeout(
+      scrollHeroIntoView,
+      heroScrollDeferMs(immediate ? 'mouse' : 'touch'),
+    );
   }
 
   function armThumb(row: DenseRow) {
@@ -632,7 +634,7 @@ export default function CinemaCarousel({
     }, HERO_SCROLL_DEFER_MS);
   }
 
-  function selectThumb(row: DenseRow) {
+  function selectThumb(row: DenseRow, opts?: { immediateScroll?: boolean }) {
     const key = resolveThumbSelectIndex(armedKey.current, row.groupKey);
     armedKey.current = null;
     const now = Date.now();
@@ -642,7 +644,7 @@ export default function CinemaCarousel({
     const pinned = rows.find((r) => r.groupKey === key) ?? row;
     persistHero(pinned, key);
     lockHeroSwipe(now);
-    queueHeroScroll();
+    queueHeroScroll(opts?.immediateScroll === true);
     const i = rows.findIndex((r) => r.groupKey === key);
     if (i >= rows.length - 1) {
       window.setTimeout(() => requestMore(), HERO_SCROLL_DEFER_MS);
@@ -760,7 +762,7 @@ export default function CinemaCarousel({
             key={row.groupKey}
             row={row}
             onArm={() => armThumb(row)}
-            onSelect={() => selectThumb(row)}
+            onSelect={(opts) => selectThumb(row, opts)}
             active={hero ? row.groupKey === hero.groupKey : i === 0}
             distanceKm={
               pack === 'cine'
@@ -849,10 +851,7 @@ export default function CinemaCarousel({
               />
             </div>
           ) : null}
-          <FicheDescription
-            item={detailItem ?? item}
-            pending={!detailSettled}
-          />
+          <FicheDescription item={item} />
           {pack === 'theatre' || pack === 'musique' ? (
             <PressCitation
               citation={fichePressCitation(
