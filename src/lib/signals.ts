@@ -119,9 +119,43 @@ const ACTION_KINDS: ReadonlySet<SignalKind> = new Set([
   'share',
 ]);
 
+const KNOWN_SIGNAL_KINDS: ReadonlySet<string> = new Set(Object.keys(SIGNAL_WEIGHTS));
+
+const PAIRED_CLICK_KINDS: ReadonlySet<SignalKind> = new Set([
+  'reserve',
+  'outbound_click',
+]);
+
+export function isKnownSignalKind(kind: string): kind is SignalKind {
+  return KNOWN_SIGNAL_KINDS.has(kind);
+}
+
 /** Toggle kind for the À voir heart: off → favorite, on → cancel. */
 export function favoriteToggleKind(currentlyOn: boolean): 'favorite' | 'unfavorite' {
   return currentlyOn ? 'unfavorite' : 'favorite';
+}
+
+function withinDedupWindow(a: Signal, b: Signal): boolean {
+  return Math.abs((Date.parse(a.ts) || 0) - (Date.parse(b.ts) || 0)) <= DEDUP_MS;
+}
+
+/** Same fiche Réserver click may emit reserve + outbound_click — count the stronger once. */
+export function pairedClickApplyWeight(
+  incoming: Signal,
+  already: readonly Signal[],
+): number {
+  if (!PAIRED_CLICK_KINDS.has(incoming.kind)) return incoming.weight;
+  const target = signalTarget(incoming);
+  if (!target) return incoming.weight;
+  let paired = 0;
+  for (const s of already) {
+    if (!PAIRED_CLICK_KINDS.has(s.kind)) continue;
+    if (s.kind === incoming.kind) continue;
+    if (signalTarget(s) !== target) continue;
+    if (!withinDedupWindow(s, incoming)) continue;
+    if (s.weight > paired) paired = s.weight;
+  }
+  return Math.max(0, incoming.weight - paired);
 }
 
 /** Mood lexicon — word match only (no short substring ≤ 3). */
@@ -346,8 +380,9 @@ const SEARCH_FORM_TO_CAT: Record<Exclude<PhraseForm, 'autre'>, string> = {
 
 export function makeSignal(payload: TrackPayload): Signal {
   const kind = payload.kind;
+  const tableWeight = isKnownSignalKind(kind) ? SIGNAL_WEIGHTS[kind] : 0;
   const weight =
-    typeof payload.weight === 'number' ? payload.weight : SIGNAL_WEIGHTS[kind];
+    typeof payload.weight === 'number' ? payload.weight : tableWeight;
   let genres = [
     ...new Set((payload.genres ?? []).map((g) => g.trim().toLowerCase()).filter(Boolean)),
   ];
@@ -588,6 +623,8 @@ export function unzeroProfileKey(
   key: string,
 ): TasteProfile {
   const base = coerceProfile(profile);
+  const cur = coerceEntry(base[bucket][key]);
+  if (cur.weight !== 0) return copyProfile(base);
   const map = { ...base[bucket] };
   delete map[key];
   recomputeBucketPcts(map);
@@ -647,8 +684,9 @@ export function isCatTasteKey(key: string): boolean {
   return CAT_TASTE_KEYS.has(key.trim().toLowerCase());
 }
 
-/** Grid filters (Cinéma chip stays chip_cat). Not a goût write by themselves. */
+/** Grid filters (Cinéma chip stays chip_cat). Unknown kinds never write tastes. */
 export function isTasteWritingSignal(s: Pick<Signal, 'kind'>): boolean {
+  if (!isKnownSignalKind(s.kind)) return false;
   return s.kind !== 'chip_cat' && s.kind !== 'chip_time';
 }
 
@@ -709,11 +747,12 @@ function hasIngestPhrase(norm: string, phrase: string): boolean {
   return re.test(norm);
 }
 
-/** Fiche actions always; chip_genre only if moods[] nonempty. */
+/** Fiche actions always; chip_genre only if moods[] nonempty. Unknown kinds drop. */
 export function shouldMapTasteIngest(
-  kind: SignalKind,
+  kind: string,
   moods: readonly string[] | undefined | null,
 ): boolean {
+  if (!isKnownSignalKind(kind)) return false;
   if (
     kind === 'open_card' ||
     kind === 'reserve' ||
@@ -809,6 +848,9 @@ export function ingestMapSignal<
     query?: string;
   },
 >(signal: T): T {
+  if (!isKnownSignalKind(signal.kind)) {
+    return { ...signal, moods: [], genres: [] };
+  }
   if (!shouldMapTasteIngest(signal.kind, signal.moods)) return signal;
   const mapped = mapThenDropTasteTags(
     signal.moods,
@@ -900,13 +942,47 @@ export function profileHasPositiveTastes(profile?: TasteProfile | null): boolean
 export function applyIncomingSignals(
   profile: TasteProfile,
   incoming: readonly Signal[],
+  already: readonly Signal[] = [],
 ): TasteProfile {
   const next = sanitizeTasteProfile(profile);
+  const seen: Signal[] = [...already];
   for (const s of incoming) {
     if (!isTasteWritingSignal(s)) continue;
-    applySignalToProfile(next, s);
+    const w = pairedClickApplyWeight(s, seen);
+    if (w) applySignalToProfile(next, { ...s, weight: w });
+    seen.push(s);
   }
   return sanitizeTasteProfile(next);
+}
+
+/** Shared guest + account write: map ingest, collapse paired clicks, append. */
+export function commitTasteSignals(
+  current: { events: Signal[]; profile: TasteProfile },
+  incoming: readonly Signal[],
+  cap: number,
+): { events: Signal[]; profile: TasteProfile } {
+  const mapped = incoming
+    .filter((s) => isKnownSignalKind(s.kind))
+    .map((s) => ingestMapSignal(s));
+  let profile = current.profile;
+  const taste = mapped.filter(isTasteWritingSignal);
+  for (const s of taste) profile = unzeroKeysTouchedBySignal(profile, s);
+  profile = applyIncomingSignals(profile, taste, current.events);
+  let events = current.events;
+  for (const s of mapped) events = dedupAppend(events, s, cap);
+  return { events, profile };
+}
+
+/**
+ * Login POST merge when guest has real tastes — even if JWT/email already does.
+ * Additive into the email profile. Empty / cinema-only guest never posts.
+ */
+export function shouldPostLoginMerge(
+  _jwtTaste: AccountTasteState | null | undefined,
+  guestEvents?: Signal[] | null,
+  guestProfile?: TasteProfile | null,
+): boolean {
+  return guestHasMergeableTastes(guestEvents, guestProfile);
 }
 
 /** Empty / cinema-only guest never passes zv — do not merge, do not wipe. */
@@ -957,8 +1033,11 @@ export function resolveLoginMerge(opts: {
   const guestProfile = opts.guestProfile
     ? sanitizeTasteProfile(opts.guestProfile)
     : null;
-  const mergeable = guestHasMergeableTastes(opts.guestSignals, guestProfile);
-  const tasteSignals = opts.guestSignals.filter(isTasteWritingSignal);
+  const guestSignals = opts.guestSignals
+    .filter((s) => isKnownSignalKind(s.kind))
+    .map((s) => ingestMapSignal(s));
+  const mergeable = guestHasMergeableTastes(guestSignals, guestProfile);
+  const tasteSignals = guestSignals.filter(isTasteWritingSignal);
   if (!mergeable && !(opts.extraText || '').trim()) {
     return { state: { ...base, profile: sanitizeTasteProfile(base.profile) }, wroteGuest: false };
   }
@@ -966,7 +1045,7 @@ export function resolveLoginMerge(opts: {
   for (const s of tasteSignals) {
     overlayPrev = unzeroKeysTouchedBySignal(overlayPrev, s);
   }
-  overlayPrev = applyIncomingSignals(overlayPrev, tasteSignals);
+  overlayPrev = applyIncomingSignals(overlayPrev, tasteSignals, base.signalsRecent);
   const tastesText = concatTastesText(base.tastesText, opts.extraText);
   const tastesSetAt =
     tastesText && tastesText !== base.tastesText
@@ -1072,6 +1151,7 @@ function isSignal(v: unknown): v is Signal {
     typeof s.id === 'string' &&
     typeof s.ts === 'string' &&
     typeof s.kind === 'string' &&
+    isKnownSignalKind(s.kind) &&
     typeof s.weight === 'number' &&
     Array.isArray(s.genres) &&
     Array.isArray(s.moods)

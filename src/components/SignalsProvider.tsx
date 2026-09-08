@@ -16,8 +16,8 @@ import { phraseToTrackPayload } from '@/lib/pourToi';
 import {
   LOGIN_NUDGE_DISMISS_KEY,
   emptyGuestStore,
-  guestHasMergeableTastes,
   hasScorableState,
+  shouldPostLoginMerge,
   makeSignal,
   payloadFromDayItem,
   profileHasZeroWeights,
@@ -127,9 +127,8 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
     if (mergedRef.current) return;
     const jwtTaste = session.user.tasteState ?? null;
     const guest = readGuestStore();
-    const guestMergeable = guestHasMergeableTastes(guest.events, guest.profile);
-    // zv(JWT) → show JWT. Empty / cinema-only guest never passes zv — no POST, no wipe.
-    if (hasScorableState(jwtTaste) || !guestMergeable) {
+    // Additive merge even when JWT/email already has tastes. Empty guest → no POST.
+    if (!shouldPostLoginMerge(jwtTaste, guest.events, guest.profile)) {
       mergedRef.current = true;
       return;
     }

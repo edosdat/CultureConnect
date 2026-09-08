@@ -6,13 +6,11 @@ import {
   COOKIE_MAX_AGE_SEC,
   GUEST_CAP,
   GUEST_STORAGE_KEY,
-  dedupAppend,
   emptyGuestStore,
-  applyIncomingSignals,
+  commitTasteSignals,
   parseGuestStore,
   profileHasZeroWeights,
   sanitizeTasteProfile,
-  unzeroKeysTouchedBySignal,
   wipeProfileKey,
   type GuestSignalsStore,
   type ProfileBucket,
@@ -145,10 +143,12 @@ export function clearGuestStore(): void {
 
 export function appendGuestSignal(signal: Signal): GuestSignalsStore {
   const current = readGuestStore();
-  let profile = unzeroKeysTouchedBySignal(current.profile, signal);
-  profile = applyIncomingSignals(profile, [signal]);
-  const events = dedupAppend(current.events, signal, GUEST_CAP);
-  return writeGuestStore({ events, profile });
+  const next = commitTasteSignals(
+    { events: current.events, profile: current.profile },
+    [signal],
+    GUEST_CAP,
+  );
+  return writeGuestStore(next);
 }
 
 export function wipeGuestProfileKey(

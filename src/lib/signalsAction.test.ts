@@ -5,12 +5,18 @@ import {
   applyIncomingSignals,
   applySignalToProfile,
   cancelFavoriteSignals,
+  commitTasteSignals,
   dedupAppend,
   emptyProfile,
   favoriteToggleKind,
+  ingestMapSignal,
+  isKnownSignalKind,
+  isTasteWritingSignal,
   makeSignal,
   payloadFromDayItem,
+  resolveLoginMerge,
   shouldMapTasteIngest,
+  shouldPostLoginMerge,
   shouldPromptLogin,
   type Signal,
 } from './signals';
@@ -239,5 +245,150 @@ describe('UI tracking paths — payloadFromDayItem', () => {
       shouldPromptLogin([{ ...base, kind: 'unfavorite', weight: -6 } as Signal]),
       false,
     );
+  });
+});
+
+describe('reserve + outbound_click — no double-count', () => {
+  it('same-click pair applies only the stronger reserve weight', () => {
+    const reserve = makeSignal({
+      kind: 'reserve',
+      event_id: 'ev-1',
+      programme_id: 'pr-1',
+      moods: ['rigolo'],
+      genres: ['standup'],
+    });
+    const outbound = makeSignal({
+      kind: 'outbound_click',
+      event_id: 'ev-1',
+      programme_id: 'pr-1',
+      moods: ['rigolo'],
+      genres: ['standup'],
+    });
+    const together = applyIncomingSignals(emptyProfile(), [outbound, reserve]);
+    assert.equal(together.moods.rigolo?.weight, 6);
+
+    const outThenRes = commitTasteSignals(
+      { events: [], profile: emptyProfile() },
+      [outbound],
+      40,
+    );
+    const afterReserve = commitTasteSignals(outThenRes, [reserve], 40);
+    assert.equal(afterReserve.profile.moods.rigolo?.weight, 6);
+
+    const resThenOut = commitTasteSignals(
+      { events: [], profile: emptyProfile() },
+      [reserve],
+      40,
+    );
+    const afterOutbound = commitTasteSignals(resThenOut, [outbound], 40);
+    assert.equal(afterOutbound.profile.moods.rigolo?.weight, 6);
+  });
+
+  it('different fiches still both count', () => {
+    const a = makeSignal({
+      kind: 'reserve',
+      event_id: 'ev-a',
+      moods: ['rigolo'],
+      genres: ['standup'],
+    });
+    const b = makeSignal({
+      kind: 'outbound_click',
+      event_id: 'ev-b',
+      moods: ['rigolo'],
+      genres: ['standup'],
+    });
+    const p = applyIncomingSignals(emptyProfile(), [a, b]);
+    assert.equal(p.moods.rigolo?.weight, 10);
+  });
+});
+
+describe('unknown ingest kinds drop safely', () => {
+  it('does not map or write tastes for an unknown kind', () => {
+    assert.equal(isKnownSignalKind('hacked_kind'), false);
+    assert.equal(shouldMapTasteIngest('hacked_kind', ['rigolo']), false);
+    assert.equal(isTasteWritingSignal({ kind: 'hacked_kind' as Signal['kind'] }), false);
+    const mapped = ingestMapSignal({
+      kind: 'hacked_kind' as Signal['kind'],
+      moods: ['rigolo', 'humour'],
+      genres: ['standup'],
+    });
+    assert.deepEqual(mapped.moods, []);
+    assert.deepEqual(mapped.genres, []);
+    const p = applyIncomingSignals(emptyProfile(), [
+      {
+        id: 'x',
+        ts: new Date().toISOString(),
+        kind: 'hacked_kind' as Signal['kind'],
+        weight: 99,
+        moods: ['rigolo'],
+        genres: ['standup'],
+      },
+    ]);
+    assert.deepEqual(p.moods, {});
+    assert.deepEqual(p.genres, {});
+  });
+});
+
+describe('login merge — additive guest action signals', () => {
+  it('adds favorite / share onto the email profile without inventing tastes', () => {
+    const stored = {
+      signalsRecent: [],
+      profile: {
+        ...emptyProfile(),
+        moods: { tendre: { weight: 2, pct: 100 } },
+      },
+    };
+    const guestFav = makeSignal({
+      kind: 'favorite',
+      event_id: 'ev-1',
+      moods: ['humour', 'sortie'],
+      genres: ['cinema', 'standup'],
+    });
+    const guestShare = makeSignal({
+      kind: 'share',
+      event_id: 'ev-1',
+      moods: ['rigolo'],
+      genres: ['standup'],
+    });
+    const out = resolveLoginMerge({
+      stored,
+      jwt: { signalsRecent: [], profile: emptyProfile() },
+      guestSignals: [guestFav, guestShare],
+      guestProfile: emptyProfile(),
+    });
+    assert.equal(out.wroteGuest, true);
+    assert.ok((out.state.profile.moods.tendre?.weight ?? 0) >= 2);
+    assert.ok((out.state.profile.moods.rigolo?.weight ?? 0) > 0);
+    assert.equal(out.state.profile.moods.humour, undefined);
+    assert.equal(out.state.profile.moods.sortie, undefined);
+    assert.equal(out.state.profile.genres.cinema, undefined);
+    assert.equal(out.state.profile.cats.cinema, undefined);
+  });
+
+  it('still merges guest favorite when JWT already has tastes', () => {
+    const jwt = {
+      signalsRecent: [],
+      profile: {
+        ...emptyProfile(),
+        moods: { tendre: { weight: 4, pct: 100 } },
+      },
+    };
+    assert.equal(shouldPostLoginMerge(jwt, [], emptyProfile()), false);
+    const guestFav = makeSignal({
+      kind: 'favorite',
+      event_id: 'ev-2',
+      moods: ['rigolo'],
+      genres: ['standup'],
+    });
+    assert.equal(shouldPostLoginMerge(jwt, [guestFav], emptyProfile()), true);
+    const out = resolveLoginMerge({
+      stored: jwt,
+      jwt,
+      guestSignals: [guestFav],
+      guestProfile: emptyProfile(),
+    });
+    assert.equal(out.wroteGuest, true);
+    assert.ok((out.state.profile.moods.tendre?.weight ?? 0) >= 4);
+    assert.ok((out.state.profile.moods.rigolo?.weight ?? 0) > 0);
   });
 });
