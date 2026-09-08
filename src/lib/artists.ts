@@ -5,6 +5,7 @@ import type {
   GenreLegend,
   ProgrammeWithContext,
 } from './types';
+import { externalPageUrl } from './externalUrl';
 import { normalizeForMatch } from './publishable';
 
 const ARTIST_TYPES = new Set(['artiste', 'dj']);
@@ -55,7 +56,7 @@ function appearanceFromProgramme(
     eventTitle: item.evenement?.titre || p.nom_item || '',
     eventId: p.event_id,
     programmeId: p.programme_id,
-    url: p.url || item.evenement?.url_source || '',
+    url: externalPageUrl(p.url || item.evenement?.url_source || ''),
     genre: p.genre || item.evenement?.genre || '',
   };
 }

@@ -223,5 +223,14 @@ describe('programme.csv Fleur de peau (EHG007)', () => {
       related.length < festival.length,
       'must not pull the whole festival onto one fiche',
     );
+    assert.ok(
+      fleur.every((row) =>
+        (row.url || '').startsWith(
+          'https://festivalramonville-arto.fr/programmation/spectacle/fleur-de-peau',
+        ),
+      ),
+      'programme.url must be the external ARTO https page',
+    );
+    assert.equal(fleur.length, 6);
   });
 });

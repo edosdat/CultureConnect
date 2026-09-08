@@ -5,7 +5,11 @@ import {
   buildAgendaParams,
   listFetchShouldSkipBoot,
 } from './agendaParams';
-import { filterSeancesForActiveFilters } from './displayFilter';
+import {
+  filterSeancesForActiveFilters,
+  listDisplayFilter,
+  relatedSeancesFilter,
+} from './displayFilter';
 import { resolveScopeRange } from './timeScope';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 
@@ -231,6 +235,59 @@ describe('calendar day vs upcoming first page', () => {
     assert.deepEqual(
       kept.map((row) => row.key),
       ['tls'],
+    );
+  });
+
+  it('title search keeps Ramonville rows despite a Toulouse chip', () => {
+    const fleur: DayItem = {
+      ...item({ key: 'p:FEP0029', cat: 'festival', day: '2026-09-11' }),
+      lieu: lieu('Ramonville-Saint-Agne'),
+    };
+    const toulouseFilter = {
+      startIso: '2026-09-08',
+      endIso: '2026-11-08',
+      commune: 'Toulouse',
+    };
+    assert.equal(
+      filterSeancesForActiveFilters([fleur], toulouseFilter).length,
+      0,
+    );
+    assert.equal(
+      filterSeancesForActiveFilters(
+        [fleur],
+        listDisplayFilter(toulouseFilter, { searching: true }),
+      ).length,
+      1,
+    );
+  });
+
+  it('living-arts related seances ignore commune; cinema keeps it', () => {
+    const fleur: DayItem = {
+      ...item({ key: 'p:FEP0029', cat: 'festival', day: '2026-09-11' }),
+      lieu: lieu('Ramonville-Saint-Agne'),
+    };
+    const cine: DayItem = {
+      ...item({ key: 'p:C1', cat: 'cinema', day: '2026-09-11' }),
+      lieu: lieu('Ramonville-Saint-Agne'),
+    };
+    const toulouseFilter = {
+      startIso: '2026-09-08',
+      endIso: '2026-11-08',
+      commune: 'Toulouse',
+    };
+    assert.equal(
+      filterSeancesForActiveFilters(
+        [fleur],
+        relatedSeancesFilter(toulouseFilter, fleur),
+      ).length,
+      1,
+    );
+    assert.equal(
+      filterSeancesForActiveFilters(
+        [cine],
+        relatedSeancesFilter(toulouseFilter, cine),
+      ).length,
+      0,
     );
   });
 });

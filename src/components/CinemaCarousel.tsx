@@ -325,11 +325,14 @@ export default function CinemaCarousel({
     setPickedKey(null);
     setDetailItem(null);
   }, [hero?.item.key]);
+  const livingArts = pack !== 'cine';
   const displayFilter: DisplayFilter = {
     startIso: dateFrom,
     endIso: dateTo,
     soir,
-    commune: selectedCommune,
+    // Living-arts créneaux are one work — don't blank Ramonville rows
+    // when the Toulouse chip is still on (title search / festival).
+    commune: livingArts ? null : selectedCommune,
     lieuId: selectedLieuId,
   };
 
@@ -344,7 +347,7 @@ export default function CinemaCarousel({
     let cancelled = false;
     const qs = new URLSearchParams();
     qs.set('id', key);
-    if (selectedCommune) qs.set('commune', selectedCommune);
+    if (selectedCommune && pack === 'cine') qs.set('commune', selectedCommune);
     if (selectedLieuId) qs.set('lieu', selectedLieuId);
     if (dateFrom) qs.set('date_from', dateFrom);
     if (dateTo) qs.set('date_to', dateTo);
@@ -366,6 +369,7 @@ export default function CinemaCarousel({
   }, [
     hero?.item.key,
     pickedKey,
+    pack,
     selectedCommune,
     selectedLieuId,
     dateFrom,

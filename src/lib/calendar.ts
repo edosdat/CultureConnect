@@ -1,3 +1,4 @@
+import { externalPageUrl } from '@/lib/externalUrl';
 import type { DayItem } from '@/lib/types';
 
 export type CalendarPayload = {
@@ -80,11 +81,13 @@ export function calendarPayloadFromDayItem(item: DayItem): CalendarPayload | nul
       description,
       location,
       url:
-        p.billetterie_url ||
-        p.url ||
-        ev?.billetterie_url ||
-        ev?.url_source ||
-        '',
+        externalPageUrl(
+          p.billetterie_url ||
+            p.url ||
+            ev?.billetterie_url ||
+            ev?.url_source ||
+            '',
+        ),
     };
   }
 
@@ -106,7 +109,7 @@ export function calendarPayloadFromDayItem(item: DayItem): CalendarPayload | nul
       .filter(Boolean)
       .join('\n\n'),
     location,
-    url: event.billetterie_url || event.url_source || '',
+    url: externalPageUrl(event.billetterie_url || event.url_source || ''),
   };
 }
 
