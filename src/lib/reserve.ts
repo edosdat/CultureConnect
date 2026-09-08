@@ -64,10 +64,9 @@ export function reservePickOf(item: DayItem): ReservePick {
   return { url: '', soldOut: false };
 }
 
-/** Same as reservePickOf, then venue site if the group has no ticket page. */
+/** Ticket for THIS venue group — no venue homepage fallback. */
 export function reservePickForVenueGroup(items: DayItem[]): ReservePick {
   let ticketPage = '';
-  let siteWeb = '';
   let soldOut = false;
   for (const rel of items) {
     if (rel.kind !== 'programme') continue;
@@ -85,10 +84,8 @@ export function reservePickForVenueGroup(items: DayItem[]): ReservePick {
     const page = externalPageUrl((rel.programme.url || '').trim());
     if (page && isSoldOutUrl(page)) soldOut = true;
     else if (!ticketPage && page && looksLikeTicket(page)) ticketPage = page;
-    const site = externalPageUrl((rel.lieu?.site_web || '').trim());
-    if (!siteWeb && site && !isSoldOutUrl(site)) siteWeb = site;
   }
   if (ticketPage) return { url: ticketPage, soldOut: false };
   if (soldOut) return { url: '', soldOut: true };
-  return { url: siteWeb, soldOut: false };
+  return { url: '', soldOut: false };
 }
