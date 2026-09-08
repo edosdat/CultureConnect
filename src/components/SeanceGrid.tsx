@@ -88,7 +88,7 @@ function FixedSlotsGrid({
         data-top3-count={visible.length}
       >
         {visible.map((item) => (
-          <li key={item.key} className="min-w-0 w-full">
+          <li key={item.key} className="min-w-0 h-full w-full">
             <SeanceCard
               item={item}
               showDate={showDate}

@@ -566,9 +566,9 @@ describe('top 3 adaptive layout', () => {
     assert.ok(top3GridClass(2).includes('sm:grid-cols-2'));
     assert.ok(!top3GridClass(2).includes('lg:grid-cols-3'));
     assert.ok(top3GridClass(3).includes('lg:grid-cols-3'));
-    assert.ok(top3GridClass(1).includes('items-start'));
-    assert.ok(top3GridClass(2).includes('items-start'));
-    assert.ok(top3GridClass(3).includes('items-start'));
+    assert.ok(top3GridClass(1).includes('items-stretch'));
+    assert.ok(top3GridClass(2).includes('items-stretch'));
+    assert.ok(top3GridClass(3).includes('items-stretch'));
     assert.equal(seanceCardShowsPitch('rail'), false);
     assert.equal(seanceCardShowsPitch('compact', 'top3'), false);
     assert.equal(seanceCardShowsPitch('compact'), true);

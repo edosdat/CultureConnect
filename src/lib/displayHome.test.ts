@@ -21,6 +21,7 @@ import {
   HOME_LIST_WAIT_SLOT_CLASS,
   shouldShowTop3Section,
   theatreRows,
+  top3GridClass,
   top3PaintMode,
   visibleTop3Items,
 } from './displayHome';
@@ -874,5 +875,15 @@ describe('Top 3 cards — compact scan, no pitch', () => {
 describe('Home list-wait reserve (LAYOUT_JUMP)', () => {
   it('reserves 32px so Top 3 does not drop when dots appear', () => {
     assert.equal(HOME_LIST_WAIT_SLOT_CLASS, 'h-8');
+  });
+});
+
+describe('Top 3 rail — equal-height row', () => {
+  it('stretches cards so rail thumbs can fill the row height', () => {
+    for (const n of [1, 2, 3]) {
+      const cls = top3GridClass(n);
+      assert.ok(cls.includes('items-stretch'), `count ${n}`);
+      assert.equal(cls.includes('items-start'), false, `count ${n}`);
+    }
   });
 });
