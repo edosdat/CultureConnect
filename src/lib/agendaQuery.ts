@@ -1135,7 +1135,7 @@ function computeHomeWindow(now = new Date()): HomeWindow {
   };
 }
 
-/** Home boot: cached 5 min, keyed by Paris calendar day. Reco is deferred. */
+/** Home boot: server cache 5 min, keyed by Paris calendar day (new key at midnight). */
 export async function loadHomeWindow(
   now = new Date(),
 ): Promise<HomeWindow> {

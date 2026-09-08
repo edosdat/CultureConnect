@@ -2,6 +2,20 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
+  async headers() {
+    return [
+      {
+        source: "/api/agenda",
+        headers: [
+          {
+            key: "Cache-Control",
+            value:
+              "private, no-cache, no-store, max-age=0, must-revalidate",
+          },
+        ],
+      },
+    ];
+  },
   async redirects() {
     return [
       {
