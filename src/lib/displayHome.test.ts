@@ -20,6 +20,7 @@ import {
   seanceCardShowsPitch,
   shouldShowTop3Section,
   theatreRows,
+  top3PaintMode,
   visibleTop3Items,
 } from './displayHome';
 import { isTasteMood } from './phraseTags';
@@ -777,6 +778,51 @@ describe('shouldShowTop3Section — hide on QUOI / search, keep on date', () => 
         selectedCategories: [],
       }),
       false,
+    );
+  });
+
+  it('paints skeleton immediately while reco is not ready (never blank)', () => {
+    assert.equal(
+      top3PaintMode({ ready: false, wiped: false, cardCount: 0 }),
+      'skeleton',
+    );
+    assert.equal(
+      shouldShowTop3Section({ ready: false, wiped: false, cardCount: 0 }),
+      true,
+    );
+    assert.equal(
+      top3PaintMode({ ready: true, wiped: false, cardCount: 3 }),
+      'cards',
+    );
+  });
+
+  it('hides skeleton on cat/search even before recoReady (#55)', () => {
+    assert.equal(
+      top3PaintMode({
+        ready: false,
+        wiped: false,
+        cardCount: 0,
+        selectedCategories: ['cinema'],
+      }),
+      'hidden',
+    );
+    assert.equal(
+      top3PaintMode({
+        ready: false,
+        wiped: false,
+        cardCount: 0,
+        committedTitle: 'nougaro',
+      }),
+      'hidden',
+    );
+    assert.equal(
+      top3PaintMode({
+        ready: false,
+        wiped: false,
+        cardCount: 0,
+        phraseActive: true,
+      }),
+      'hidden',
     );
   });
 });

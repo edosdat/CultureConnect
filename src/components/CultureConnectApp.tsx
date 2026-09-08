@@ -36,8 +36,8 @@ import {
   resolveSearchSubmit,
   searchExamplesVisible,
   shouldInvalidateProfileRecoCache,
-  shouldShowTop3Section,
   top3Heading,
+  top3PaintMode,
   theatreRows,
   top3IdentitySet,
   visibleTop3Items,
@@ -106,7 +106,7 @@ type Props = {
   initialYear: number;
   initialMonth: number;
   initialNouveauFilmIds?: string[];
-  /** Guest 1+1+1 per date chip, computed in loadHomeWindow. */
+  /** Guest 1+1+1 per date chip. Boot defers this — client POST reco=1 fills it. */
   initialRecoByScope?: Partial<Record<TimeScopeId, DayItem[]>>;
   /** Toulouse list snapshot per date chip (items + window totals). */
   initialListByScope?: Partial<
@@ -167,7 +167,8 @@ function hydrateRecoCache(
   const out: Record<string, DayItem[]> = {};
   if (!byScope) return out;
   for (const [scope, items] of Object.entries(byScope)) {
-    if (!items) continue;
+    // Empty boot slots are "not fetched yet" — do not flip recoReady.
+    if (!items?.length) continue;
     const day = recoKeyDay(scope as TimeScopeId, null, parisIso);
     out[recoPoolKey(scope as TimeScopeId, day, commune, 'guest')] = items;
   }
@@ -1040,7 +1041,7 @@ export default function CultureConnectApp({
     () => visibleTop3Items(pourToiFilled),
     [pourToiFilled],
   );
-  const showTop3Section = shouldShowTop3Section({
+  const top3Mode = top3PaintMode({
     ready: recoReady,
     wiped: recoWiped,
     cardCount: top3Cards.length,
@@ -1048,6 +1049,7 @@ export default function CultureConnectApp({
     committedTitle,
     phraseActive: phraseMode,
   });
+  const showTop3Section = top3Mode !== 'hidden';
   const pourToiKeys = useMemo(
     () => new Set(pourToiFilled.map((item) => item.key)),
     [pourToiFilled],
@@ -1889,6 +1891,7 @@ export default function CultureConnectApp({
           className="w-full space-y-3 rounded-card-lg border border-culture-soft/80 bg-culture-surface/80 p-3 sm:p-4"
           data-top3=""
           data-top3-count={recoReady ? top3Cards.length : undefined}
+          data-top3-pending={top3Mode === 'skeleton' ? '' : undefined}
         >
           <h2 className="w-full font-display text-xl leading-tight text-culture-ink sm:text-2xl">
             {top3Heading(
@@ -1905,7 +1908,7 @@ export default function CultureConnectApp({
               Connecte-toi pour tes suggestions
             </button>
           ) : null}
-          {!recoReady && !recoWiped ? (
+          {top3Mode === 'skeleton' ? (
             <Top3Skeleton />
           ) : (
             <SeanceGrid

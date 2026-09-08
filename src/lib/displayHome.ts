@@ -292,25 +292,38 @@ export function seanceCardShowsPitch(
   return variant !== 'rail';
 }
 
-/**
- * Home Top 3 row.
- * Hide when a QUOI chip or an omnibox commit (title leftover / phrase) is on.
- * Date chips, commune, and salle alone keep the section (if cards).
- */
-export function shouldShowTop3Section(opts: {
+export type Top3SectionOpts = {
   ready: boolean;
   wiped: boolean;
   cardCount: number;
   selectedCategories?: readonly string[];
   committedTitle?: string;
   phraseActive?: boolean;
-}): boolean {
-  if (opts.wiped) return false;
-  if ((opts.selectedCategories?.length ?? 0) > 0) return false;
-  if ((opts.committedTitle || '').trim()) return false;
-  if (opts.phraseActive) return false;
-  if (!opts.ready) return true;
-  return opts.cardCount > 0;
+};
+
+export type Top3PaintMode = 'hidden' | 'skeleton' | 'cards';
+
+/**
+ * Home Top 3 row.
+ * Hide when a QUOI chip or an omnibox commit (title leftover / phrase) is on.
+ * Date chips, commune, and salle alone keep the section (if cards).
+ * While reco is not ready, keep the shell so first paint is not blank.
+ */
+export function shouldShowTop3Section(opts: Top3SectionOpts): boolean {
+  return top3PaintMode(opts) !== 'hidden';
+}
+
+/**
+ * First paint: skeleton as soon as the section is allowed.
+ * Real cards only after recoReady. Never wait on reco to show the shell.
+ */
+export function top3PaintMode(opts: Top3SectionOpts): Top3PaintMode {
+  if (opts.wiped) return 'hidden';
+  if ((opts.selectedCategories?.length ?? 0) > 0) return 'hidden';
+  if ((opts.committedTitle || '').trim()) return 'hidden';
+  if (opts.phraseActive) return 'hidden';
+  if (!opts.ready) return 'skeleton';
+  return opts.cardCount > 0 ? 'cards' : 'hidden';
 }
 
 /** H2 for the reco row. Matches visible card count; 0 is hidden by the caller. */
