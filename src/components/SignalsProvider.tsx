@@ -79,6 +79,7 @@ async function postSignals(body: unknown): Promise<{
   tasteState?: AccountTasteState;
   tastes?: string;
   tastesSetAt?: string;
+  wroteGuest?: boolean;
 } | null> {
   const res = await fetch('/api/signals', {
     method: 'POST',
@@ -90,6 +91,7 @@ async function postSignals(body: unknown): Promise<{
     tasteState?: AccountTasteState;
     tastes?: string;
     tastesSetAt?: string;
+    wroteGuest?: boolean;
   };
 }
 
@@ -150,8 +152,9 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
         tastes: data.tastes ?? data.tasteState.tastesText ?? '',
         tastesSetAt: data.tastesSetAt ?? data.tasteState.tastesSetAt,
       });
-      // Wipe cc_signals_v1 only if zv(response). Cinema-only never passes.
-      if (hasScorableState(data.tasteState)) {
+      // Clear guest after additive merge (including tagless audit-only).
+      // Cinema-only / empty guest never posts, so they never reach here.
+      if (data.wroteGuest || hasScorableState(data.tasteState)) {
         clearGuestStore();
         setGuestStore(emptyGuestStore());
         notifySignalsChanged();

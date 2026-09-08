@@ -18,6 +18,7 @@ import {
   shouldMapTasteIngest,
   shouldPostLoginMerge,
   shouldPromptLogin,
+  signalHasMappedTasteTags,
   type Signal,
 } from './signals';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
@@ -390,5 +391,55 @@ describe('login merge — additive guest action signals', () => {
     assert.equal(out.wroteGuest, true);
     assert.ok((out.state.profile.moods.tendre?.weight ?? 0) >= 4);
     assert.ok((out.state.profile.moods.rigolo?.weight ?? 0) > 0);
+  });
+});
+
+describe('tagless signals — audit only', () => {
+  it('keeps favorite in the log and does not bump the profile', () => {
+    const fav = makeSignal({
+      kind: 'favorite',
+      event_id: 'ev-bare',
+      commune: 'Toulouse',
+      moods: ['sortie'],
+      genres: ['cinema'],
+    });
+    const mapped = ingestMapSignal(fav);
+    assert.equal(signalHasMappedTasteTags(mapped), false);
+    const next = commitTasteSignals(
+      { events: [], profile: emptyProfile() },
+      [fav],
+      40,
+    );
+    assert.equal(next.events.length, 1);
+    assert.equal(next.events[0]?.kind, 'favorite');
+    assert.deepEqual(next.profile.moods, {});
+    assert.deepEqual(next.profile.genres, {});
+    assert.deepEqual(next.profile.communes, {});
+  });
+
+  it('merges a tagless guest favorite as audit onto stored tastes', () => {
+    const stored = {
+      signalsRecent: [],
+      profile: {
+        ...emptyProfile(),
+        moods: { tendre: { weight: 3, pct: 100 } },
+      },
+    };
+    const guestFav = makeSignal({
+      kind: 'favorite',
+      event_id: 'ev-bare',
+      moods: [],
+      genres: [],
+    });
+    assert.equal(shouldPostLoginMerge(stored, [guestFav], emptyProfile()), true);
+    const out = resolveLoginMerge({
+      stored,
+      jwt: stored,
+      guestSignals: [guestFav],
+      guestProfile: emptyProfile(),
+    });
+    assert.equal(out.wroteGuest, true);
+    assert.equal(out.state.profile.moods.tendre?.weight, 3);
+    assert.equal(out.state.signalsRecent.some((s) => s.kind === 'favorite'), true);
   });
 });

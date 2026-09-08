@@ -860,6 +860,20 @@ export function ingestMapSignal<
   return { ...signal, moods: mapped.moods, genres: mapped.genres };
 }
 
+/** After map→drop: any locked mood / closed genre / non-cat theme. Else audit-only. */
+export function signalHasMappedTasteTags(
+  s: Pick<Signal, 'moods' | 'genres' | 'themes'>,
+): boolean {
+  if ((s.moods ?? []).some((m) => isTasteMood(m))) return true;
+  if ((s.genres ?? []).some((g) => Boolean(g.trim()) && !isCatTasteKey(g))) {
+    return true;
+  }
+  if ((s.themes ?? []).some((th) => Boolean(th.trim()) && !isCatTasteKey(th))) {
+    return true;
+  }
+  return false;
+}
+
 /** L() — moods / genres / themes only. Never increment profile.cats. */
 export function applySignalToProfile(profile: TasteProfile, signal: Signal): void {
   const w = signal.weight;
@@ -949,7 +963,9 @@ export function applyIncomingSignals(
   for (const s of incoming) {
     if (!isTasteWritingSignal(s)) continue;
     const w = pairedClickApplyWeight(s, seen);
-    if (w) applySignalToProfile(next, { ...s, weight: w });
+    if (w && signalHasMappedTasteTags(s)) {
+      applySignalToProfile(next, { ...s, weight: w });
+    }
     seen.push(s);
   }
   return sanitizeTasteProfile(next);
@@ -982,7 +998,17 @@ export function shouldPostLoginMerge(
   guestEvents?: Signal[] | null,
   guestProfile?: TasteProfile | null,
 ): boolean {
-  return guestHasMergeableTastes(guestEvents, guestProfile);
+  return (
+    guestHasMergeableTastes(guestEvents, guestProfile) ||
+    hasAuditableGuestSignals(guestEvents)
+  );
+}
+
+/** Known fiche actions to merge as audit even when they carry no taste tags. */
+export function hasAuditableGuestSignals(events?: Signal[] | null): boolean {
+  return (events ?? []).some(
+    (s) => isKnownSignalKind(s.kind) && isTasteWritingSignal(s),
+  );
 }
 
 /** Empty / cinema-only guest never passes zv — do not merge, do not wipe. */
@@ -1038,7 +1064,8 @@ export function resolveLoginMerge(opts: {
     .map((s) => ingestMapSignal(s));
   const mergeable = guestHasMergeableTastes(guestSignals, guestProfile);
   const tasteSignals = guestSignals.filter(isTasteWritingSignal);
-  if (!mergeable && !(opts.extraText || '').trim()) {
+  const hasAudit = tasteSignals.length > 0;
+  if (!mergeable && !hasAudit && !(opts.extraText || '').trim()) {
     return { state: { ...base, profile: sanitizeTasteProfile(base.profile) }, wroteGuest: false };
   }
   let overlayPrev = sanitizeTasteProfile(base.profile);
@@ -1071,7 +1098,7 @@ export function resolveLoginMerge(opts: {
       profile: sanitizeTasteProfile(tasteState.profile),
     };
   }
-  return { state: tasteState, wroteGuest: mergeable };
+  return { state: tasteState, wroteGuest: mergeable || hasAudit };
 }
 
 export function recalcProfile(

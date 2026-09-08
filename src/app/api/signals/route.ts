@@ -184,6 +184,7 @@ export async function POST(req: Request) {
       | undefined;
     return NextResponse.json({
       ok: true,
+      wroteGuest: merged.wroteGuest,
       tasteState: nextUser?.tasteState ?? tasteState,
       tastes: nextUser?.tastes ?? tasteState.tastesText ?? '',
       tastesSetAt: nextUser?.tastesSetAt ?? tasteState.tastesSetAt,
