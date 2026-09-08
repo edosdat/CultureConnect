@@ -7,6 +7,7 @@ import {
   densifyGroupKey,
   densifiedCardCount,
   firstScrollUniqueShare,
+  takeUniqueWorkItems,
 } from './densify';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 
@@ -324,5 +325,39 @@ describe('densify visible-card identity', () => {
     assert.ok(rawShare < 0.5, `raw share should be inflated, got ${rawShare}`);
     assert.equal(denseShare, 1);
     assert.equal(densifiedCardCount(raw), 2);
+  });
+});
+
+describe('takeUniqueWorkItems', () => {
+  it('keeps one séance per work so a raw cap cannot starve the pack rail', () => {
+    const seances: DayItem[] = [];
+    for (let n = 0; n < 8; n++) {
+      seances.push(
+        item({
+          key: `same-${n}`,
+          title: 'La Bulle',
+          cat: 'theatre',
+          eventId: 'E351',
+          day: `2026-09-0${1 + (n % 9)}`,
+        }),
+      );
+    }
+    for (let n = 0; n < 5; n++) {
+      seances.push(
+        item({
+          key: `other-${n}`,
+          title: `Pièce ${n}`,
+          cat: 'theatre',
+          eventId: `E-other-${n}`,
+        }),
+      );
+    }
+    const raw = seances.slice(0, 8);
+    assert.equal(densify(raw).length, 1);
+    const unique = takeUniqueWorkItems(seances, 4);
+    assert.equal(unique.length, 4);
+    assert.equal(new Set(unique.map(densifyGroupKey)).size, 4);
+    assert.equal(unique[0]!.key, 'same-0');
+    assert.equal(unique[1]!.key, 'other-0');
   });
 });
