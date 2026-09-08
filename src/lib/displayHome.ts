@@ -119,8 +119,12 @@ export function seanceWhen(item: DayItem, earliestHeure?: string): string {
   return [date, time].filter(Boolean).join(' · ');
 }
 
-/** Short neutral hint — no example phrases (chips retired in #71). */
-export const SEARCH_PLACEHOLDER = 'Rechercher un spectacle, un film, un lieu…';
+/**
+ * One-line FR example in the field itself: style + date + place.
+ * Chips under `#cc-search` stay retired (`searchExamplesVisible` is false).
+ */
+export const SEARCH_PLACEHOLDER =
+  'Je veux écouter du jazz ce week-end au centre-ville';
 
 /**
  * Extra existing chips for the 3 example taps.

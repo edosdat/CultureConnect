@@ -625,15 +625,22 @@ describe('search example chips', () => {
     }
   });
 
-  it('uses a short neutral placeholder without example phrases', () => {
+  it('uses one mixed style + date + place example as placeholder', () => {
     assert.equal(
       SEARCH_PLACEHOLDER,
-      'Rechercher un spectacle, un film, un lieu…',
+      'Je veux écouter du jazz ce week-end au centre-ville',
     );
+    assert.equal(SEARCH_PLACEHOLDER.includes('\n'), false);
+    assert.ok(SEARCH_PLACEHOLDER.includes('jazz'));
+    assert.ok(SEARCH_PLACEHOLDER.includes('week-end'));
+    assert.ok(SEARCH_PLACEHOLDER.includes('centre-ville'));
     assert.equal(SEARCH_PLACEHOLDER.includes('Qu’est-ce qui te ferait vibrer'), false);
     assert.equal(SEARCH_PLACEHOLDER.includes('intimiste'), false);
     assert.equal(SEARCH_PLACEHOLDER.includes('envie de rire'), false);
-    assert.equal(SEARCH_PLACEHOLDER.includes('près du centre'), false);
+    assert.notEqual(
+      SEARCH_PLACEHOLDER,
+      'Rechercher un spectacle, un film, un lieu…',
+    );
   });
 
   it('never mounts examples (retired under the search field)', () => {
