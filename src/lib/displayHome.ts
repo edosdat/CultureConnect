@@ -119,8 +119,8 @@ export function seanceWhen(item: DayItem, earliestHeure?: string): string {
   return [date, time].filter(Boolean).join(' · ');
 }
 
-export const SEARCH_PLACEHOLDER =
-  'Qu’est-ce qui te ferait vibrer ? (un truc intimiste ce WE, envie de rire, concert près du centre)';
+/** Short neutral hint — no example phrases (chips retired in #71). */
+export const SEARCH_PLACEHOLDER = 'Rechercher un spectacle, un film, un lieu…';
 
 /**
  * Extra existing chips for the 3 example taps.
