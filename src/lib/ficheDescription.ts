@@ -5,17 +5,21 @@ function filled(raw?: string | null): string {
 }
 
 /**
- * Fiche copy: prefer the long synopsis/pitch when it exists.
- * Long = description_longue, then programme.description_item.
- * Short (description_courte) only if no long field is filled.
+ * Fiche copy for programme rows: piece pitch first (description_item),
+ * then event description_longue, then description_courte.
+ * Festival multi-show events share one evenement blurb; each programme
+ * row should show its own ARTO/item pitch when that field is filled.
+ * Fallback events: longue, then courte.
  * Hide the block only when every field is empty. Never invent.
  */
 export function ficheDescriptionOf(item: DayItem): string {
   if (item.kind === 'programme') {
     const ev = item.evenement;
-    const long = filled(ev?.description_longue) || filled(item.programme.description_item);
-    if (long) return long;
-    return filled(ev?.description_courte);
+    return (
+      filled(item.programme.description_item) ||
+      filled(ev?.description_longue) ||
+      filled(ev?.description_courte)
+    );
   }
   const ev = item.evenement;
   return filled(ev.description_longue) || filled(ev.description_courte);
