@@ -282,6 +282,17 @@ export function top3GridClass(count: number): string {
 }
 
 /**
+ * Pitch / synopsis on SeanceCard. Home Top 3 uses the `rail` variant —
+ * scan only (image, title, short meta, CTA). Never a short, long, or
+ * 2-line-clamped description. Catalogue / live / compact / fiches keep copy.
+ */
+export function seanceCardShowsPitch(
+  variant: 'default' | 'rail' | 'live' | 'compact',
+): boolean {
+  return variant !== 'rail';
+}
+
+/**
  * Home Top 3 row.
  * Hide when a QUOI chip or an omnibox commit (title leftover / phrase) is on.
  * Date chips, commune, and salle alone keep the section (if cards).

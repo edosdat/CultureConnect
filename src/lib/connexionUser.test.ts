@@ -4,6 +4,7 @@ import { parsePhraseRules, isTasteMood, TASTE_MOODS } from './phraseTags';
 import {
   displayReasonForItem,
   recoWhyForMood,
+  seanceCardShowsPitch,
   shouldShowTop3Section,
   top3GridClass,
   top3Heading,
@@ -568,6 +569,7 @@ describe('top 3 adaptive layout', () => {
     assert.ok(top3GridClass(1).includes('items-start'));
     assert.ok(top3GridClass(2).includes('items-start'));
     assert.ok(top3GridClass(3).includes('items-start'));
+    assert.equal(seanceCardShowsPitch('rail'), false);
   });
 
   it('H2 says Le top N du moment for guests (1 / 2 / 3 cards)', () => {

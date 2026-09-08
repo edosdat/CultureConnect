@@ -79,6 +79,7 @@ function FixedSlotsGrid({
   if (visible.length === 0) return null;
   // Compact horizontal rail for every Top 3 count (1–3). Stacked default
   // tiles are catalogue-only — they are taller than these reco thumbs.
+  // `rail` also hides pitch/synopsis (seanceCardShowsPitch).
   const cardVariant = 'rail';
   return (
     <div className="space-y-4">

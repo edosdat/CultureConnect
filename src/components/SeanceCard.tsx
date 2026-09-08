@@ -14,6 +14,7 @@ import { seanceTimeLabel } from '@/lib/eventTimes';
 import { seanceDateIso } from '@/lib/timeScope';
 import { MAIN_CATEGORY_LABELS, mainFromCategorie, mainFromGenreSlug } from '@/lib/categories';
 import { catCssVar, catGradient } from '@/lib/categoryColor';
+import { seanceCardShowsPitch } from '@/lib/displayHome';
 import EventImage from './EventImage';
 import VisualFallback from './VisualFallback';
 import FavoriteButton from './FavoriteButton';
@@ -133,7 +134,7 @@ export default function SeanceCard({
 
   const showVenueLine = Boolean(lieu) && (!isFilmGroup || salleCount === 1);
   const showCities = isFilmGroup && salleCount > 1 && Boolean(citiesSummary);
-  const pitch = cardPitch(item);
+  const pitch = seanceCardShowsPitch(resolved) ? cardPitch(item) : '';
 
   const media = (
     <div

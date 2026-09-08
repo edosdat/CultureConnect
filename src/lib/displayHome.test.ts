@@ -11,11 +11,13 @@ import {
   homeSectionsVisible,
   musiqueRows,
   resolveHomeCardOpen,
+  itemPitch,
   resolveSearchSubmit,
   SEARCH_EXAMPLES,
   searchExampleIsVivant,
   searchExamplesVisible,
   shouldInvalidateProfileRecoCache,
+  seanceCardShowsPitch,
   shouldShowTop3Section,
   theatreRows,
   visibleTop3Items,
@@ -776,5 +778,20 @@ describe('shouldShowTop3Section — hide on QUOI / search, keep on date', () => 
       }),
       false,
     );
+  });
+});
+
+describe('Top 3 cards — compact scan, no pitch', () => {
+  it('rail (Top 3) hides pitch; catalogue / live / compact keep it', () => {
+    assert.equal(seanceCardShowsPitch('rail'), false);
+    assert.equal(seanceCardShowsPitch('default'), true);
+    assert.equal(seanceCardShowsPitch('live'), true);
+    assert.equal(seanceCardShowsPitch('compact'), true);
+  });
+
+  it('itemPitch stays on the model so fiches / packs still have copy', () => {
+    const cine = item({ key: 'p:P-pitch', cat: 'cinema', filmId: 'F1' });
+    assert.equal(itemPitch(cine), 'Pitch court');
+    assert.equal(seanceCardShowsPitch('rail'), false);
   });
 });
