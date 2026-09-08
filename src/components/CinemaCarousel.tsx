@@ -142,12 +142,17 @@ function FilmThumb({
       type="button"
       onClick={onSelect}
       aria-current={active ? 'true' : undefined}
-      className={
-        'flex w-[7.5rem] shrink-0 flex-col text-left sm:w-[8.5rem] ' +
-        (active ? 'ring-2 ring-culture-terracotta ring-offset-2 ring-offset-culture-cream' : '')
-      }
+      className="group flex w-[7.5rem] shrink-0 flex-col text-left focus-visible:!outline-none sm:w-[8.5rem]"
     >
-      <div className="relative aspect-[2/3] overflow-hidden rounded-lg border border-culture-line bg-culture-sand">
+      <div
+        className={
+          'relative aspect-[2/3] overflow-hidden rounded-lg bg-culture-sand ' +
+          (active
+            ? 'border-2 border-culture-terracotta shadow-sm'
+            : 'border-2 border-culture-line') +
+          ' group-focus-visible:ring-2 group-focus-visible:ring-inset group-focus-visible:ring-culture-ink'
+        }
+      >
         <EventImage
           src={image}
           alt=""
