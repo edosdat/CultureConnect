@@ -413,13 +413,25 @@ describe('appendOnlyStripRows', () => {
     );
   });
 
-  it('keeps the pinned thumb when the new slice dropped it (mobile cap)', () => {
-    const out = appendOnlyStripRows([a, b, c], [x, y, z], pinFromHeroRow(b));
-    assert.equal(out[0]?.groupKey, b.groupKey);
+  it('keeps every painted thumb when the new slice dropped it (no pin needed)', () => {
+    const out = appendOnlyStripRows([a, b, c], [x, y, z]);
     assert.deepEqual(
       out.map((row) => row.groupKey),
-      [b, x, y, z].map((row) => row.groupKey),
+      [a, b, c, x, y, z].map((row) => row.groupKey),
     );
+  });
+
+  it('first-load reco then GPS must not replace painted hero slot 0', () => {
+    let painted = appendOnlyStripRows([], [a, b, c]);
+    assert.equal(painted[0]?.groupKey, a.groupKey);
+    // Guest reco / top3Set steals A out of cineRows.
+    painted = appendOnlyStripRows(painted, [b, c]);
+    assert.equal(painted[0]?.groupKey, a.groupKey);
+    // Boot GPS km-sorts a new first film.
+    painted = appendOnlyStripRows(painted, [x, c, b]);
+    assert.equal(painted[0]?.groupKey, a.groupKey);
+    assert.equal(painted[painted.length - 1]?.groupKey, x.groupKey);
+    assert.equal(keysInsertedBefore(['film:w:a'], painted.map((r) => r.groupKey), 'film:w:a'), 0);
   });
 
   it('keeps a reminted pin (DenseRow item.key) instead of inserting left', () => {

@@ -16,7 +16,8 @@ import {
   filterSeancesForActiveFilters,
   relatedSeancesFilter,
 } from '@/lib/displayFilter';
-import { densify, densifiedCardCount } from '@/lib/densify';
+import { densify, densifiedCardCount, type DenseRow } from '@/lib/densify';
+import { appendOnlyStripRows } from '@/lib/carouselSelect';
 import { filmIdOfItem, homePackOfItem, isCinemaDayItem } from '@/lib/nouveautesCine';
 import {
   catsAllowCinemaPack,
@@ -94,6 +95,22 @@ import {
   type GeoPos,
 } from '@/lib/nearMe';
 import NearMeChip from './NearMeChip';
+
+/** First-paint pack order: hydrate / reco / GPS may only append, never replace slot 0. */
+function freezeIncomingPack(
+  painted: { current: DenseRow[] },
+  incoming: DenseRow[],
+  resetKey: string,
+  lastKey: { current: string },
+): DenseRow[] {
+  if (lastKey.current !== resetKey) {
+    lastKey.current = resetKey;
+    painted.current = [];
+  }
+  const next = appendOnlyStripRows(painted.current, incoming);
+  painted.current = next;
+  return next;
+}
 
 type Props = {
   initialScope: TimeScopeId;
@@ -325,6 +342,8 @@ export default function CultureConnectApp({
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedLieuId, setSelectedLieuId] = useState<string | null>(null);
   const [selectedCommune, setSelectedCommune] = useState<string | null>('Toulouse');
+  /** User city chip only — boot GPS must not reset painted pack order. */
+  const [browseCommune, setBrowseCommune] = useState<string | null>('Toulouse');
   const [nearMeActive, setNearMeActive] = useState(false);
   const [nearMePending, setNearMePending] = useState(false);
   const [userPos, setUserPos] = useState<GeoPos | null>(null);
@@ -405,6 +424,17 @@ export default function CultureConnectApp({
   ]);
 
   const skipListFetch = useRef(true);
+  const skipListFetchBootGps = useRef(false);
+  const cinePaintedRef = useRef<DenseRow[]>([]);
+  const theatrePaintedRef = useRef<DenseRow[]>([]);
+  const musiquePaintedRef = useRef<DenseRow[]>([]);
+  const enfantsPaintedRef = useRef<DenseRow[]>([]);
+  const expoPaintedRef = useRef<DenseRow[]>([]);
+  const cinePaintKeyRef = useRef('');
+  const theatrePaintKeyRef = useRef('');
+  const musiquePaintKeyRef = useRef('');
+  const enfantsPaintKeyRef = useRef('');
+  const expoPaintKeyRef = useRef('');
   const listFetchGen = useRef(0);
   const countsFetchGen = useRef(0);
   const recoFetchGen = useRef(0);
@@ -843,6 +873,10 @@ export default function CultureConnectApp({
       skipListFetch.current = false;
       return;
     }
+    if (skipListFetchBootGps.current) {
+      skipListFetchBootGps.current = false;
+      return;
+    }
     skipListFetch.current = false;
     const gen = ++listFetchGen.current;
     const delay = 0;
@@ -1078,14 +1112,27 @@ export default function CultureConnectApp({
   );
   const top3Set = useMemo(() => top3IdentitySet(pourToiFilled), [pourToiFilled]);
   const gpsOrigin = nearMeActive ? userPos : null;
+  const packFreezeKey = [
+    timeScope,
+    selectedDay ?? '',
+    browseCommune ?? '',
+    selectedLieuId ?? '',
+    selectedCategories.join(','),
+    selectedGenres.join(','),
+    committedTitle,
+    phraseMode ? '1' : '0',
+  ].join('|');
   const allCineRows = useMemo(
     () => cineRows(cineSource, top3Set, gpsOrigin ? { origin: gpsOrigin } : undefined),
     [cineSource, top3Set, gpsOrigin],
   );
-  const visibleCineRows = useMemo(
-    () => allCineRows.slice(0, cineLimit),
-    [allCineRows, cineLimit],
+  const frozenCineRows = freezeIncomingPack(
+    cinePaintedRef,
+    allCineRows,
+    packFreezeKey,
+    cinePaintKeyRef,
   );
+  const visibleCineRows = frozenCineRows.slice(0, cineLimit);
   const vivantPool = useMemo(() => {
     const seen = new Set<string>();
     const pool: DayItem[] = [];
@@ -1105,10 +1152,13 @@ export default function CultureConnectApp({
       ),
     [vivantPool, top3Set, gpsOrigin],
   );
-  const visibleTheatreRows = useMemo(
-    () => allTheatreRows.slice(0, theatreLimit),
-    [allTheatreRows, theatreLimit],
+  const frozenTheatreRows = freezeIncomingPack(
+    theatrePaintedRef,
+    allTheatreRows,
+    packFreezeKey,
+    theatrePaintKeyRef,
   );
+  const visibleTheatreRows = frozenTheatreRows.slice(0, theatreLimit);
   const allMusiqueRows = useMemo(
     () =>
       musiqueRows(
@@ -1118,10 +1168,13 @@ export default function CultureConnectApp({
       ),
     [vivantPool, top3Set, gpsOrigin],
   );
-  const visibleMusiqueRows = useMemo(
-    () => allMusiqueRows.slice(0, musiqueLimit),
-    [allMusiqueRows, musiqueLimit],
+  const frozenMusiqueRows = freezeIncomingPack(
+    musiquePaintedRef,
+    allMusiqueRows,
+    packFreezeKey,
+    musiquePaintKeyRef,
   );
+  const visibleMusiqueRows = frozenMusiqueRows.slice(0, musiqueLimit);
   const allEnfantsRows = useMemo(
     () =>
       enfantsRows(
@@ -1134,10 +1187,13 @@ export default function CultureConnectApp({
       ),
     [vivantPool, top3Set, gpsOrigin, selectedCategories],
   );
-  const visibleEnfantsRows = useMemo(
-    () => allEnfantsRows.slice(0, enfantsLimit),
-    [allEnfantsRows, enfantsLimit],
+  const frozenEnfantsRows = freezeIncomingPack(
+    enfantsPaintedRef,
+    allEnfantsRows,
+    packFreezeKey,
+    enfantsPaintKeyRef,
   );
+  const visibleEnfantsRows = frozenEnfantsRows.slice(0, enfantsLimit);
   const allExpoRows = useMemo(
     () =>
       expoRows(
@@ -1147,10 +1203,33 @@ export default function CultureConnectApp({
       ),
     [vivantPool, top3Set, gpsOrigin],
   );
-  const visibleExpoRows = useMemo(
-    () => allExpoRows.slice(0, expoLimit),
-    [allExpoRows, expoLimit],
+  const frozenExpoRows = freezeIncomingPack(
+    expoPaintedRef,
+    allExpoRows,
+    packFreezeKey,
+    expoPaintKeyRef,
   );
+  const visibleExpoRows = frozenExpoRows.slice(0, expoLimit);
+  const cineFirstKey = frozenCineRows[0]?.groupKey ?? null;
+  const theatreFirstKey = frozenTheatreRows[0]?.groupKey ?? null;
+  const musiqueFirstKey = frozenMusiqueRows[0]?.groupKey ?? null;
+  const enfantsFirstKey = frozenEnfantsRows[0]?.groupKey ?? null;
+  const expoFirstKey = frozenExpoRows[0]?.groupKey ?? null;
+  useEffect(() => {
+    if (!cineFocusKey && cineFirstKey) setCineFocusKey(cineFirstKey);
+  }, [cineFocusKey, cineFirstKey]);
+  useEffect(() => {
+    if (!theatreFocusKey && theatreFirstKey) setTheatreFocusKey(theatreFirstKey);
+  }, [theatreFocusKey, theatreFirstKey]);
+  useEffect(() => {
+    if (!musiqueFocusKey && musiqueFirstKey) setMusiqueFocusKey(musiqueFirstKey);
+  }, [musiqueFocusKey, musiqueFirstKey]);
+  useEffect(() => {
+    if (!enfantsFocusKey && enfantsFirstKey) setEnfantsFocusKey(enfantsFirstKey);
+  }, [enfantsFocusKey, enfantsFirstKey]);
+  useEffect(() => {
+    if (!expoFocusKey && expoFirstKey) setExpoFocusKey(expoFirstKey);
+  }, [expoFocusKey, expoFirstKey]);
   const sectionVis = homeSectionsVisible(selectedCategories);
 
   const isGuestReco = recoKind === 'guest';
@@ -1614,6 +1693,8 @@ export default function CultureConnectApp({
     let cancelled = false;
     void requestBrowserPosition().then((result) => {
       if (cancelled) return;
+      // Keep the painted list/order. Do not refetch agenda with commune=null.
+      skipListFetchBootGps.current = true;
       applyNearMeState(nearMeFromBoot(result));
     });
     return () => {
@@ -1626,13 +1707,16 @@ export default function CultureConnectApp({
     setNearMePending(true);
     void requestBrowserPosition().then((result) => {
       setNearMePending(false);
-      applyNearMeState(resolveNearMeResult(result, selectedCommune));
+      const next = resolveNearMeResult(result, selectedCommune);
+      setBrowseCommune(next.commune);
+      applyNearMeState(next);
     });
   }
 
   function handleCommuneChange(next: string | null) {
     setNearMeActive(false);
     setUserPos(null);
+    setBrowseCommune(next);
     setSelectedCommune(next);
     if (selectedLieuId) {
       const lieu = venueOptions.find((l) => l.lieu_id === selectedLieuId);
@@ -1824,7 +1908,11 @@ export default function CultureConnectApp({
               {nearMeActive ? (
                 <button
                   type="button"
-                  onClick={() => applyNearMeState(nearMeOnToggleOff())}
+                  onClick={() => {
+                    const next = nearMeOnToggleOff();
+                    setBrowseCommune(next.commune);
+                    applyNearMeState(next);
+                  }}
                   aria-pressed={false}
                   className="shrink-0 rounded-full border border-culture-line bg-culture-surface px-3 py-1.5 text-sm font-medium text-culture-ink hover:border-culture-terracotta/50"
                 >
@@ -2022,7 +2110,7 @@ export default function CultureConnectApp({
               soir={timeScope === 'soir'}
               datePinned={timeScope !== 'tous'}
               hasMore={
-                cineLimit < allCineRows.length || listItems.length < total
+                cineLimit < frozenCineRows.length || listItems.length < total
               }
               onNeedMore={() => {
                 setCineExpanded(true);
@@ -2073,7 +2161,7 @@ export default function CultureConnectApp({
                   soir={timeScope === 'soir'}
                   datePinned={timeScope !== 'tous'}
                   hasMore={
-                    theatreLimit < allTheatreRows.length ||
+                    theatreLimit < frozenTheatreRows.length ||
                     listItems.length < total
                   }
                   onNeedMore={() => {
@@ -2119,7 +2207,7 @@ export default function CultureConnectApp({
                   soir={timeScope === 'soir'}
                   datePinned={timeScope !== 'tous'}
                   hasMore={
-                    musiqueLimit < allMusiqueRows.length ||
+                    musiqueLimit < frozenMusiqueRows.length ||
                     listItems.length < total
                   }
                   onNeedMore={() => {
@@ -2167,7 +2255,7 @@ export default function CultureConnectApp({
               soir={timeScope === 'soir'}
               datePinned={timeScope !== 'tous'}
               hasMore={
-                enfantsLimit < allEnfantsRows.length ||
+                enfantsLimit < frozenEnfantsRows.length ||
                 listItems.length < total
               }
               onNeedMore={() => {
@@ -2211,7 +2299,7 @@ export default function CultureConnectApp({
               soir={timeScope === 'soir'}
               datePinned={timeScope !== 'tous'}
               hasMore={
-                expoLimit < allExpoRows.length || listItems.length < total
+                expoLimit < frozenExpoRows.length || listItems.length < total
               }
               onNeedMore={() => {
                 setExpoExpanded(true);

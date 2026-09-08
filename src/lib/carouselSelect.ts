@@ -312,15 +312,18 @@ export function appendOnlyStripRows<T extends { groupKey: string }>(
       keptKeys.add(fresh.groupKey);
       continue;
     }
-    if (!pinObj || !rowMatchesHeroPin(asHero(old), pinObj)) continue;
-    const remint = incoming.find(
-      (row) =>
-        !keptKeys.has(row.groupKey) && rowMatchesHeroPin(asHero(row), pinObj),
-    );
+    const remint =
+      pinObj &&
+      incoming.find(
+        (row) =>
+          !keptKeys.has(row.groupKey) && rowMatchesHeroPin(asHero(row), pinObj),
+      );
     if (remint) {
       kept.push(remint);
       keptKeys.add(remint.groupKey);
     } else {
+      // Keep the painted slot even when reco/top3/GPS dropped the work
+      // from `incoming`. Index 0 must not thrash A → B → C on first load.
       kept.push(old);
       keptKeys.add(old.groupKey);
     }
