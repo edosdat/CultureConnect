@@ -1,9 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState, type TouchEvent } from 'react';
+import { useEffect, useRef, useState, type PointerEvent, type TouchEvent } from 'react';
 import type { DayItem } from '@/lib/types';
 import type { AgendaDetailResponse } from '@/lib/slim';
 import type { DenseRow } from '@/lib/densify';
+import {
+  heroWindowScrollY,
+  shouldIgnoreRepeatThumbSelect,
+} from '@/lib/carouselSelect';
 import {
   calendarPayloadFromDayItem,
   downloadIcs,
@@ -141,7 +145,18 @@ function FilmThumb({
   return (
     <button
       type="button"
-      onClick={onSelect}
+      onPointerDown={(e: PointerEvent<HTMLButtonElement>) => {
+        if (e.button !== 0) return;
+        // Prevent UA focus-scroll of the overflow-x strip — that shift
+        // retargets the tap onto the neighboring film.
+        e.preventDefault();
+        onSelect();
+      }}
+      onClick={(e) => {
+        // Keyboard (Enter/Space): detail is 0. Pointer already selected.
+        if (e.detail !== 0) return;
+        onSelect();
+      }}
       aria-current={active ? 'true' : undefined}
       className="group flex w-[7.5rem] shrink-0 flex-col text-left focus-visible:!outline-none sm:w-[8.5rem]"
     >
@@ -310,6 +325,7 @@ export default function CinemaCarousel({
   const userMoved = useRef(false);
   const pendingAdvance = useRef(false);
   const touchX = useRef<number | null>(null);
+  const selectAt = useRef<number | null>(null);
 
   function markMoved() {
     userMoved.current = true;
@@ -428,8 +444,32 @@ export default function CinemaCarousel({
   }
 
   /** Thumb strip sits below the fiche — bring the hero back under sticky search. */
-  function scrollHeroIntoView() {
-    heroCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  function queueHeroScroll() {
+    window.setTimeout(() => {
+      const hero = heroCardRef.current;
+      if (!hero) return;
+      const rect = hero.getBoundingClientRect();
+      const top = heroWindowScrollY({
+        heroTop: rect.top,
+        heroBottom: rect.bottom,
+        scrollY: window.scrollY,
+        viewportHeight: window.innerHeight,
+      });
+      if (top == null) return;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }, 0);
+  }
+
+  function selectThumb(i: number) {
+    const now = Date.now();
+    if (shouldIgnoreRepeatThumbSelect(selectAt.current, now)) return;
+    selectAt.current = now;
+    markMoved();
+    setHeroIndex(i);
+    queueHeroScroll();
+    if (i >= rows.length - 1) {
+      window.setTimeout(() => requestMore(), 0);
+    }
   }
 
   function onHeroTouchStart(e: TouchEvent) {
@@ -504,18 +544,13 @@ export default function CinemaCarousel({
       <div
         ref={stripRef}
         onScroll={onStripScroll}
-        className="flex gap-3 overflow-x-auto scroll-px-2 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex gap-3 overflow-x-auto overscroll-x-contain scroll-px-2 pb-1 [overflow-anchor:none] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {rows.map((row, i) => (
           <FilmThumb
             key={row.groupKey}
             row={row}
-            onSelect={() => {
-              markMoved();
-              setHeroIndex(i);
-              scrollHeroIntoView();
-              if (i >= rows.length - 1) requestMore();
-            }}
+            onSelect={() => selectThumb(i)}
             active={i === heroIndex}
             distanceKm={
               pack === 'cine'
