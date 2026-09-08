@@ -4,6 +4,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
   type ReactNode,
 } from 'react';
 
@@ -11,7 +12,12 @@ import type { DayItem } from '@/lib/types';
 import { densify, densifiedCardCount } from '@/lib/densify';
 import { filmIdOfItem } from '@/lib/nouveautesCine';
 import {
-  top3GridClass,
+  TOP3_INDICATOR_CLASS,
+  top3CardFrameClass,
+  top3IndicatorLabel,
+  top3SlideIndex,
+  top3TrackClass,
+  top3UsesMobileCarousel,
   visibleTop3Items,
   visibleTop3Nearest,
 } from '@/lib/displayHome';
@@ -54,6 +60,52 @@ function cardNouveau(
   );
 }
 
+function carouselStride(el: HTMLElement): number {
+  const first = el.firstElementChild as HTMLElement | null;
+  if (!first) return 0;
+  const gap = parseFloat(getComputedStyle(el).columnGap || '0') || 0;
+  return first.offsetWidth + gap;
+}
+
+function Top3CarouselIndicator({
+  count,
+  index,
+  onSelect,
+}: {
+  count: number;
+  index: number;
+  onSelect: (i: number) => void;
+}) {
+  return (
+    <div
+      className={TOP3_INDICATOR_CLASS}
+      data-top3-indicator=""
+      data-top3-slide={index + 1}
+    >
+      <div className="flex items-center gap-1.5">
+        {Array.from({ length: count }, (_, i) => (
+          <button
+            key={i}
+            type="button"
+            aria-label={`${i + 1}/${count}`}
+            aria-current={i === index ? 'true' : undefined}
+            onClick={() => onSelect(i)}
+            className={
+              'h-2 rounded-full transition ' +
+              (i === index
+                ? 'w-4 bg-culture-terracotta'
+                : 'w-2 bg-culture-line')
+            }
+          />
+        ))}
+      </div>
+      <span className="text-xs tabular-nums text-culture-muted" aria-live="polite">
+        {top3IndicatorLabel(index, count)}
+      </span>
+    </div>
+  );
+}
+
 /** 1–3 real reco cards. Omit empty slots — no placeholder cells. */
 function FixedSlotsGrid({
   items,
@@ -76,19 +128,43 @@ function FixedSlotsGrid({
   const visible = origin
     ? visibleTop3Nearest(items, origin)
     : visibleTop3Items(items);
-  if (visible.length === 0) return null;
-  // Compact horizontal rail for every Top 3 count (1–3). Stacked default
-  // tiles are catalogue-only — they are taller than these reco thumbs.
-  // source=top3 hides pitch on rail and compact scan (seanceCardShowsPitch).
+  const count = visible.length;
+  const carousel = top3UsesMobileCarousel(count);
+  const scrollerRef = useRef<HTMLUListElement | null>(null);
+  const [slide, setSlide] = useState(0);
+
+  if (count === 0) return null;
+  // Compact rail cards (1–3). <md: horizontal snap carousel with peek.
+  // md+: existing top3GridClass row. source=top3 hides pitch.
   const cardVariant = 'rail';
+
+  function onScroll() {
+    const el = scrollerRef.current;
+    if (!el) return;
+    setSlide(top3SlideIndex(el.scrollLeft, carouselStride(el), count));
+  }
+
+  function goTo(i: number) {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const stride = carouselStride(el);
+    if (stride <= 0) return;
+    el.scrollTo({ left: i * stride, behavior: 'smooth' });
+  }
+
   return (
-    <div className="space-y-4">
+    <div>
       <ul
-        className={top3GridClass(visible.length)}
-        data-top3-count={visible.length}
+        ref={scrollerRef}
+        onScroll={carousel ? onScroll : undefined}
+        className={top3TrackClass(count)}
+        data-top3-count={count}
+        data-top3-carousel={carousel ? '' : undefined}
+        aria-roledescription={carousel ? 'carousel' : undefined}
+        aria-label={carousel ? `Le top ${count} du moment` : undefined}
       >
         {visible.map((item) => (
-          <li key={item.key} className="min-w-0 h-full w-full">
+          <li key={item.key} className={top3CardFrameClass(count)}>
             <SeanceCard
               item={item}
               showDate={showDate}
@@ -103,6 +179,9 @@ function FixedSlotsGrid({
           </li>
         ))}
       </ul>
+      {carousel ? (
+        <Top3CarouselIndicator count={count} index={slide} onSelect={goTo} />
+      ) : null}
     </div>
   );
 }

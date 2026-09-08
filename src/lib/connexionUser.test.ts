@@ -8,6 +8,8 @@ import {
   shouldShowTop3Section,
   top3GridClass,
   top3Heading,
+  top3TrackClass,
+  top3UsesMobileCarousel,
   visibleTop3Items,
 } from './displayHome';
 import { pickAussiCeSoir } from './nouveautesCine';
@@ -569,6 +571,10 @@ describe('top 3 adaptive layout', () => {
     assert.ok(top3GridClass(1).includes('items-stretch'));
     assert.ok(top3GridClass(2).includes('items-stretch'));
     assert.ok(top3GridClass(3).includes('items-stretch'));
+    assert.equal(top3UsesMobileCarousel(1), false);
+    assert.equal(top3UsesMobileCarousel(3), true);
+    assert.ok(top3TrackClass(3).includes('md:grid'));
+    assert.ok(top3TrackClass(3).includes('flex'));
     assert.equal(seanceCardShowsPitch('rail'), false);
     assert.equal(seanceCardShowsPitch('compact', 'top3'), false);
     assert.equal(seanceCardShowsPitch('compact'), true);

@@ -22,8 +22,13 @@ import {
   HOME_LIST_WAIT_SLOT_CLASS,
   shouldShowTop3Section,
   theatreRows,
+  top3CardFrameClass,
   top3GridClass,
+  top3IndicatorLabel,
   top3PaintMode,
+  top3SlideIndex,
+  top3TrackClass,
+  top3UsesMobileCarousel,
   visibleTop3Items,
 } from './displayHome';
 import { isTasteMood } from './phraseTags';
@@ -885,5 +890,47 @@ describe('Top 3 rail — equal-height row', () => {
       assert.ok(cls.includes('items-stretch'), `count ${n}`);
       assert.equal(cls.includes('items-start'), false, `count ${n}`);
     }
+  });
+});
+
+describe('Top 3 mobile carousel (<md)', () => {
+  it('uses a snap rail only when 2+ cards', () => {
+    assert.equal(top3UsesMobileCarousel(0), false);
+    assert.equal(top3UsesMobileCarousel(1), false);
+    assert.equal(top3UsesMobileCarousel(2), true);
+    assert.equal(top3UsesMobileCarousel(3), true);
+  });
+
+  it('keeps the desktop grid recipe and adds a flex rail below md', () => {
+    assert.equal(top3TrackClass(1), top3GridClass(1));
+    const three = top3TrackClass(3);
+    assert.ok(three.startsWith('flex '));
+    assert.ok(three.includes('md:grid'));
+    assert.ok(three.includes('lg:grid-cols-3'));
+    assert.equal(three.includes('w-[85%]'), false);
+    assert.ok(top3GridClass(3).startsWith('grid '));
+    const two = top3TrackClass(2);
+    assert.ok(two.includes('sm:grid-cols-2'));
+    assert.ok(two.includes('md:grid'));
+  });
+
+  it('peeks the next card at ~85% width on mobile; md+ fills the cell', () => {
+    assert.equal(top3CardFrameClass(1), 'min-w-0 h-full w-full');
+    const card = top3CardFrameClass(3);
+    assert.ok(card.includes('w-[85%]'));
+    assert.ok(card.includes('snap-start'));
+    assert.ok(card.includes('md:w-full'));
+  });
+
+  it('maps scroll position to a 1-based 1/3 label', () => {
+    assert.equal(top3SlideIndex(0, 300, 3), 0);
+    assert.equal(top3SlideIndex(300, 300, 3), 1);
+    assert.equal(top3SlideIndex(620, 300, 3), 2);
+    assert.equal(top3SlideIndex(-10, 300, 3), 0);
+    assert.equal(top3SlideIndex(900, 300, 3), 2);
+    assert.equal(top3SlideIndex(0, 0, 3), 0);
+    assert.equal(top3IndicatorLabel(0, 3), '1/3');
+    assert.equal(top3IndicatorLabel(1, 3), '2/3');
+    assert.equal(top3IndicatorLabel(2, 2), '2/2');
   });
 });

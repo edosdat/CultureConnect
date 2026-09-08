@@ -276,6 +276,50 @@ export function top3GridClass(count: number): string {
   return 'grid w-full grid-cols-1 items-stretch gap-3 lg:grid-cols-3';
 }
 
+/** 2–3 cards: snap carousel on <md. One card stays a single full-width tile. */
+export function top3UsesMobileCarousel(count: number): boolean {
+  return count >= 2;
+}
+
+/**
+ * Flex snap rail below md; `top3GridClass` from md up (`md:grid`).
+ * Leading `grid` is dropped so mobile stays `display: flex`.
+ */
+export const TOP3_CAROUSEL_TRACK_CLASS =
+  'flex w-full snap-x snap-mandatory touch-pan-x items-stretch gap-3 overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:overflow-x-visible md:snap-none';
+
+export function top3TrackClass(count: number): string {
+  if (!top3UsesMobileCarousel(count)) return top3GridClass(count);
+  return `${TOP3_CAROUSEL_TRACK_CLASS} ${top3GridClass(count).replace(/^grid\s+/, '')}`;
+}
+
+/** ~85% of the scroller so the next card peeks. md+ fills the grid cell. */
+export const TOP3_CAROUSEL_CARD_CLASS =
+  'min-w-0 h-full w-[85%] shrink-0 snap-start md:w-full md:shrink';
+
+export function top3CardFrameClass(count: number): string {
+  if (!top3UsesMobileCarousel(count)) return 'min-w-0 h-full w-full';
+  return TOP3_CAROUSEL_CARD_CLASS;
+}
+
+export function top3SlideIndex(
+  scrollLeft: number,
+  stride: number,
+  count: number,
+): number {
+  if (count <= 0 || stride <= 0) return 0;
+  return Math.min(count - 1, Math.max(0, Math.round(scrollLeft / stride)));
+}
+
+export function top3IndicatorLabel(index: number, count: number): string {
+  if (count <= 0) return '0/0';
+  const n = Math.min(count, Math.max(1, index + 1));
+  return `${n}/${count}`;
+}
+
+export const TOP3_INDICATOR_CLASS =
+  'mt-2 flex items-center justify-center gap-2 md:hidden';
+
 /** Where the card is painted. Top 3 never shows pitch, even on compact. */
 export type SeanceCardPitchSource = 'top3' | 'catalogue';
 
