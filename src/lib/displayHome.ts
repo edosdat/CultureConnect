@@ -597,6 +597,58 @@ export function capCineRows(rows: DenseRow[], mobile: boolean): DenseRow[] {
   return rows.slice(0, cineFirstPaint(mobile));
 }
 
+/**
+ * Keep a `?e=` / pack-focus show in the first-paint strip so the hero
+ * (and PressCitation) can mount even when it sits past the mobile cap.
+ */
+export function denseRowFromItem(item: DayItem): DenseRow {
+  return {
+    item,
+    seances: [item],
+    groupKey: densifyGroupKey(item),
+    extraSlots: 0,
+    salleCount: 0,
+    earliestHeure: '',
+    citiesSummary: '',
+    isFilmGroup: isCinemaDayItem(item),
+  };
+}
+
+export function pinFocusedPackRow(
+  rows: DenseRow[],
+  limit: number,
+  focusKey: string | null,
+  fallbackItem?: DayItem | null,
+): DenseRow[] {
+  const isFocus = (row: DenseRow) =>
+    Boolean(
+      focusKey &&
+        (row.item.key === focusKey ||
+          row.seances.some((s) => s.key === focusKey)),
+    );
+  let source = rows;
+  if (
+    focusKey &&
+    fallbackItem &&
+    (fallbackItem.key === focusKey ||
+      (fallbackItem.kind === 'programme' &&
+        `p:${fallbackItem.programme.programme_id}` === focusKey)) &&
+    !source.some(isFocus)
+  ) {
+    source = [denseRowFromItem(fallbackItem), ...source];
+  }
+  const cap = Number.isFinite(limit) ? Math.max(0, limit) : source.length;
+  const sliced = source.slice(0, cap);
+  if (!focusKey) return sliced;
+  if (sliced.some(isFocus)) return sliced;
+  const extra = source.find(isFocus);
+  if (!extra) return sliced;
+  return [extra, ...sliced.filter((r) => r.groupKey !== extra.groupKey)].slice(
+    0,
+    Math.max(cap, 1),
+  );
+}
+
 export function capLiveRows(rows: DenseRow[]): DenseRow[] {
   return rows.slice(0, LIVE_DISPLAY_CAP);
 }

@@ -10,6 +10,7 @@ import {
   expoRows,
   homeSectionsVisible,
   musiqueRows,
+  pinFocusedPackRow,
   resolveHomeCardOpen,
   itemPitch,
   resolveSearchSubmit,
@@ -874,5 +875,60 @@ describe('Top 3 cards — compact scan, no pitch', () => {
 describe('Home list-wait reserve (LAYOUT_JUMP)', () => {
   it('reserves 32px so Top 3 does not drop when dots appear', () => {
     assert.equal(HOME_LIST_WAIT_SLOT_CLASS, 'h-8');
+  });
+});
+
+describe('pinFocusedPackRow', () => {
+  function row(key: string) {
+    const it = item({ key, cat: 'theatre_danse', form: 'theatre', title: key });
+    return {
+      item: it,
+      seances: [it],
+      groupKey: key,
+      extraSlots: 0,
+      salleCount: 1,
+      earliestHeure: '20:00',
+      citiesSummary: 'Toulouse',
+      isFilmGroup: false,
+    };
+  }
+
+  it('pins a deep-linked show that sits past the mobile first-paint cap', () => {
+    const rows = [row('a'), row('b'), row('c'), row('p:P1848')];
+    const visible = pinFocusedPackRow(rows, 3, 'p:P1848');
+    assert.equal(visible.length, 3);
+    assert.equal(visible[0]!.item.key, 'p:P1848');
+    assert.equal(
+      visible.some((r) => r.item.key === 'p:P1848'),
+      true,
+    );
+  });
+
+  it('leaves the slice unchanged when the focus is already visible or missing', () => {
+    const rows = [row('a'), row('b'), row('c')];
+    assert.deepEqual(
+      pinFocusedPackRow(rows, 3, 'a').map((r) => r.item.key),
+      ['a', 'b', 'c'],
+    );
+    assert.deepEqual(
+      pinFocusedPackRow(rows, 3, 'p:missing').map((r) => r.item.key),
+      ['a', 'b', 'c'],
+    );
+    assert.deepEqual(
+      pinFocusedPackRow(rows, 3, null).map((r) => r.item.key),
+      ['a', 'b', 'c'],
+    );
+  });
+
+  it('injects a deep-linked show that is absent from the current window', () => {
+    const rows = [row('a'), row('b')];
+    const extra = item({
+      key: 'p:P1548',
+      cat: 'musique',
+      form: 'concert',
+      title: 'DJ Pone',
+    });
+    const visible = pinFocusedPackRow(rows, 3, 'p:P1548', extra);
+    assert.equal(visible[0]!.item.key, 'p:P1548');
   });
 });
