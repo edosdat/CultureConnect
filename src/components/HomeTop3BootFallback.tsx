@@ -1,3 +1,4 @@
+import React from 'react';
 import HomeFilterChromeShell from './HomeFilterChromeShell';
 import Top3Skeleton from './Top3Skeleton';
 

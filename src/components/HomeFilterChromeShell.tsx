@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import {
   EXTRA_CATEGORY_CHIPS,
   HOME_CATEGORY_CHIPS,
@@ -132,6 +132,9 @@ export default function HomeFilterChromeShell({ children }: Props) {
             </span>
             <span className="shrink-0 rounded-full border border-culture-line bg-culture-surface px-3 py-1.5 text-sm font-medium text-culture-ink">
               {chrome.nearMe}
+            </span>
+            <span className="hidden shrink-0 rounded-full border border-culture-line bg-culture-surface px-3 py-1.5 text-sm text-culture-ink md:inline-flex">
+              {chrome.sallesLabel} ▸
             </span>
           </div>
           <span className="text-sm font-medium text-culture-terracotta">

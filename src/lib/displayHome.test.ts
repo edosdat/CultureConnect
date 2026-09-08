@@ -841,6 +841,7 @@ describe('home boot filter chrome — reserve header height (#LAYOUT_JUMP)', () 
     assert.ok(chrome.quoiChipLabels.includes('Musique'));
     assert.equal(chrome.commune, 'Toulouse');
     assert.equal(chrome.nearMe, 'Près de moi');
+    assert.equal(chrome.sallesLabel, 'Salles');
     assert.equal(chrome.filtersLabel, 'Filtres');
     assert.equal(chrome.monthLink, 'Voir le mois (Septembre 2026)');
     assert.equal(

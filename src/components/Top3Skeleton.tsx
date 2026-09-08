@@ -1,3 +1,5 @@
+import React from 'react';
+
 /** In-place wait for the 3 reco slots. CSS only — no fetch, no GIF. */
 export default function Top3Skeleton() {
   return (

@@ -5,9 +5,20 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import HomeTop3BootFallback from './HomeTop3BootFallback';
 import { homeBootFilterChrome } from '../lib/displayHome';
 
+function decodeMarkup(html: string): string {
+  return html
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/gi, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&#39;/g, "'");
+}
+
 describe('HomeTop3BootFallback — filter chrome reservation', () => {
   it('renders inert filter chrome above the Top 3 skeleton', () => {
-    const html = renderToStaticMarkup(createElement(HomeTop3BootFallback));
+    const html = decodeMarkup(
+      renderToStaticMarkup(createElement(HomeTop3BootFallback)),
+    );
     const chrome = homeBootFilterChrome();
 
     assert.ok(html.includes('data-home-filter-chrome="search"'));
@@ -30,6 +41,7 @@ describe('HomeTop3BootFallback — filter chrome reservation', () => {
     }
     assert.ok(html.includes(chrome.commune));
     assert.ok(html.includes(chrome.nearMe));
+    assert.ok(html.includes(chrome.sallesLabel));
     assert.ok(html.includes(chrome.monthLink));
     assert.ok(html.includes(chrome.filtersLabel));
     assert.ok(html.includes('Le top 3 du moment'));

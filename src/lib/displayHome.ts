@@ -150,6 +150,7 @@ export type HomeBootFilterChrome = {
   quoiChipLabels: readonly string[];
   commune: string;
   nearMe: string;
+  sallesLabel: string;
   monthLink: string;
   filtersLabel: string;
 };
@@ -169,6 +170,7 @@ export function homeBootFilterChrome(now = new Date()): HomeBootFilterChrome {
     ),
     commune: TOULOUSE_CHIP_DEFAULT,
     nearMe: NEAR_ME_CHIP_LABEL,
+    sallesLabel: 'Salles',
     monthLink: homeBootMonthLinkLabel(now),
     filtersLabel: 'Filtres',
   };
