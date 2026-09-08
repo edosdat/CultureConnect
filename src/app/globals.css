@@ -144,12 +144,11 @@ body {
 .cc-wait-dot:nth-child(2) { animation-delay: 0.15s; }
 .cc-wait-dot:nth-child(3) { animation-delay: 0.3s; }
 
-/* QUAND + QUOI: ONE overflow-x on `.cc-axes`. No `.cc-axes__chips` wrappers. */
+/* QUAND + QUOI: wrap on <md (two stacked groups). Desktop stays one overflow-x row. */
 .cc-axes-row {
   display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: 0.375rem;
   width: 100%;
   max-width: 100%;
@@ -157,37 +156,28 @@ body {
 }
 .cc-axes {
   display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.375rem;
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+}
+.cc-axes__group {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.375rem;
-  flex: 1 1 auto;
-  width: auto;
-  max-width: 100%;
+  width: 100%;
   min-width: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-  overscroll-behavior-x: contain;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-.cc-axes::-webkit-scrollbar {
-  display: none;
-}
-.cc-axes > * {
-  flex: 0 0 auto;
-  white-space: nowrap;
 }
 .cc-axes__label {
-  display: none;
+  display: inline;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .cc-axes__rule {
-  flex: 0 0 1px;
-  width: 1px;
-  height: 1.5rem;
-  background: var(--cc-line);
-  align-self: center;
-  white-space: normal;
+  display: none;
 }
 .cc-axes__chip {
   padding: 0.2rem 0.55rem;
@@ -250,17 +240,55 @@ body {
 }
 
 @media (min-width: 640px) {
-  .cc-axes {
-    gap: 0.75rem;
-  }
-  .cc-axes__label {
-    display: inline;
-    flex-shrink: 0;
-    margin-right: 0.375rem;
-  }
   .cc-axes__chip {
     padding: 0.375rem 0.75rem;
     font-size: 0.875rem;
     line-height: 1.25;
+  }
+}
+
+@media (min-width: 768px) {
+  .cc-axes-row {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+  .cc-axes {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1 1 auto;
+    width: auto;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .cc-axes::-webkit-scrollbar {
+    display: none;
+  }
+  .cc-axes__group {
+    flex-wrap: nowrap;
+    flex: 0 0 auto;
+    width: auto;
+  }
+  .cc-axes__group > * {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .cc-axes__label {
+    margin-right: 0.375rem;
+  }
+  .cc-axes__rule {
+    display: block;
+    flex: 0 0 1px;
+    width: 1px;
+    height: 1.5rem;
+    background: var(--cc-line);
+    align-self: center;
+    white-space: normal;
   }
 }

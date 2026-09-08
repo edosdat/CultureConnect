@@ -37,7 +37,6 @@ import {
   musiqueRows,
   resolveHomeCardOpen,
   resolveSearchSubmit,
-  searchExamplesVisible,
   shouldInvalidateProfileRecoCache,
   top3Heading,
   top3PaintMode,
@@ -62,7 +61,6 @@ import SeanceGrid from './SeanceGrid';
 import Top3Skeleton from './Top3Skeleton';
 import TimeScopeBar from './TimeScopeBar';
 import SearchOmnibox from './SearchOmnibox';
-import SearchExamples from './SearchExamples';
 import ListWaitDots, { HomeListWaitSlot } from './ListWaitDots';
 import Top3GuestCta from './Top3GuestCta';
 import EventDetail from './EventDetail';
@@ -515,23 +513,6 @@ export default function CultureConnectApp({
     setPhraseTags(intent.phraseTags);
     setCommittedTitle(intent.titleQuery);
     if (intent.commune) handleCommuneChange(intent.commune);
-  }
-
-  function handleExamplePick(next: string) {
-    if (!next.trim()) {
-      handleQueryChange('');
-      return;
-    }
-    setTimeScope('tous');
-    setSelectedDay(null);
-    setShowMonthPanel(false);
-    setSelectedCategories([]);
-    setSelectedGenres([]);
-    setPhraseTags(null);
-    lastSearchChipsRef.current = { scope: '', date: '', cat: '' };
-    searchDrivenRef.current = { scope: false, cat: false };
-    setQuery(next);
-    handleSearchSubmit(next);
   }
 
   const queryTrimmed = query.trim();
@@ -1745,15 +1726,6 @@ export default function CultureConnectApp({
           onSubmit={handleSearchSubmit}
         />
       </div>
-      {searchExamplesVisible({
-        selectedCategories,
-        query,
-        committedTitle,
-        timeScope,
-      }) ? (
-        <SearchExamples onPick={handleExamplePick} activeQuery={query} />
-      ) : null}
-
       <div className="space-y-2.5 sm:space-y-4">
         <div className="cc-axes-row">
           <div
@@ -1761,45 +1733,49 @@ export default function CultureConnectApp({
             role="group"
             aria-label="Quand et quoi"
           >
-            <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
-              Quand
-            </p>
-            <TimeScopeBar
-              scope={timeScope}
-              onChange={handleScopeChange}
-              hideLabel
-            />
+            <div className="cc-axes__group">
+              <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
+                Quand
+              </p>
+              <TimeScopeBar
+                scope={timeScope}
+                onChange={handleScopeChange}
+                hideLabel
+              />
+            </div>
             <div
               role="separator"
               aria-hidden
               className="cc-axes__rule"
             />
-            <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
-              Quoi
-            </p>
-            <CategoryFilter
-              selected={selectedCategories}
-              onChange={handleCategoriesChange}
-              variant="home"
-            />
-          </div>
-          <div className="cc-axes__more md:hidden">
-            <button
-              type="button"
-              onClick={() => setShowFiltersMobile((v) => !v)}
-              className="cc-axes__chip inline-flex items-center gap-1 rounded-full border border-culture-line bg-culture-surface font-medium text-culture-ink hover:border-culture-terracotta/50"
-              aria-expanded={showFiltersMobile}
-            >
-              Filtres
-              {filterBadge > 0 ? (
-                <span className="rounded-full bg-culture-terracotta px-1.5 text-xs text-white">
-                  {filterBadge}
-                </span>
-              ) : null}
-              <span aria-hidden className="text-culture-muted">
-                {showFiltersMobile ? '▴' : '▾'}
-              </span>
-            </button>
+            <div className="cc-axes__group">
+              <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
+                Quoi
+              </p>
+              <CategoryFilter
+                selected={selectedCategories}
+                onChange={handleCategoriesChange}
+                variant="home"
+              />
+              <div className="cc-axes__more md:hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowFiltersMobile((v) => !v)}
+                  className="cc-axes__chip inline-flex items-center gap-1 rounded-full border border-culture-line bg-culture-surface font-medium text-culture-ink hover:border-culture-terracotta/50"
+                  aria-expanded={showFiltersMobile}
+                >
+                  Filtres
+                  {filterBadge > 0 ? (
+                    <span className="rounded-full bg-culture-terracotta px-1.5 text-xs text-white">
+                      {filterBadge}
+                    </span>
+                  ) : null}
+                  <span aria-hidden className="text-culture-muted">
+                    {showFiltersMobile ? '▴' : '▾'}
+                  </span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

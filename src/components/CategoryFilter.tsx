@@ -84,7 +84,7 @@ export default function CategoryFilter({
       </>
     );
 
-    /* Home: no wrapper — parent `.cc-axes` is the only overflow-x. */
+    /* Home: no wrapper — parent `.cc-axes__group` wraps on mobile, scrolls on md+. */
     if (variant === 'home') return buttons;
 
     return (

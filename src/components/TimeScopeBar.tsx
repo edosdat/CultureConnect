@@ -9,7 +9,7 @@ type Props = {
   /** `tous` / null = no chip pressed (tout à venir). */
   scope: TimeScopeId | null;
   onChange: (scope: TimeScopeId) => void;
-  /** Buttons only — parent `.cc-axes` is the single overflow-x scroller. */
+  /** Buttons only — parent `.cc-axes__group` wraps on mobile, scrolls on md+. */
   hideLabel?: boolean;
 };
 
