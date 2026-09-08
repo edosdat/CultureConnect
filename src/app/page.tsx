@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import CultureConnectApp from '@/components/CultureConnectApp';
+import HomeTop3BootFallback from '@/components/HomeTop3BootFallback';
 import { loadHomeWindow, queryAgendaDetail } from '@/lib/agendaQuery';
 import { normalizeDeepLinkId } from '@/lib/deepLink';
 import {
@@ -77,7 +79,19 @@ function firstParam(value: string | string[] | undefined): string {
   return value ?? '';
 }
 
-export default async function HomePage({
+export default function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ e?: string; id?: string }>;
+}) {
+  return (
+    <Suspense fallback={<HomeTop3BootFallback />}>
+      <HomePageContent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function HomePageContent({
   searchParams,
 }: {
   searchParams: Promise<{ e?: string; id?: string }>;
@@ -109,7 +123,6 @@ export default async function HomePage({
         initialYear={Number(boot.parisIso.slice(0, 4))}
         initialMonth={Number(boot.parisIso.slice(5, 7))}
         initialNouveauFilmIds={boot.nouveauFilmIds ?? []}
-        initialRecoByScope={boot.recoByScope}
         initialListByScope={boot.listByScope}
         initialOpenKey={initialOpenKey}
         initialOpenItem={openDetail?.item ?? null}

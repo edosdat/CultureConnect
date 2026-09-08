@@ -1037,26 +1037,6 @@ export type HomeWindow = AgendaListResponse & {
   listByScope: ListByScope;
 };
 
-function guestRecoForScope(scope: RecoBootScope, now: Date): DayItem[] {
-  const { year, month } = parisParts(now);
-  return queryAgenda(
-    {
-      scope,
-      commune: 'Toulouse',
-      q: '',
-      cats: [],
-      genres: [],
-      lieuId: null,
-      selectedDate: null,
-      year,
-      month,
-      recoUpcoming: true,
-      recoProfile: null,
-    },
-    now,
-  ).items;
-}
-
 function listSnapshotForScope(scope: RecoBootScope, now: Date): ScopeListSnapshot {
   const { year, month } = parisParts(now);
   const res = queryAgenda(
@@ -1086,6 +1066,11 @@ function listSnapshotForScope(scope: RecoBootScope, now: Date): ScopeListSnapsho
   };
 }
 
+/** Empty guest reco — SSR first paint must not wait on recommendForProfile. */
+export function deferredRecoByScope(): RecoByScope {
+  return Object.fromEntries(RECO_BOOT_SCOPES.map((s) => [s, []])) as RecoByScope;
+}
+
 function computeHomeWindow(now = new Date()): HomeWindow {
   const scope = bootTimeScope();
   const { year, month } = parisParts(now);
@@ -1104,23 +1089,22 @@ function computeHomeWindow(now = new Date()): HomeWindow {
     },
     now,
   );
-  const recoByScope = Object.fromEntries(
-    RECO_BOOT_SCOPES.map((s) => [s, guestRecoForScope(s, now)]),
-  ) as RecoByScope;
+  // Reco stays off the boot critical path (client POST reco=1 fills Top 3).
+  const recoByScope = deferredRecoByScope();
   const listByScope = Object.fromEntries(
     RECO_BOOT_SCOPES.map((s) => [s, listSnapshotForScope(s, now)]),
   ) as ListByScope;
   return { ...boot, recoByScope, listByScope };
 }
 
-/** Home boot: cached 5 min, keyed by Paris calendar day. Guest reco per scope rides along. */
+/** Home boot: cached 5 min, keyed by Paris calendar day. Reco is deferred. */
 export async function loadHomeWindow(
   now = new Date(),
 ): Promise<HomeWindow> {
   const day = parisParts(now).iso;
   return unstable_cache(
     async () => computeHomeWindow(new Date()),
-    ['home-window', day],
+    ['home-window-defer-reco', day],
     { revalidate: 300 },
   )();
 }
