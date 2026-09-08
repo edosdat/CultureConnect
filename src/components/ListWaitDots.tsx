@@ -17,14 +17,14 @@ export default function ListWaitDots() {
 }
 
 /**
- * Always-on 20px slot above Top 3. Dots fade in here when the list is slow
- * so [data-top3] does not drop (LAYOUT_JUMP). Keep in sync with HomeBootChrome.
+ * Overlay above Top 3. Dots fade in when the list is slow without reserving
+ * a well (LAYOUT_JUMP). Parent must be `relative`. Keep in sync with boot.
  */
 export function HomeListWaitSlot({ active = false }: { active?: boolean }) {
   return (
     <div
       data-home-list-wait=""
-      className={`pointer-events-none flex ${HOME_LIST_WAIT_SLOT_CLASS} items-center justify-center`}
+      className={`pointer-events-none ${HOME_LIST_WAIT_SLOT_CLASS}`}
       aria-hidden={active ? undefined : true}
     >
       {active ? <ListWaitDots /> : null}

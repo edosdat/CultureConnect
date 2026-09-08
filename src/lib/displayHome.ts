@@ -403,10 +403,11 @@ export function seanceCardShowsPitch(
 }
 
 /**
- * Reserved list-wait chrome above Top 3 (LAYOUT_JUMP at ~380px).
- * 20px — list-wait dots are 12px; keep a short slot so Top 3 does not drop.
+ * List-wait dots overlay the gap above Top 3 (LAYOUT_JUMP at ~380px).
+ * No flow height — an empty 32px well was the hole under the filters.
  */
-export const HOME_LIST_WAIT_SLOT_CLASS = 'h-5';
+export const HOME_LIST_WAIT_SLOT_CLASS =
+  'absolute inset-x-0 -top-3 z-[1] flex h-5 items-center justify-center';
 
 export type Top3SectionOpts = {
   ready: boolean;

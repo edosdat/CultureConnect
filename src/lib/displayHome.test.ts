@@ -912,8 +912,10 @@ describe('Top 3 cards — compact scan, no pitch', () => {
 });
 
 describe('Home list-wait reserve (LAYOUT_JUMP)', () => {
-  it('reserves 20px so Top 3 does not drop when dots appear', () => {
-    assert.equal(HOME_LIST_WAIT_SLOT_CLASS, 'h-5');
+  it('overlays wait dots so Top 3 has no empty well under the filters', () => {
+    assert.ok(HOME_LIST_WAIT_SLOT_CLASS.includes('absolute'));
+    assert.ok(HOME_LIST_WAIT_SLOT_CLASS.includes('h-5'));
+    assert.equal(/(?:^|\s)h-8(?:\s|$)/.test(HOME_LIST_WAIT_SLOT_CLASS), false);
   });
 });
 

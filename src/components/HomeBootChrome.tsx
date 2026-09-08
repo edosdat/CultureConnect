@@ -35,7 +35,7 @@ function homeBootMonthLabel(now = new Date()): string {
  * - .cc-axes: two wrapping groups on <md — QUAND then QUOI, labels on
  *   (~2 wrap rows each at 380px, Filtres with Quoi)
  * - Toulouse + Près de moi + Voir le mois (Paris month; wraps)
- * - HomeListWaitSlot: 20px (list-wait dots are 12px)
+ * - HomeListWaitSlot: overlay (no flow well; dots are 12px)
  *
  * SiteNav is already in the root layout. GenreFilter is null without QUOI.
  * Chips / city / wait slot are siblings of [data-top3] (same as live).
@@ -132,8 +132,10 @@ export default function HomeBootChrome({ children }: { children: ReactNode }) {
             Voir le mois ({monthLabel})
           </span>
         </div>
-        <HomeListWaitSlot />
-        {children}
+        <div className="relative">
+          <HomeListWaitSlot />
+          {children}
+        </div>
       </div>
     </>
   );

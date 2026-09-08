@@ -1863,6 +1863,7 @@ export default function CultureConnectApp({
           </button>
         </div>
 
+        <div className="relative">
         <HomeListWaitSlot active={listSlowWhere === 'top'} />
 
         <MonthCalendarDrawer
@@ -1914,6 +1915,7 @@ export default function CultureConnectApp({
           )}
         </section>
         ) : null}
+        </div>
 
         {listEmpty &&
         !showCineBlock &&
