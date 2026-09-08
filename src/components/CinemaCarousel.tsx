@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type PointerEvent, type TouchEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type TouchEvent } from 'react';
 import type { DayItem } from '@/lib/types';
 import type { AgendaDetailResponse } from '@/lib/slim';
 import type { DenseRow } from '@/lib/densify';
@@ -8,16 +8,21 @@ import {
   HERO_SCROLL_DEFER_MS,
   HERO_SWIPE_LOCK_MS,
   adoptFirstPaintHero,
+  appendOnlyStripRows,
+  applyStoredStripOrder,
   holdThumbFocus,
   heroWindowScrollY,
   pinFromHeroRow,
   readPackHeroPin,
+  readPackStripKeys,
   resolveHeroAfterRowsChange,
   resolveHeroIndex,
   resolveThumbSelectIndex,
   shouldIgnoreHeroSwipe,
   shouldIgnoreRepeatThumbSelect,
+  stripScrollLeftToHoldThumb,
   writePackHeroPin,
+  writePackStripKeys,
   type CarouselHeroRow,
   type HeroPin,
 } from '@/lib/carouselSelect';
@@ -162,6 +167,7 @@ function FilmThumb({
   return (
     <button
       type="button"
+      data-thumb-key={row.groupKey}
       onTouchStart={(e) => {
         holdThumbFocus(e.currentTarget);
         onArm?.();
@@ -323,7 +329,7 @@ function SeanceReserveLink({
 }
 
 export default function CinemaCarousel({
-  rows,
+  rows: incomingRows,
   pack = 'cine',
   mobile = false,
   focusKey = null,
@@ -351,10 +357,26 @@ export default function CinemaCarousel({
     selectedLieuId ?? '',
     soir ? '1' : '0',
   ].join('|');
+  // Commune is not part of browse scope: boot GPS nulls it and must not
+  // reshuffle an in-progress rail (left inserts / drift).
+  const browseScope = [
+    pack,
+    dateFrom ?? '',
+    dateTo ?? '',
+    selectedLieuId ?? '',
+    soir ? '1' : '0',
+  ].join('|');
   const restoredPin = readPackHeroPin(pinScope);
+  const browseScopeRef = useRef(browseScope);
+  const stripOrderRef = useRef<DenseRow[]>([]);
   const [heroKey, setHeroKey] = useState<string | null>(() => {
+    const firstRows = applyStoredStripOrder(
+      incomingRows,
+      readPackStripKeys(browseScope),
+      restoredPin,
+    );
     return adoptFirstPaintHero(
-      rows.map(toHeroRow),
+      firstRows.map(toHeroRow),
       focusKey ?? restoredPin?.key ?? null,
       restoredPin,
     ).key;
@@ -378,20 +400,25 @@ export default function CinemaCarousel({
   const pinnedRow = useRef<DenseRow | null>(null);
   const heroPin = useRef<HeroPin | null>(restoredPin);
   const lastEmittedKey = useRef<string | null>(focusKey ?? restoredPin?.key ?? null);
-  const rowsLen = useRef(rows.length);
   const touchX = useRef<number | null>(null);
   const touchY = useRef<number | null>(null);
   const touchMoved = useRef(false);
   const swipeLockUntil = useRef(0);
   const selectAt = useRef<number | null>(null);
   const armedKey = useRef<string | null>(null);
-  const rowsRef = useRef(rows);
-  rowsRef.current = rows;
+  const stripTouched = useRef(false);
+  const restoringStrip = useRef(false);
+  const stripAnchor = useRef<{
+    key: string;
+    offset: number;
+    scroll: number;
+  } | null>(null);
   const pinScopeRef = useRef(pinScope);
   if (pinScopeRef.current !== pinScope) {
     pinScopeRef.current = pinScope;
-    heroPin.current = readPackHeroPin(pinScope);
-    pinnedBySelect.current = false;
+    heroPin.current =
+      readPackHeroPin(pinScope) ?? readPackHeroPin(browseScope);
+    pinnedBySelect.current = Boolean(heroPin.current);
     pinnedRow.current = null;
     lastEmittedKey.current = heroPin.current?.key ?? null;
     pendingAdvance.current = false;
@@ -399,6 +426,32 @@ export default function CinemaCarousel({
       setHeroKey(heroPin.current?.key ?? null);
     }
   }
+  if (browseScopeRef.current !== browseScope) {
+    browseScopeRef.current = browseScope;
+    stripOrderRef.current = [];
+    stripAnchor.current = null;
+  }
+  if (stripOrderRef.current.length === 0) {
+    stripOrderRef.current = applyStoredStripOrder(
+      incomingRows,
+      readPackStripKeys(browseScope),
+      heroPin.current ?? restoredPin,
+    );
+  }
+  const rows = appendOnlyStripRows(
+    stripOrderRef.current,
+    incomingRows,
+    heroPin.current ?? restoredPin ?? heroKey,
+  );
+  stripOrderRef.current = rows;
+  writePackStripKeys(
+    browseScope,
+    rows.map((row) => row.groupKey),
+  );
+  const stripKeys = rows.map((row) => row.groupKey).join('\n');
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+  const rowsLen = useRef(rows.length);
 
   function markMoved() {
     userMoved.current = true;
@@ -420,6 +473,7 @@ export default function CinemaCarousel({
     pendingAdvance.current = false;
     lastEmittedKey.current = key;
     writePackHeroPin(pinScope, pin);
+    writePackHeroPin(browseScope, pin);
     setHeroKey(key);
   }
 
@@ -436,6 +490,7 @@ export default function CinemaCarousel({
       heroPin.current = adopted.pin;
       pinnedBySelect.current = true;
       writePackHeroPin(pinScope, adopted.pin);
+      writePackHeroPin(browseScope, adopted.pin);
       if (adopted.key && adopted.key !== heroKey) setHeroKey(adopted.key);
     }
   }
@@ -449,6 +504,7 @@ export default function CinemaCarousel({
     ) {
       heroPin.current = pinFromHeroRow(toHeroRow(heroFromRows), heroFromRows.groupKey);
       writePackHeroPin(pinScope, heroPin.current);
+      writePackHeroPin(browseScope, heroPin.current);
     }
   }
   const hero = heroFromRows ?? pinnedRow.current ?? rows[0];
@@ -465,6 +521,7 @@ export default function CinemaCarousel({
     stripTouchCleanup.current = null;
     if (!el) return;
     const onTouchStart = (e: globalThis.TouchEvent) => {
+      stripTouched.current = true;
       const btn = (e.target as Element | null)?.closest?.('button');
       if (btn instanceof HTMLElement && el.contains(btn)) {
         holdThumbFocus(btn);
@@ -581,7 +638,41 @@ export default function CinemaCarousel({
     const row = rows.find((r) => r.groupKey === next.key);
     if (row) persistHero(row, next.key);
     else setHeroKey(next.key);
-  }, [rows, heroKey, hasMore]);
+  }, [stripKeys, heroKey, hasMore]);
+
+  useLayoutEffect(() => {
+    const el = stripRef.current;
+    const key = heroKey;
+    if (!el || !key) return;
+    const thumb = el.querySelector(
+      `[data-thumb-key="${CSS.escape(key)}"]`,
+    );
+    if (!(thumb instanceof HTMLElement)) return;
+    const prev = stripAnchor.current;
+    if (!prev || prev.key !== key) {
+      stripAnchor.current = {
+        key,
+        offset: thumb.offsetLeft,
+        scroll: el.scrollLeft,
+      };
+      return;
+    }
+    const nextLeft = stripScrollLeftToHoldThumb({
+      prevScrollLeft: prev.scroll,
+      prevThumbOffset: prev.offset,
+      nextThumbOffset: thumb.offsetLeft,
+    });
+    if (Math.abs(nextLeft - el.scrollLeft) > 1) {
+      restoringStrip.current = true;
+      el.scrollLeft = nextLeft;
+      restoringStrip.current = false;
+    }
+    stripAnchor.current = {
+      key,
+      offset: thumb.offsetLeft,
+      scroll: el.scrollLeft,
+    };
+  }, [stripKeys, heroKey]);
 
   function scrollStrip(dir: -1 | 1) {
     const el = stripRef.current;
@@ -601,6 +692,22 @@ export default function CinemaCarousel({
   function onStripScroll() {
     const el = stripRef.current;
     if (!el) return;
+    if (!restoringStrip.current && stripAnchor.current) {
+      const key = stripAnchor.current.key;
+      const thumb = el.querySelector(
+        `[data-thumb-key="${CSS.escape(key)}"]`,
+      );
+      stripAnchor.current = {
+        key,
+        offset:
+          thumb instanceof HTMLElement
+            ? thumb.offsetLeft
+            : stripAnchor.current.offset,
+        scroll: el.scrollLeft,
+      };
+    }
+    // Layout / restore / iOS rubber-band must not requestMore (left inserts).
+    if (restoringStrip.current || !stripTouched.current) return;
     markMoved();
     if (el.scrollLeft + el.clientWidth < el.scrollWidth - 96) return;
     requestMore();
@@ -703,6 +810,7 @@ export default function CinemaCarousel({
         pinnedBySelect.current = false;
         heroPin.current = null;
         writePackHeroPin(pinScope, null);
+        writePackHeroPin(browseScope, null);
         requestMore();
       }
     } else if (heroIndex > 0) {

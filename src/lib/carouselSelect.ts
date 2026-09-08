@@ -8,6 +8,9 @@
  * Selection is also stored outside the carousel's useState so a remount
  * (parent data refresh, Suspense, conditional pack unmount) cannot snap
  * back to rows[0].
+ *
+ * Product lock: while browsing, pack rails are append-only to the right.
+ * densify / requestMore / GPS reorder must not insert thumbs to the LEFT.
  */
 
 /** Sticky search clearance — matches `scroll-mt-16` / HomeSection. */
@@ -265,6 +268,129 @@ export function resolveHeroAfterRowsChange(opts: {
     key,
     pendingAdvance: pending,
   };
+}
+
+/**
+ * Product lock: pack rails never insert to the LEFT while browsing.
+ * Keep the already-shown order; new densify / requestMore keys append right.
+ */
+export function appendOnlyStripRows<T extends { groupKey: string }>(
+  previous: readonly T[],
+  incoming: readonly T[],
+  pin?: HeroPin | string | null,
+): T[] {
+  if (previous.length === 0) return [...incoming];
+  const pinObj: HeroPin | null =
+    typeof pin === 'string'
+      ? { key: pin, groupKey: pin, itemKey: pin, seanceKeys: [pin] }
+      : pin ?? null;
+
+  const incomingByKey = new Map<string, T>();
+  for (const row of incoming) incomingByKey.set(row.groupKey, row);
+
+  const kept: T[] = [];
+  const keptKeys = new Set<string>();
+
+  const asHero = (row: T): CarouselHeroRow => {
+    const rec = row as T & {
+      itemKey?: string;
+      item?: { key?: string };
+      seanceKeys?: string[];
+      seances?: Array<{ key: string }>;
+    };
+    return {
+      groupKey: row.groupKey,
+      itemKey: rec.itemKey || rec.item?.key || row.groupKey,
+      seanceKeys: rec.seanceKeys ?? rec.seances?.map((s) => s.key),
+    };
+  };
+
+  for (const old of previous) {
+    const fresh = incomingByKey.get(old.groupKey);
+    if (fresh) {
+      kept.push(fresh);
+      keptKeys.add(fresh.groupKey);
+      continue;
+    }
+    if (!pinObj || !rowMatchesHeroPin(asHero(old), pinObj)) continue;
+    const remint = incoming.find(
+      (row) =>
+        !keptKeys.has(row.groupKey) && rowMatchesHeroPin(asHero(row), pinObj),
+    );
+    if (remint) {
+      kept.push(remint);
+      keptKeys.add(remint.groupKey);
+    } else {
+      kept.push(old);
+      keptKeys.add(old.groupKey);
+    }
+  }
+
+  for (const row of incoming) {
+    if (keptKeys.has(row.groupKey)) continue;
+    kept.push(row);
+    keptKeys.add(row.groupKey);
+  }
+  return kept;
+}
+
+/** How many slots the selected thumb moved (positive = inserted on its left). */
+export function keysInsertedBefore(
+  prevKeys: readonly string[],
+  nextKeys: readonly string[],
+  selectedKey: string,
+): number {
+  const prevIdx = prevKeys.indexOf(selectedKey);
+  const nextIdx = nextKeys.indexOf(selectedKey);
+  if (prevIdx < 0 || nextIdx < 0) return 0;
+  return nextIdx - prevIdx;
+}
+
+/**
+ * Keep the selected thumb in the same viewport slot after the rail rewrites.
+ * `slot = prevThumbOffset - prevScrollLeft`, then restore that slot.
+ */
+export function stripScrollLeftToHoldThumb(opts: {
+  prevScrollLeft: number;
+  prevThumbOffset: number;
+  nextThumbOffset: number;
+}): number {
+  const slot = opts.prevThumbOffset - opts.prevScrollLeft;
+  return Math.max(0, opts.nextThumbOffset - slot);
+}
+
+/** Survives remount so a hydrate cannot reshuffle an in-progress browse. */
+const packStripKeys = new Map<string, string[]>();
+
+export function readPackStripKeys(scope: string): string[] | null {
+  const keys = packStripKeys.get(scope);
+  return keys?.length ? [...keys] : null;
+}
+
+export function writePackStripKeys(scope: string, keys: readonly string[]): void {
+  if (!keys.length) packStripKeys.delete(scope);
+  else packStripKeys.set(scope, [...keys]);
+}
+
+/** Test helper — do not use from UI. */
+export function clearPackStripKeys(): void {
+  packStripKeys.clear();
+}
+
+/**
+ * Re-apply a stored browse order, then append-only against `incoming`.
+ */
+export function applyStoredStripOrder<T extends { groupKey: string }>(
+  incoming: readonly T[],
+  storedKeys: readonly string[] | null | undefined,
+  pin?: HeroPin | string | null,
+): T[] {
+  if (!storedKeys?.length) return [...incoming];
+  const incomingByKey = new Map(incoming.map((row) => [row.groupKey, row]));
+  const previous = storedKeys
+    .map((key) => incomingByKey.get(key))
+    .filter((row): row is T => Boolean(row));
+  return appendOnlyStripRows(previous, incoming, pin);
 }
 
 /**

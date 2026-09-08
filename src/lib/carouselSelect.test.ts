@@ -7,19 +7,26 @@ import {
   HOME_STICKY_OFFSET_PX,
   THUMB_SELECT_LOCK_MS,
   adoptFirstPaintHero,
+  appendOnlyStripRows,
+  applyStoredStripOrder,
   clearPackHeroPins,
+  clearPackStripKeys,
   holdThumbFocus,
   heroWindowScrollY,
+  keysInsertedBefore,
   mergePinnedHeroRow,
   pinFromHeroRow,
   readPackHeroPin,
+  readPackStripKeys,
   resolveHeroAfterRowsChange,
   resolveHeroIndex,
   resolveThumbSelectIndex,
   rowMatchesHeroPin,
   shouldIgnoreHeroSwipe,
   shouldIgnoreRepeatThumbSelect,
+  stripScrollLeftToHoldThumb,
   writePackHeroPin,
+  writePackStripKeys,
   type CarouselHeroRow,
 } from './carouselSelect';
 
@@ -370,6 +377,119 @@ describe('mergePinnedHeroRow', () => {
     );
     assert.equal(merged.length, 2);
     assert.equal(merged[1]?.groupKey, kyoto.groupKey);
+  });
+});
+
+describe('appendOnlyStripRows', () => {
+  const a = film('film:w:a', 'a-1');
+  const b = film('film:w:b', 'b-1');
+  const c = film('film:w:c', 'c-1');
+  const x = film('film:w:x', 'x-1');
+  const y = film('film:w:y', 'y-1');
+  const z = film('film:w:z', 'z-1');
+
+  it('uses incoming order on first paint', () => {
+    const out = appendOnlyStripRows([], [x, y, a]);
+    assert.deepEqual(
+      out.map((row) => row.groupKey),
+      [x, y, a].map((row) => row.groupKey),
+    );
+  });
+
+  it('never inserts densify/requestMore keys to the left of shown thumbs', () => {
+    const incoming = [x, y, a, b, c, z];
+    const out = appendOnlyStripRows([a, b, c], incoming, b.groupKey);
+    assert.deepEqual(
+      out.map((row) => row.groupKey),
+      [a, b, c, x, y, z].map((row) => row.groupKey),
+    );
+    assert.equal(
+      keysInsertedBefore(
+        [a, b, c].map((row) => row.groupKey),
+        out.map((row) => row.groupKey),
+        b.groupKey,
+      ),
+      0,
+    );
+  });
+
+  it('keeps the pinned thumb when the new slice dropped it (mobile cap)', () => {
+    const out = appendOnlyStripRows([a, b, c], [x, y, z], pinFromHeroRow(b));
+    assert.equal(out[0]?.groupKey, b.groupKey);
+    assert.deepEqual(
+      out.map((row) => row.groupKey),
+      [b, x, y, z].map((row) => row.groupKey),
+    );
+  });
+
+  it('keeps a reminted pin (DenseRow item.key) instead of inserting left', () => {
+    const stub = {
+      groupKey: 'film:w:sous le ciel de',
+      item: { key: 'kyoto-1' },
+      seances: [{ key: 'kyoto-1' }],
+    };
+    const full = {
+      groupKey: 'film:w:sous le ciel de kyoto',
+      item: { key: 'kyoto-1' },
+      seances: [{ key: 'kyoto-1' }, { key: 'kyoto-2' }],
+    };
+    const extra = {
+      groupKey: 'film:w:new',
+      item: { key: 'new-1' },
+      seances: [{ key: 'new-1' }],
+    };
+    const out = appendOnlyStripRows(
+      [stub],
+      [extra, full],
+      pinFromHeroRow({
+        groupKey: stub.groupKey,
+        itemKey: stub.item.key,
+        seanceKeys: ['kyoto-1'],
+      }),
+    );
+    assert.equal(out[0]?.groupKey, full.groupKey);
+    assert.equal(out[1]?.groupKey, extra.groupKey);
+  });
+
+  it('appends only on remount via stored browse keys', () => {
+    const stored = applyStoredStripOrder([x, a, b, y], [a.groupKey, b.groupKey]);
+    assert.deepEqual(
+      stored.map((row) => row.groupKey),
+      [a, b, x, y].map((row) => row.groupKey),
+    );
+  });
+});
+
+describe('stripScrollLeftToHoldThumb', () => {
+  it('shifts scrollLeft by the width inserted before the selected thumb', () => {
+    assert.equal(
+      stripScrollLeftToHoldThumb({
+        prevScrollLeft: 80,
+        prevThumbOffset: 240,
+        nextThumbOffset: 480,
+      }),
+      320,
+    );
+  });
+
+  it('does not go negative when earlier thumbs are removed', () => {
+    assert.equal(
+      stripScrollLeftToHoldThumb({
+        prevScrollLeft: 40,
+        prevThumbOffset: 40,
+        nextThumbOffset: 0,
+      }),
+      0,
+    );
+  });
+});
+
+describe('pack strip key store', () => {
+  beforeEach(() => clearPackStripKeys());
+
+  it('round-trips browse keys', () => {
+    writePackStripKeys('cine|d', ['film:w:a', 'film:w:b']);
+    assert.deepEqual(readPackStripKeys('cine|d'), ['film:w:a', 'film:w:b']);
   });
 });
 
