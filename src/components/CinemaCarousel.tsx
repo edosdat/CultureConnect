@@ -42,6 +42,7 @@ import {
 } from '@/lib/displayFilter';
 import { seanceDateIso } from '@/lib/timeScope';
 import {
+  HOME_PACK_MORE_ELLIPSIS,
   HOME_PACK_MORE_LABEL,
   isLikelyMobile,
   itemPitch,
@@ -899,9 +900,9 @@ export default function CinemaCarousel({
             data-pack-more={pack}
             onClick={onNeedMore}
             aria-label={copy.more}
-            className="flex aspect-[2/3] w-[7.5rem] shrink-0 flex-col items-center justify-center px-2 text-center text-sm font-medium leading-snug text-culture-muted hover:text-culture-ink sm:w-[8.5rem]"
+            className="flex aspect-[2/3] w-[7.5rem] shrink-0 flex-col items-center justify-center px-2 text-center text-2xl font-light leading-none tracking-[0.2em] text-culture-muted hover:text-culture-ink sm:w-[8.5rem]"
           >
-            {copy.more}
+            {HOME_PACK_MORE_ELLIPSIS}
           </button>
         ) : null}
       </div>

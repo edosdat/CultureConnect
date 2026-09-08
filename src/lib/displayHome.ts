@@ -720,7 +720,9 @@ export const HOME_PACK_MORE_CAT: Record<
   expo: 'expo_patrimoine',
 };
 
-/** Visible + aria-label rail CTA — pack title, not a bare ellipsis. */
+/** Visible rail CTA — subtle ellipsis; pack title is aria-label only. */
+export const HOME_PACK_MORE_ELLIPSIS = '…';
+
 export const HOME_PACK_MORE_LABEL: Record<HomePackId, string> = {
   cine: 'Plus de ciné',
   theatre: 'Plus de théâtre',

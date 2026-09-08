@@ -6,6 +6,7 @@ import {
   cineRows,
   DISPLAY_SLOT_ORDER,
   HOME_PACK_MORE_CAT,
+  HOME_PACK_MORE_ELLIPSIS,
   HOME_PACK_MORE_LABEL,
   HOME_SECTION_TITLE_CLASS,
   HOME_SECTION_TITLE_RULE_CLASS,
@@ -347,7 +348,8 @@ describe('pack rail more CTA', () => {
     assert.equal(HOME_PACK_MORE_CAT.expo, 'expo_patrimoine');
   });
 
-  it('names the rail CTA after the pack, not a bare ellipsis', () => {
+  it('shows a subtle ellipsis; pack title is aria-label only', () => {
+    assert.equal(HOME_PACK_MORE_ELLIPSIS, '…');
     assert.equal(HOME_PACK_MORE_LABEL.theatre, 'Plus de théâtre');
     assert.equal(HOME_PACK_MORE_LABEL.cine, 'Plus de ciné');
     assert.equal(HOME_PACK_MORE_LABEL.musique, 'Plus de musique');
