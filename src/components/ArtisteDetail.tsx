@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import type { ArtisteWithDates, GenreLegend } from '@/lib/types';
 import { labelGenre, splitUpcomingPast } from '@/lib/artists';
+import { externalPageUrl } from '@/lib/externalUrl';
 import { artistPressCitation } from '@/lib/pressCitation';
 import { formatDateFr } from '@/lib/labels';
 import { compactTimeRangeFromFields } from '@/lib/eventTimes';
@@ -29,6 +30,7 @@ function DateRow({
   eventTitle: string;
   url: string;
 }) {
+  const href = externalPageUrl(url);
   const when = compactTimeRangeFromFields(heure_debut, heure_fin);
   return (
     <li className="rounded-2xl border border-culture-sand bg-white px-4 py-3">
@@ -46,9 +48,9 @@ function DateRow({
       {eventTitle && (
         <p className="mt-0.5 text-sm text-culture-muted">{eventTitle}</p>
       )}
-      {url && (
+      {href && (
         <a
-          href={url}
+          href={href}
           target="_blank"
           rel="noopener noreferrer"
           className="mt-2 inline-block text-sm text-culture-terracotta hover:underline"

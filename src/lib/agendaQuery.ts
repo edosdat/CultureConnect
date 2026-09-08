@@ -1260,7 +1260,8 @@ export function queryAgendaDetail(
           p.evenement?.titre,
         ),
       ),
-      commune,
+      // Title match only — a Toulouse chip must not drop Ramonville créneaux.
+      null,
       window,
     );
   }

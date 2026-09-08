@@ -2,6 +2,7 @@
  * Official ticketing URL for one séance. Display-only — no checkout.
  */
 
+import { externalPageUrl } from './externalUrl';
 import type { DayItem } from './types';
 
 export type ReservePick = { url: string; soldOut: boolean };
@@ -35,19 +36,19 @@ export function looksLikeTicket(url: string): boolean {
 export function rawUrls(item: DayItem): { bille: string; page: string } {
   if (item.kind === 'programme') {
     return {
-      bille: (
+      bille: externalPageUrl(
         (item.programme.billetterie_url || '').trim() ||
-        (item.evenement?.billetterie_url || '').trim()
+          (item.evenement?.billetterie_url || '').trim(),
       ),
-      page: (
+      page: externalPageUrl(
         (item.programme.url || '').trim() ||
-        (item.evenement?.url_source || '').trim()
+          (item.evenement?.url_source || '').trim(),
       ),
     };
   }
   return {
-    bille: (item.evenement.billetterie_url || '').trim(),
-    page: (item.evenement.url_source || '').trim(),
+    bille: externalPageUrl(item.evenement.billetterie_url || ''),
+    page: externalPageUrl(item.evenement.url_source || ''),
   };
 }
 
@@ -70,9 +71,10 @@ export function reservePickForVenueGroup(items: DayItem[]): ReservePick {
   let soldOut = false;
   for (const rel of items) {
     if (rel.kind !== 'programme') continue;
-    const bille =
+    const bille = externalPageUrl(
       (rel.programme.billetterie_url || '').trim() ||
-      (rel.evenement?.billetterie_url || '').trim();
+        (rel.evenement?.billetterie_url || '').trim(),
+    );
     if (bille) {
       if (isSoldOutUrl(bille)) {
         soldOut = true;
@@ -80,10 +82,10 @@ export function reservePickForVenueGroup(items: DayItem[]): ReservePick {
       }
       return { url: bille, soldOut: false };
     }
-    const page = (rel.programme.url || '').trim();
+    const page = externalPageUrl((rel.programme.url || '').trim());
     if (page && isSoldOutUrl(page)) soldOut = true;
     else if (!ticketPage && page && looksLikeTicket(page)) ticketPage = page;
-    const site = (rel.lieu?.site_web || '').trim();
+    const site = externalPageUrl((rel.lieu?.site_web || '').trim());
     if (!siteWeb && site && !isSoldOutUrl(site)) siteWeb = site;
   }
   if (ticketPage) return { url: ticketPage, soldOut: false };

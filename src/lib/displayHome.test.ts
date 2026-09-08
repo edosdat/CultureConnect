@@ -827,6 +827,25 @@ describe('shouldShowTop3Section — hide on QUOI / search, keep on date', () => 
   });
 });
 
+describe('Fleur de peau (EHG007) pack + search', () => {
+  it('is a theatre pack card (festival + cirque), not leftover / cine', () => {
+    const fleur = item({
+      key: 'p:FEP0029',
+      cat: 'festival',
+      title: "Fleur de peau - L'An 01",
+      form: 'festival',
+      genre: 'cirque_arts_rue',
+    });
+    assert.equal(isTheatreDayItem(fleur), true);
+    assert.equal(homePackOfItem(fleur), 'theatre');
+    assert.equal(isCinemaDayItem(fleur), false);
+    assert.deepEqual(
+      theatreRows([fleur], new Set()).map((r) => r.item.key),
+      ['p:FEP0029'],
+    );
+  });
+});
+
 describe('Top 3 cards — compact scan, no pitch', () => {
   it('rail (Top 3) hides pitch; catalogue / live / compact keep it', () => {
     assert.equal(seanceCardShowsPitch('rail'), false);

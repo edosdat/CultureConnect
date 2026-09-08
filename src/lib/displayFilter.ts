@@ -4,6 +4,7 @@
  */
 
 import { filterItemsByCommune } from './commune';
+import { isCinemaDayItem } from './nouveautesCine';
 import { filterSeancesForDisplay } from './timeScope';
 import type { DayItem } from './types';
 
@@ -26,6 +27,31 @@ export function itemMatchesLieu(
 ): boolean {
   if (!lieuId) return true;
   return (item.lieu?.lieu_id || '') === lieuId;
+}
+
+/**
+ * Title search already ignores commune on the API — keep the client in sync
+ * so a Ramonville hit is not blanked by the default Toulouse chip.
+ */
+export function listDisplayFilter(
+  filter: DisplayFilter,
+  opts: { searching?: boolean },
+): DisplayFilter {
+  if (opts.searching) return { ...filter, commune: null };
+  return filter;
+}
+
+/**
+ * Living-arts fiche créneaux are the same work (title match).
+ * A Toulouse chip must not blank Ramonville festival rows.
+ * Cinema keeps commune (multi-salle cities).
+ */
+export function relatedSeancesFilter(
+  filter: DisplayFilter,
+  item: DayItem | null | undefined,
+): DisplayFilter {
+  if (!item || isCinemaDayItem(item)) return filter;
+  return { ...filter, commune: null };
 }
 
 export function filterSeancesForActiveFilters<T extends DayItem>(

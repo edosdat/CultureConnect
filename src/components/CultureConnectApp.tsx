@@ -12,7 +12,10 @@ import {
 } from '@/lib/homeEventsCounter';
 import { useSignals } from './SignalsProvider';
 import { filterItemsByCommune, normalizeCommune } from '@/lib/commune';
-import { filterSeancesForActiveFilters } from '@/lib/displayFilter';
+import {
+  filterSeancesForActiveFilters,
+  relatedSeancesFilter,
+} from '@/lib/displayFilter';
 import { densify, densifiedCardCount } from '@/lib/densify';
 import { filmIdOfItem, homePackOfItem, isCinemaDayItem } from '@/lib/nouveautesCine';
 import {
@@ -972,7 +975,8 @@ export default function CultureConnectApp({
       startIso: scopeRange.startIso,
       endIso: scopeRange.endIso,
       soir: timeScope === 'soir',
-      commune: selectedCommune,
+      // Title search already ignores commune on the API.
+      commune: searching ? null : selectedCommune,
       lieuId: selectedLieuId,
     }),
     [
@@ -981,6 +985,7 @@ export default function CultureConnectApp({
       timeScope,
       selectedCommune,
       selectedLieuId,
+      searching,
     ],
   );
 
@@ -1233,13 +1238,12 @@ export default function CultureConnectApp({
     ) {
       return [];
     }
+    const scoped = filterSeancesForActiveFilters(listItems, activeFilter);
+    const leftover = searching
+      ? scoped
+      : scoped.filter((item) => !homePackOfItem(item));
     return densify(
-      dedupAgainstTop3(
-        filterSeancesForActiveFilters(listItems, activeFilter).filter(
-          (item) => !homePackOfItem(item),
-        ),
-        top3Set,
-      ),
+      dedupAgainstTop3(leftover, top3Set),
       gpsOrigin ? { origin: gpsOrigin } : undefined,
     );
   }, [
@@ -1252,6 +1256,7 @@ export default function CultureConnectApp({
     activeFilter,
     top3Set,
     gpsOrigin,
+    searching,
   ]);
   const crossSellPool = useMemo(
     () => [
@@ -1462,7 +1467,9 @@ export default function CultureConnectApp({
       try {
         const qs = new URLSearchParams();
         qs.set('id', selectedItemKey);
-        if (selectedCommune) qs.set('commune', selectedCommune);
+        if (selectedCommune && slim && isCinemaDayItem(slim)) {
+          qs.set('commune', selectedCommune);
+        }
         if (selectedLieuId) qs.set('lieu', selectedLieuId);
         if (scopeRange.startIso) qs.set('date_from', scopeRange.startIso);
         if (scopeRange.endIso) qs.set('date_to', scopeRange.endIso);
@@ -1473,7 +1480,10 @@ export default function CultureConnectApp({
         if (cancelled || gen !== detailFetchGen.current) return;
         setDetailItem(data.item);
         setRelatedFilmItems(
-          filterSeancesForActiveFilters(data.relatedItems ?? [], activeFilter),
+          filterSeancesForActiveFilters(
+            data.relatedItems ?? [],
+            relatedSeancesFilter(activeFilter, data.item),
+          ),
         );
         setAussiCeSoirItems(data.aussiCeSoir ?? []);
         if (!slim) trackItem(data.item, 'open_card');
