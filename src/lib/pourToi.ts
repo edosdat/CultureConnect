@@ -278,7 +278,14 @@ export function reasonLineForState(
     }
     return 'D’après tes derniers clics';
   }
-  if (best.kind === 'reserve' || best.kind === 'agenda_add' || best.kind === 'ics') {
+  if (
+    best.kind === 'reserve' ||
+    best.kind === 'agenda_add' ||
+    best.kind === 'ics' ||
+    best.kind === 'favorite' ||
+    best.kind === 'outbound_click' ||
+    best.kind === 'share'
+  ) {
     return 'D’après tes derniers clics';
   }
   if (best.kind === 'chip_cat' || best.kind === 'search') {

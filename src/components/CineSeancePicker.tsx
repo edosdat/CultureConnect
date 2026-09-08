@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import type { DayItem } from '@/lib/types';
 import type { GeoPos } from '@/lib/nearMe';
 import { reservePickOf } from '@/lib/reserve';
+import { useSignals } from './SignalsProvider';
 import {
   cinemaKeyOf,
   cinemaOptionLabel,
@@ -24,6 +25,7 @@ function SeanceReserveLink({
   item: DayItem;
   onReserve?: (item: DayItem) => void;
 }) {
+  const { trackItem } = useSignals();
   const pick = reservePickOf(item);
   if (pick.soldOut) {
     return (
@@ -41,7 +43,10 @@ function SeanceReserveLink({
       href={pick.url}
       target="_blank"
       rel="noopener noreferrer"
-      onClick={() => onReserve?.(item)}
+      onClick={() => {
+        trackItem(item, 'outbound_click');
+        onReserve?.(item);
+      }}
       className="inline-flex h-11 shrink-0 items-center whitespace-nowrap rounded-full bg-culture-terracotta px-3 text-sm font-semibold text-white hover:bg-culture-clay sm:px-4"
     >
       Réserver

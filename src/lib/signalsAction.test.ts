@@ -1,0 +1,243 @@
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  SIGNAL_WEIGHTS,
+  applyIncomingSignals,
+  applySignalToProfile,
+  cancelFavoriteSignals,
+  dedupAppend,
+  emptyProfile,
+  favoriteToggleKind,
+  makeSignal,
+  payloadFromDayItem,
+  shouldMapTasteIngest,
+  shouldPromptLogin,
+  type Signal,
+} from './signals';
+import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
+
+function lieu(): Lieu {
+  return {
+    lieu_id: 'L1',
+    nom: 'Salle',
+    type: '',
+    adresse: '',
+    commune: 'Toulouse',
+    dist_km_capitole: '',
+    site_web: '',
+    notes: '',
+  };
+}
+
+function ev(): Evenement {
+  return {
+    event_id: 'ev-1',
+    lieu_id: 'L1',
+    date_debut: '2026-09-02',
+    date_fin: '2026-09-02',
+    heure_debut: '20:00',
+    heure_fin: '',
+    prix: '',
+    gratuit: '',
+    url_source: '',
+    description_courte: '',
+    statut: 'ouvert',
+    titre: 'Stand-up',
+    categorie: 'theatre',
+    genre: 'humour_standup',
+    moods: 'rigolo',
+  };
+}
+
+function prog(): ProgrammeItem {
+  return {
+    programme_id: 'pr-1',
+    event_id: 'ev-1',
+    nom_item: 'Stand-up',
+    lieu_id: 'L1',
+    type_item: '',
+    date: '2026-09-02',
+    heure_debut: '20:00',
+    heure_fin: '',
+    scene_salle: '',
+    prix_item: '',
+    url: '',
+    notes: '',
+    genre: 'humour_standup',
+    artiste_id: '',
+    moods: 'rigolo',
+  };
+}
+
+function item(): DayItem {
+  return {
+    kind: 'programme',
+    key: 'pr-1',
+    dayIso: '2026-09-02',
+    programme: prog(),
+    evenement: ev(),
+    lieu: lieu(),
+  };
+}
+
+describe('SIGNAL_WEIGHTS — matching engine step A', () => {
+  it('assigns spec weights including new strong signals', () => {
+    assert.equal(SIGNAL_WEIGHTS.favorite, 6);
+    assert.equal(SIGNAL_WEIGHTS.unfavorite, -6);
+    assert.equal(SIGNAL_WEIGHTS.reserve, 6);
+    assert.equal(SIGNAL_WEIGHTS.outbound_click, 4);
+    assert.equal(SIGNAL_WEIGHTS.share, 3);
+    assert.equal(SIGNAL_WEIGHTS.ics, 5);
+    assert.equal(SIGNAL_WEIGHTS.agenda_add, 5);
+    assert.equal(SIGNAL_WEIGHTS.open_card, 2);
+    assert.ok(SIGNAL_WEIGHTS.favorite > SIGNAL_WEIGHTS.outbound_click);
+    assert.ok(SIGNAL_WEIGHTS.outbound_click > SIGNAL_WEIGHTS.share);
+    assert.ok(SIGNAL_WEIGHTS.share > SIGNAL_WEIGHTS.open_card);
+    assert.equal(SIGNAL_WEIGHTS.favorite, -SIGNAL_WEIGHTS.unfavorite);
+  });
+
+  it('makeSignal uses table weights for new kinds', () => {
+    for (const kind of ['favorite', 'unfavorite', 'outbound_click', 'share'] as const) {
+      const s = makeSignal({ kind, event_id: 'ev-1', genres: [], moods: [] });
+      assert.equal(s.weight, SIGNAL_WEIGHTS[kind], kind);
+      assert.equal(s.kind, kind);
+      assert.equal(s.event_id, 'ev-1');
+    }
+  });
+});
+
+describe('favorite / unfavorite cancel', () => {
+  it('favoriteToggleKind maps heart on/off to kinds', () => {
+    assert.equal(favoriteToggleKind(false), 'favorite');
+    assert.equal(favoriteToggleKind(true), 'unfavorite');
+  });
+
+  it('unfavorite reverses favorite contribution on the same tags', () => {
+    const fav = makeSignal({
+      kind: 'favorite',
+      event_id: 'ev-1',
+      programme_id: 'pr-1',
+      moods: ['rigolo'],
+      genres: ['standup'],
+    });
+    const unfav = makeSignal({
+      kind: 'unfavorite',
+      event_id: 'ev-1',
+      programme_id: 'pr-1',
+      moods: ['rigolo'],
+      genres: ['standup'],
+    });
+    assert.equal(fav.weight, 6);
+    assert.equal(unfav.weight, -6);
+
+    const afterFav = applyIncomingSignals(emptyProfile(), [fav]);
+    assert.equal(afterFav.moods.rigolo?.weight, 6);
+    assert.ok((afterFav.genres.standup?.weight ?? 0) > 0);
+
+    const afterCancel = applyIncomingSignals(afterFav, [unfav]);
+    assert.equal(afterCancel.moods.rigolo, undefined);
+    assert.equal(afterCancel.genres.standup, undefined);
+  });
+
+  it('unfavorite cancels a matching favorite in the signal list', () => {
+    const fav = makeSignal({
+      kind: 'favorite',
+      event_id: 'ev-1',
+      programme_id: 'pr-1',
+      moods: ['rigolo'],
+      genres: ['standup'],
+    });
+    const other = makeSignal({
+      kind: 'favorite',
+      event_id: 'ev-other',
+      moods: ['tendre'],
+      genres: ['drame'],
+    });
+    const unfav = makeSignal({
+      kind: 'unfavorite',
+      event_id: 'ev-1',
+      programme_id: 'pr-1',
+      moods: ['rigolo'],
+      genres: ['standup'],
+    });
+    const cancelled = cancelFavoriteSignals([fav, other], unfav);
+    assert.equal(
+      cancelled.some((s) => s.kind === 'favorite' && s.event_id === 'ev-1'),
+      false,
+    );
+    assert.equal(cancelled.some((s) => s.event_id === 'ev-other'), true);
+
+    const appended = dedupAppend([fav, other], unfav, 40);
+    assert.equal(
+      appended.some((s) => s.kind === 'favorite' && s.event_id === 'ev-1'),
+      false,
+    );
+    assert.equal(appended.some((s) => s.kind === 'unfavorite'), true);
+    assert.equal(appended.some((s) => s.event_id === 'ev-other'), true);
+  });
+
+  it('does not leave negative taste weights after cancel', () => {
+    const p = emptyProfile();
+    applySignalToProfile(
+      p,
+      makeSignal({
+        kind: 'unfavorite',
+        moods: ['rigolo'],
+        genres: ['standup'],
+      }),
+    );
+    assert.deepEqual(p.moods, {});
+    assert.deepEqual(p.genres, {});
+  });
+});
+
+describe('UI tracking paths — payloadFromDayItem', () => {
+  it('favorite / unfavorite / share / outbound_click carry event + programme ids', () => {
+    const fiche = item();
+    for (const kind of ['favorite', 'unfavorite', 'share', 'outbound_click'] as const) {
+      const payload = payloadFromDayItem(fiche, kind);
+      const signal = makeSignal(payload);
+      assert.equal(payload.kind, kind, kind);
+      assert.equal(payload.event_id, 'ev-1', kind);
+      assert.equal(payload.programme_id, 'pr-1', kind);
+      assert.equal(signal.event_id, 'ev-1', kind);
+      assert.equal(signal.programme_id, 'pr-1', kind);
+      assert.equal(signal.weight, SIGNAL_WEIGHTS[kind], kind);
+      assert.ok(signal.moods.includes('rigolo'), kind);
+      assert.ok(shouldMapTasteIngest(kind, ['rigolo']));
+    }
+  });
+
+  it('shouldMapTasteIngest covers new fiche actions', () => {
+    assert.equal(shouldMapTasteIngest('favorite', []), true);
+    assert.equal(shouldMapTasteIngest('unfavorite', []), true);
+    assert.equal(shouldMapTasteIngest('outbound_click', []), true);
+    assert.equal(shouldMapTasteIngest('share', []), true);
+  });
+
+  it('favorite / share / outbound_click prompt login like other strong actions', () => {
+    const base = {
+      id: 's1',
+      ts: new Date().toISOString(),
+      genres: [] as string[],
+      moods: [] as string[],
+      event_id: 'ev-1',
+    };
+    assert.equal(
+      shouldPromptLogin([{ ...base, kind: 'favorite', weight: 6 } as Signal]),
+      true,
+    );
+    assert.equal(
+      shouldPromptLogin([{ ...base, kind: 'share', weight: 3 } as Signal]),
+      true,
+    );
+    assert.equal(
+      shouldPromptLogin([{ ...base, kind: 'outbound_click', weight: 4 } as Signal]),
+      true,
+    );
+    assert.equal(
+      shouldPromptLogin([{ ...base, kind: 'unfavorite', weight: -6 } as Signal]),
+      false,
+    );
+  });
+});

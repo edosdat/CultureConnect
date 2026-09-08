@@ -181,7 +181,14 @@ describe('taste ingest — MAP then DROP', () => {
   });
 
   it('writes open_card / reserve / agenda_add already mapped', () => {
-    for (const kind of ['open_card', 'reserve', 'agenda_add'] as const) {
+    for (const kind of [
+      'open_card',
+      'reserve',
+      'agenda_add',
+      'favorite',
+      'outbound_click',
+      'share',
+    ] as const) {
       const s = makeSignal({
         kind,
         moods: ['comédie', 'sortie'],

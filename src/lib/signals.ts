@@ -20,11 +20,28 @@ export type SignalKind =
   | 'agenda_add'
   | 'ics'
   | 'reserve'
+  | 'favorite'
+  | 'unfavorite'
+  | 'outbound_click'
+  | 'share'
   | 'chip_time'
   | 'chip_cat'
   | 'chip_genre'
   | 'search'
   | 'tastes_text';
+
+/** Fiche actions that carry event/programme ids via payloadFromDayItem. */
+export type ItemSignalKind = Extract<
+  SignalKind,
+  | 'open_card'
+  | 'agenda_add'
+  | 'ics'
+  | 'reserve'
+  | 'favorite'
+  | 'unfavorite'
+  | 'outbound_click'
+  | 'share'
+>;
 
 export type Signal = {
   id: string;
@@ -77,9 +94,13 @@ export const DEDUP_MS = 30 * 60 * 1000;
 export const COOKIE_MAX_AGE_SEC = 14 * 24 * 60 * 60;
 
 export const SIGNAL_WEIGHTS: Record<SignalKind, number> = {
-  reserve: 5,
+  favorite: 6,
+  reserve: 6,
+  unfavorite: -6,
   ics: 5,
   agenda_add: 5,
+  outbound_click: 4,
+  share: 3,
   open_card: 2,
   chip_cat: 1,
   chip_genre: 1,
@@ -93,7 +114,15 @@ const ACTION_KINDS: ReadonlySet<SignalKind> = new Set([
   'agenda_add',
   'ics',
   'reserve',
+  'favorite',
+  'outbound_click',
+  'share',
 ]);
+
+/** Toggle kind for the À voir heart: off → favorite, on → cancel. */
+export function favoriteToggleKind(currentlyOn: boolean): 'favorite' | 'unfavorite' {
+  return currentlyOn ? 'unfavorite' : 'favorite';
+}
 
 /** Mood lexicon — word match only (no short substring ≤ 3). */
 const MOOD_PHRASES = [
@@ -364,13 +393,24 @@ export function makeSignal(payload: TrackPayload): Signal {
   return ingestMapSignal(signal);
 }
 
+/** Drop favorite(s) for the same fiche so unfavorite is a cancel, not a leftover +6. */
+export function cancelFavoriteSignals(list: Signal[], incoming: Signal): Signal[] {
+  if (incoming.kind !== 'unfavorite') return list;
+  const target = signalTarget(incoming);
+  if (!target) return list;
+  return list.filter(
+    (s) => !(s.kind === 'favorite' && signalTarget(s) === target),
+  );
+}
+
 /** Same kind + target within 30 min → keep one, weight = max. */
 export function dedupAppend(list: Signal[], incoming: Signal, cap: number): Signal[] {
+  const base = cancelFavoriteSignals(list, incoming);
   const target = signalTarget(incoming);
   const incomingTs = Date.parse(incoming.ts) || Date.now();
   let replaced = false;
   const next: Signal[] = [];
-  for (const s of list) {
+  for (const s of base) {
     const same =
       s.kind === incoming.kind &&
       signalTarget(s) === target &&
@@ -408,14 +448,21 @@ export function addWeight(map: Record<string, TasteEntry>, key: string, w: numbe
   const k = key.trim();
   if (!k || !w) return;
   const cur = coerceEntry(map[k]);
-  map[k] = { weight: cur.weight + w, pct: 0 };
+  const next = cur.weight + w;
+  if (next <= 0) {
+    delete map[k];
+  } else {
+    map[k] = { weight: next, pct: 0 };
+  }
   recomputeBucketPcts(map);
 }
 
 function addCommuneWeight(map: Record<string, number>, key: string, w: number) {
   const k = key.trim();
   if (!k || !w) return;
-  map[k] = (map[k] ?? 0) + w;
+  const next = (map[k] ?? 0) + w;
+  if (next <= 0) delete map[k];
+  else map[k] = next;
 }
 
 export function mappedCategorie(raw: string | undefined): MainCategoryId | null {
@@ -662,12 +709,20 @@ function hasIngestPhrase(norm: string, phrase: string): boolean {
   return re.test(norm);
 }
 
-/** open_card / reserve / agenda_add always; chip_genre only if moods[] nonempty. */
+/** Fiche actions always; chip_genre only if moods[] nonempty. */
 export function shouldMapTasteIngest(
   kind: SignalKind,
   moods: readonly string[] | undefined | null,
 ): boolean {
-  if (kind === 'open_card' || kind === 'reserve' || kind === 'agenda_add') {
+  if (
+    kind === 'open_card' ||
+    kind === 'reserve' ||
+    kind === 'agenda_add' ||
+    kind === 'favorite' ||
+    kind === 'unfavorite' ||
+    kind === 'outbound_click' ||
+    kind === 'share'
+  ) {
     return true;
   }
   if (kind === 'chip_genre') {
@@ -1087,7 +1142,14 @@ export function shouldPromptLogin(signals: Signal[]): boolean {
   let opens = 0;
   const openTargets = new Set<string>();
   for (const s of signals) {
-    if (s.kind === 'agenda_add' || s.kind === 'ics' || s.kind === 'reserve') {
+    if (
+      s.kind === 'agenda_add' ||
+      s.kind === 'ics' ||
+      s.kind === 'reserve' ||
+      s.kind === 'favorite' ||
+      s.kind === 'outbound_click' ||
+      s.kind === 'share'
+    ) {
       return true;
     }
     if (s.kind === 'open_card') {
@@ -1216,7 +1278,7 @@ export function moodSourceFromDayItem(item: DayItem): string {
 
 export function payloadFromDayItem(
   item: DayItem,
-  kind: Extract<SignalKind, 'open_card' | 'agenda_add' | 'ics' | 'reserve'>,
+  kind: ItemSignalKind,
 ): TrackPayload {
   const genres = [
     ...new Set([...genresFromDayItem(item), ...genresMoodFromDayItem(item)]),

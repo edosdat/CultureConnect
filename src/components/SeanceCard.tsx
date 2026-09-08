@@ -263,7 +263,7 @@ export default function SeanceCard({
             onKeyDown={(e) => e.stopPropagation()}
           >
             <FavoriteButton
-              itemKey={item.key}
+              item={item}
               className={resolved === 'rail' ? 'h-8 w-8' : 'h-9 w-9'}
             />
           </span>

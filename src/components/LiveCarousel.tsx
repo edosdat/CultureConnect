@@ -85,7 +85,7 @@ export default function LiveCarousel({
                       {when}
                     </p>
                     <span onClick={(e) => e.stopPropagation()}>
-                      <FavoriteButton itemKey={item.key} className="h-9 w-9" />
+                      <FavoriteButton item={item} className="h-9 w-9" />
                     </span>
                   </div>
                   <h3 className="font-display text-xl leading-snug text-culture-ink line-clamp-2">

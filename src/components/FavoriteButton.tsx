@@ -1,20 +1,26 @@
 'use client';
 
+import type { DayItem } from '@/lib/types';
+import { favoriteToggleKind } from '@/lib/signals';
 import { useFavorites } from './FavoritesProvider';
+import { useSignals } from './SignalsProvider';
 
 type Props = {
-  itemKey: string;
+  item: DayItem;
   className?: string;
 };
 
-export default function FavoriteButton({ itemKey, className = '' }: Props) {
+export default function FavoriteButton({ item, className = '' }: Props) {
   const { has, toggle } = useFavorites();
+  const { trackItem } = useSignals();
+  const itemKey = item.key;
   const on = has(itemKey);
   return (
     <button
       type="button"
       onClick={(e) => {
         e.stopPropagation();
+        trackItem(item, favoriteToggleKind(on));
         toggle(itemKey);
       }}
       aria-pressed={on}
