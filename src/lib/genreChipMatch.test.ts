@@ -107,20 +107,15 @@ function dayProg(opts: {
 }
 
 describe('Jazz catalogue chip aliases', () => {
-  it('Jazz / blues chip matches jazz_blues and raw jazz, not karaoke or jam', () => {
-    assert.equal(itemMatchesGenreChip({ genre: 'jazz_blues' }, 'jazz_blues'), true);
-    assert.equal(itemMatchesGenreChip({ genre: 'jazz' }, 'jazz_blues'), true);
+  it('Jazz ↔ jazz_blues, jam and karaoke stay separate', () => {
     assert.equal(itemMatchesGenreChip({ genre: 'jazz_blues' }, 'jazz'), true);
-    assert.equal(itemMatchesGenreChip({ genre: 'karaoke' }, 'jazz_blues'), false);
+    assert.equal(itemMatchesGenreChip({ genre: 'jazz' }, 'jazz_blues'), true);
+    assert.equal(itemMatchesGenreChip({ genre: 'jam' }, 'jazz'), false);
     assert.equal(itemMatchesGenreChip({ genre: 'jam' }, 'jazz_blues'), false);
-    assert.equal(
-      matchesSelectedGenres({ genre: 'jazz' }, ['jazz_blues']),
-      true,
-    );
-    assert.equal(
-      matchesSelectedGenres({ genre: 'karaoke' }, ['jazz_blues']),
-      false,
-    );
+    assert.equal(itemMatchesGenreChip({ genre: 'karaoke' }, 'jazz'), false);
+    assert.equal(itemMatchesGenreChip({ genre: 'karaoke' }, 'jazz_blues'), false);
+    assert.equal(itemMatchesGenreChip({ genre: 'jam' }, 'jam'), true);
+    assert.equal(matchesSelectedGenres({ genre: 'jam' }, ['jazz']), false);
   });
 });
 

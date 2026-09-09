@@ -14,6 +14,8 @@ import {
   holdThumbFocus,
   heroScrollDeferMs,
   heroWindowScrollY,
+  packCarouselBrowseScope,
+  packCarouselPinScope,
   pinFromHeroRow,
   readPackHeroPin,
   readPackStripKeys,
@@ -122,6 +124,8 @@ type Props = {
   soir?: boolean;
   /** Date or time window is on — short list. Otherwise a séances dropdown. */
   datePinned?: boolean;
+  /** Catalogue genre chips — must reset/prune the painted rail. */
+  genres?: string[];
   hasMore?: boolean;
   onNeedMore?: () => void;
   onAgenda?: (item: DayItem) => void;
@@ -346,6 +350,7 @@ export default function CinemaCarousel({
   dateTo = null,
   soir = false,
   datePinned = false,
+  genres = [],
   hasMore = false,
   onNeedMore,
   onAgenda,
@@ -356,23 +361,27 @@ export default function CinemaCarousel({
 }: Props) {
   const copy = PACK_COPY[pack];
   const seancesDomId = `${pack}-seances`;
-  const pinScope = [
+  const pinScope = packCarouselPinScope({
     pack,
-    dateFrom ?? '',
-    dateTo ?? '',
-    selectedCommune ?? '',
-    selectedLieuId ?? '',
-    soir ? '1' : '0',
-  ].join('|');
+    dateFrom,
+    dateTo,
+    selectedCommune,
+    selectedLieuId,
+    soir,
+    genres,
+  });
   // Commune is not part of browse scope: boot GPS nulls it and must not
   // reshuffle an in-progress rail (left inserts / drift).
-  const browseScope = [
+  // Genre chips ARE in the scope — Jazz must not keep jam/karaoke thumbs.
+  const browseScope = packCarouselBrowseScope({
     pack,
-    dateFrom ?? '',
-    dateTo ?? '',
-    selectedLieuId ?? '',
-    soir ? '1' : '0',
-  ].join('|');
+    dateFrom,
+    dateTo,
+    selectedLieuId,
+    soir,
+    genres,
+  });
+  const genreFilterOn = genres.length > 0;
   const restoredPin = readPackHeroPin(pinScope);
   const browseScopeRef = useRef(browseScope);
   const stripOrderRef = useRef<DenseRow[]>([]);
@@ -435,6 +444,12 @@ export default function CinemaCarousel({
     browseScopeRef.current = browseScope;
     stripOrderRef.current = [];
     stripAnchor.current = null;
+    heroPin.current = null;
+    pinnedRow.current = null;
+    pinnedBySelect.current = false;
+    const nextHero = incomingRows[0]?.groupKey ?? null;
+    lastEmittedKey.current = nextHero;
+    if (nextHero !== heroKey) setHeroKey(nextHero);
   }
   if (stripOrderRef.current.length === 0) {
     stripOrderRef.current = applyStoredStripOrder(
@@ -447,6 +462,7 @@ export default function CinemaCarousel({
     stripOrderRef.current,
     incomingRows,
     heroPin.current ?? restoredPin ?? heroKey,
+    { pruneMissing: genreFilterOn },
   );
   stripOrderRef.current = rows;
   writePackStripKeys(
@@ -523,7 +539,7 @@ export default function CinemaCarousel({
       writePackHeroPin(browseScope, heroPin.current);
     }
   }
-  const hero = heroFromRows ?? pinnedRow.current ?? rows[0];
+  const hero = heroFromRows ?? (genreFilterOn ? rows[0] : pinnedRow.current) ?? rows[0];
   const heroIndex = resolvedIndex >= 0 ? resolvedIndex : 0;
 
   useEffect(() => {

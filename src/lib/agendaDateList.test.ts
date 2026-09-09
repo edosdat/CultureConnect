@@ -248,17 +248,29 @@ describe('calendar day vs upcoming first page', () => {
           day: '2026-09-09',
           genre: 'karaoke',
         }),
+        item({
+          key: 'jam-balkan',
+          cat: 'musique',
+          day: '2026-09-09',
+          genre: 'jam',
+        }),
+        item({
+          key: 'jazz-raw',
+          cat: 'musique',
+          day: '2026-09-09',
+          genre: 'jazz',
+        }),
       ],
       {
         startIso: '2026-09-09',
         endIso: '2026-09-09',
         commune: 'Toulouse',
-        genres: ['jazz_blues'],
+        genres: ['jazz'],
       },
     );
     assert.deepEqual(
-      kept.map((row) => row.key),
-      ['jazz-1'],
+      kept.map((row) => row.key).sort(),
+      ['jazz-1', 'jazz-raw'].sort(),
     );
   });
 

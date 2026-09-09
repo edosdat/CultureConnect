@@ -566,7 +566,7 @@ describe('pack rows + date filter', () => {
     );
   });
 
-  it('aujourd’hui + Musique + Jazz chip filters the musique pack', () => {
+  it('aujourd’hui + Musique + Jazz keeps jazz/jazz_blues, excludes jam and karaoke', () => {
     const today: DayItem[] = [
       item({
         key: 'jazz-1',
@@ -590,25 +590,49 @@ describe('pack rows + date filter', () => {
         title: 'Lukaraoké',
       }),
       item({
-        key: 'jam',
+        key: 'jam-balkan',
+        cat: 'musique',
+        day: '2026-09-09',
+        genre: 'jam',
+        title: 'Jam Balkanique',
+      }),
+      item({
+        key: 'jam-horra',
         cat: 'musique',
         day: '2026-09-09',
         genre: 'jam',
         title: 'Jam Horra',
       }),
+      item({
+        key: 'jam-swing',
+        cat: 'musique',
+        day: '2026-09-09',
+        genre: 'jam',
+        title: 'Jam Swing & New Orleans',
+      }),
     ];
-    const kept = filterSeancesForActiveFilters(today, {
-      startIso: '2026-09-09',
-      endIso: '2026-09-09',
-      commune: 'Toulouse',
-      genres: ['jazz_blues'],
-    });
-    assert.deepEqual(
-      musiqueRows(kept, emptyTop3)
+    for (const chip of ['jazz', 'jazz_blues']) {
+      const kept = filterSeancesForActiveFilters(today, {
+        startIso: '2026-09-09',
+        endIso: '2026-09-09',
+        commune: 'Toulouse',
+        genres: [chip],
+      });
+      const keys = musiqueRows(kept, emptyTop3)
         .map((r) => r.item.key)
-        .sort(),
-      ['jazz-1', 'jazz-raw'].sort(),
-    );
+        .sort();
+      assert.deepEqual(keys, ['jazz-1', 'jazz-raw'].sort());
+      assert.equal(
+        kept.some((row) =>
+          /jam balkanique|jam horra|lukaraoké|jam swing/i.test(
+            row.kind === 'programme'
+              ? row.programme.nom_item
+              : row.evenement.titre,
+          ),
+        ),
+        false,
+      );
+    }
   });
 });
 

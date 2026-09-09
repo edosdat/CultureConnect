@@ -2230,6 +2230,7 @@ export default function CultureConnectApp({
               dateTo={scopeRange.endIso}
               soir={timeScope === 'soir'}
               datePinned={timeScope !== 'tous'}
+              genres={selectedGenres}
               hasMore={
                 cineLimit < frozenCineRows.length || listItems.length < total
               }
@@ -2278,6 +2279,7 @@ export default function CultureConnectApp({
                   dateTo={scopeRange.endIso}
                   soir={timeScope === 'soir'}
                   datePinned={timeScope !== 'tous'}
+                  genres={selectedGenres}
                   hasMore={
                     theatreLimit < frozenTheatreRows.length ||
                     (theatreTotal > 0 &&
@@ -2318,6 +2320,7 @@ export default function CultureConnectApp({
                   dateTo={scopeRange.endIso}
                   soir={timeScope === 'soir'}
                   datePinned={timeScope !== 'tous'}
+                  genres={selectedGenres}
                   hasMore={
                     musiqueLimit < frozenMusiqueRows.length ||
                     (musiqueTotal > 0 &&
@@ -2360,6 +2363,7 @@ export default function CultureConnectApp({
               dateTo={scopeRange.endIso}
               soir={timeScope === 'soir'}
               datePinned={timeScope !== 'tous'}
+              genres={selectedGenres}
               hasMore={
                 enfantsLimit < frozenEnfantsRows.length ||
                 (enfantsTotal > 0 && frozenEnfantsRows.length < enfantsTotal)
@@ -2399,6 +2403,7 @@ export default function CultureConnectApp({
               dateTo={scopeRange.endIso}
               soir={timeScope === 'soir'}
               datePinned={timeScope !== 'tous'}
+              genres={selectedGenres}
               hasMore={
                 expoLimit < frozenExpoRows.length ||
                 (expoTotal > 0 && frozenExpoRows.length < expoTotal)
