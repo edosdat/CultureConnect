@@ -7,20 +7,28 @@ import {
   HOME_STICKY_OFFSET_PX,
   THUMB_SELECT_LOCK_MS,
   adoptFirstPaintHero,
+  appendOnlyStripRows,
+  ensureHeroKey,
+  applyStoredStripOrder,
   clearPackHeroPins,
+  clearPackStripKeys,
   holdThumbFocus,
   heroScrollDeferMs,
   heroWindowScrollY,
+  keysInsertedBefore,
   mergePinnedHeroRow,
   pinFromHeroRow,
   readPackHeroPin,
+  readPackStripKeys,
   resolveHeroAfterRowsChange,
   resolveHeroIndex,
   resolveThumbSelectIndex,
   rowMatchesHeroPin,
   shouldIgnoreHeroSwipe,
   shouldIgnoreRepeatThumbSelect,
+  stripScrollLeftToHoldThumb,
   writePackHeroPin,
+  writePackStripKeys,
   type CarouselHeroRow,
 } from './carouselSelect';
 
@@ -314,6 +322,12 @@ describe('adoptFirstPaintHero', () => {
     assert.notEqual(shuffled[0]!.groupKey, film1.groupKey);
   });
 
+  it('ensureHeroKey never stays null after the first non-empty rows', () => {
+    assert.equal(ensureHeroKey([film1, film2, film3], null), film1.groupKey);
+    assert.equal(ensureHeroKey([film2, film3], film1.groupKey), film1.groupKey);
+    assert.equal(ensureHeroKey([], null), null);
+  });
+
   it('keeps the first-paint film when it drops out of the new strip', () => {
     const first = adoptFirstPaintHero([film1, film2], null);
     const next = resolveHeroAfterRowsChange({
@@ -377,6 +391,131 @@ describe('mergePinnedHeroRow', () => {
     );
     assert.equal(merged.length, 2);
     assert.equal(merged[1]?.groupKey, kyoto.groupKey);
+  });
+});
+
+describe('appendOnlyStripRows', () => {
+  const a = film('film:w:a', 'a-1');
+  const b = film('film:w:b', 'b-1');
+  const c = film('film:w:c', 'c-1');
+  const x = film('film:w:x', 'x-1');
+  const y = film('film:w:y', 'y-1');
+  const z = film('film:w:z', 'z-1');
+
+  it('uses incoming order on first paint', () => {
+    const out = appendOnlyStripRows([], [x, y, a]);
+    assert.deepEqual(
+      out.map((row) => row.groupKey),
+      [x, y, a].map((row) => row.groupKey),
+    );
+  });
+
+  it('never inserts densify/requestMore keys to the left of shown thumbs', () => {
+    const incoming = [x, y, a, b, c, z];
+    const out = appendOnlyStripRows([a, b, c], incoming, b.groupKey);
+    assert.deepEqual(
+      out.map((row) => row.groupKey),
+      [a, b, c, x, y, z].map((row) => row.groupKey),
+    );
+    assert.equal(
+      keysInsertedBefore(
+        [a, b, c].map((row) => row.groupKey),
+        out.map((row) => row.groupKey),
+        b.groupKey,
+      ),
+      0,
+    );
+  });
+
+  it('keeps every painted thumb when the new slice dropped it (no pin needed)', () => {
+    const out = appendOnlyStripRows([a, b, c], [x, y, z]);
+    assert.deepEqual(
+      out.map((row) => row.groupKey),
+      [a, b, c, x, y, z].map((row) => row.groupKey),
+    );
+  });
+
+  it('first-load reco then GPS must not replace painted hero slot 0', () => {
+    let painted = appendOnlyStripRows([], [a, b, c]);
+    assert.equal(painted[0]?.groupKey, a.groupKey);
+    // Guest reco / top3Set steals A out of cineRows.
+    painted = appendOnlyStripRows(painted, [b, c]);
+    assert.equal(painted[0]?.groupKey, a.groupKey);
+    // Boot GPS km-sorts a new first film.
+    painted = appendOnlyStripRows(painted, [x, c, b]);
+    assert.equal(painted[0]?.groupKey, a.groupKey);
+    assert.equal(painted[painted.length - 1]?.groupKey, x.groupKey);
+    assert.equal(keysInsertedBefore(['film:w:a'], painted.map((r) => r.groupKey), 'film:w:a'), 0);
+  });
+
+  it('keeps a reminted pin (DenseRow item.key) instead of inserting left', () => {
+    const stub = {
+      groupKey: 'film:w:sous le ciel de',
+      item: { key: 'kyoto-1' },
+      seances: [{ key: 'kyoto-1' }],
+    };
+    const full = {
+      groupKey: 'film:w:sous le ciel de kyoto',
+      item: { key: 'kyoto-1' },
+      seances: [{ key: 'kyoto-1' }, { key: 'kyoto-2' }],
+    };
+    const extra = {
+      groupKey: 'film:w:new',
+      item: { key: 'new-1' },
+      seances: [{ key: 'new-1' }],
+    };
+    const out = appendOnlyStripRows(
+      [stub],
+      [extra, full],
+      pinFromHeroRow({
+        groupKey: stub.groupKey,
+        itemKey: stub.item.key,
+        seanceKeys: ['kyoto-1'],
+      }),
+    );
+    assert.equal(out[0]?.groupKey, full.groupKey);
+    assert.equal(out[1]?.groupKey, extra.groupKey);
+  });
+
+  it('appends only on remount via stored browse keys', () => {
+    const stored = applyStoredStripOrder([x, a, b, y], [a.groupKey, b.groupKey]);
+    assert.deepEqual(
+      stored.map((row) => row.groupKey),
+      [a, b, x, y].map((row) => row.groupKey),
+    );
+  });
+});
+
+describe('stripScrollLeftToHoldThumb', () => {
+  it('shifts scrollLeft by the width inserted before the selected thumb', () => {
+    assert.equal(
+      stripScrollLeftToHoldThumb({
+        prevScrollLeft: 80,
+        prevThumbOffset: 240,
+        nextThumbOffset: 480,
+      }),
+      320,
+    );
+  });
+
+  it('does not go negative when earlier thumbs are removed', () => {
+    assert.equal(
+      stripScrollLeftToHoldThumb({
+        prevScrollLeft: 40,
+        prevThumbOffset: 40,
+        nextThumbOffset: 0,
+      }),
+      0,
+    );
+  });
+});
+
+describe('pack strip key store', () => {
+  beforeEach(() => clearPackStripKeys());
+
+  it('round-trips browse keys', () => {
+    writePackStripKeys('cine|d', ['film:w:a', 'film:w:b']);
+    assert.deepEqual(readPackStripKeys('cine|d'), ['film:w:a', 'film:w:b']);
   });
 });
 
