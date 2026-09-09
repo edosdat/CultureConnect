@@ -2,6 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 import {
+  HOME_FIRST_PAINT_CINE_CAP,
   HOME_PACK_HERO_COPY_CAP,
   HOME_PACK_WIRE_CAP,
   listItemHasHeroFicheCopy,
@@ -164,6 +165,7 @@ describe('home boot snapshots', () => {
   it('caps living-arts first-paint wire at 80 unique works', () => {
     assert.equal(HOME_PACK_WIRE_CAP, 80);
     assert.equal(HOME_PACK_HERO_COPY_CAP, 8);
+    assert.equal(HOME_FIRST_PAINT_CINE_CAP, 10);
   });
 
   it('omits the boot scope duplicate from listByScope', () => {

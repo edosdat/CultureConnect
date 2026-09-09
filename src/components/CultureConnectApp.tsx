@@ -438,6 +438,74 @@ export default function CultureConnectApp({
 
   const skipListFetch = useRef(true);
   const skipListFetchBootGps = useRef(false);
+  const bootFiltersRef = useRef({
+    timeScope: initialScope,
+    cats: [] as string[],
+    genres: [] as string[],
+    q: '',
+  });
+  bootFiltersRef.current = {
+    timeScope,
+    cats: selectedCategories,
+    genres: selectedGenres,
+    q: query,
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    const mergeBoot = (data: AgendaListResponse) => {
+      const f = bootFiltersRef.current;
+      if (f.timeScope !== initialScope) return;
+      if (f.cats.length || f.genres.length || f.q.trim()) return;
+      setListItems((prev) => {
+        const seen = new Set(prev.map((item) => item.key));
+        const extra = (data.items ?? []).filter((item) => !seen.has(item.key));
+        return extra.length ? [...prev, ...extra] : prev;
+      });
+      setVivantItems((prev) => {
+        const seen = new Set(prev.map((item) => item.key));
+        const extra = (data.vivantItems ?? []).filter(
+          (item) => !seen.has(item.key),
+        );
+        return extra.length ? [...prev, ...extra] : prev;
+      });
+      if (data.nouveautes?.length) {
+        setNouveautesItems((prev) => {
+          const seen = new Set(prev.map((item) => item.key));
+          const extra = data.nouveautes.filter((item) => !seen.has(item.key));
+          return extra.length ? [...prev, ...extra] : prev;
+        });
+      }
+      if (data.venues?.length) setVenueOptions(data.venues);
+      if (typeof data.vivantTotal === 'number') setVivantTotal(data.vivantTotal);
+      if (typeof data.cineTotal === 'number') setCineTotal(data.cineTotal);
+      if (typeof data.theatreTotal === 'number') setTheatreTotal(data.theatreTotal);
+      if (typeof data.musiqueTotal === 'number') setMusiqueTotal(data.musiqueTotal);
+      if (typeof data.enfantsTotal === 'number') setEnfantsTotal(data.enfantsTotal);
+      if (typeof data.expoTotal === 'number') setExpoTotal(data.expoTotal);
+      if (typeof data.total === 'number') setTotal(data.total);
+      if (typeof data.densifiedTotal === 'number') {
+        setDensifiedTotalApi(data.densifiedTotal);
+      }
+      if (data.nouveauFilmIds?.length) {
+        setNouveauFilmIdSet(new Set(data.nouveauFilmIds));
+      }
+    };
+    const run = () => {
+      void fetch('/api/agenda?window=home')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data: AgendaListResponse | null) => {
+          if (cancelled || !data) return;
+          mergeBoot(data);
+        })
+        .catch(() => undefined);
+    };
+    const idle = window.setTimeout(run, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(idle);
+    };
+  }, [initialScope]);
   const cinePaintedRef = useRef<DenseRow[]>([]);
   const theatrePaintedRef = useRef<DenseRow[]>([]);
   const musiquePaintedRef = useRef<DenseRow[]>([]);

@@ -41,6 +41,9 @@ export const HOME_PACK_WIRE_CAP = 80;
  */
 export const HOME_PACK_HERO_COPY_CAP = 8;
 
+/** Ciné unique works in the first HTML (desktop first-paint cap; mobile shows 3). */
+export const HOME_FIRST_PAINT_CINE_CAP = 10;
+
 /** Drop the boot scope copy — page already sends items + vivantItems. */
 export function omitBootScopeSnapshot<T extends Record<string, unknown>>(
   listByScope: T,

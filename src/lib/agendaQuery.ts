@@ -53,6 +53,7 @@ import {
 } from './phraseTags';
 import {
   detailDayItem,
+  HOME_FIRST_PAINT_CINE_CAP,
   HOME_PACK_HERO_COPY_CAP,
   HOME_PACK_WIRE_CAP,
   relatedSeanceDayItem,
@@ -1064,6 +1065,106 @@ export function deferredRecoByScope(): RecoByScope {
     weekend: empty,
     semaine: empty,
   };
+}
+
+/**
+ * First HTML: cine first-paint cards + totals + chip meta.
+ * Living-arts rails hydrate from GET /api/agenda?window=home (append-only).
+ */
+function assembleHomeFirstPaint(
+  items: DayItem[],
+  input: AgendaQueryInput,
+  now: Date,
+): AgendaListResponse {
+  const data = loadCultureData();
+  const paris = parisParts(now);
+  const showNouveautes =
+    !input.recoUpcoming &&
+    catsAllowCinemaPack(input.cats) &&
+    (input.scope === 'tous' ||
+      input.scope === 'aujourdhui' ||
+      input.scope === 'soir' ||
+      input.scope === 'semaine');
+  const nouveautes = filterItemsByCommune(
+    hideSeancesBeforeToday(
+      showNouveautes ? nouveautesCine(data.programmeWithContext, now) : [],
+      paris.iso,
+    ),
+    input.commune,
+  );
+  const cineAll = items.filter(isCinemaDayItem);
+  const theatreAll = items.filter(isTheatreDayItem);
+  const musiqueAll = items.filter(isMusiqueDayItem);
+  const enfantsAll = items.filter(isEnfantsDayItem);
+  const expoAll = items.filter(isExpoDayItem);
+  const vivantAll = items.filter(isVivantDayItem);
+  const heroKeys = new Set(
+    takeUniqueWorkItems(cineAll, 1).map((item) => item.key),
+  );
+  const page = takeUniqueWorkItems(cineAll, HOME_FIRST_PAINT_CINE_CAP).map(
+    (item) => slimDayItem(item, { keepFicheCopy: heroKeys.has(item.key) }),
+  );
+  return {
+    scope: input.scope,
+    commune: input.commune,
+    items: page,
+    total: items.length,
+    densifiedTotal: densifiedCardCount(items),
+    ...csvRowCounts(),
+    nouveautes: nouveautes.map((item) => slimDayItem(item)),
+    communes: input.includeListMeta
+      ? collectCommunes(lieuxByIdFromData().values())
+      : [],
+    venues: [],
+    genreSlugs: [],
+    parisIso: paris.iso,
+    weekday: paris.weekday,
+    genresLegend: input.includeListMeta ? data.genresLegend : [],
+    nouveauFilmIds: Array.from(nouveauFilmIds(data.programmeWithContext, now)),
+    vivantItems: [],
+    vivantTotal: densifiedCardCount(vivantAll),
+    cineTotal: densifiedCardCount(cineAll),
+    theatreTotal: densifiedCardCount(theatreAll),
+    musiqueTotal: densifiedCardCount(musiqueAll),
+    enfantsTotal: densifiedCardCount(enfantsAll),
+    expoTotal: densifiedCardCount(expoAll),
+  };
+}
+
+function computeHomeFirstPaint(now = new Date()): HomeWindow {
+  const scope = bootTimeScope();
+  const { year, month } = parisParts(now);
+  const bootInput: AgendaQueryInput = {
+    scope,
+    commune: 'Toulouse',
+    q: '',
+    cats: [],
+    genres: [],
+    lieuId: null,
+    selectedDate: null,
+    year,
+    month,
+    includeListMeta: true,
+  };
+  const { items: upcoming } = listForRange(bootInput, now);
+  const boot = assembleHomeFirstPaint(upcoming, bootInput, now);
+  return {
+    ...boot,
+    recoByScope: deferredRecoByScope(),
+    listByScope: {},
+  };
+}
+
+/** Slim first HTML: chips + Top 3 shell + first cine pack. */
+export async function loadHomeFirstPaint(
+  now = new Date(),
+): Promise<HomeWindow> {
+  const day = parisParts(now).iso;
+  return unstable_cache(
+    async () => computeHomeFirstPaint(new Date()),
+    ['home-first-paint-v1', day],
+    { revalidate: 300 },
+  )();
 }
 
 function computeHomeWindow(now = new Date()): HomeWindow {
