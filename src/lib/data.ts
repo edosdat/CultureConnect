@@ -55,6 +55,7 @@ export function loadLieux(): Lieu[] {
     label_affiche: r.label_affiche ?? '',
     lat: r.lat ?? '',
     lng: r.lng ?? '',
+    url_programmation: r.url_programmation ?? '',
   }));
 }
 
