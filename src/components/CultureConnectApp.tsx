@@ -26,6 +26,7 @@ import {
   isEnfantsOnlyChip,
 } from '@/lib/categories';
 import {
+  genreOptionsScopeKey,
   retainSelectedGenreChips,
   visibleGenreChipSlugs,
 } from '@/lib/genreChipMatch';
@@ -401,6 +402,18 @@ export default function CultureConnectApp({
   const [venueOptions, setVenueOptions] = useState<Lieu[]>(initialVenues);
   const [availableGenreSlugs, setAvailableGenreSlugs] =
     useState<string[]>(initialGenreSlugs);
+  const [genreOptionsReadyKey, setGenreOptionsReadyKey] = useState(() =>
+    genreOptionsScopeKey({
+      scope: initialScope,
+      selectedDay: null,
+      year: initialYear,
+      month: initialMonth,
+      commune: 'Toulouse',
+      lieuId: null,
+      cats: [],
+      q: '',
+    }),
+  );
   const [counts, setCounts] = useState<Map<string, number>>(new Map());
   const [detailItem, setDetailItem] = useState<DayItem | null>(
     initialOpenItem ?? null,
@@ -519,6 +532,7 @@ export default function CultureConnectApp({
   const enfantsPaintKeyRef = useRef('');
   const expoPaintKeyRef = useRef('');
   const packMoreLock = useRef<Partial<Record<LivingPackId, boolean>>>({});
+  const genreOptionsKeyRef = useRef('');
   const listFetchGen = useRef(0);
   const countsFetchGen = useRef(0);
   const recoFetchGen = useRef(0);
@@ -637,6 +651,31 @@ export default function CultureConnectApp({
   /** Leftover title after submit — chip-only phrases are not a title search. */
   const searchingUi = titleLeftover.length > 0;
   const searching = titleLeftover.trim().length > 0;
+  const phraseScopeKey =
+    phraseMode && phraseTags
+      ? [
+          phraseTags.form || '',
+          (phraseTags.genres ?? []).join(','),
+          (phraseTags.moods ?? []).join(','),
+          (phraseTags.themes ?? []).join(','),
+          phraseTags.date_from || '',
+          phraseTags.date_to || '',
+        ].join(';')
+      : '';
+  const genreOptionsKey = genreOptionsScopeKey({
+    scope: timeScope,
+    selectedDay,
+    year,
+    month,
+    commune: selectedCommune,
+    lieuId: selectedLieuId,
+    cats: selectedCategories,
+    q: titleLeftover.trim(),
+    phrase: phraseScopeKey,
+  });
+  genreOptionsKeyRef.current = genreOptionsKey;
+  const genresLoading =
+    selectedCategories.length > 0 && genreOptionsKey !== genreOptionsReadyKey;
 
   const scopeRange = useMemo(
     () =>
@@ -679,6 +718,7 @@ export default function CultureConnectApp({
       if (typeof data.csvProgramme === 'number') setCsvProgramme(data.csvProgramme);
       setVenueOptions(data.venues ?? []);
       setAvailableGenreSlugs(data.genreSlugs ?? []);
+      setGenreOptionsReadyKey(genreOptionsKeyRef.current);
     } else {
       setTotal(data.total);
       setDensifiedTotalApi(data.densifiedTotal);
@@ -963,10 +1003,12 @@ export default function CultureConnectApp({
     }
     if (skipListFetchBootGps.current) {
       skipListFetchBootGps.current = false;
-      return;
+      // Boot GPS must not cancel a QUOI fetch — genre chips need that response.
+      if (selectedCategories.length === 0) return;
     }
     skipListFetch.current = false;
     const gen = ++listFetchGen.current;
+    const keyAtStart = genreOptionsKey;
     const delay = 0;
     let cancelled = false;
     const id = window.setTimeout(() => {
@@ -997,6 +1039,9 @@ export default function CultureConnectApp({
           /* keep previous window */
         } finally {
           stopListSlowWatch(gen);
+          if (!cancelled && gen === listFetchGen.current) {
+            setGenreOptionsReadyKey(keyAtStart);
+          }
         }
       })();
     }, delay);
@@ -1017,6 +1062,7 @@ export default function CultureConnectApp({
     selectedGenres,
     phraseMode,
     phraseTags,
+    genreOptionsKey,
   ]);
 
   // Month badges: own request so a day click never waits on countItemsByDay.
@@ -1583,7 +1629,10 @@ export default function CultureConnectApp({
       })
       .catch(() => undefined)
       .finally(() => {
-        if (gen === listFetchGen.current) listLoadingRef.current = false;
+        if (gen === listFetchGen.current) {
+          listLoadingRef.current = false;
+          setGenreOptionsReadyKey(genreOptionsKeyRef.current);
+        }
         stopListSlowWatch(gen);
       });
   }, [
@@ -2058,6 +2107,7 @@ export default function CultureConnectApp({
             onChange={handleGenresChange}
             selectedMains={selectedCategories}
             hideWhenNoCategory
+            loading={genresLoading}
           />
         </div>
 

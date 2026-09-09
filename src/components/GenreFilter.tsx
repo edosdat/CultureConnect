@@ -6,6 +6,7 @@ import {
   labelMainCategory,
   mainFromGenreSlug,
 } from '@/lib/categories';
+import { genreChipsPaint } from '@/lib/genreChipMatch';
 import { humanizeGenreSlug } from '@/lib/labels';
 
 type Props = {
@@ -18,7 +19,11 @@ type Props = {
   selectedMains: string[];
   /** When true, hide the "choose a category" placeholder entirely */
   hideWhenNoCategory?: boolean;
+  /** Filtered genre options are still computing — never show the empty copy. */
+  loading?: boolean;
 };
+
+const SKELETON_CHIP_WIDTHS = ['w-14', 'w-16', 'w-[4.5rem]', 'w-12'] as const;
 
 function syntheticLegend(slug: string): GenreLegend {
   return {
@@ -45,6 +50,7 @@ export default function GenreFilter({
   onChange,
   selectedMains,
   hideWhenNoCategory = true,
+  loading = false,
 }: Props) {
   if (selectedMains.length === 0) {
     if (hideWhenNoCategory) return null;
@@ -74,7 +80,7 @@ export default function GenreFilter({
       return selectedMains.length > 0;
     });
 
-  // Never keep a selected chip that has 0 matches in the current scope.
+  // Selected chips are merged into availableSlugs by the parent (sticky Jazz).
   const allVisible = available;
 
   const byMain = new Map<string, GenreLegend[]>();
@@ -134,12 +140,50 @@ export default function GenreFilter({
         )}
       </div>
 
-      {allVisible.length === 0 ? (
-        <p className="text-sm text-culture-muted/80">
+      {genreChipsPaint({
+        selectedMains,
+        availableCount: allVisible.length,
+        loading,
+      }) === 'loading' ? (
+        <div
+          className="space-y-1.5"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+          data-genres-state="loading"
+        >
+          {selected.length > 0 ? (
+            <div className="flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {selected.map((slug) => renderChip(resolve(slug)))}
+            </div>
+          ) : null}
+          <div className="flex items-center gap-2">
+            <span
+              className="inline-block h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-culture-line border-t-culture-sage"
+              aria-hidden
+            />
+            <p className="text-xs text-culture-muted/90">
+              Chargement des genres…
+            </p>
+          </div>
+          <div className="flex gap-1.5" aria-hidden>
+            {SKELETON_CHIP_WIDTHS.map((w) => (
+              <span
+                key={w}
+                className={`h-7 ${w} animate-pulse rounded-full bg-culture-sand`}
+              />
+            ))}
+          </div>
+        </div>
+      ) : allVisible.length === 0 ? (
+        <p
+          className="text-sm text-culture-muted/80"
+          data-genres-state="empty"
+        >
           Aucun genre pour cette sélection
         </p>
       ) : useGroups ? (
-        <div className="space-y-3">
+        <div className="space-y-3" data-genres-state="ready">
           {mainsOrder.map((main) => {
             const items = byMain.get(main) ?? [];
             items.sort((a, b) => a.label_fr.localeCompare(b.label_fr, 'fr'));
@@ -154,7 +198,10 @@ export default function GenreFilter({
           })}
         </div>
       ) : (
-        <div className="flex gap-1.5 overflow-x-auto pb-0.5 sm:flex-wrap sm:overflow-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div
+          className="flex gap-1.5 overflow-x-auto pb-0.5 sm:flex-wrap sm:overflow-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          data-genres-state="ready"
+        >
           {allVisible
             .slice()
             .sort((a, b) => a.label_fr.localeCompare(b.label_fr, 'fr'))
