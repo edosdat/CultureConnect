@@ -1,5 +1,5 @@
 import type { DayItem } from '@/lib/types';
-import { theatreCardPressBadge } from '@/lib/pressCitation';
+import { packCardPressBadge } from '@/lib/pressCitation';
 
 type Props = {
   item: DayItem;
@@ -8,15 +8,15 @@ type Props = {
 };
 
 /**
- * White pill on the vignette — theatre cards only, when a catalogue quote exists.
- * Compact for Top 3 rail and pack thumbs (~380). Wraps instead of « Téléra… ».
+ * White pill on the vignette — theatre + musique pack/rail, when a catalogue
+ * quote exists (programme OR evenement). Compact for ~380 thumbs.
  */
 export default function PressBadge({
   item,
   compact = false,
   className = '',
 }: Props) {
-  const badge = theatreCardPressBadge(item);
+  const badge = packCardPressBadge(item);
   if (!badge) return null;
   return (
     <span

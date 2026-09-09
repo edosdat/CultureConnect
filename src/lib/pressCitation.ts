@@ -502,16 +502,22 @@ export function pressBadgeLabel(source: string): string {
 }
 
 /**
- * Theatre pack/rail pill. Same resolution as PressCitation / fichePressCitation
- * (programme.citation* + evenement.citation*). Hide when no quote — no ghost.
- * MVP: theatre only (musique packs stay clean).
+ * Pack/rail pill for theatre and musique. Same resolution as PressCitation
+ * (programme OR evenement citation*). Hide when no quote — no ghost.
+ * No artist-row fallback on cards (fiche may still use artistes.csv).
  */
-export function theatreCardPressBadge(item: DayItem): PressBadge | null {
-  if (!isTheatreDayItem(item)) return null;
-  const citation = fichePressCitation(item);
+export function packCardPressBadge(item: DayItem): PressBadge | null {
+  if (!isTheatreDayItem(item) && !isMusiqueDayItem(item)) return null;
+  const citation = pressCitationOf(item);
   if (!citation) return null;
   return {
     label: pressBadgeLabel(citation.source),
     source: citation.source,
   };
+}
+
+/** @deprecated Use packCardPressBadge — theatre + musique. */
+export function theatreCardPressBadge(item: DayItem): PressBadge | null {
+  if (!isTheatreDayItem(item)) return null;
+  return packCardPressBadge(item);
 }

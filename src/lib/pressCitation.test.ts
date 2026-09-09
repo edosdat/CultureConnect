@@ -6,6 +6,7 @@ import {
   cataloguePressRating,
   fichePressCitation,
   pickPressCatalogueFields,
+  packCardPressBadge,
   pressBadgeLabel,
   pressCitationOf,
   pressItemForFiche,
@@ -525,21 +526,78 @@ describe('theatreCardPressBadge', () => {
     assert.equal(fichePressCitation(slim)?.source, 'Sceneweb');
   });
 
-  it('never paints on musique / cinéma even when a quote exists', () => {
-    const music = item({
-      key: 'mu-badge',
-      cat: 'musique',
-      form: 'concert',
-      programme: PRESS,
-    });
+  it('never paints on cinéma even when a quote exists', () => {
     const cine = item({
       key: 'cine-badge',
       cat: 'cinema',
       filmId: 'F1',
       programme: PRESS,
     });
-    assert.ok(fichePressCitation(music));
-    assert.equal(theatreCardPressBadge(music), null);
     assert.equal(theatreCardPressBadge(cine), null);
+    assert.equal(packCardPressBadge(cine), null);
+  });
+});
+
+describe('packCardPressBadge musique', () => {
+  it('hides when programme and evenement have no citation (no ghost)', () => {
+    const row = item({
+      key: 'mu-ghost',
+      cat: 'musique',
+      form: 'concert',
+    });
+    assert.equal(packCardPressBadge(row), null);
+  });
+
+  it('reads programme.citation* the same way PressCitation does', () => {
+    const row = item({
+      key: 'mu-prog',
+      cat: 'musique',
+      form: 'concert',
+      programme: PRESS,
+    });
+    assert.deepEqual(packCardPressBadge(row), {
+      label: 'Vu dans Télérama',
+      source: 'Télérama',
+    });
+    assert.ok(fichePressCitation(row));
+  });
+
+  it('reads evenement.citation* when programme has none', () => {
+    const row = item({
+      key: 'mu-ev',
+      cat: 'musique',
+      form: 'concert',
+      evenement: {
+        citation: 'Possessing one of the most remarkable voices.',
+        source: 'Sonic Perspectives',
+      },
+    });
+    assert.deepEqual(packCardPressBadge(row), {
+      label: 'Presse',
+      source: 'Sonic Perspectives',
+    });
+  });
+
+  it('does not use artistes.csv on pack cards (programme OR event only)', () => {
+    const artist: Artiste = {
+      artiste_id: 'A9',
+      nom: 'Combo',
+      nom_normalise: 'combo',
+      genre_principal: '',
+      genres_secondaires: '',
+      url_photo: '',
+      notes: '',
+      citation: 'Une voix qui porte loin.',
+      source: 'La Terrasse',
+      source_url: 'https://www.journal-laterrasse.fr/a',
+    };
+    const viaArtist = item({
+      key: 'mu-art',
+      cat: 'musique',
+      form: 'concert',
+      programme: { artiste_id: 'A9' },
+    });
+    assert.ok(fichePressCitation(viaArtist, [artist]));
+    assert.equal(packCardPressBadge(viaArtist), null);
   });
 });
