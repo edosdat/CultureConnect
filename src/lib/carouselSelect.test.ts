@@ -469,6 +469,41 @@ describe('appendOnlyStripRows', () => {
     assert.ok(jazz.endsWith('|jazz'));
   });
 
+  it('browse scope changes when title leftover is on (Balkan + chips)', () => {
+    const base = {
+      pack: 'musique',
+      dateFrom: '2026-09-09',
+      dateTo: '2026-09-09',
+      selectedLieuId: null,
+      soir: false,
+      genres: ['jazz'] as string[],
+    };
+    const chips = packCarouselBrowseScope(base);
+    const blank = packCarouselBrowseScope({ ...base, titleQuery: '' });
+    const balkan = packCarouselBrowseScope({ ...base, titleQuery: 'Balkan' });
+    assert.equal(chips, blank);
+    assert.notEqual(chips, balkan);
+    assert.ok(balkan.endsWith('|balkan'));
+  });
+
+  it('prunes painted chip-set thumbs when title leftover incoming is a subset', () => {
+    const balkan = film('musique:jam-balkanique', 'balkan-1');
+    const horra = film('musique:jam-horra', 'horra-1');
+    const painted = appendOnlyStripRows([], [balkan, horra]);
+    const leaked = appendOnlyStripRows(painted, [balkan]);
+    assert.deepEqual(
+      leaked.map((row) => row.groupKey),
+      [balkan, horra].map((row) => row.groupKey),
+    );
+    const pruned = appendOnlyStripRows(painted, [balkan], null, {
+      pruneMissing: true,
+    });
+    assert.deepEqual(
+      pruned.map((row) => row.groupKey),
+      [balkan.groupKey],
+    );
+  });
+
   it('first-load reco then GPS must not replace painted hero slot 0', () => {
     let painted = appendOnlyStripRows([], [a, b, c]);
     assert.equal(painted[0]?.groupKey, a.groupKey);

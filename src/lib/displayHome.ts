@@ -3,7 +3,7 @@
  * No scoring, no CSV edits, no tag vocabulary changes.
  */
 
-import type { DayItem } from './types';
+import type { DayItem, GenreLegend } from './types';
 import { clipListPitch } from './slim';
 import type { AccountTasteState } from './signals';
 import {
@@ -45,6 +45,7 @@ import { fillEmptyCineSlot, slotFormOfItem } from './reco';
 import { parseSearchChips, type SearchChipParse } from './parseSearchChips';
 import { seanceDateIso, type TimeScopeId } from './timeScope';
 import { sortItemsNearestFirst, type GeoPos } from './nearMe';
+import { itemSearchBlob, matchesNormalizedHaystack } from './searchText';
 
 /** Visual order for Top 3: théâtre, then ciné, then concert. Scoring in reco.ts is unchanged. */
 export const DISPLAY_SLOT_ORDER: RecoSlotForm[] = [
@@ -538,72 +539,118 @@ function countTailRun(
   return n;
 }
 
+export type PackRowsOpts = {
+  origin?: GeoPos | null;
+  /**
+   * Same leftover `q` as the agenda grid. Empty / omitted → chip-only
+   * browsing (today's packs). When set, densify must not keep chip-only
+   * cards that fail the title search.
+   */
+  titleQuery?: string | null;
+  genresLegend?: GenreLegend[];
+};
+
+/**
+ * Agenda-grid title leftover. Pack densify must use this so « Balkan » +
+ * chips cannot keep the unfiltered chip set on home carousels.
+ */
+export function filterItemsByTitleQuery<T extends DayItem>(
+  items: readonly T[],
+  titleQuery?: string | null,
+  genresLegend: GenreLegend[] = [],
+): T[] {
+  const q = (titleQuery || '').trim();
+  if (!q) return items.slice();
+  return items.filter((item) =>
+    matchesNormalizedHaystack(itemSearchBlob(item, genresLegend), q),
+  );
+}
+
+function packPool(
+  items: DayItem[],
+  pred: (item: DayItem) => boolean,
+  top3: ReadonlySet<string>,
+  opts?: PackRowsOpts,
+): DayItem[] {
+  const scoped = filterItemsByTitleQuery(
+    items,
+    opts?.titleQuery,
+    opts?.genresLegend,
+  );
+  return dedupAgainstTop3(scoped.filter(pred), top3);
+}
+
+function densifyPackPool(
+  pool: DayItem[],
+  origin: GeoPos | null | undefined,
+): DenseRow[] {
+  if (origin) return densify(pool, { origin });
+  return densify(displayShuffle(pool));
+}
+
 export function cineRows(
   items: DayItem[],
   top3: ReadonlySet<string>,
-  opts?: { origin?: GeoPos | null },
+  opts?: PackRowsOpts,
 ): DenseRow[] {
-  const cine = dedupAgainstTop3(items.filter(isCinemaDayItem), top3);
-  const origin = opts?.origin ?? null;
-  if (origin) return densify(cine, { origin });
-  return densify(displayShuffle(cine));
+  return densifyPackPool(
+    packPool(items, isCinemaDayItem, top3, opts),
+    opts?.origin,
+  );
 }
 
 export function theatreRows(
   items: DayItem[],
   top3: ReadonlySet<string>,
-  opts?: { origin?: GeoPos | null },
+  opts?: PackRowsOpts,
 ): DenseRow[] {
-  const theatre = dedupAgainstTop3(items.filter(isTheatreDayItem), top3);
-  const origin = opts?.origin ?? null;
-  if (origin) return densify(theatre, { origin });
-  return densify(displayShuffle(theatre));
+  return densifyPackPool(
+    packPool(items, isTheatreDayItem, top3, opts),
+    opts?.origin,
+  );
 }
 
 export function musiqueRows(
   items: DayItem[],
   top3: ReadonlySet<string>,
-  opts?: { origin?: GeoPos | null },
+  opts?: PackRowsOpts,
 ): DenseRow[] {
-  const musique = dedupAgainstTop3(items.filter(isMusiqueDayItem), top3);
-  const origin = opts?.origin ?? null;
-  if (origin) return densify(musique, { origin });
-  return densify(displayShuffle(musique));
+  return densifyPackPool(
+    packPool(items, isMusiqueDayItem, top3, opts),
+    opts?.origin,
+  );
 }
 
 export function enfantsRows(
   items: DayItem[],
   top3: ReadonlySet<string>,
-  opts?: { origin?: GeoPos | null; includeCrossCatKids?: boolean },
+  opts?: PackRowsOpts & { includeCrossCatKids?: boolean },
 ): DenseRow[] {
   const pred = opts?.includeCrossCatKids ? isEnfantsChipItem : isEnfantsDayItem;
-  const enfants = dedupAgainstTop3(items.filter(pred), top3);
-  const origin = opts?.origin ?? null;
-  if (origin) return densify(enfants, { origin });
-  return densify(displayShuffle(enfants));
+  return densifyPackPool(packPool(items, pred, top3, opts), opts?.origin);
 }
 
 export function expoRows(
   items: DayItem[],
   top3: ReadonlySet<string>,
-  opts?: { origin?: GeoPos | null },
+  opts?: PackRowsOpts,
 ): DenseRow[] {
-  const expos = dedupAgainstTop3(items.filter(isExpoDayItem), top3);
-  const origin = opts?.origin ?? null;
-  if (origin) return densify(expos, { origin });
-  return densify(displayShuffle(expos));
+  return densifyPackPool(
+    packPool(items, isExpoDayItem, top3, opts),
+    opts?.origin,
+  );
 }
 
 /** @deprecated Home no longer collapses living arts into one strip. */
 export function liveRows(
   items: DayItem[],
   top3: ReadonlySet<string>,
-  opts?: { origin?: GeoPos | null },
+  opts?: PackRowsOpts,
 ): DenseRow[] {
-  const live = dedupAgainstTop3(items.filter(isVivantDayItem), top3);
-  const origin = opts?.origin ?? null;
-  if (origin) return densify(live, { origin });
-  return densify(displayShuffle(live));
+  return densifyPackPool(
+    packPool(items, isVivantDayItem, top3, opts),
+    opts?.origin,
+  );
 }
 
 /** Keep the 1+1+1 slot picks, then nearest-first when GPS is on. */

@@ -4,6 +4,7 @@ import { filterSeancesForActiveFilters } from './displayFilter';
 import { itemMatchesCommune } from './commune';
 import {
   cineRows,
+  filterItemsByTitleQuery,
   DISPLAY_SLOT_ORDER,
   HOME_PACK_MORE_CAT,
   HOME_PACK_MORE_ELLIPSIS,
@@ -633,6 +634,90 @@ describe('pack rows + date filter', () => {
         false,
       );
     }
+  });
+
+  it('title leftover (Balkan) keeps only matching pack cards, not the chip set', () => {
+    const empty = new Set<string>();
+    const chipSet = [
+      item({
+        key: 'jam-balkan',
+        cat: 'musique',
+        title: 'Jam Balkanique',
+      }),
+      item({
+        key: 'jam-horra',
+        cat: 'musique',
+        title: 'Jam Horra',
+      }),
+      item({
+        key: 'th-open',
+        cat: 'theatre',
+        title: 'Une pièce ouverte',
+      }),
+      item({
+        key: 'cine-open',
+        cat: 'cinema',
+        filmId: 'F-OPEN',
+        title: 'Un film ouvert',
+      }),
+    ];
+    assert.equal(musiqueRows(chipSet, empty).length, 2);
+    assert.equal(theatreRows(chipSet, empty).length, 1);
+    assert.equal(cineRows(chipSet, empty).length, 1);
+
+    const leftover = filterItemsByTitleQuery(chipSet, 'Balkan');
+    assert.deepEqual(
+      leftover.map((row) => row.key),
+      ['jam-balkan'],
+    );
+
+    const musique = musiqueRows(chipSet, empty, { titleQuery: 'Balkan' });
+    const theatre = theatreRows(chipSet, empty, { titleQuery: 'Balkan' });
+    const cine = cineRows(chipSet, empty, { titleQuery: 'Balkan' });
+    const enfants = enfantsRows(chipSet, empty, { titleQuery: 'Balkan' });
+    const expos = expoRows(chipSet, empty, { titleQuery: 'Balkan' });
+    assert.deepEqual(
+      musique.map((row) => row.item.key),
+      ['jam-balkan'],
+    );
+    assert.deepEqual(
+      musique.map((row) => row.item.key),
+      leftover.map((row) => row.key),
+    );
+    assert.equal(theatre.length, 0);
+    assert.equal(cine.length, 0);
+    assert.equal(enfants.length, 0);
+    assert.equal(expos.length, 0);
+  });
+
+  it('display filter titleQuery prunes chip-set séances the same way as packs', () => {
+    const chipSet = [
+      item({ key: 'jam-balkan', cat: 'musique', title: 'Jam Balkanique' }),
+      item({ key: 'jam-horra', cat: 'musique', title: 'Jam Horra' }),
+    ];
+    const leftover = filterSeancesForActiveFilters(chipSet, {
+      titleQuery: 'Balkan',
+    });
+    assert.deepEqual(
+      leftover.map((row) => row.key),
+      ['jam-balkan'],
+    );
+    assert.equal(
+      filterSeancesForActiveFilters(chipSet, { titleQuery: '' }).length,
+      2,
+    );
+  });
+
+  it('empty titleQuery keeps chip-only pack rows', () => {
+    const empty = new Set<string>();
+    const chipSet = [
+      item({ key: 'jam-balkan', cat: 'musique', title: 'Jam Balkanique' }),
+      item({ key: 'jam-horra', cat: 'musique', title: 'Jam Horra' }),
+    ];
+    const open = musiqueRows(chipSet, empty);
+    assert.equal(open.length, 2);
+    assert.equal(musiqueRows(chipSet, empty, { titleQuery: '' }).length, 2);
+    assert.equal(musiqueRows(chipSet, empty, { titleQuery: '   ' }).length, 2);
   });
 });
 
