@@ -175,7 +175,7 @@ export function withTasteTags<T extends DayItem>(slim: T, source: DayItem): T {
 /**
  * First-paint card: id, titre, heure, lieu, cat, image, film_id
  * (+ prix / genre / type / langue so SeanceCard + densify + VF/VOST work).
- * Keeps catalogue citation* so theatre pack/rail pills match PressCitation.
+ * Keeps catalogue citation* so theatre/musique pack/rail pills match PressCitation.
  * Default clips fiche copy (1–2 sentences). Pass `keepFicheCopy` for the
  * first unique works of each pack so the visible hero paints once.
  * Drops tickets URLs, mood tags, and nested programme[].
