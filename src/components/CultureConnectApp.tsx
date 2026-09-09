@@ -23,10 +23,12 @@ import { appendOnlyStripRows } from '@/lib/carouselSelect';
 import { filmIdOfItem, homePackOfItem, isCinemaDayItem } from '@/lib/nouveautesCine';
 import {
   catsAllowCinemaPack,
-  genreBelongsToMains,
   isEnfantsOnlyChip,
-  mainFromGenreSlug,
 } from '@/lib/categories';
+import {
+  retainSelectedGenreChips,
+  visibleGenreChipSlugs,
+} from '@/lib/genreChipMatch';
 import {
   cineFirstPaint,
   cineRows,
@@ -1059,20 +1061,15 @@ export default function CultureConnectApp({
   ]);
 
   useEffect(() => {
-    setSelectedGenres((prev) => {
-      if (prev.length === 0) return prev;
-      if (selectedCategories.length === 0) return [];
-      const legendBySlug = new Map(genresLegend.map((g) => [g.slug, g]));
-      const next = prev.filter((slug) => {
-        if (!availableGenreSlugs.includes(slug)) return false;
-        const g = legendBySlug.get(slug);
-        if (g) return genreBelongsToMains(g, selectedCategories);
-        const m = mainFromGenreSlug(slug);
-        return m != null && selectedCategories.includes(m);
-      });
-      return next.length === prev.length ? prev : next;
-    });
-  }, [availableGenreSlugs, selectedCategories, genresLegend]);
+    setSelectedGenres((prev) =>
+      retainSelectedGenreChips(prev, selectedCategories, genresLegend),
+    );
+  }, [selectedCategories, genresLegend]);
+
+  const genreChipSlugs = useMemo(
+    () => visibleGenreChipSlugs(availableGenreSlugs, selectedGenres),
+    [availableGenreSlugs, selectedGenres],
+  );
 
   /** Signed-in / loading: |profile or [] (skeleton). Never the guest trio. */
   const activeFilter = useMemo(
@@ -2055,7 +2052,7 @@ export default function CultureConnectApp({
           }
         >
           <GenreFilter
-            availableSlugs={availableGenreSlugs}
+            availableSlugs={genreChipSlugs}
             legend={genresLegend}
             selected={selectedGenres}
             onChange={handleGenresChange}

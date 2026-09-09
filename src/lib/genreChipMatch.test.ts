@@ -9,6 +9,8 @@ import {
   itemMatchesGenreChip,
   looksLikeBlindTest,
   matchesSelectedGenres,
+  retainSelectedGenreChips,
+  visibleGenreChipSlugs,
 } from './genreChipMatch';
 import { mainFromGenreSlug } from './categories';
 import { itemsForDateRange } from './events';
@@ -105,6 +107,31 @@ function dayProg(opts: {
     lieu: lieu(),
   };
 }
+
+describe('sticky Jazz selection after filter shrinks chip slugs', () => {
+  it('does not drop Jazz when the filtered slug list omits it', () => {
+    const kept = retainSelectedGenreChips(
+      ['jazz'],
+      ['musique'],
+      [{ slug: 'jazz_blues', famille: 'musique', label_fr: 'Jazz / blues' }],
+    );
+    assert.deepEqual(kept, ['jazz']);
+    assert.deepEqual(visibleGenreChipSlugs(['jazz_blues'], ['jazz']), [
+      'jazz_blues',
+      'jazz',
+    ]);
+    assert.deepEqual(visibleGenreChipSlugs([], ['jazz']), ['jazz']);
+  });
+
+  it('clears Jazz only when Musique is cleared', () => {
+    assert.deepEqual(
+      retainSelectedGenreChips(['jazz'], [], [
+        { slug: 'jazz_blues', famille: 'musique', label_fr: 'Jazz / blues' },
+      ]),
+      [],
+    );
+  });
+});
 
 describe('Jazz catalogue chip aliases', () => {
   it('Jazz ↔ jazz_blues, jam and karaoke stay separate', () => {
