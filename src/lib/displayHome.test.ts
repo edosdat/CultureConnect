@@ -5,6 +5,7 @@ import { itemMatchesCommune } from './commune';
 import {
   cineRows,
   filterItemsByTitleQuery,
+  packSourceItems,
   DISPLAY_SLOT_ORDER,
   HOME_PACK_MORE_CAT,
   HOME_PACK_MORE_ELLIPSIS,
@@ -705,6 +706,40 @@ describe('pack rows + date filter', () => {
     assert.equal(
       filterSeancesForActiveFilters(chipSet, { titleQuery: '' }).length,
       2,
+    );
+  });
+
+  it('packSourceItems drops window=home extras once title leftover is on', () => {
+    const leftover = item({
+      key: 'jam-balkan',
+      cat: 'musique',
+      title: 'Jam Balkanique',
+    });
+    const chipExtra = item({
+      key: 'jam-horra',
+      cat: 'musique',
+      title: 'Jam Horra',
+    });
+    const windowHome = [
+      leftover,
+      chipExtra,
+      item({ key: 'th-open', cat: 'theatre', title: 'Une pièce ouverte' }),
+    ];
+    assert.equal(
+      packSourceItems([leftover], windowHome, '').length,
+      3,
+    );
+    assert.deepEqual(
+      packSourceItems([leftover], windowHome, 'Balkan').map((row) => row.key),
+      ['jam-balkan'],
+    );
+    assert.deepEqual(
+      musiqueRows(
+        packSourceItems([leftover], windowHome, 'Balkan'),
+        new Set(),
+        { titleQuery: 'Balkan' },
+      ).map((row) => row.item.key),
+      ['jam-balkan'],
     );
   });
 

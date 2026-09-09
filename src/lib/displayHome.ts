@@ -566,6 +566,30 @@ export function filterItemsByTitleQuery<T extends DayItem>(
   );
 }
 
+/**
+ * Pack pool for cine / vivant rails.
+ * Chip-only (no leftover): list + window=home extras (today).
+ * Title leftover: extras are dropped — same `q=` leftover as the admin
+ * counter, never the unfiltered chip / window=home rail.
+ */
+export function packSourceItems<T extends DayItem>(
+  listItems: readonly T[],
+  extras: readonly T[] = [],
+  titleQuery?: string | null,
+  genresLegend: GenreLegend[] = [],
+): T[] {
+  const leftover = filterItemsByTitleQuery(listItems, titleQuery, genresLegend);
+  if ((titleQuery || '').trim()) return leftover;
+  const seen = new Set(leftover.map((item) => item.key));
+  const out = leftover.slice();
+  for (const item of extras) {
+    if (seen.has(item.key)) continue;
+    seen.add(item.key);
+    out.push(item);
+  }
+  return out;
+}
+
 function packPool(
   items: DayItem[],
   pred: (item: DayItem) => boolean,

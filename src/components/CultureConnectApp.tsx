@@ -39,6 +39,7 @@ import {
   expoRows,
   fillEmptyCineFromPool,
   filterItemsByTitleQuery,
+  packSourceItems,
   findDayItemByKey,
   homeSectionsVisible,
   musiqueRows,
@@ -114,11 +115,12 @@ function freezeIncomingPack(
   incoming: DenseRow[],
   resetKey: string,
   lastKey: { current: string },
-  opts?: { pruneMissing?: boolean },
+  opts?: { pruneMissing?: boolean; replace?: boolean },
 ): DenseRow[] {
-  if (lastKey.current !== resetKey) {
+  if (opts?.replace || lastKey.current !== resetKey) {
     lastKey.current = resetKey;
-    painted.current = [];
+    painted.current = [...incoming];
+    return painted.current;
   }
   const next = appendOnlyStripRows(
     painted.current,
@@ -681,10 +683,17 @@ export default function CultureConnectApp({
   function applyList(data: AgendaListResponse, append = false) {
     setListItems((prev) => (append ? [...prev, ...data.items] : data.items));
     if (!append) {
+      const leftoverOn = Boolean(titleLeftover.trim());
       setNouveautesItems(
-        filterItemsByCommune(data.nouveautes ?? [], selectedCommune),
+        leftoverOn
+          ? []
+          : filterItemsByCommune(data.nouveautes ?? [], selectedCommune),
       );
-      setVivantItems(filterItemsByCommune(data.vivantItems ?? [], selectedCommune));
+      setVivantItems(
+        leftoverOn
+          ? []
+          : filterItemsByCommune(data.vivantItems ?? [], selectedCommune),
+      );
       if (typeof data.vivantTotal === 'number') setVivantTotal(data.vivantTotal);
       if (typeof data.cineTotal === 'number') setCineTotal(data.cineTotal);
       if (typeof data.theatreTotal === 'number') setTheatreTotal(data.theatreTotal);
@@ -1163,10 +1172,11 @@ export default function CultureConnectApp({
 
   const cineSource = useMemo(() => {
     const fromList = filterSeancesForActiveFilters(listItems, activeFilter);
-    const fromNouv = filterSeancesForActiveFilters(nouveautesItems, activeFilter);
-    const seen = new Set(fromList.map((item) => item.key));
-    return [...fromList, ...fromNouv.filter((item) => !seen.has(item.key))];
-  }, [listItems, nouveautesItems, activeFilter]);
+    const fromNouv = searching
+      ? []
+      : filterSeancesForActiveFilters(nouveautesItems, activeFilter);
+    return packSourceItems(fromList, fromNouv, titleLeftover);
+  }, [listItems, nouveautesItems, activeFilter, searching, titleLeftover]);
   const pourToiFilled = useMemo(
     () => fillEmptyCineFromPool(pourToiItems, cineSource),
     [pourToiItems, cineSource],
@@ -1251,19 +1261,16 @@ export default function CultureConnectApp({
     allCineRows,
     packFreezeKey,
     cinePaintKeyRef,
-    { pruneMissing: searching },
+    { pruneMissing: searching, replace: searching },
   );
   const visibleCineRows = frozenCineRows.slice(0, cineLimit);
   const vivantPool = useMemo(() => {
-    const seen = new Set<string>();
-    const pool: DayItem[] = [];
-    for (const item of [...vivantItems, ...listItems]) {
-      if (seen.has(item.key)) continue;
-      seen.add(item.key);
-      pool.push(item);
-    }
-    return filterSeancesForActiveFilters(pool, activeFilter);
-  }, [vivantItems, listItems, activeFilter]);
+    const fromList = filterSeancesForActiveFilters(listItems, activeFilter);
+    const fromVivant = searching
+      ? []
+      : filterSeancesForActiveFilters(vivantItems, activeFilter);
+    return packSourceItems(fromList, fromVivant, titleLeftover);
+  }, [vivantItems, listItems, activeFilter, searching, titleLeftover]);
   const allTheatreRows = useMemo(
     () =>
       theatreRows(vivantPool, top3Set, {
@@ -1277,7 +1284,7 @@ export default function CultureConnectApp({
     allTheatreRows,
     packFreezeKey,
     theatrePaintKeyRef,
-    { pruneMissing: searching },
+    { pruneMissing: searching, replace: searching },
   );
   const visibleTheatreRows = frozenTheatreRows.slice(0, theatreLimit);
   const allMusiqueRows = useMemo(
@@ -1293,7 +1300,7 @@ export default function CultureConnectApp({
     allMusiqueRows,
     packFreezeKey,
     musiquePaintKeyRef,
-    { pruneMissing: searching },
+    { pruneMissing: searching, replace: searching },
   );
   const visibleMusiqueRows = frozenMusiqueRows.slice(0, musiqueLimit);
   const allEnfantsRows = useMemo(
@@ -1310,7 +1317,7 @@ export default function CultureConnectApp({
     allEnfantsRows,
     packFreezeKey,
     enfantsPaintKeyRef,
-    { pruneMissing: searching },
+    { pruneMissing: searching, replace: searching },
   );
   const visibleEnfantsRows = frozenEnfantsRows.slice(0, enfantsLimit);
   const allExpoRows = useMemo(
@@ -1326,7 +1333,7 @@ export default function CultureConnectApp({
     allExpoRows,
     packFreezeKey,
     expoPaintKeyRef,
-    { pruneMissing: searching },
+    { pruneMissing: searching, replace: searching },
   );
   const visibleExpoRows = frozenExpoRows.slice(0, expoLimit);
   const cineFirstKey = frozenCineRows[0]?.groupKey ?? null;
@@ -1662,11 +1669,14 @@ export default function CultureConnectApp({
         .then((data: AgendaListResponse | null) => {
           if (!data) return;
           const incoming = data.items ?? [];
-          setVivantItems((prev) => {
+          const leftoverOn = Boolean(titleLeftover.trim());
+          const mergeUnique = (prev: DayItem[]) => {
             const seen = new Set(prev.map((item) => item.key));
             const extra = incoming.filter((item) => !seen.has(item.key));
             return extra.length ? [...prev, ...extra] : prev;
-          });
+          };
+          if (leftoverOn) setListItems(mergeUnique);
+          else setVivantItems(mergeUnique);
           if (typeof data.theatreTotal === 'number') setTheatreTotal(data.theatreTotal);
           if (typeof data.musiqueTotal === 'number') setMusiqueTotal(data.musiqueTotal);
           if (typeof data.enfantsTotal === 'number') setEnfantsTotal(data.enfantsTotal);
