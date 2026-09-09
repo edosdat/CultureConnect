@@ -480,3 +480,38 @@ export function fichePressCitation(
   if (!isMusiqueDayItem(item)) return null;
   return artistFallbackCitation(item, artistes);
 }
+
+/** Max media name length for « Vu dans {média} » on a ~380 pack/rail vignette. */
+export const PRESS_BADGE_SOURCE_MAX = 14;
+
+export type PressBadge = {
+  label: string;
+  source: string;
+};
+
+/**
+ * Default « Presse ». Optional « Vu dans {média} » when the outlet name is
+ * short enough for the live card chrome (not the agenda mock).
+ */
+export function pressBadgeLabel(source: string): string {
+  const t = source.trim();
+  if (t && [...t].length <= PRESS_BADGE_SOURCE_MAX) {
+    return `Vu dans ${t}`;
+  }
+  return 'Presse';
+}
+
+/**
+ * Theatre pack/rail pill. Same resolution as PressCitation / fichePressCitation
+ * (programme.citation* + evenement.citation*). Hide when no quote — no ghost.
+ * MVP: theatre only (musique packs stay clean).
+ */
+export function theatreCardPressBadge(item: DayItem): PressBadge | null {
+  if (!isTheatreDayItem(item)) return null;
+  const citation = fichePressCitation(item);
+  if (!citation) return null;
+  return {
+    label: pressBadgeLabel(citation.source),
+    source: citation.source,
+  };
+}

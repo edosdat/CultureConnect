@@ -6,11 +6,13 @@ import {
   cataloguePressRating,
   fichePressCitation,
   pickPressCatalogueFields,
+  pressBadgeLabel,
   pressCitationOf,
   pressItemForFiche,
+  theatreCardPressBadge,
   withConcertArtistPress,
 } from './pressCitation';
-import { detailDayItem } from './slim';
+import { detailDayItem, slimDayItem } from './slim';
 
 function lieu(): Lieu {
   return {
@@ -454,5 +456,90 @@ describe('pickPressCatalogueFields', () => {
       url: 'https://www.telerama.fr/slim',
       rating: 'T',
     });
+  });
+});
+
+describe('theatreCardPressBadge', () => {
+  it('hides when citation/source/note_presse are empty (no ghost)', () => {
+    const row = item({ key: 'th-ghost', cat: 'theatre_danse' });
+    assert.equal(theatreCardPressBadge(row), null);
+    assert.equal(fichePressCitation(row), null);
+  });
+
+  it('defaults to Presse; Vu dans {média} when source ≤14 chars', () => {
+    assert.equal(pressBadgeLabel(''), 'Presse');
+    assert.equal(pressBadgeLabel('Télérama'), 'Vu dans Télérama');
+    assert.equal(pressBadgeLabel('Le Figaroscope'), 'Vu dans Le Figaroscope');
+    assert.equal(pressBadgeLabel('Les Inrockuptibles'), 'Presse');
+    assert.equal(pressBadgeLabel('La Dépêche du Midi'), 'Presse');
+  });
+
+  it('reads evenement.citation* when programme has none (fill-empty fallback)', () => {
+    const row = item({
+      key: 'th-ev',
+      cat: 'theatre_danse',
+      evenement: {
+        citation: 'Un pur régal.',
+        source: 'Télérama',
+        source_url: 'https://www.telerama.fr/scenes/chers',
+      },
+    });
+    assert.deepEqual(theatreCardPressBadge(row), {
+      label: 'Vu dans Télérama',
+      source: 'Télérama',
+    });
+  });
+
+  it('reads programme.citation* the same way PressCitation does', () => {
+    const row = item({
+      key: 'th-prog',
+      cat: 'theatre_danse',
+      programme: {
+        citation: 'Une pièce d’une rare intensité.',
+        source: 'Télérama',
+        source_url: 'https://www.telerama.fr/scenes/exemple',
+      },
+    });
+    assert.deepEqual(theatreCardPressBadge(row), {
+      label: 'Vu dans Télérama',
+      source: 'Télérama',
+    });
+    assert.equal(fichePressCitation(row)?.quote, '« Une pièce d’une rare intensité. »');
+  });
+
+  it('survives slimDayItem so first-paint pack/rail cards can show the pill', () => {
+    const raw = item({
+      key: 'th-wire',
+      cat: 'theatre_danse',
+      programme: {
+        citation: 'Même après le slim.',
+        source: 'Sceneweb',
+        source_url: 'https://www.sceneweb.fr/a',
+      },
+    });
+    const slim = slimDayItem(raw);
+    assert.deepEqual(theatreCardPressBadge(slim), {
+      label: 'Vu dans Sceneweb',
+      source: 'Sceneweb',
+    });
+    assert.equal(fichePressCitation(slim)?.source, 'Sceneweb');
+  });
+
+  it('never paints on musique / cinéma even when a quote exists', () => {
+    const music = item({
+      key: 'mu-badge',
+      cat: 'musique',
+      form: 'concert',
+      programme: PRESS,
+    });
+    const cine = item({
+      key: 'cine-badge',
+      cat: 'cinema',
+      filmId: 'F1',
+      programme: PRESS,
+    });
+    assert.ok(fichePressCitation(music));
+    assert.equal(theatreCardPressBadge(music), null);
+    assert.equal(theatreCardPressBadge(cine), null);
   });
 });

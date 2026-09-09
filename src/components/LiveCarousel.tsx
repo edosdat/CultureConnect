@@ -9,6 +9,7 @@ import EventImage from './EventImage';
 import VisualFallback, { categoryLabelOf } from './VisualFallback';
 import FavoriteButton from './FavoriteButton';
 import TheatreUrgenceBadge from './TheatreUrgenceBadge';
+import PressBadge from './PressBadge';
 
 type Props = {
   rows: DenseRow[];
@@ -70,14 +71,15 @@ export default function LiveCarousel({
                     className="h-full w-full object-cover"
                     fallback={<VisualFallback item={item} />}
                   />
-                  {cat ? (
-                    <span className="absolute left-2 top-2 flex max-w-[calc(100%-1rem)] flex-wrap items-center gap-1">
+                  <span className="absolute left-2 top-2 flex max-w-[calc(100%-1rem)] flex-wrap items-center gap-1">
+                    {cat ? (
                       <span className="rounded bg-culture-terracotta px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">
                         {cat}
                       </span>
-                      <TheatreUrgenceBadge item={item} />
-                    </span>
-                  ) : null}
+                    ) : null}
+                    <TheatreUrgenceBadge item={item} />
+                    <PressBadge item={item} />
+                  </span>
                 </div>
                 <div className="flex flex-col gap-1 p-3">
                   <div className="flex items-start justify-between gap-2">
