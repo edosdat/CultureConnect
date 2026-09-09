@@ -383,6 +383,8 @@ export default function CultureConnectApp({
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
   const [visibleCount, setVisibleCount] = useState(AGENDA_PAGE_SIZE);
   const [proposeOpen, setProposeOpen] = useState(false);
+  /** Applied search fetch in flight — do not keep stale rails or flash invitation. */
+  const [listSearchPending, setListSearchPending] = useState(false);
 
   const [listItems, setListItems] = useState<DayItem[]>(initialItems);
   const [recoPoolByKey, setRecoPoolByKey] = useState<Record<string, DayItem[]>>(
@@ -912,6 +914,15 @@ export default function CultureConnectApp({
     }
     skipListFetch.current = false;
     const gen = ++listFetchGen.current;
+    const searchingNow = Boolean(titleLeftover.trim() || phraseMode);
+    if (searchingNow) {
+      setListItems([]);
+      setNouveautesItems([]);
+      setVivantItems([]);
+      setListSearchPending(true);
+    } else {
+      setListSearchPending(false);
+    }
     const delay = 0;
     let cancelled = false;
     const id = window.setTimeout(() => {
@@ -942,6 +953,7 @@ export default function CultureConnectApp({
           /* keep previous window */
         } finally {
           stopListSlowWatch(gen);
+          if (gen === listFetchGen.current) setListSearchPending(false);
         }
       })();
     }, delay);
@@ -1335,26 +1347,32 @@ export default function CultureConnectApp({
   const musiqueCount = allMusiqueRows.length;
   const enfantsCount = allEnfantsRows.length;
   const expoCount = allExpoRows.length;
+  const hidePacksForSearch = searchingUi || phraseMode;
   const showCineBlock =
     sectionVis.cine &&
     visibleCineRows.length > 0 &&
-    !phraseDateClash;
+    !phraseDateClash &&
+    !hidePacksForSearch;
   const showTheatreBlock =
     sectionVis.theatre &&
     visibleTheatreRows.length > 0 &&
-    !phraseDateClash;
+    !phraseDateClash &&
+    !hidePacksForSearch;
   const showMusiqueBlock =
     sectionVis.musique &&
     visibleMusiqueRows.length > 0 &&
-    !phraseDateClash;
+    !phraseDateClash &&
+    !hidePacksForSearch;
   const showEnfantsBlock =
     sectionVis.enfants &&
     visibleEnfantsRows.length > 0 &&
-    !phraseDateClash;
+    !phraseDateClash &&
+    !hidePacksForSearch;
   const showExpoBlock =
     sectionVis.expo &&
     visibleExpoRows.length > 0 &&
-    !phraseDateClash;
+    !phraseDateClash &&
+    !hidePacksForSearch;
   const leftoverRows = useMemo(() => {
     if (
       showCineBlock ||
@@ -2143,7 +2161,11 @@ export default function CultureConnectApp({
         !showMusiqueBlock &&
         !showEnfantsBlock &&
         !showExpoBlock ? (
-          phraseDateClash ? (
+          listSearchPending && (phraseMode || searchingUi) ? (
+            <div className="px-6 py-8 text-center text-sm text-culture-muted">
+              Recherche…
+            </div>
+          ) : phraseDateClash ? (
             <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-6 py-8 text-center">
               <p className="font-display text-xl text-culture-ink">
                 Rien sur cette période
