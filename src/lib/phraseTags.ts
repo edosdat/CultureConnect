@@ -449,6 +449,24 @@ export function normalizePhrase(text: string): string {
     .trim();
 }
 
+/**
+ * Locked slug, or phrase-vocab synonym (calme → contemplatif).
+ * `sortie` and unknown tokens stay null — never a 17th goût.
+ */
+export function canonicalTasteMood(
+  slug: string | null | undefined,
+): TasteMood | null {
+  if (!slug) return null;
+  const key = normalizePhrase(slug);
+  if (!key) return null;
+  if (isTasteMood(key)) return key as TasteMood;
+  const compact = key.replace(/\s+/g, '');
+  if (compact !== key && isTasteMood(compact)) return compact as TasteMood;
+  const mapped = MOOD_WORDS[key] ?? MOOD_WORDS[compact];
+  if (mapped && mapped !== 'sortie' && isTasteMood(mapped)) return mapped;
+  return null;
+}
+
 export function phraseTokens(norm: string): string[] {
   return norm.match(/[a-z0-9]+/g) ?? [];
 }

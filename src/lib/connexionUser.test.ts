@@ -1,6 +1,11 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { parsePhraseRules, isTasteMood, TASTE_MOODS } from './phraseTags';
+import {
+  parsePhraseRules,
+  isTasteMood,
+  canonicalTasteMood,
+  TASTE_MOODS,
+} from './phraseTags';
 import {
   displayReasonForItem,
   recoWhyForMood,
@@ -916,9 +921,10 @@ describe('Mes goûts chips — 0 cats, 0 sortie, 16 moods only', () => {
     );
     assert.ok(chips.some((c) => c.key === 'tendre'));
     assert.ok(chips.every((c) => c.bucket !== 'moods' || isTasteMood(c.key)));
+    assert.equal(chips.filter((c) => c.bucket === 'moods').length, 16);
   });
 
-  it('lists all 16 locked moods when weight>0; empty only if truly 0', () => {
+  it('always lists all 16 locked Ambiances, including 0% / absent', () => {
     const sixteen = Object.fromEntries(
       TASTE_MOODS.map((m, i) => [m, { weight: i + 1, pct: 0 }]),
     );
@@ -950,12 +956,110 @@ describe('Mes goûts chips — 0 cats, 0 sortie, 16 moods only', () => {
     assert.equal(loadingCache.pending, false);
     assert.equal(profileChips(loadingCache.profile, 64).length, 16);
 
+    const neonMissing = profileChips(
+      {
+        ...emptyProfile(),
+        moods: Object.fromEntries(
+          TASTE_MOODS.filter((m) => m !== 'contemplatif').map((m, i) => [
+            m,
+            { weight: i + 1, pct: 6 },
+          ]),
+        ),
+      },
+      64,
+    );
+    const neonMoods = neonMissing.filter((c) => c.bucket === 'moods');
+    assert.equal(neonMoods.length, 16);
+    const contemplatif = neonMoods.find((c) => c.key === 'contemplatif');
+    assert.ok(contemplatif);
+    assert.equal(contemplatif!.label, 'Contemplatif');
+    assert.equal(contemplatif!.weight, 0);
+    assert.equal(contemplatif!.pct, 0);
+
+    const zeroWeight = profileChips(
+      {
+        ...emptyProfile(),
+        moods: {
+          ...Object.fromEntries(
+            TASTE_MOODS.filter((m) => m !== 'contemplatif').map((m) => [
+              m,
+              { weight: 2, pct: 6 },
+            ]),
+          ),
+          contemplatif: { weight: 0, pct: 0 },
+        },
+      },
+      64,
+    );
+    assert.ok(
+      zeroWeight.some(
+        (c) =>
+          c.bucket === 'moods' &&
+          c.key === 'contemplatif' &&
+          c.weight === 0 &&
+          c.label === 'Contemplatif',
+      ),
+    );
+
     const trulyEmpty = resolveSheetProfile({
       sessionStatus: 'authenticated',
       accountProfile: emptyProfile(),
       guestProfile: emptyProfile(),
     });
     assert.equal(trulyEmpty.pending, false);
-    assert.equal(profileChips(trulyEmpty.profile, 64).length, 0);
+    const emptyChips = profileChips(trulyEmpty.profile, 64);
+    assert.equal(emptyChips.filter((c) => c.bucket === 'moods').length, 16);
+    assert.ok(emptyChips.every((c) => c.weight === 0));
+    assert.ok(
+      emptyChips.some((c) => c.key === 'contemplatif' && c.pct === 0),
+    );
+  });
+
+  it('keeps Contemplatif in Ambiances when a theme shares the label', () => {
+    const sixteen = Object.fromEntries(
+      TASTE_MOODS.map((m) => [m, { weight: 1, pct: 6.25 }]),
+    );
+    const chips = profileChips(
+      {
+        ...emptyProfile(),
+        moods: sixteen,
+        themes: { contemplatif: { weight: 9, pct: 100 } },
+      },
+      64,
+    );
+    const moods = chips.filter((c) => c.bucket === 'moods');
+    assert.equal(moods.length, 16);
+    assert.ok(
+      moods.some((c) => c.key === 'contemplatif' && c.label === 'Contemplatif'),
+    );
+    assert.equal(
+      chips.some((c) => c.bucket === 'themes' && c.key === 'contemplatif'),
+      false,
+    );
+    assert.deepEqual(
+      moods.map((c) => c.key).sort(),
+      [...TASTE_MOODS].sort(),
+    );
+  });
+
+  it('maps vocab aliases onto Contemplatif so Ambiances stay at 16', () => {
+    assert.equal(canonicalTasteMood('calme'), 'contemplatif');
+    assert.equal(canonicalTasteMood('contemplative'), 'contemplatif');
+    const without = TASTE_MOODS.filter((m) => m !== 'contemplatif');
+    const chips = profileChips(
+      {
+        ...emptyProfile(),
+        moods: Object.fromEntries([
+          ...without.map((m, i) => [m, { weight: i + 1, pct: 6 }]),
+          ['calme', { weight: 2, pct: 6 }],
+        ]),
+      },
+      64,
+    );
+    const moods = chips.filter((c) => c.bucket === 'moods');
+    assert.equal(moods.length, 16);
+    assert.ok(
+      moods.some((c) => c.key === 'contemplatif' && c.label === 'Contemplatif'),
+    );
   });
 });
