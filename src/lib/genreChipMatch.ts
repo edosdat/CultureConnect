@@ -4,7 +4,8 @@
  * Do not add these to phrase/reco CLOSED_VOCAB.
  */
 
-import type { DayItem, Evenement, ProgrammeWithContext } from './types';
+import { genreBelongsToMains, mainFromGenreSlug } from './categories';
+import type { DayItem, Evenement, GenreLegend, ProgrammeWithContext } from './types';
 
 export type GenreMatchFields = {
   genre: string;
@@ -102,6 +103,43 @@ export function matchesSelectedGenres(
 ): boolean {
   if (selected.length === 0) return true;
   return selected.some((chip) => itemMatchesGenreChip(fields, chip));
+}
+
+/**
+ * Keep a tapped genre chip even when the filtered page no longer lists it.
+ * Only drop chips when the QUOI category is cleared or the slug leaves that main.
+ */
+export function retainSelectedGenreChips(
+  selected: string[],
+  selectedMains: string[],
+  legend: Pick<GenreLegend, 'slug' | 'famille'>[],
+): string[] {
+  if (selected.length === 0) return selected;
+  if (selectedMains.length === 0) return [];
+  const legendBySlug = new Map(legend.map((g) => [g.slug, g]));
+  const next = selected.filter((slug) => {
+    const g = legendBySlug.get(slug);
+    if (g) return genreBelongsToMains(g, selectedMains);
+    const m = mainFromGenreSlug(slug);
+    if (m != null) return selectedMains.includes(m);
+    // Raw catalogue slugs (`jazz`, `jam`) are not in GENRE_SLUG_TO_MAIN.
+    return selectedMains.includes('musique');
+  });
+  return next.length === selected.length ? selected : next;
+}
+
+/** Selected chips stay visible even if the API slug list shrank. */
+export function visibleGenreChipSlugs(
+  available: string[],
+  selected: string[],
+): string[] {
+  if (selected.length === 0) return available;
+  const set = new Set(available);
+  for (const slug of selected) {
+    const s = slug.trim();
+    if (s) set.add(s);
+  }
+  return Array.from(set);
 }
 
 /** Raw genre column plus inferred catalogue chips (blindtest from title/pitch). */
