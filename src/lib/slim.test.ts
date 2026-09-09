@@ -149,6 +149,28 @@ describe('slimDayItem list wire', () => {
     assert.equal(seanceHeureLabel(slim), '20:00 VF');
   });
 
+  it('keeps programme citation* so theatre pack cards can resolve press', () => {
+    const raw = item();
+    if (raw.kind !== 'programme') assert.fail('expected programme');
+    raw.evenement = ev({
+      categorie: 'theatre_danse',
+      citation: '',
+    });
+    raw.programme = {
+      ...raw.programme,
+      citation: 'Une pièce d’une rare intensité.',
+      source: 'Télérama',
+      source_url: 'https://www.telerama.fr/scenes/exemple',
+      note_presse: 'TTTT',
+    };
+    const slim = slimDayItem(raw);
+    if (slim.kind !== 'programme') assert.fail('expected programme');
+    assert.equal(slim.programme.citation, 'Une pièce d’une rare intensité.');
+    assert.equal(slim.programme.source, 'Télérama');
+    assert.equal(slim.programme.note_presse, 'TTTT');
+    assert.equal(slim.evenement?.citation, undefined);
+  });
+
   it('detail still carries full copy and URLs', () => {
     const detail = detailDayItem(item());
     assert.equal(detail.evenement?.description_longue, LONG);
