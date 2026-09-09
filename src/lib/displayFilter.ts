@@ -1,9 +1,10 @@
 /**
  * Display-only: every séance on screen must match the filters above.
- * Date/window + exact commune + optional salle + genre chips.
+ * Date/window + exact commune + optional salle + QUOI chips (cat + genre).
  * Not métropole, not “next séance”.
  */
 
+import { matchesMainCategories } from './categories';
 import { filterItemsByCommune } from './commune';
 import {
   genreFieldsFromDayItem,
@@ -21,6 +22,11 @@ export type DisplayFilter = {
   lieuId?: string | null;
   /** Catalogue QUOI genre chips (Jazz / blues…). Applied on the painted packs. */
   genres?: string[];
+  /**
+   * QUOI category chips (Festival / Expo / Enfants…). Same predicate as the
+   * API pool — extra chips must prune painted rails immediately, like Jazz.
+   */
+  categories?: string[];
   /**
    * Reco `tous` (QUAND chips off): POST is already scoped to upcoming.
    * Do not re-apply the day / Ce soir window.
@@ -61,6 +67,11 @@ export function relatedSeancesFilter(
   return { ...filter, commune: null };
 }
 
+function categorieOfDayItem(item: DayItem): string {
+  if (item.kind === 'programme') return item.evenement?.categorie ?? '';
+  return item.evenement.categorie ?? '';
+}
+
 export function filterSeancesForActiveFilters<T extends DayItem>(
   items: T[],
   filter: DisplayFilter,
@@ -68,6 +79,16 @@ export function filterSeancesForActiveFilters<T extends DayItem>(
   let out = filterItemsByCommune(items, filter.commune);
   if (filter.lieuId) {
     out = out.filter((item) => itemMatchesLieu(item, filter.lieuId));
+  }
+  const categories = filter.categories ?? [];
+  if (categories.length > 0) {
+    out = out.filter((item) => {
+      const fields = genreFieldsFromDayItem(item);
+      return matchesMainCategories(categorieOfDayItem(item), fields.genre, categories, {
+        tags: fields.tags,
+        publicCible: fields.publicCible,
+      });
+    });
   }
   const genres = filter.genres ?? [];
   if (genres.length > 0) {
