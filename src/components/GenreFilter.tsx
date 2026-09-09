@@ -23,7 +23,8 @@ type Props = {
   loading?: boolean;
 };
 
-const SKELETON_CHIP_WIDTHS = ['w-14', 'w-[4.25rem]', 'w-16', 'w-12'] as const;
+/** Mock: 3 stacked pills, longest → shortest, under live GENRES chrome. */
+const SKELETON_PILL_WIDTHS = ['w-[60%]', 'w-[45%]', 'w-[30%]'] as const;
 
 function syntheticLegend(slug: string): GenreLegend {
   return {
@@ -157,15 +158,17 @@ export default function GenreFilter({
               {selected.map((slug) => renderChip(resolve(slug)))}
             </div>
           ) : null}
-          <div className="flex gap-1.5" aria-hidden>
-            {SKELETON_CHIP_WIDTHS.map((w) => (
+          <div className="flex max-w-sm flex-col gap-1.5" aria-hidden>
+            {SKELETON_PILL_WIDTHS.map((w) => (
               <span
                 key={w}
-                className={`cc-genre-skel h-7 ${w} shrink-0 rounded-full`}
+                className={`cc-genre-skel h-7 ${w} rounded-full`}
               />
             ))}
           </div>
-          <p className="text-xs text-culture-muted/80">Chargement…</p>
+          <p className="text-center text-xs text-culture-muted/80">
+            Chargement…
+          </p>
         </div>
       ) : allVisible.length === 0 ? (
         <p
