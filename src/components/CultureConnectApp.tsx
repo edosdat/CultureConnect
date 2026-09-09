@@ -51,8 +51,10 @@ import {
   top3IdentitySet,
   visibleTop3Items,
   proposeEventInvitationVisible,
+  itemTitle,
   type HomeCardOpen,
 } from '@/lib/displayHome';
+import { matchesSearch } from '@/lib/searchText';
 import {
   clearProposeIntent,
   readProposeIntent,
@@ -1386,7 +1388,14 @@ export default function CultureConnectApp({
     }
     const scoped = filterSeancesForActiveFilters(listItems, activeFilter);
     const leftover = searching
-      ? scoped
+      ? scoped.filter((item) =>
+          matchesSearch(
+            [itemTitle(item), item.lieu?.nom, item.lieu?.commune]
+              .filter(Boolean)
+              .join(' '),
+            titleLeftover,
+          ),
+        )
       : scoped.filter((item) => !homePackOfItem(item));
     return densify(
       dedupAgainstTop3(leftover, top3Set),
@@ -1403,6 +1412,7 @@ export default function CultureConnectApp({
     top3Set,
     gpsOrigin,
     searching,
+    titleLeftover,
   ]);
   const crossSellPool = useMemo(
     () => [
@@ -2156,12 +2166,17 @@ export default function CultureConnectApp({
         ) : null}
         </div>
 
-        {listEmpty &&
-        !showCineBlock &&
+        {(!showCineBlock &&
         !showTheatreBlock &&
         !showMusiqueBlock &&
         !showEnfantsBlock &&
-        !showExpoBlock ? (
+        !showExpoBlock &&
+        (listEmpty ||
+          proposeEventInvitationVisible({
+            searchApplied: phraseMode || searchingUi,
+            zeroHits: leftoverRows.length === 0,
+            phraseDateClash,
+          }))) ? (
           listSearchPending && (phraseMode || searchingUi) ? (
             <div className="px-6 py-8 text-center text-sm text-culture-muted">
               Recherche…
