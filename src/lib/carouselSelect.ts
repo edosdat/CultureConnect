@@ -292,13 +292,64 @@ export function resolveHeroAfterRowsChange(opts: {
 }
 
 /**
+ * Browse/pin scope must include genre chips so Jazz resets the painted rail.
+ */
+export function packCarouselBrowseScope(input: {
+  pack: string;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  selectedLieuId?: string | null;
+  soir?: boolean;
+  genres?: readonly string[];
+}): string {
+  const genreKey = [...(input.genres ?? [])]
+    .map((g) => g.trim().toLowerCase())
+    .filter(Boolean)
+    .sort()
+    .join(',');
+  return [
+    input.pack,
+    input.dateFrom ?? '',
+    input.dateTo ?? '',
+    input.selectedLieuId ?? '',
+    input.soir ? '1' : '0',
+    genreKey,
+  ].join('|');
+}
+
+export function packCarouselPinScope(input: {
+  pack: string;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  selectedCommune?: string | null;
+  selectedLieuId?: string | null;
+  soir?: boolean;
+  genres?: readonly string[];
+}): string {
+  return [
+    input.pack,
+    input.dateFrom ?? '',
+    input.dateTo ?? '',
+    input.selectedCommune ?? '',
+    input.selectedLieuId ?? '',
+    input.soir ? '1' : '0',
+    [...(input.genres ?? [])]
+      .map((g) => g.trim().toLowerCase())
+      .filter(Boolean)
+      .sort()
+      .join(','),
+  ].join('|');
+}
+
+/**
  * Product lock: pack rails never insert to the LEFT while browsing.
- * Keep the already-shown order; new densify / requestMore keys append right.
+ * `pruneMissing` drops painted works that left `incoming` (genre chips).
  */
 export function appendOnlyStripRows<T extends { groupKey: string }>(
   previous: readonly T[],
   incoming: readonly T[],
   pin?: HeroPin | string | null,
+  opts?: { pruneMissing?: boolean },
 ): T[] {
   if (previous.length === 0) return [...incoming];
   const pinObj: HeroPin | null =
@@ -342,9 +393,10 @@ export function appendOnlyStripRows<T extends { groupKey: string }>(
     if (remint) {
       kept.push(remint);
       keptKeys.add(remint.groupKey);
-    } else {
+    } else if (!opts?.pruneMissing) {
       // Keep the painted slot even when reco/top3/GPS dropped the work
       // from `incoming`. Index 0 must not thrash A → B → C on first load.
+      // Genre chips prune instead — Jazz must not keep jam/karaoke thumbs.
       kept.push(old);
       keptKeys.add(old.groupKey);
     }

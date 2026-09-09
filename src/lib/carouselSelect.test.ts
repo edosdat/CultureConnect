@@ -8,6 +8,7 @@ import {
   THUMB_SELECT_LOCK_MS,
   adoptFirstPaintHero,
   appendOnlyStripRows,
+  packCarouselBrowseScope,
   ensureHeroKey,
   applyStoredStripOrder,
   clearPackHeroPins,
@@ -433,6 +434,39 @@ describe('appendOnlyStripRows', () => {
       out.map((row) => row.groupKey),
       [a, b, c, x, y, z].map((row) => row.groupKey),
     );
+  });
+
+  it('prunes painted jam/karaoke when Jazz incoming is a subset', () => {
+    const jam = film('musique:jam-balkanique', 'jam-1');
+    const kara = film('musique:lukaraoke', 'kara-1');
+    const jazz = film('musique:the-band', 'jazz-1');
+    const painted = appendOnlyStripRows([], [jam, kara, jazz]);
+    const leaked = appendOnlyStripRows(painted, [jazz]);
+    assert.deepEqual(
+      leaked.map((row) => row.groupKey),
+      [jam, kara, jazz].map((row) => row.groupKey),
+    );
+    const pruned = appendOnlyStripRows(painted, [jazz], null, {
+      pruneMissing: true,
+    });
+    assert.deepEqual(
+      pruned.map((row) => row.groupKey),
+      [jazz.groupKey],
+    );
+  });
+
+  it('browse scope changes when Jazz is selected (rail reset)', () => {
+    const base = {
+      pack: 'musique',
+      dateFrom: '2026-09-09',
+      dateTo: '2026-09-09',
+      selectedLieuId: null,
+      soir: false,
+    };
+    const open = packCarouselBrowseScope(base);
+    const jazz = packCarouselBrowseScope({ ...base, genres: ['jazz'] });
+    assert.notEqual(open, jazz);
+    assert.ok(jazz.endsWith('|jazz'));
   });
 
   it('first-load reco then GPS must not replace painted hero slot 0', () => {

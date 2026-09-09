@@ -1,9 +1,14 @@
 /**
  * Display-only: every séance on screen must match the filters above.
- * Date/window + exact commune + optional salle. Not métropole, not “next séance”.
+ * Date/window + exact commune + optional salle + genre chips.
+ * Not métropole, not “next séance”.
  */
 
 import { filterItemsByCommune } from './commune';
+import {
+  genreFieldsFromDayItem,
+  matchesSelectedGenres,
+} from './genreChipMatch';
 import { isCinemaDayItem } from './nouveautesCine';
 import { filterSeancesForDisplay } from './timeScope';
 import type { DayItem } from './types';
@@ -14,6 +19,8 @@ export type DisplayFilter = {
   soir?: boolean;
   commune?: string | null;
   lieuId?: string | null;
+  /** Catalogue QUOI genre chips (Jazz / blues…). Applied on the painted packs. */
+  genres?: string[];
   /**
    * Reco `tous` (QUAND chips off): POST is already scoped to upcoming.
    * Do not re-apply the day / Ce soir window.
@@ -61,6 +68,12 @@ export function filterSeancesForActiveFilters<T extends DayItem>(
   let out = filterItemsByCommune(items, filter.commune);
   if (filter.lieuId) {
     out = out.filter((item) => itemMatchesLieu(item, filter.lieuId));
+  }
+  const genres = filter.genres ?? [];
+  if (genres.length > 0) {
+    out = out.filter((item) =>
+      matchesSelectedGenres(genreFieldsFromDayItem(item), genres),
+    );
   }
   if (filter.skipDateWindow) return out;
   return filterSeancesForDisplay(out, {

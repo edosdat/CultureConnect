@@ -565,6 +565,75 @@ describe('pack rows + date filter', () => {
       ['ex-5'],
     );
   });
+
+  it('aujourd’hui + Musique + Jazz keeps jazz/jazz_blues, excludes jam and karaoke', () => {
+    const today: DayItem[] = [
+      item({
+        key: 'jazz-1',
+        cat: 'musique',
+        day: '2026-09-09',
+        genre: 'jazz_blues',
+        title: 'JAM#1',
+      }),
+      item({
+        key: 'jazz-raw',
+        cat: 'musique',
+        day: '2026-09-09',
+        genre: 'jazz',
+        title: 'THE BAND',
+      }),
+      item({
+        key: 'kara',
+        cat: 'musique',
+        day: '2026-09-09',
+        genre: 'karaoke',
+        title: 'Lukaraoké',
+      }),
+      item({
+        key: 'jam-balkan',
+        cat: 'musique',
+        day: '2026-09-09',
+        genre: 'jam',
+        title: 'Jam Balkanique',
+      }),
+      item({
+        key: 'jam-horra',
+        cat: 'musique',
+        day: '2026-09-09',
+        genre: 'jam',
+        title: 'Jam Horra',
+      }),
+      item({
+        key: 'jam-swing',
+        cat: 'musique',
+        day: '2026-09-09',
+        genre: 'jam',
+        title: 'Jam Swing & New Orleans',
+      }),
+    ];
+    for (const chip of ['jazz', 'jazz_blues']) {
+      const kept = filterSeancesForActiveFilters(today, {
+        startIso: '2026-09-09',
+        endIso: '2026-09-09',
+        commune: 'Toulouse',
+        genres: [chip],
+      });
+      const keys = musiqueRows(kept, emptyTop3)
+        .map((r) => r.item.key)
+        .sort();
+      assert.deepEqual(keys, ['jazz-1', 'jazz-raw'].sort());
+      assert.equal(
+        kept.some((row) =>
+          /jam balkanique|jam horra|lukaraoké|jam swing/i.test(
+            row.kind === 'programme'
+              ? row.programme.nom_item
+              : row.evenement.titre,
+          ),
+        ),
+        false,
+      );
+    }
+  });
 });
 
 describe('top 3 click opens fiche outside QUOI grid', () => {

@@ -1009,6 +1009,10 @@ export default function CultureConnectApp({
       // Title search already ignores commune on the API.
       commune: searching ? null : selectedCommune,
       lieuId: selectedLieuId,
+      // Genre chips must prune the painted packs immediately. Date-chip
+      // snapshots + append-only rails otherwise keep the unfiltered Musique
+      // rows after Jazz is tapped (API returns later / never replaces).
+      genres: selectedGenres,
     }),
     [
       scopeRange.startIso,
@@ -1017,6 +1021,7 @@ export default function CultureConnectApp({
       selectedCommune,
       selectedLieuId,
       searching,
+      selectedGenres,
     ],
   );
 
@@ -1031,6 +1036,7 @@ export default function CultureConnectApp({
             commune: selectedCommune,
             lieuId: selectedLieuId,
             skipDateWindow: true,
+            genres: selectedGenres,
           }
         : activeFilter,
     );
@@ -1042,6 +1048,7 @@ export default function CultureConnectApp({
     timeScope,
     selectedCommune,
     selectedLieuId,
+    selectedGenres,
   ]);
   const packFilmIds = useMemo(() => {
     const ids = new Set<string>();
@@ -2223,6 +2230,7 @@ export default function CultureConnectApp({
               dateTo={scopeRange.endIso}
               soir={timeScope === 'soir'}
               datePinned={timeScope !== 'tous'}
+              genres={selectedGenres}
               hasMore={
                 cineLimit < frozenCineRows.length || listItems.length < total
               }
@@ -2271,6 +2279,7 @@ export default function CultureConnectApp({
                   dateTo={scopeRange.endIso}
                   soir={timeScope === 'soir'}
                   datePinned={timeScope !== 'tous'}
+                  genres={selectedGenres}
                   hasMore={
                     theatreLimit < frozenTheatreRows.length ||
                     (theatreTotal > 0 &&
@@ -2311,6 +2320,7 @@ export default function CultureConnectApp({
                   dateTo={scopeRange.endIso}
                   soir={timeScope === 'soir'}
                   datePinned={timeScope !== 'tous'}
+                  genres={selectedGenres}
                   hasMore={
                     musiqueLimit < frozenMusiqueRows.length ||
                     (musiqueTotal > 0 &&
@@ -2353,6 +2363,7 @@ export default function CultureConnectApp({
               dateTo={scopeRange.endIso}
               soir={timeScope === 'soir'}
               datePinned={timeScope !== 'tous'}
+              genres={selectedGenres}
               hasMore={
                 enfantsLimit < frozenEnfantsRows.length ||
                 (enfantsTotal > 0 && frozenEnfantsRows.length < enfantsTotal)
@@ -2392,6 +2403,7 @@ export default function CultureConnectApp({
               dateTo={scopeRange.endIso}
               soir={timeScope === 'soir'}
               datePinned={timeScope !== 'tous'}
+              genres={selectedGenres}
               hasMore={
                 expoLimit < frozenExpoRows.length ||
                 (expoTotal > 0 && frozenExpoRows.length < expoTotal)
