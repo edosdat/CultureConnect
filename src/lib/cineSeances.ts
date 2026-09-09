@@ -150,6 +150,19 @@ export function horaireOptionLabel(rel: DayItem): string {
   return [date, seanceHeureLabel(rel)].filter(Boolean).join(' · ');
 }
 
+/** Visible séance line: « 21:15 VOST » when peers share a day, else the dropdown form. */
+export function cineSeanceLineLabel(
+  rel: DayItem,
+  peers: DayItem[] = [rel],
+): string {
+  const rows = peers.length ? peers : [rel];
+  const firstDay = seanceDateIso(rows[0]!) || rows[0]!.dayIso;
+  const sameDay = rows.every(
+    (row) => (seanceDateIso(row) || row.dayIso) === firstDay,
+  );
+  return sameDay ? seanceHeureLabel(rel) : horaireOptionLabel(rel);
+}
+
 /** Compact « 8,20€ · VOSTFR » — omit either part when the CSV is empty. */
 export function seanceMetaLabel(item: DayItem): string {
   return [seancePrixLabel(item), seanceVersionLabel(item)]
