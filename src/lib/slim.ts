@@ -86,7 +86,9 @@ function slimEvenement(
     gratuit: ev.gratuit,
     url_source: '',
     description_courte: courte,
-    description_longue: keep ? (ev.description_longue || '').trim() : '',
+    ...(keep && (ev.description_longue || '').trim()
+      ? { description_longue: (ev.description_longue || '').trim() }
+      : {}),
     statut: ev.statut,
     genre: ev.genre,
     image_url: ev.image_url || '',

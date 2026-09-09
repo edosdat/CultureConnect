@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
-import { clipListPitch, detailDayItem, slimDayItem } from './slim';
+import { detailDayItem, slimDayItem } from './slim';
 import { ficheDescriptionOf, ficheDescriptionView } from './ficheDescription';
 
 const LONG_PITCH =
@@ -113,7 +113,7 @@ describe('ficheDescriptionOf', () => {
     const detail = detailDayItem(raw);
     assert.equal(ficheDescriptionOf(hero), LONG_PITCH);
     assert.equal(ficheDescriptionOf(hero), ficheDescriptionOf(detail));
-    assert.equal(ficheDescriptionOf(slim), clipListPitch(LONG_PITCH));
+    assert.equal(ficheDescriptionOf(slim), 'Court.');
     assert.deepEqual(ficheDescriptionView(slim, { pending: true }), {
       kind: 'pending',
     });

@@ -91,7 +91,7 @@ function item(): DayItem {
 describe('slimDayItem list wire', () => {
   it('clips fiche copy; drops tickets URLs and mood tags', () => {
     const slim = slimDayItem(item());
-    assert.equal(slim.evenement?.description_longue, '');
+    assert.equal(slim.evenement?.description_longue, undefined);
     assert.equal(slim.evenement?.url_source, '');
     assert.equal(slim.evenement?.billetterie_url, undefined);
     assert.equal(slim.evenement?.form, undefined);

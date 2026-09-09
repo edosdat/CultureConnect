@@ -1023,9 +1023,12 @@ function assembleListFromItems(
   };
 }
 
-const RECO_BOOT_SCOPES = ['tous', 'soir', 'aujourdhui', 'weekend', 'semaine'] as const;
-
-export type RecoBootScope = (typeof RECO_BOOT_SCOPES)[number];
+export type RecoBootScope =
+  | 'tous'
+  | 'soir'
+  | 'aujourdhui'
+  | 'weekend'
+  | 'semaine';
 
 export type RecoByScope = Record<RecoBootScope, DayItem[]>;
 
@@ -1282,7 +1285,9 @@ export function queryAgendaDetail(
         ),
       );
     }
-    aussiCeSoir = collectCinemaLivingCandidates(pool).map(slimDayItem);
+    aussiCeSoir = collectCinemaLivingCandidates(pool).map((item) =>
+      slimDayItem(item),
+    );
   }
 
   return {
