@@ -150,15 +150,15 @@ export function profileChips(
       if (isTasteMood(key)) foldMood(key, entry);
     }
   }
+  // Product lock: all 16 locked Ambiances, including 0% / absent (Neon).
   for (const key of TASTE_MOODS) {
     const hit = foldedMoods.get(key);
-    if (!hit) continue;
     raw.push({
       bucket: 'moods',
       key,
       label: labelTasteMood(key) ?? key,
-      weight: hit.weight,
-      pct: hit.pct,
+      weight: hit?.weight ?? 0,
+      pct: hit?.pct ?? 0,
     });
   }
   const pushOther = (
@@ -214,9 +214,14 @@ export type SheetProfileSource = {
   pending: boolean;
 };
 
+function positiveSheetRows(profile?: TasteProfile | null): number {
+  return profileChips(profile, 64).filter((c) => c.weight > 0).length;
+}
+
 /**
- * Overlay rows: JWT/account first (16 moods with weight>0), then display cache,
- * then guest. Empty only when truly 0 chips — not while session is loading.
+ * Overlay rows: JWT/account first (16 Ambiances always, plus non-zero
+ * genres/thèmes), then display cache, then guest. Pending only while loading
+ * with no cache — Ambiances still paint 16 rows at 0% once a profile exists.
  */
 export function resolveSheetProfile(opts: {
   sessionStatus: 'loading' | 'authenticated' | 'unauthenticated';
@@ -224,8 +229,8 @@ export function resolveSheetProfile(opts: {
   guestProfile?: TasteProfile | null;
   cachedAccount?: TasteProfile | null;
 }): SheetProfileSource {
-  const accountRows = profileChips(opts.accountProfile, 64).length;
-  const cachedRows = profileChips(opts.cachedAccount, 64).length;
+  const accountRows = positiveSheetRows(opts.accountProfile);
+  const cachedRows = positiveSheetRows(opts.cachedAccount);
   if (opts.sessionStatus === 'authenticated') {
     if (accountRows > 0) {
       return { profile: opts.accountProfile ?? null, pending: false };

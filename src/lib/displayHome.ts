@@ -899,7 +899,7 @@ export function displayReasonForItem(
   );
   if (itemLocked.size === 0) return null;
   const chips = profileChips(opts.tasteState.profile, 16).filter(
-    (c) => c.bucket === 'moods' && itemLocked.has(c.key),
+    (c) => c.bucket === 'moods' && c.weight > 0 && itemLocked.has(c.key),
   );
   const hit = chips[0];
   if (!hit) return null;

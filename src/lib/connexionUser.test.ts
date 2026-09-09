@@ -921,9 +921,10 @@ describe('Mes goûts chips — 0 cats, 0 sortie, 16 moods only', () => {
     );
     assert.ok(chips.some((c) => c.key === 'tendre'));
     assert.ok(chips.every((c) => c.bucket !== 'moods' || isTasteMood(c.key)));
+    assert.equal(chips.filter((c) => c.bucket === 'moods').length, 16);
   });
 
-  it('lists all 16 locked moods when weight>0; empty only if truly 0', () => {
+  it('always lists all 16 locked Ambiances, including 0% / absent', () => {
     const sixteen = Object.fromEntries(
       TASTE_MOODS.map((m, i) => [m, { weight: i + 1, pct: 0 }]),
     );
@@ -955,13 +956,63 @@ describe('Mes goûts chips — 0 cats, 0 sortie, 16 moods only', () => {
     assert.equal(loadingCache.pending, false);
     assert.equal(profileChips(loadingCache.profile, 64).length, 16);
 
+    const neonMissing = profileChips(
+      {
+        ...emptyProfile(),
+        moods: Object.fromEntries(
+          TASTE_MOODS.filter((m) => m !== 'contemplatif').map((m, i) => [
+            m,
+            { weight: i + 1, pct: 6 },
+          ]),
+        ),
+      },
+      64,
+    );
+    const neonMoods = neonMissing.filter((c) => c.bucket === 'moods');
+    assert.equal(neonMoods.length, 16);
+    const contemplatif = neonMoods.find((c) => c.key === 'contemplatif');
+    assert.ok(contemplatif);
+    assert.equal(contemplatif!.label, 'Contemplatif');
+    assert.equal(contemplatif!.weight, 0);
+    assert.equal(contemplatif!.pct, 0);
+
+    const zeroWeight = profileChips(
+      {
+        ...emptyProfile(),
+        moods: {
+          ...Object.fromEntries(
+            TASTE_MOODS.filter((m) => m !== 'contemplatif').map((m) => [
+              m,
+              { weight: 2, pct: 6 },
+            ]),
+          ),
+          contemplatif: { weight: 0, pct: 0 },
+        },
+      },
+      64,
+    );
+    assert.ok(
+      zeroWeight.some(
+        (c) =>
+          c.bucket === 'moods' &&
+          c.key === 'contemplatif' &&
+          c.weight === 0 &&
+          c.label === 'Contemplatif',
+      ),
+    );
+
     const trulyEmpty = resolveSheetProfile({
       sessionStatus: 'authenticated',
       accountProfile: emptyProfile(),
       guestProfile: emptyProfile(),
     });
     assert.equal(trulyEmpty.pending, false);
-    assert.equal(profileChips(trulyEmpty.profile, 64).length, 0);
+    const emptyChips = profileChips(trulyEmpty.profile, 64);
+    assert.equal(emptyChips.filter((c) => c.bucket === 'moods').length, 16);
+    assert.ok(emptyChips.every((c) => c.weight === 0));
+    assert.ok(
+      emptyChips.some((c) => c.key === 'contemplatif' && c.pct === 0),
+    );
   });
 
   it('keeps Contemplatif in Ambiances when a theme shares the label', () => {
