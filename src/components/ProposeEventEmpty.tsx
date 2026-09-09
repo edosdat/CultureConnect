@@ -11,10 +11,10 @@ type Props = {
   onLogin: () => void;
 };
 
-function CalendarPlusIcon() {
+function CalendarPlusIcon({ className }: { className?: string }) {
   return (
     <svg
-      className="h-10 w-10"
+      className={className ?? 'h-10 w-10'}
       viewBox="0 0 40 40"
       fill="none"
       aria-hidden
@@ -67,16 +67,40 @@ function PlusCircleIcon() {
   );
 }
 
-function SpeechIcon() {
+function SearchGlyph() {
   return (
     <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 16 16" fill="none" aria-hidden>
-      <path
-        d="M3 3.5h10a1.5 1.5 0 0 1 1.5 1.5v5A1.5 1.5 0 0 1 13 11.5H8l-3.2 2.2V11.5H3A1.5 1.5 0 0 1 1.5 10V5A1.5 1.5 0 0 1 3 3.5Z"
+      <circle
+        cx="7"
+        cy="7"
+        r="4.2"
         stroke={PROPOSE_COLORS.terracotta}
-        strokeWidth="1.2"
-        strokeLinejoin="round"
+        strokeWidth="1.4"
+      />
+      <path
+        d="M10.4 10.4 14 14"
+        stroke={PROPOSE_COLORS.terracotta}
+        strokeWidth="1.4"
+        strokeLinecap="round"
       />
     </svg>
+  );
+}
+
+function HeartIcon() {
+  return (
+    <span
+      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+      style={{ backgroundColor: '#F3D6CC' }}
+      aria-hidden
+    >
+      <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none">
+        <path
+          d="M8 13.2S2.8 9.6 2.8 6.4A2.7 2.7 0 0 1 8 5.2a2.7 2.7 0 0 1 5.2 1.2C13.2 9.6 8 13.2 8 13.2Z"
+          fill={PROPOSE_COLORS.terracotta}
+        />
+      </svg>
+    </span>
   );
 }
 
@@ -89,44 +113,89 @@ export default function ProposeEventEmpty({
   const q = query.trim();
   const signedIn = sessionStatus === 'authenticated';
   const guest = sessionStatus === 'unauthenticated';
+  const connectedChrome = signedIn || sessionStatus === 'loading';
 
   return (
     <section
-      data-propose-empty=""
+      data-propose-empty={guest ? 'guest' : 'connected'}
       aria-label={PROPOSE_COPY.emptyTitle}
-      className="rounded-2xl border px-5 py-8 text-center sm:px-8 sm:py-10"
+      className="rounded-2xl border px-5 py-6 text-center shadow-sm sm:px-8 sm:py-8"
       style={{
-        backgroundColor: PROPOSE_COLORS.cream,
+        backgroundColor: '#FFFCF8',
         borderColor: '#E4D9CC',
         color: PROPOSE_COLORS.ink,
       }}
     >
-      <div className="mx-auto flex justify-center">
-        <CalendarPlusIcon />
-      </div>
-      <h2
-        className="mt-4 font-display text-xl font-semibold sm:text-2xl"
-        style={{ color: PROPOSE_COLORS.ink }}
-      >
-        {PROPOSE_COPY.emptyTitle}
-      </h2>
-      {q ? (
-        <p className="sr-only">Aucun résultat pour « {q} »</p>
+      {guest && q ? (
+        <p
+          className="mb-4 flex items-center justify-center gap-2 text-left"
+          data-propose-query=""
+        >
+          <SearchGlyph />
+          <span
+            className="max-w-[min(100%,18rem)] truncate rounded-full px-3 py-1 text-xs font-semibold"
+            style={{
+              backgroundColor: '#F3D6CC',
+              color: PROPOSE_COLORS.terracotta,
+            }}
+            title={q}
+          >
+            {q}
+          </span>
+        </p>
       ) : null}
-      <p
-        className="mx-auto mt-2 max-w-sm text-sm leading-relaxed sm:text-[15px]"
-        style={{ color: PROPOSE_COLORS.ink }}
-      >
-        {PROPOSE_COPY.emptyBody}
-      </p>
-      <div className="mt-6">
-        {signedIn || sessionStatus === 'loading' ? (
+
+      {connectedChrome ? (
+        <div className="flex items-start gap-3 text-left sm:gap-4">
+          <div className="shrink-0 pt-0.5">
+            <CalendarPlusIcon className="h-9 w-9" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2
+              className="font-display text-xl font-semibold leading-snug sm:text-2xl"
+              style={{ color: PROPOSE_COLORS.ink }}
+            >
+              {PROPOSE_COPY.emptyTitle}
+            </h2>
+            {q ? (
+              <p className="sr-only">Aucun résultat pour « {q} »</p>
+            ) : null}
+            <p
+              className="mt-1.5 text-sm leading-relaxed sm:text-[15px]"
+              style={{ color: PROPOSE_COLORS.ink }}
+            >
+              {PROPOSE_COPY.emptyBody}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <h2
+            className="font-display text-[1.65rem] font-semibold leading-tight sm:text-3xl"
+            style={{ color: PROPOSE_COLORS.terracotta }}
+          >
+            {PROPOSE_COPY.emptyTitle}
+          </h2>
+          {q ? (
+            <p className="sr-only">Aucun résultat pour « {q} »</p>
+          ) : null}
+          <p
+            className="mx-auto mt-2 max-w-sm text-sm leading-relaxed sm:text-[15px]"
+            style={{ color: PROPOSE_COLORS.ink }}
+          >
+            {PROPOSE_COPY.emptyBody}
+          </p>
+        </>
+      )}
+
+      <div className={connectedChrome ? 'mt-5 text-left' : 'mt-6'}>
+        {connectedChrome ? (
           <button
             type="button"
             data-propose-cta="connected"
             onClick={onPropose}
             disabled={sessionStatus === 'loading'}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-95 disabled:opacity-60"
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-95 disabled:opacity-60 sm:w-auto"
             style={{ backgroundColor: PROPOSE_COLORS.terracotta }}
           >
             <PlusCircleIcon />
@@ -138,7 +207,7 @@ export default function ProposeEventEmpty({
             type="button"
             data-propose-cta="guest"
             onClick={onLogin}
-            className="inline-flex min-h-11 items-center justify-center rounded-full border-2 bg-transparent px-5 py-2.5 text-sm font-semibold transition hover:bg-white/60"
+            className="inline-flex min-h-11 w-full max-w-sm items-center justify-center rounded-full border-2 bg-transparent px-5 py-2.5 text-sm font-semibold transition hover:bg-[#F7F1E8] sm:max-w-none"
             style={{
               borderColor: PROPOSE_COLORS.terracotta,
               color: PROPOSE_COLORS.terracotta,
@@ -148,13 +217,23 @@ export default function ProposeEventEmpty({
           </button>
         ) : null}
       </div>
-      <p
-        className="mt-4 flex items-center justify-center gap-1.5 text-xs leading-snug sm:text-sm"
-        style={{ color: PROPOSE_COLORS.ink }}
-      >
-        <SpeechIcon />
-        <span>{PROPOSE_COPY.emptyHelp}</span>
-      </p>
+
+      {guest ? (
+        <p
+          className="mt-4 flex items-center justify-center gap-2 text-xs italic leading-snug sm:text-sm"
+          style={{ color: PROPOSE_COLORS.ink }}
+        >
+          <HeartIcon />
+          <span>{PROPOSE_COPY.emptyHelp}</span>
+        </p>
+      ) : (
+        <p
+          className="mt-3 text-left text-xs leading-snug sm:text-sm"
+          style={{ color: PROPOSE_COLORS.ink }}
+        >
+          {PROPOSE_COPY.emptyHelp}
+        </p>
+      )}
     </section>
   );
 }

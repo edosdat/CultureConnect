@@ -6,11 +6,14 @@
 
 - Title: **Pas encore sur CultureConnect**
 - Body: **Un bar, un concert, une date — propose-la, on vérifie.**
-- CTA connected: **Proposer cet événement** (+ icon)
+- CTA connected: **Proposer cet événement** (+ icon) — filled terracotta
 - Guest: **Connexion pour proposer** (outline terracotta) — **0 form**, no anonymous POST
 - Under CTA: **Tu aides les salles qu’on rate encore.**
 - Colors: cream `#F7F1E8` / terracotta `#C45C3E` / ink `#2C241B`
 - Reuse live header/search chrome. Do **not** invent a bottom nav.
+
+**A connected v2** — calendar+ at left of title; ink title; filled CTA.  
+**A guest** — query pill (applied search); terracotta title; outline CTA; heart + helper. No logo/nav on the card.
 
 ## B — Sheet form
 
