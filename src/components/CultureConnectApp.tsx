@@ -902,7 +902,9 @@ export default function CultureConnectApp({
 
 
   useEffect(() => {
+    const searchingNow = Boolean(titleLeftover.trim() || phraseMode);
     if (
+      !searchingNow &&
       listFetchShouldSkipBoot(skipListFetch.current, timeScope, selectedDay)
     ) {
       skipListFetch.current = false;
@@ -914,7 +916,6 @@ export default function CultureConnectApp({
     }
     skipListFetch.current = false;
     const gen = ++listFetchGen.current;
-    const searchingNow = Boolean(titleLeftover.trim() || phraseMode);
     if (searchingNow) {
       setListItems([]);
       setNouveautesItems([]);
@@ -2453,7 +2454,7 @@ export default function CultureConnectApp({
           </HomeSection>
         ) : null}
 
-        {leftoverRows.length > 0 ? (
+        {leftoverRows.length > 0 && !listSearchPending ? (
           <HomeSection
             id="autres"
             title="Aussi"
