@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "npx --yes tsx --test src/lib/connexionUser.test.ts src/lib/homeEventsCounter.test.ts src/lib/genreChipMatch.test.ts src/lib/agendaDateList.test.ts src/lib/parseSearchChips.test.ts src/lib/filmVivantComplements.test.ts src/lib/geo.test.ts src/lib/displayHome.test.ts src/lib/categories.test.ts src/lib/tasteIngest.test.ts src/lib/signalsAction.test.ts src/lib/cineSeances.test.ts src/lib/densify.test.ts src/lib/livingArtsRelated.test.ts src/lib/pressCitation.test.ts src/lib/eventTimes.test.ts src/lib/theatreUrgence.test.ts src/lib/ficheDescription.test.ts src/lib/externalUrl.test.ts src/lib/reserve.test.ts src/lib/slim.test.ts src/lib/carouselSelect.test.ts"
+    "test": "npx --yes tsx --test src/lib/connexionUser.test.ts src/lib/homeEventsCounter.test.ts src/lib/genreChipMatch.test.ts src/lib/agendaDateList.test.ts src/lib/parseSearchChips.test.ts src/lib/filmVivantComplements.test.ts src/lib/geo.test.ts src/lib/displayHome.test.ts src/lib/categories.test.ts src/lib/tasteIngest.test.ts src/lib/signalsAction.test.ts src/lib/cineSeances.test.ts src/lib/densify.test.ts src/lib/livingArtsRelated.test.ts src/lib/pressCitation.test.ts src/lib/eventTimes.test.ts src/lib/theatreUrgence.test.ts src/lib/ficheDescription.test.ts src/lib/externalUrl.test.ts src/lib/reserve.test.ts src/lib/slim.test.ts src/lib/carouselSelect.test.ts src/lib/eventProposal.test.ts"
   },
   "dependencies": {
     "@vercel/postgres": "^0.10.0",

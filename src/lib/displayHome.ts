@@ -74,6 +74,19 @@ export function searchExamplesVisible(_opts?: {
   return false;
 }
 
+/**
+ * Mock A invitation: applied search with 0 hits.
+ * Not boot, not #48 examples, not date-clash / « Rien ce week-end ».
+ */
+export function proposeEventInvitationVisible(opts: {
+  searchApplied: boolean;
+  zeroHits: boolean;
+  phraseDateClash?: boolean;
+}): boolean {
+  if (opts.phraseDateClash) return false;
+  return opts.searchApplied && opts.zeroHits;
+}
+
 const HOME_CINE_DESKTOP = 10;
 const HOME_CINE_MOBILE = 3;
 const LIVE_DISPLAY_CAP = 36;

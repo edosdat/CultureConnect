@@ -50,8 +50,14 @@ import {
   theatreRows,
   top3IdentitySet,
   visibleTop3Items,
+  proposeEventInvitationVisible,
   type HomeCardOpen,
 } from '@/lib/displayHome';
+import {
+  clearProposeIntent,
+  readProposeIntent,
+  writeProposeIntent,
+} from '@/lib/eventProposal';
 import { MONTH_NAMES_FR } from '@/lib/labels';
 import {
   resolveScopeRange,
@@ -73,6 +79,8 @@ import Top3GuestCta from './Top3GuestCta';
 import EventDetail from './EventDetail';
 import TastesOverlayHost from './TastesOverlayHost';
 import LoginNudge from './LoginNudge';
+import ProposeEventEmpty from './ProposeEventEmpty';
+import ProposeEventFlow from './ProposeEventFlow';
 import HomeSection from './HomeSection';
 import CinemaCarousel from './CinemaCarousel';
 import {
@@ -374,6 +382,7 @@ export default function CultureConnectApp({
   const [showMonthPanel, setShowMonthPanel] = useState(false);
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
   const [visibleCount, setVisibleCount] = useState(AGENDA_PAGE_SIZE);
+  const [proposeOpen, setProposeOpen] = useState(false);
 
   const [listItems, setListItems] = useState<DayItem[]>(initialItems);
   const [recoPoolByKey, setRecoPoolByKey] = useState<Record<string, DayItem[]>>(
@@ -875,6 +884,18 @@ export default function CultureConnectApp({
       }
       return changed ? next : prev;
     });
+  }, [sessionStatus]);
+
+  useEffect(() => {
+    if (sessionStatus !== 'authenticated') return;
+    const intent = readProposeIntent();
+    if (!intent?.open) return;
+    clearProposeIntent();
+    if (intent.q) {
+      setQuery(intent.q);
+      setCommittedTitle(intent.q);
+    }
+    setProposeOpen(true);
   }, [sessionStatus]);
 
 
@@ -2122,12 +2143,10 @@ export default function CultureConnectApp({
         !showMusiqueBlock &&
         !showEnfantsBlock &&
         !showExpoBlock ? (
-          phraseMode || searchingUi ? (
+          phraseDateClash ? (
             <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-6 py-8 text-center">
               <p className="font-display text-xl text-culture-ink">
-                {phraseDateClash
-                  ? 'Rien sur cette période'
-                  : `Aucun résultat pour « ${queryTrimmed} »`}
+                Rien sur cette période
               </p>
               <p className="mt-2 text-sm text-culture-muted">
                 La page reste pleine : même ambiance un autre jour, ou une autre
@@ -2143,17 +2162,6 @@ export default function CultureConnectApp({
                     Même ambiance, une autre date
                   </button>
                 ) : null}
-                {phraseTags?.form ? (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setPhraseTags({ ...phraseTags, form: undefined })
-                    }
-                    className="min-h-10 rounded-full border border-culture-terracotta bg-white px-5 py-2.5 text-sm font-semibold text-culture-terracotta hover:bg-culture-soft"
-                  >
-                    Autre forme, même ambiance
-                  </button>
-                ) : null}
                 <button
                   type="button"
                   onClick={() => handleQueryChange('')}
@@ -2163,6 +2171,22 @@ export default function CultureConnectApp({
                 </button>
               </div>
             </div>
+          ) : proposeEventInvitationVisible({
+              searchApplied: phraseMode || searchingUi,
+              zeroHits: true,
+            }) ? (
+            <ProposeEventEmpty
+              query={queryTrimmed}
+              sessionStatus={sessionStatus}
+              onPropose={() => setProposeOpen(true)}
+              onLogin={() => {
+                writeProposeIntent(queryTrimmed);
+                void signIn('google', {
+                  callbackUrl:
+                    typeof window !== 'undefined' ? window.location.href : '/',
+                });
+              }}
+            />
           ) : (
             <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-6 py-8 text-center">
               <p className="font-display text-xl text-culture-ink">
@@ -2439,6 +2463,13 @@ export default function CultureConnectApp({
       </div>
 
       <TastesOverlayHost />
+
+      <ProposeEventFlow
+        open={proposeOpen}
+        onClose={() => setProposeOpen(false)}
+        initialTitle={queryTrimmed || committedTitle}
+        venues={venueOptions.length > 0 ? venueOptions : initialVenues}
+      />
 
       <EventDetail
         item={selectedItem}

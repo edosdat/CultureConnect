@@ -24,6 +24,7 @@ import {
   SEARCH_PLACEHOLDER,
   searchExampleIsVivant,
   searchExamplesVisible,
+  proposeEventInvitationVisible,
   shouldInvalidateProfileRecoCache,
   seanceCardShowsPitch,
   HOME_CHROME_STACK_CLASS,
@@ -728,6 +729,24 @@ describe('search example chips', () => {
     );
     assert.equal(
       searchExamplesVisible({ ...empty, committedTitle: 'concert' }),
+      false,
+    );
+  });
+
+  it('propose invitation is not the #48 examples bar', () => {
+    assert.equal(searchExamplesVisible({ committedTitle: 'concert balkan' }), false);
+    assert.equal(
+      proposeEventInvitationVisible({
+        searchApplied: true,
+        zeroHits: true,
+      }),
+      true,
+    );
+    assert.equal(
+      proposeEventInvitationVisible({
+        searchApplied: false,
+        zeroHits: true,
+      }),
       false,
     );
   });

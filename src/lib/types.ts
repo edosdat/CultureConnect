@@ -8,6 +8,8 @@ export type Lieu = {
   commune: string;
   dist_km_capitole: string;
   site_web: string;
+  /** Official HTML prog when present in lieux.csv — never a client write target. */
+  url_programmation?: string;
   notes: string;
   /** OSM coords from lieux.csv. Empty → skip km label; haversine only when both set. */
   lat?: string;
