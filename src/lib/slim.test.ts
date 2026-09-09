@@ -171,6 +171,22 @@ describe('slimDayItem list wire', () => {
     assert.equal(slim.evenement?.citation, undefined);
   });
 
+  it('keeps evenement citation* when programme has none (fill-empty OR)', () => {
+    const raw = item();
+    if (raw.kind !== 'programme') assert.fail('expected programme');
+    raw.evenement = ev({
+      categorie: 'theatre_danse',
+      citation: 'Un pur régal.',
+      source: 'Télérama',
+      source_url: 'https://www.telerama.fr/scenes/chers',
+    });
+    const slim = slimDayItem(raw);
+    if (slim.kind !== 'programme') assert.fail('expected programme');
+    assert.equal(slim.programme.citation, undefined);
+    assert.equal(slim.evenement?.citation, 'Un pur régal.');
+    assert.equal(slim.evenement?.source, 'Télérama');
+  });
+
   it('detail still carries full copy and URLs', () => {
     const detail = detailDayItem(item());
     assert.equal(detail.evenement?.description_longue, LONG);
