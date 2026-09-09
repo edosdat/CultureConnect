@@ -310,6 +310,24 @@ export function densifiedCardCount(items: DayItem[]): number {
   return densify(items).length;
 }
 
+/**
+ * First-paint pack wire: one séance per unique work, up to `cap`.
+ * A raw `.slice(0, cap)` wastes the budget on extra dates of the same show.
+ */
+export function takeUniqueWorkItems(items: readonly DayItem[], cap: number): DayItem[] {
+  if (cap <= 0) return [];
+  const seen = new Set<string>();
+  const out: DayItem[] = [];
+  for (const item of items) {
+    const key = densifyGroupKey(item);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(item);
+    if (out.length >= cap) break;
+  }
+  return out;
+}
+
 function mergeCompatibleFilmGroups(
   groups: Map<string, DayItem[]>,
   order: string[],

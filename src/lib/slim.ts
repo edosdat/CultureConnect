@@ -28,10 +28,12 @@ export function slimLieu(lieu: Lieu | null | undefined): Lieu | null {
 }
 
 /**
- * Living-arts cards on the list wire (desktop first paint is 10).
- * « Voir plus » loads the next page; fiche copy comes from /api/agenda?id=.
+ * Unique works per living-arts pack on the home wire (not raw séances).
+ * A raw slice of 20 séances densifies to ~15 theatre cards; the Théâtre
+ * chip’s first pages are 50+ séances → 60+ works. Cap unique works so the
+ * home rail matches that catalogue. « Plus de théâtre » / requestMore appends more.
  */
-export const HOME_PACK_WIRE_CAP = 20;
+export const HOME_PACK_WIRE_CAP = 80;
 
 /** Drop the boot scope copy — page already sends items + vivantItems. */
 export function omitBootScopeSnapshot<T extends Record<string, unknown>>(
@@ -347,10 +349,14 @@ export type AgendaListResponse = {
   nouveauFilmIds?: string[];
   date_from?: string;
   date_to?: string;
-  /** Living-arts first-paint cards (capped). */
+  /** Living-arts first-paint cards (capped, unique works per pack). */
   vivantItems?: DayItem[];
   vivantTotal?: number;
   cineTotal?: number;
+  theatreTotal?: number;
+  musiqueTotal?: number;
+  enfantsTotal?: number;
+  expoTotal?: number;
   /** Date-chip snapshots — boot scope omitted (already in items). */
   listByScope?: Partial<
     Record<
@@ -364,6 +370,10 @@ export type AgendaListResponse = {
         vivantItems?: DayItem[];
         vivantTotal?: number;
         cineTotal?: number;
+        theatreTotal?: number;
+        musiqueTotal?: number;
+        enfantsTotal?: number;
+        expoTotal?: number;
       }
     >
   >;

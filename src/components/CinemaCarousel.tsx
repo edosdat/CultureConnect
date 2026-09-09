@@ -42,6 +42,8 @@ import {
 } from '@/lib/displayFilter';
 import { seanceDateIso } from '@/lib/timeScope';
 import {
+  HOME_PACK_MORE_ELLIPSIS,
+  HOME_PACK_MORE_LABEL,
   isLikelyMobile,
   itemPitch,
   rowDisplayTitle,
@@ -76,31 +78,31 @@ const PACK_COPY: Record<
   { more: string; prev: string; next: string; fallbackCat: string }
 > = {
   cine: {
-    more: 'Plus de films',
+    more: HOME_PACK_MORE_LABEL.cine,
     prev: 'Films précédents',
     next: 'Films suivants',
     fallbackCat: 'Cinéma',
   },
   theatre: {
-    more: 'Plus de spectacles',
+    more: HOME_PACK_MORE_LABEL.theatre,
     prev: 'Spectacles précédents',
     next: 'Spectacles suivants',
     fallbackCat: 'Théâtre',
   },
   musique: {
-    more: 'Plus de concerts',
+    more: HOME_PACK_MORE_LABEL.musique,
     prev: 'Concerts précédents',
     next: 'Concerts suivants',
     fallbackCat: 'Musique',
   },
   enfants: {
-    more: 'Plus pour les enfants',
+    more: HOME_PACK_MORE_LABEL.enfants,
     prev: 'Précédent',
     next: 'Suivant',
     fallbackCat: 'Enfants',
   },
   expo: {
-    more: 'Plus d’expos',
+    more: HOME_PACK_MORE_LABEL.expo,
     prev: 'Expos précédentes',
     next: 'Expos suivantes',
     fallbackCat: 'Expos',
@@ -874,7 +876,7 @@ export default function CinemaCarousel({
       <div
         ref={bindStrip}
         onScroll={onStripScroll}
-        className="flex gap-3 overflow-x-auto overscroll-x-contain scroll-px-2 pb-1 [overflow-anchor:none] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex gap-3 overflow-x-auto overscroll-x-contain scroll-px-2 pb-1 md:scroll-px-12 md:pr-12 [overflow-anchor:none] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {rows.map((row, i) => (
           <FilmThumb
@@ -895,10 +897,12 @@ export default function CinemaCarousel({
         {hasMore && onNeedMore ? (
           <button
             type="button"
+            data-pack-more={pack}
             onClick={onNeedMore}
-            className="flex w-[7.5rem] shrink-0 flex-col items-center justify-center rounded-lg border border-dashed border-culture-line bg-culture-surface text-sm font-medium text-culture-terracotta sm:w-[8.5rem]"
+            aria-label={copy.more}
+            className="flex aspect-[2/3] w-[7.5rem] shrink-0 flex-col items-center justify-center px-2 text-center text-2xl font-light leading-none tracking-[0.2em] text-culture-muted hover:text-culture-ink sm:w-[8.5rem]"
           >
-            {copy.more}
+            {HOME_PACK_MORE_ELLIPSIS}
           </button>
         ) : null}
       </div>

@@ -710,6 +710,27 @@ export function capLiveRows(rows: DenseRow[]): DenseRow[] {
   return rows.slice(0, LIVE_DISPLAY_CAP);
 }
 
+export const HOME_PACK_MORE_CAT: Record<
+  Exclude<HomePackId, 'cine'>,
+  'theatre_danse' | 'musique' | 'enfants_famille' | 'expo_patrimoine'
+> = {
+  theatre: 'theatre_danse',
+  musique: 'musique',
+  enfants: 'enfants_famille',
+  expo: 'expo_patrimoine',
+};
+
+/** Visible rail CTA — subtle ellipsis; pack title is aria-label only. */
+export const HOME_PACK_MORE_ELLIPSIS = '…';
+
+export const HOME_PACK_MORE_LABEL: Record<HomePackId, string> = {
+  cine: 'Plus de ciné',
+  theatre: 'Plus de théâtre',
+  musique: 'Plus de musique',
+  enfants: 'Plus d’enfants',
+  expo: 'Plus d’expos',
+};
+
 const FIRST_PERF_RE =
   /premi[eè]re|cr[eé]ation|ouverture|avant[- ]?premi[eè]re|premi[eè]re représentation/i;
 

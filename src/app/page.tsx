@@ -132,6 +132,10 @@ async function HomePageContent({
         initialVivantItems={boot.vivantItems ?? []}
         initialVivantTotal={boot.vivantTotal ?? 0}
         initialCineTotal={boot.cineTotal ?? 0}
+        initialTheatreTotal={boot.theatreTotal ?? 0}
+        initialMusiqueTotal={boot.musiqueTotal ?? 0}
+        initialEnfantsTotal={boot.enfantsTotal ?? 0}
+        initialExpoTotal={boot.expoTotal ?? 0}
       />
     </main>
   );
