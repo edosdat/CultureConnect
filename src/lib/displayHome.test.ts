@@ -565,6 +565,51 @@ describe('pack rows + date filter', () => {
       ['ex-5'],
     );
   });
+
+  it('aujourd’hui + Musique + Jazz chip filters the musique pack', () => {
+    const today: DayItem[] = [
+      item({
+        key: 'jazz-1',
+        cat: 'musique',
+        day: '2026-09-09',
+        genre: 'jazz_blues',
+        title: 'JAM#1',
+      }),
+      item({
+        key: 'jazz-raw',
+        cat: 'musique',
+        day: '2026-09-09',
+        genre: 'jazz',
+        title: 'THE BAND',
+      }),
+      item({
+        key: 'kara',
+        cat: 'musique',
+        day: '2026-09-09',
+        genre: 'karaoke',
+        title: 'Lukaraoké',
+      }),
+      item({
+        key: 'jam',
+        cat: 'musique',
+        day: '2026-09-09',
+        genre: 'jam',
+        title: 'Jam Horra',
+      }),
+    ];
+    const kept = filterSeancesForActiveFilters(today, {
+      startIso: '2026-09-09',
+      endIso: '2026-09-09',
+      commune: 'Toulouse',
+      genres: ['jazz_blues'],
+    });
+    assert.deepEqual(
+      musiqueRows(kept, emptyTop3)
+        .map((r) => r.item.key)
+        .sort(),
+      ['jazz-1', 'jazz-raw'].sort(),
+    );
+  });
 });
 
 describe('top 3 click opens fiche outside QUOI grid', () => {

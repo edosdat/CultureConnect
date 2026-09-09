@@ -106,6 +106,24 @@ function dayProg(opts: {
   };
 }
 
+describe('Jazz catalogue chip aliases', () => {
+  it('Jazz / blues chip matches jazz_blues and raw jazz, not karaoke or jam', () => {
+    assert.equal(itemMatchesGenreChip({ genre: 'jazz_blues' }, 'jazz_blues'), true);
+    assert.equal(itemMatchesGenreChip({ genre: 'jazz' }, 'jazz_blues'), true);
+    assert.equal(itemMatchesGenreChip({ genre: 'jazz_blues' }, 'jazz'), true);
+    assert.equal(itemMatchesGenreChip({ genre: 'karaoke' }, 'jazz_blues'), false);
+    assert.equal(itemMatchesGenreChip({ genre: 'jam' }, 'jazz_blues'), false);
+    assert.equal(
+      matchesSelectedGenres({ genre: 'jazz' }, ['jazz_blues']),
+      true,
+    );
+    assert.equal(
+      matchesSelectedGenres({ genre: 'karaoke' }, ['jazz_blues']),
+      false,
+    );
+  });
+});
+
 describe('blind test catalogue chip — not vocab 89', () => {
   it('labels the chip Blind test without a 90th scoring-vocab slug', () => {
     assert.equal(EXTRA_GENRE_CHIP_LABELS.blindtest, 'Blind test');

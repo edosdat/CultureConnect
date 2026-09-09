@@ -66,13 +66,14 @@ function prog(
   };
 }
 
-function item(opts: { key: string; cat: string; day: string }): DayItem {
+function item(opts: { key: string; cat: string; day: string; genre?: string }): DayItem {
   const evenement = ev({
     event_id: opts.key,
     categorie: opts.cat,
     titre: opts.key,
     date_debut: opts.day,
     date_fin: opts.day,
+    genre: opts.genre ?? '',
   });
   return {
     kind: 'programme',
@@ -83,6 +84,7 @@ function item(opts: { key: string; cat: string; day: string }): DayItem {
       event_id: opts.key,
       nom_item: opts.key,
       date: opts.day,
+      genre: opts.genre ?? '',
     }),
     evenement,
     lieu: lieu(),
@@ -229,6 +231,35 @@ describe('calendar day vs upcoming first page', () => {
     });
     assert.equal(kept.length, 3);
     assert.ok(kept.every((row) => row.dayIso === '2026-09-19'));
+  });
+
+  it('Jazz genre chip filters with aujourd’hui date window', () => {
+    const kept = filterSeancesForActiveFilters(
+      [
+        item({
+          key: 'jazz-1',
+          cat: 'musique',
+          day: '2026-09-09',
+          genre: 'jazz_blues',
+        }),
+        item({
+          key: 'kara',
+          cat: 'musique',
+          day: '2026-09-09',
+          genre: 'karaoke',
+        }),
+      ],
+      {
+        startIso: '2026-09-09',
+        endIso: '2026-09-09',
+        commune: 'Toulouse',
+        genres: ['jazz_blues'],
+      },
+    );
+    assert.deepEqual(
+      kept.map((row) => row.key),
+      ['jazz-1'],
+    );
   });
 
   it('Toulouse chip stays exact commune', () => {

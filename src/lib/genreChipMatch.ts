@@ -48,6 +48,32 @@ export function splitGenreField(raw: string | undefined | null): string[] {
     .filter(Boolean);
 }
 
+/** Jazz chip vs `jazz_blues` column (and raw `jazz` on some bar séances). */
+const GENRE_CHIP_ALIASES: Record<string, readonly string[]> = {
+  jazz: ['jazz_blues'],
+  jazz_blues: ['jazz'],
+};
+
+function genreTokens(slug: string): string[] {
+  return slug
+    .toLowerCase()
+    .split(/[|_]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/** Chip slug + aliases + underscore tokens (`jazz_blues` → jazz, blues). */
+export function genreChipMatchKeys(chip: string): string[] {
+  const q = chip.trim().toLowerCase();
+  if (!q) return [];
+  const keys = new Set<string>([q, ...(GENRE_CHIP_ALIASES[q] ?? [])]);
+  for (const token of genreTokens(q)) {
+    keys.add(token);
+    for (const alias of GENRE_CHIP_ALIASES[token] ?? []) keys.add(alias);
+  }
+  return Array.from(keys);
+}
+
 export function genreChipHaystack(fields: GenreMatchFields): string {
   return [fields.genre, fields.title, fields.pitch].filter(Boolean).join(' ');
 }
@@ -59,7 +85,11 @@ export function itemMatchesGenreChip(
   const q = chip.trim().toLowerCase();
   if (!q) return true;
   const slugs = splitGenreField(fields.genre);
-  if (slugs.includes(q)) return true;
+  const keys = new Set(genreChipMatchKeys(q));
+  for (const slug of slugs) {
+    if (keys.has(slug)) return true;
+    if (genreTokens(slug).some((t) => keys.has(t))) return true;
+  }
   if (isBlindTestChip(q) && looksLikeBlindTest(genreChipHaystack(fields))) {
     return true;
   }
