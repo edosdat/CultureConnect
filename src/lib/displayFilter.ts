@@ -10,6 +10,7 @@ import {
   matchesSelectedGenres,
 } from './genreChipMatch';
 import { isCinemaDayItem } from './nouveautesCine';
+import { itemSearchBlob, matchesNormalizedHaystack } from './searchText';
 import { filterSeancesForDisplay } from './timeScope';
 import type { DayItem } from './types';
 
@@ -21,6 +22,8 @@ export type DisplayFilter = {
   lieuId?: string | null;
   /** Catalogue QUOI genre chips (Jazz / blues…). Applied on the painted packs. */
   genres?: string[];
+  /** Agenda title leftover — same haystack as `/api/agenda?q=`. */
+  titleQuery?: string | null;
   /**
    * Reco `tous` (QUAND chips off): POST is already scoped to upcoming.
    * Do not re-apply the day / Ce soir window.
@@ -73,6 +76,12 @@ export function filterSeancesForActiveFilters<T extends DayItem>(
   if (genres.length > 0) {
     out = out.filter((item) =>
       matchesSelectedGenres(genreFieldsFromDayItem(item), genres),
+    );
+  }
+  const titleQuery = (filter.titleQuery || '').trim();
+  if (titleQuery) {
+    out = out.filter((item) =>
+      matchesNormalizedHaystack(itemSearchBlob(item, []), titleQuery),
     );
   }
   if (filter.skipDateWindow) return out;

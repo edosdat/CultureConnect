@@ -291,8 +291,22 @@ export function resolveHeroAfterRowsChange(opts: {
   };
 }
 
+function scopeGenreKey(genres?: readonly string[]): string {
+  return [...(genres ?? [])]
+    .map((g) => g.trim().toLowerCase())
+    .filter(Boolean)
+    .sort()
+    .join(',');
+}
+
+function scopeTitleKey(titleQuery?: string | null): string {
+  return (titleQuery || '').trim().toLocaleLowerCase('fr');
+}
+
 /**
- * Browse/pin scope must include genre chips so Jazz resets the painted rail.
+ * Browse/pin scope must include genre chips and title leftover so Jazz /
+ * « Balkan » reset the painted rail (chip-only keys must not leak).
+ * Empty title keeps today's chip-only scope (append-only / scrollLeft locks).
  */
 export function packCarouselBrowseScope(input: {
   pack: string;
@@ -301,20 +315,19 @@ export function packCarouselBrowseScope(input: {
   selectedLieuId?: string | null;
   soir?: boolean;
   genres?: readonly string[];
+  titleQuery?: string | null;
 }): string {
-  const genreKey = [...(input.genres ?? [])]
-    .map((g) => g.trim().toLowerCase())
-    .filter(Boolean)
-    .sort()
-    .join(',');
-  return [
+  const parts = [
     input.pack,
     input.dateFrom ?? '',
     input.dateTo ?? '',
     input.selectedLieuId ?? '',
     input.soir ? '1' : '0',
-    genreKey,
-  ].join('|');
+    scopeGenreKey(input.genres),
+  ];
+  const title = scopeTitleKey(input.titleQuery);
+  if (title) parts.push(title);
+  return parts.join('|');
 }
 
 export function packCarouselPinScope(input: {
@@ -325,25 +338,26 @@ export function packCarouselPinScope(input: {
   selectedLieuId?: string | null;
   soir?: boolean;
   genres?: readonly string[];
+  titleQuery?: string | null;
 }): string {
-  return [
+  const parts = [
     input.pack,
     input.dateFrom ?? '',
     input.dateTo ?? '',
     input.selectedCommune ?? '',
     input.selectedLieuId ?? '',
     input.soir ? '1' : '0',
-    [...(input.genres ?? [])]
-      .map((g) => g.trim().toLowerCase())
-      .filter(Boolean)
-      .sort()
-      .join(','),
-  ].join('|');
+    scopeGenreKey(input.genres),
+  ];
+  const title = scopeTitleKey(input.titleQuery);
+  if (title) parts.push(title);
+  return parts.join('|');
 }
 
 /**
  * Product lock: pack rails never insert to the LEFT while browsing.
- * `pruneMissing` drops painted works that left `incoming` (genre chips).
+ * `pruneMissing` drops painted works that left `incoming`
+ * (genre chips / title leftover).
  */
 export function appendOnlyStripRows<T extends { groupKey: string }>(
   previous: readonly T[],
