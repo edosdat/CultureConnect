@@ -150,13 +150,15 @@ body {
   100% { background-position: -100% 0; }
 }
 .cc-genre-skel {
+  background-color: var(--cc-sand);
   background-image: linear-gradient(
     105deg,
     var(--cc-sand) 0%,
-    #fff8f0 42%,
-    var(--cc-sand) 78%
+    #fff8f0 38%,
+    var(--cc-line) 100%
   );
   background-size: 200% 100%;
+  border: 1px solid var(--cc-line);
   animation: cc-genre-skel 1.15s ease-in-out infinite;
 }
 
