@@ -11,7 +11,7 @@ import Top3Skeleton from './Top3Skeleton';
  * Streaming first paint for home. Same Top 3 chrome as CultureConnectApp
  * so the section is never blank while loadHomeWindow / reco=1 are in flight.
  * HomeBootChrome reserves search + wrapping QUAND/QUOI chips + list-wait
- * so Top 3 does not jump. Guest CTA is reserved inside the section (~32px).
+ * so Top 3 does not jump. Guest CTA is reserved inside the section.
  */
 export default function HomeTop3BootFallback() {
   return (

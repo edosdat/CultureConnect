@@ -69,7 +69,7 @@ function CategoryPill({ label }: { label: string }) {
   const cssVar = catCssVar(label);
   return (
     <span
-      className="inline-flex w-fit rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white"
+      className="inline-flex w-fit whitespace-nowrap rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white"
       style={{ backgroundColor: `var(${cssVar})` }}
     >
       {label}
@@ -138,6 +138,15 @@ export default function SeanceCard({
   const showVenueLine = Boolean(lieu) && (!isFilmGroup || salleCount === 1);
   const showCities = isFilmGroup && salleCount > 1 && Boolean(citiesSummary);
   const pitch = seanceCardShowsPitch(resolved, source) ? cardPitch(item) : '';
+  const railDate =
+    resolved === 'rail' && showDate
+      ? formatDateFr(seanceDateIso(item) || item.dayIso)
+      : '';
+  const railVenue =
+    resolved === 'rail' && showVenueLine && lieu ? formatLieuAffiche(lieu) : '';
+  const railMeta = [railDate, metaLine, railVenue, resolved === 'rail' ? distanceKm : '']
+    .filter(Boolean)
+    .join(' · ');
 
   const media = (
     <div
@@ -173,6 +182,11 @@ export default function SeanceCard({
           <TheatreUrgenceBadge item={item} />
         </span>
       ) : null}
+      {resolved === 'rail' ? (
+        <span className="absolute left-0.5 top-0.5 flex max-w-[calc(100%-0.25rem)] flex-col items-start gap-0.5">
+          <TheatreUrgenceBadge item={item} />
+        </span>
+      ) : null}
       {nouveau ? (
         <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-culture-terracotta px-2 py-0.5 text-[11px] font-medium leading-none text-culture-cream">
           Nouveau
@@ -186,14 +200,12 @@ export default function SeanceCard({
   );
 
   const venueNode =
-    showVenueLine && lieu ? (
+    resolved !== 'rail' && showVenueLine && lieu ? (
       <p
         className={
           resolved === 'live'
             ? 'mt-auto pt-1 text-sm font-semibold text-culture-ink'
-            : resolved === 'rail'
-              ? 'line-clamp-1 pt-0 text-xs leading-4 text-culture-muted'
-              : 'mt-auto pt-1 text-sm text-culture-muted'
+            : 'mt-auto pt-1 text-sm text-culture-muted'
         }
       >
         <span
@@ -237,7 +249,7 @@ export default function SeanceCard({
     <div
       className={
         'flex min-w-0 flex-1 flex-col ' +
-        (resolved === 'rail' ? 'min-h-0 gap-0.5 overflow-hidden px-2 py-1.5 ' : 'gap-1 ') +
+        (resolved === 'rail' ? 'min-h-0 gap-0.5 overflow-hidden px-2 py-1 ' : 'gap-1 ') +
         (resolved === 'compact'
           ? 'p-2.5 sm:p-3 '
           : resolved === 'rail'
@@ -248,17 +260,16 @@ export default function SeanceCard({
       <div
         className={
           resolved === 'rail'
-            ? 'flex min-h-7 shrink-0 items-center gap-1'
+            ? 'flex min-h-6 shrink-0 items-center gap-1'
             : 'flex flex-wrap items-start justify-between gap-2'
         }
       >
         {resolved === 'rail' && catLabel ? (
-          <span className="flex flex-wrap items-center gap-1">
+          <span className="min-w-0 truncate">
             <CategoryPill label={catLabel} />
-            <TheatreUrgenceBadge item={item} />
           </span>
         ) : null}
-        {showDate && (
+        {showDate && resolved !== 'rail' && (
           <span className="text-xs font-medium text-culture-terracotta">
             {formatDateFr(seanceDateIso(item) || item.dayIso)}
           </span>
@@ -271,21 +282,22 @@ export default function SeanceCard({
           >
             <FavoriteButton
               item={item}
-              className={resolved === 'rail' ? '!h-7 !w-7' : 'h-9 w-9'}
+              className={resolved === 'rail' ? '!h-6 !w-6' : 'h-9 w-9'}
             />
           </span>
         ) : null}
       </div>
       <h3
         className={
-          'font-display leading-snug text-culture-ink line-clamp-2 ' +
+          'font-display text-culture-ink line-clamp-2 ' +
           (resolved === 'rail'
-            ? 'min-h-[2.75rem] text-base'
-            : resolved === 'compact'
-              ? 'text-base'
-              : resolved === 'live'
-                ? 'text-xl sm:text-2xl'
-                : 'text-lg')
+            ? 'min-h-[2.25rem] text-sm leading-tight'
+            : 'leading-snug ' +
+              (resolved === 'compact'
+                ? 'text-base'
+                : resolved === 'live'
+                  ? 'text-xl sm:text-2xl'
+                  : 'text-lg'))
         }
       >
         {title}
@@ -303,16 +315,14 @@ export default function SeanceCard({
           {pitch}
         </p>
       ) : null}
-      {metaLine ? (
-        <p
-          className={
-            resolved === 'rail'
-              ? 'line-clamp-1 text-xs leading-4 text-culture-muted'
-              : 'text-sm text-culture-muted'
-          }
-        >
-          {metaLine}
-        </p>
+      {resolved === 'rail' ? (
+        railMeta ? (
+          <p className="line-clamp-1 text-xs leading-4 text-culture-muted">
+            {railMeta}
+          </p>
+        ) : null
+      ) : metaLine ? (
+        <p className="text-sm text-culture-muted">{metaLine}</p>
       ) : null}
       {showCities ? (
         <p className="text-xs text-culture-muted">
@@ -320,7 +330,7 @@ export default function SeanceCard({
           {distanceKm ? ` · ${distanceKm}` : ''}
         </p>
       ) : null}
-      {!showVenueLine && !showCities && distanceKm ? (
+      {resolved !== 'rail' && !showVenueLine && !showCities && distanceKm ? (
         <p className="text-xs text-culture-terracotta">{distanceKm}</p>
       ) : null}
       {venueNode}

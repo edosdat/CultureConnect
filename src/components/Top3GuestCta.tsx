@@ -1,10 +1,10 @@
 const TEXT = 'Connecte-toi pour tes suggestions';
 const CLASS =
-  'block min-h-5 text-left text-[14px] font-medium leading-5 text-culture-terracotta hover:underline';
+  'block min-h-4 text-left text-[13px] font-medium leading-4 text-culture-terracotta hover:underline';
 
 /**
  * Guest line inside Top 3. Always painted on first paint / fallback so the
- * cards do not drop ~32px when session resolves to unauthenticated.
+ * cards do not drop when session resolves to unauthenticated.
  */
 export default function Top3GuestCta({
   onClick,
