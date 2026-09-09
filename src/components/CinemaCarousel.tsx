@@ -134,6 +134,8 @@ type Props = {
   genres?: string[];
   /** QUOI category chips — Festival / Expo / Enfants must reset/prune too. */
   categories?: string[];
+  /** Agenda title leftover — same prune/reset as genre chips. */
+  titleQuery?: string;
   hasMore?: boolean;
   onNeedMore?: () => void;
   onAgenda?: (item: DayItem) => void;
@@ -368,6 +370,7 @@ export default function CinemaCarousel({
   datePinned = false,
   genres = [],
   categories = [],
+  titleQuery = '',
   hasMore = false,
   onNeedMore,
   onAgenda,
@@ -387,11 +390,12 @@ export default function CinemaCarousel({
     soir,
     genres,
     categories,
+    titleQuery,
   });
   // Commune is not part of browse scope: boot GPS nulls it and must not
   // reshuffle an in-progress rail (left inserts / drift).
-  // QUOI chips ARE in the scope — Jazz / Festival / Expo must not keep
-  // leftover thumbs from the previous pool.
+  // QUOI chips AND title leftover ARE in the scope — Jazz / Festival /
+  // Expo / « Balkan » must not keep leftover thumbs from the previous pool.
   const browseScope = packCarouselBrowseScope({
     pack,
     dateFrom,
@@ -400,8 +404,10 @@ export default function CinemaCarousel({
     soir,
     genres,
     categories,
+    titleQuery,
   });
   const genreFilterOn = genres.length > 0 || categories.length > 0;
+  const titleFilterOn = titleQuery.trim().length > 0;
   const restoredPin = readPackHeroPin(pinScope);
   const browseScopeRef = useRef(browseScope);
   const stripOrderRef = useRef<DenseRow[]>([]);
@@ -482,7 +488,7 @@ export default function CinemaCarousel({
     stripOrderRef.current,
     incomingRows,
     heroPin.current ?? restoredPin ?? heroKey,
-    { pruneMissing: genreFilterOn },
+    { pruneMissing: genreFilterOn || titleFilterOn },
   );
   stripOrderRef.current = rows;
   writePackStripKeys(
