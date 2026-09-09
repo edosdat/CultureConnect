@@ -8,7 +8,7 @@ import {
   googleCalendarUrl,
 } from '@/lib/calendar';
 import { filterItemsByCommune, normalizeCommune } from '@/lib/commune';
-import { defaultCineSeance } from '@/lib/cineSeances';
+import { defaultCineSeance, seanceHeureLabel } from '@/lib/cineSeances';
 import { filterSeancesForActiveFilters } from '@/lib/displayFilter';
 import { isLikelyMobile, itemImageUrl } from '@/lib/displayHome';
 import { pickFilmVivantComplements } from '@/lib/filmVivantComplements';
@@ -27,7 +27,7 @@ import {
   labelCategorie,
   labelTypeItem,
 } from '@/lib/labels';
-import { formatFicheHoraires, seanceTimeLabel } from '@/lib/eventTimes';
+import { formatFicheHoraires } from '@/lib/eventTimes';
 import {
   hideSeancesBeforeToday,
   isNotBeforeToday,
@@ -167,7 +167,7 @@ function groupSeancesByVenue(items: DayItem[]): VenueGroup[] {
       order.push(key);
     }
     seancesByKey.get(key)!.push(rel);
-    const heure = seanceTimeLabel(rel);
+    const heure = seanceHeureLabel(rel);
     map.get(key)!.rows.push({
       key: rel.key,
       date: rel.programme.date || rel.dayIso,
