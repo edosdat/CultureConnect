@@ -23,7 +23,7 @@ type Props = {
   loading?: boolean;
 };
 
-const SKELETON_CHIP_WIDTHS = ['w-14', 'w-16', 'w-[4.5rem]', 'w-12'] as const;
+const SKELETON_CHIP_WIDTHS = ['w-14', 'w-[4.25rem]', 'w-16', 'w-12'] as const;
 
 function syntheticLegend(slug: string): GenreLegend {
   return {
@@ -157,23 +157,15 @@ export default function GenreFilter({
               {selected.map((slug) => renderChip(resolve(slug)))}
             </div>
           ) : null}
-          <div className="flex items-center gap-2">
-            <span
-              className="inline-block h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-culture-line border-t-culture-sage"
-              aria-hidden
-            />
-            <p className="text-xs text-culture-muted/90">
-              Chargement des genres…
-            </p>
-          </div>
           <div className="flex gap-1.5" aria-hidden>
             {SKELETON_CHIP_WIDTHS.map((w) => (
               <span
                 key={w}
-                className={`h-7 ${w} animate-pulse rounded-full bg-culture-sand`}
+                className={`cc-genre-skel h-7 ${w} shrink-0 rounded-full`}
               />
             ))}
           </div>
+          <p className="text-xs text-culture-muted/80">Chargement…</p>
         </div>
       ) : allVisible.length === 0 ? (
         <p
