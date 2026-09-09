@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   EXTRA_GENRE_CHIP_LABELS,
+  genreChipsPaint,
+  genreOptionsScopeKey,
   genreSlugsFromItems,
   genreSlugsOfFields,
   itemMatchesGenreChip,
@@ -107,6 +109,57 @@ function dayProg(opts: {
     lieu: lieu(),
   };
 }
+
+describe('genre chips loading vs empty', () => {
+  it('shows loading, not empty, while slugs are still pending', () => {
+    assert.equal(
+      genreChipsPaint({
+        selectedMains: ['musique'],
+        availableCount: 0,
+        loading: true,
+      }),
+      'loading',
+    );
+    assert.equal(
+      genreChipsPaint({
+        selectedMains: ['musique'],
+        availableCount: 0,
+        loading: false,
+      }),
+      'empty',
+    );
+    assert.equal(
+      genreChipsPaint({
+        selectedMains: ['musique'],
+        availableCount: 3,
+        loading: false,
+      }),
+      'ready',
+    );
+  });
+
+  it('treats a category change as a new options scope', () => {
+    const boot = genreOptionsScopeKey({
+      scope: 'tous',
+      selectedDay: null,
+      year: 2026,
+      month: 9,
+      commune: 'Toulouse',
+      lieuId: null,
+      cats: [],
+    });
+    const musique = genreOptionsScopeKey({
+      scope: 'tous',
+      selectedDay: null,
+      year: 2026,
+      month: 9,
+      commune: 'Toulouse',
+      lieuId: null,
+      cats: ['musique'],
+    });
+    assert.notEqual(boot, musique);
+  });
+});
 
 describe('sticky Jazz selection after filter shrinks chip slugs', () => {
   it('does not drop Jazz when the filtered slug list omits it', () => {
