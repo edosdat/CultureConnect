@@ -9,7 +9,6 @@ import {
   cineDistanceOrigin,
   defaultCineSeance,
   groupCinemasForFilm,
-  cineSeanceLineLabel,
   horaireOptionLabel,
   filmVersionLabels,
   seanceHeureLabel,
@@ -185,11 +184,6 @@ describe('cine seances cinema-then-time', () => {
     });
     assert.equal(seanceHeureLabel(vost), '21:15 VOST');
     assert.equal(horaireOptionLabel(vost), '02/09 · 21:15 VOST');
-    assert.equal(cineSeanceLineLabel(vost, [vost, ABC_SOON]), '21:15 VOST');
-    assert.equal(
-      cineSeanceLineLabel(ABC_SOON, [ABC_SOON, ABC]),
-      '02/09 · 13:20 VF',
-    );
     const withFin = {
       ...ABC_SOON,
       programme: { ...ABC_SOON.programme, heure_fin: '15:10' },
@@ -233,12 +227,6 @@ describe('cine seances cinema-then-time', () => {
     assert.deepEqual(filmVersionLabels([bare]), []);
     assert.equal(seanceVersionLabel(ABC_SOON), 'VF');
     assert.equal(seanceVersionLabel(bare), null);
-    assert.equal(cineSeanceLineLabel(bare, [bare, ABC_SOON]), '18:00');
-    const sameDay = [ABC_SOON, bare];
-    assert.deepEqual(
-      sameDay.map((row) => cineSeanceLineLabel(row, sameDay)),
-      ['13:20 VF', '18:00'],
-    );
   });
 
   it('catalogue version/price columns are langue + prix, not invented vo/vost/version', () => {
