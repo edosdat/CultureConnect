@@ -45,6 +45,8 @@ type Props = {
   reason?: string | null;
   /** Crow-flies label, e.g. « 2,3 km ». Omit when venue coords are missing. */
   distanceKm?: string | null;
+  /** First Top 3 card — eager + high fetch for LCP after reco paints. */
+  priority?: boolean;
 };
 
 function cardPitch(item: DayItem): string {
@@ -98,6 +100,7 @@ export default function SeanceCard({
   source = 'catalogue',
   reason = null,
   distanceKm = null,
+  priority = false,
 }: Props) {
   const resolved: SeanceCardVariant = variant ?? (compact ? 'compact' : 'default');
   const catLabel = categoryLabelFor(item);
@@ -168,7 +171,8 @@ export default function SeanceCard({
       <EventImage
         src={imageUrl}
         alt=""
-        loading="lazy"
+        loading={priority ? 'eager' : 'lazy'}
+        fetchPriority={priority ? 'high' : 'auto'}
         className={
           resolved === 'rail'
             ? TOP3_RAIL_IMAGE_CLASS

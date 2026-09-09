@@ -28,6 +28,7 @@ export default function EventImage({
     <img
       src={src}
       alt={alt}
+      decoding="async"
       referrerPolicy="no-referrer"
       onError={() => setFailed(true)}
       {...rest}

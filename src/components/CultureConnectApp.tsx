@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DayItem, GenreLegend, Lieu } from '@/lib/types';
 import type { AgendaDetailResponse, AgendaListResponse } from '@/lib/slim';
@@ -62,18 +63,23 @@ import CategoryFilter from './CategoryFilter';
 import GenreFilter from './GenreFilter';
 import CityFilter from './CityFilter';
 import VenueFilter from './VenueFilter';
-import MonthCalendar from './MonthCalendar';
-import MonthCalendarDrawer from './MonthCalendarDrawer';
 import SeanceGrid from './SeanceGrid';
 import Top3Skeleton from './Top3Skeleton';
 import TimeScopeBar from './TimeScopeBar';
 import SearchOmnibox from './SearchOmnibox';
 import ListWaitDots, { HomeListWaitSlot } from './ListWaitDots';
 import Top3GuestCta from './Top3GuestCta';
-import EventDetail from './EventDetail';
-import TastesOverlayHost from './TastesOverlayHost';
-import LoginNudge from './LoginNudge';
 import HomeSection from './HomeSection';
+
+const EventDetail = dynamic(() => import('./EventDetail'), { ssr: false });
+const MonthCalendar = dynamic(() => import('./MonthCalendar'), { ssr: false });
+const MonthCalendarDrawer = dynamic(() => import('./MonthCalendarDrawer'), {
+  ssr: false,
+});
+const TastesOverlayHost = dynamic(() => import('./TastesOverlayHost'), {
+  ssr: false,
+});
+const LoginNudge = dynamic(() => import('./LoginNudge'), { ssr: false });
 import CinemaCarousel from './CinemaCarousel';
 import {
   phraseUsesTitleQ,
@@ -1900,20 +1906,6 @@ export default function CultureConnectApp({
                 ? `le ${contextLabel}`
                 : contextLabel;
 
-  const monthCalendar = (
-    <MonthCalendar
-      year={year}
-      month={month}
-      selectedDay={timeScope === 'date' ? selectedDay : null}
-      counts={counts}
-      showDayCounts={showAdminCounts}
-      onSelectDay={handleSelectDay}
-      onPrevMonth={goPrevMonth}
-      onNextMonth={goNextMonth}
-      embedded
-    />
-  );
-
   const filterBadge =
     selectedGenres.length +
     (selectedLieuId ? 1 : 0) +
@@ -2077,7 +2069,19 @@ export default function CultureConnectApp({
           onClose={() => setShowMonthPanel(false)}
           title={monthLabel}
         >
-          {monthCalendar}
+          {showMonthPanel ? (
+            <MonthCalendar
+              year={year}
+              month={month}
+              selectedDay={timeScope === 'date' ? selectedDay : null}
+              counts={counts}
+              showDayCounts={showAdminCounts}
+              onSelectDay={handleSelectDay}
+              onPrevMonth={goPrevMonth}
+              onNextMonth={goNextMonth}
+              embedded
+            />
+          ) : null}
         </MonthCalendarDrawer>
 
         {showTop3Section ? (
@@ -2452,21 +2456,23 @@ export default function CultureConnectApp({
 
       <TastesOverlayHost />
 
-      <EventDetail
-        item={selectedItem}
-        onClose={() => setSelectedItemKey(null)}
-        onSelectVenue={handleSelectVenue}
-        relatedItems={relatedFilmItems}
-        aussiCeSoirItems={aussiCeSoirItems}
-        onSelectItem={handleSelectHome}
-        onAgenda={() => selectedItem && trackItem(selectedItem, 'agenda_add')}
-        onIcs={() => selectedItem && trackItem(selectedItem, 'ics')}
-        onReserve={() => selectedItem && trackItem(selectedItem, 'reserve')}
-        selectedCommune={selectedCommune}
-        selectedLieuId={selectedLieuId}
-        fallbackVivant={crossSellPool}
-        origin={gpsOrigin}
-      />
+      {selectedItem ? (
+        <EventDetail
+          item={selectedItem}
+          onClose={() => setSelectedItemKey(null)}
+          onSelectVenue={handleSelectVenue}
+          relatedItems={relatedFilmItems}
+          aussiCeSoirItems={aussiCeSoirItems}
+          onSelectItem={handleSelectHome}
+          onAgenda={() => selectedItem && trackItem(selectedItem, 'agenda_add')}
+          onIcs={() => selectedItem && trackItem(selectedItem, 'ics')}
+          onReserve={() => selectedItem && trackItem(selectedItem, 'reserve')}
+          selectedCommune={selectedCommune}
+          selectedLieuId={selectedLieuId}
+          fallbackVivant={crossSellPool}
+          origin={gpsOrigin}
+        />
+      ) : null}
     </div>
   );
 }

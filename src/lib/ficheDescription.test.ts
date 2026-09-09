@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
-import { detailDayItem, slimDayItem } from './slim';
+import { clipListPitch, detailDayItem, slimDayItem } from './slim';
 import { ficheDescriptionOf, ficheDescriptionView } from './ficheDescription';
 
 const LONG_PITCH =
@@ -103,19 +103,21 @@ function fallbackItem(evenement: Partial<Evenement> = {}): DayItem {
 }
 
 describe('ficheDescriptionOf', () => {
-  it('list slim already has the full fiche copy (no pitch→longue swap)', () => {
+  it('hero slim keeps full fiche copy; list slim clips until detail', () => {
     const raw = programmeItem({
       cat: 'cinema',
       evenement: { description_longue: LONG_PITCH, description_courte: 'Court.' },
     });
     const slim = slimDayItem(raw);
+    const hero = slimDayItem(raw, { keepFicheCopy: true });
     const detail = detailDayItem(raw);
-    assert.equal(ficheDescriptionOf(slim), LONG_PITCH);
-    assert.equal(ficheDescriptionOf(slim), ficheDescriptionOf(detail));
+    assert.equal(ficheDescriptionOf(hero), LONG_PITCH);
+    assert.equal(ficheDescriptionOf(hero), ficheDescriptionOf(detail));
+    assert.equal(ficheDescriptionOf(slim), clipListPitch(LONG_PITCH));
     assert.deepEqual(ficheDescriptionView(slim, { pending: true }), {
       kind: 'pending',
     });
-    assert.deepEqual(ficheDescriptionView(slim), {
+    assert.deepEqual(ficheDescriptionView(hero), {
       kind: 'text',
       text: LONG_PITCH,
     });
@@ -132,14 +134,14 @@ describe('ficheDescriptionOf', () => {
     assert.ok(ficheDescriptionOf(item).length > 200);
   });
 
-  it('list slim keeps longue so the fiche does not grow after /api/agenda', () => {
+  it('hero slim keeps longue so the first-paint fiche does not grow', () => {
     const raw = programmeItem({
       cat: 'theatre_danse',
       evenement: { description_longue: LONG_PITCH, description_courte: 'Court.' },
     });
-    const slim = slimDayItem(raw);
-    assert.equal(slim.evenement?.description_longue, LONG_PITCH);
-    assert.equal(ficheDescriptionOf(slim), LONG_PITCH);
+    const hero = slimDayItem(raw, { keepFicheCopy: true });
+    assert.equal(hero.evenement?.description_longue, LONG_PITCH);
+    assert.equal(ficheDescriptionOf(hero), LONG_PITCH);
     assert.equal(ficheDescriptionOf(detailDayItem(raw)), LONG_PITCH);
   });
 
@@ -251,6 +253,7 @@ describe('ficheDescriptionOf', () => {
     );
     const slimFallback = slimDayItem(
       fallbackItem({ description_longue: LONG_PITCH, description_courte: '' }),
+      { keepFicheCopy: true },
     );
     const slimEv = slimFallback.evenement;
     assert.ok(slimEv);

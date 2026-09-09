@@ -53,8 +53,8 @@ import {
 } from './phraseTags';
 import {
   detailDayItem,
+  HOME_PACK_HERO_COPY_CAP,
   HOME_PACK_WIRE_CAP,
-  omitBootScopeSnapshot,
   relatedSeanceDayItem,
   slimDayItem,
   slimLieu,
@@ -67,7 +67,6 @@ import {
   bootTimeScope,
   filterSeancesForDisplay,
   hideSeancesBeforeToday,
-  itemInDateWindow,
   parisParts,
   resolveScopeRange,
   seanceDateIso,
@@ -927,7 +926,6 @@ function assembleListFromItems(
   const pageMax = dayPage ? AGENDA_DAY_PAGE_MAX : AGENDA_PAGE_MAX;
   const requested = input.limit ?? pageMax;
   const cap = Math.min(Math.max(requested, 0), pageMax);
-  const page = items.slice(offset, offset + cap).map(slimDayItem);
 
   const vivantAll = items.filter(isVivantDayItem);
   const cineAll = items.filter(isCinemaDayItem);
@@ -938,6 +936,23 @@ function assembleListFromItems(
   );
   const expoAll = items.filter(isExpoDayItem);
   const vivantCap = dayPage ? pageMax : HOME_PACK_WIRE_CAP;
+  const heroCopyKeys = new Set<string>();
+  for (const group of [cineAll, theatreAll, musiqueAll, enfantsAll, expoAll]) {
+    for (const item of takeUniqueWorkItems(group, HOME_PACK_HERO_COPY_CAP)) {
+      heroCopyKeys.add(item.key);
+    }
+  }
+  const slimWire = (item: DayItem) =>
+    slimDayItem(item, { keepFicheCopy: heroCopyKeys.has(item.key) });
+  const pageSlice = items.slice(offset, offset + cap);
+  for (const item of takeUniqueWorkItems(
+    pageSlice.filter(isCinemaDayItem),
+    HOME_PACK_HERO_COPY_CAP,
+  )) {
+    heroCopyKeys.add(item.key);
+  }
+  const page = pageSlice.map(slimWire);
+
   const vivantItems =
     !searching && offset === 0
       ? [
@@ -947,7 +962,7 @@ function assembleListFromItems(
           ...takeUniqueWorkItems(expoAll, vivantCap),
         ]
           .filter((item, i, all) => all.findIndex((x) => x.key === item.key) === i)
-          .map(slimDayItem)
+          .map(slimWire)
       : [];
   const vivantTotal = densifiedCardCount(vivantAll);
   const cineTotal = densifiedCardCount(cineAll);
@@ -987,7 +1002,7 @@ function assembleListFromItems(
     total,
     densifiedTotal,
     ...csvRowCounts(),
-    nouveautes: nouveautes.map(slimDayItem),
+    nouveautes: nouveautes.map((item) => slimDayItem(item)),
     communes: input.includeListMeta
       ? collectCommunes(lieuxByIdFromData().values())
       : [],
@@ -1036,39 +1051,6 @@ export type HomeWindow = AgendaListResponse & {
   listByScope: ListByScope;
 };
 
-function snapshotFromList(res: AgendaListResponse): ScopeListSnapshot {
-  return {
-    items: res.items,
-    total: res.total,
-    densifiedTotal: res.densifiedTotal,
-    nouveautes: res.nouveautes,
-    venues: res.venues,
-    vivantItems: res.vivantItems,
-    vivantTotal: res.vivantTotal,
-    cineTotal: res.cineTotal,
-    theatreTotal: res.theatreTotal,
-    musiqueTotal: res.musiqueTotal,
-    enfantsTotal: res.enfantsTotal,
-    expoTotal: res.expoTotal,
-  };
-}
-
-function itemsForBootScope(
-  upcoming: DayItem[],
-  scope: RecoBootScope,
-  now: Date,
-): DayItem[] {
-  if (scope === 'tous') return upcoming;
-  const range = resolveScopeRange(scope, null, now, parisParts(now));
-  const scoped = upcoming.filter((item) =>
-    itemInDateWindow(item, range.startIso, range.endIso),
-  );
-  if (scope === 'soir') {
-    return filterSoirItems(scoped, loadCultureData().programmeWithContext);
-  }
-  return scoped;
-}
-
 /** Empty guest reco — SSR first paint must not wait on recommendForProfile. */
 export function deferredRecoByScope(): RecoByScope {
   const empty: DayItem[] = [];
@@ -1102,27 +1084,12 @@ function computeHomeWindow(now = new Date()): HomeWindow {
     searching,
     rangeDays,
   });
-  const recoByScope = deferredRecoByScope();
-  const listByScope: ListByScope = {};
-  for (const s of RECO_BOOT_SCOPES) {
-    if (s === scope) continue;
-    const snapInput: AgendaQueryInput = {
-      ...bootInput,
-      scope: s,
-      includeListMeta: false,
-    };
-    const scoped = itemsForBootScope(upcoming, s, now);
-    listByScope[s] = snapshotFromList(
-      assembleListFromItems(scoped, snapInput, now, {
-        searching: false,
-        rangeDays: resolveScopeRange(s, null, now, { year, month }).days,
-      }),
-    );
-  }
+  // Date-chip snapshots are not embedded in first HTML — chips fetch
+  // `/api/agenda?scope=` (5 min server cache). Saves TTFB + download.
   return {
     ...boot,
-    recoByScope,
-    listByScope: omitBootScopeSnapshot(listByScope, scope),
+    recoByScope: deferredRecoByScope(),
+    listByScope: {},
   };
 }
 
@@ -1133,7 +1100,7 @@ export async function loadHomeWindow(
   const day = parisParts(now).iso;
   return unstable_cache(
     async () => computeHomeWindow(new Date()),
-    ['home-window-slim-v2', day],
+    ['home-window-slim-v3', day],
     { revalidate: 300 },
   )();
 }

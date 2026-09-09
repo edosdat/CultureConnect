@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type TouchEvent } from 'react';
 import type { DayItem } from '@/lib/types';
-import type { AgendaDetailResponse } from '@/lib/slim';
+import {
+  listItemHasHeroFicheCopy,
+  type AgendaDetailResponse,
+} from '@/lib/slim';
 import type { DenseRow } from '@/lib/densify';
 import {
   HERO_SCROLL_DEFER_MS,
@@ -975,7 +978,12 @@ export default function CinemaCarousel({
         onTouchEnd={onHeroTouchEnd}
         className="scroll-mt-16 overflow-hidden rounded-card-lg border border-culture-line bg-culture-surface shadow-card"
       >
-        <FilmPoster src={image} item={item} blurBackdrop />
+        <FilmPoster
+          src={image}
+          item={item}
+          blurBackdrop
+          priority={pack === 'cine'}
+        />
         <div className="flex min-w-0 flex-col gap-2 p-3 md:p-4">
           {titleBlock}
           {pack === 'cine' && seances.length > 0 ? (
@@ -990,7 +998,10 @@ export default function CinemaCarousel({
               />
             </div>
           ) : null}
-          <FicheDescription item={item} />
+          <FicheDescription
+            item={detailItem ?? item}
+            pending={!detailItem && !listItemHasHeroFicheCopy(item)}
+          />
           {pack === 'theatre' || pack === 'musique' ? (
             <PressCitation
               citation={fichePressCitation(
