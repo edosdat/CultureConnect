@@ -132,6 +132,8 @@ type Props = {
   datePinned?: boolean;
   /** Catalogue genre chips — must reset/prune the painted rail. */
   genres?: string[];
+  /** QUOI category chips — Festival / Expo / Enfants must reset/prune too. */
+  categories?: string[];
   hasMore?: boolean;
   onNeedMore?: () => void;
   onAgenda?: (item: DayItem) => void;
@@ -365,6 +367,7 @@ export default function CinemaCarousel({
   soir = false,
   datePinned = false,
   genres = [],
+  categories = [],
   hasMore = false,
   onNeedMore,
   onAgenda,
@@ -383,10 +386,12 @@ export default function CinemaCarousel({
     selectedLieuId,
     soir,
     genres,
+    categories,
   });
   // Commune is not part of browse scope: boot GPS nulls it and must not
   // reshuffle an in-progress rail (left inserts / drift).
-  // Genre chips ARE in the scope — Jazz must not keep jam/karaoke thumbs.
+  // QUOI chips ARE in the scope — Jazz / Festival / Expo must not keep
+  // leftover thumbs from the previous pool.
   const browseScope = packCarouselBrowseScope({
     pack,
     dateFrom,
@@ -394,8 +399,9 @@ export default function CinemaCarousel({
     selectedLieuId,
     soir,
     genres,
+    categories,
   });
-  const genreFilterOn = genres.length > 0;
+  const genreFilterOn = genres.length > 0 || categories.length > 0;
   const restoredPin = readPackHeroPin(pinScope);
   const browseScopeRef = useRef(browseScope);
   const stripOrderRef = useRef<DenseRow[]>([]);

@@ -190,7 +190,12 @@ function enfantsChipFieldsOf(item: DayItem): {
  * Never steal cine / théâtre / musique cards (kids films stay in Ciné).
  */
 export function isEnfantsDayItem(item: DayItem): boolean {
-  if (isCinemaDayItem(item) || isTheatreDayItem(item) || isMusiqueDayItem(item)) {
+  if (
+    isCinemaDayItem(item) ||
+    isTheatreDayItem(item) ||
+    isMusiqueDayItem(item) ||
+    isExpoDayItem(item)
+  ) {
     return false;
   }
   const { categorie, genre } = itemCatGenre(item);
