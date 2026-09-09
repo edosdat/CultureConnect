@@ -312,6 +312,16 @@ describe('home pack classifiers', () => {
     assert.equal(isMusiqueDayItem(expo), false);
     assert.equal(isTheatreDayItem(kids), false);
     assert.equal(isMusiqueDayItem(kids), false);
+    const jep = item({
+      key: 'jep1',
+      cat: 'expo_patrimoine',
+      genre: 'atelier_mediation',
+      title: 'JEP — Théâtre de la Cité',
+    });
+    assert.equal(isExpoDayItem(jep), true);
+    assert.equal(isEnfantsDayItem(jep), false);
+    assert.equal(homePackOfItem(jep), 'expo');
+    assert.equal(isEnfantsChipItem(jep), true);
   });
 
   it('Enfants chip includes kids films / jeune-public theatre without stealing default packs', () => {
