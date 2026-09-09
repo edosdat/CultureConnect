@@ -1,6 +1,11 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { parsePhraseRules, isTasteMood, TASTE_MOODS } from './phraseTags';
+import {
+  parsePhraseRules,
+  isTasteMood,
+  canonicalTasteMood,
+  TASTE_MOODS,
+} from './phraseTags';
 import {
   displayReasonForItem,
   recoWhyForMood,
@@ -957,5 +962,53 @@ describe('Mes goûts chips — 0 cats, 0 sortie, 16 moods only', () => {
     });
     assert.equal(trulyEmpty.pending, false);
     assert.equal(profileChips(trulyEmpty.profile, 64).length, 0);
+  });
+
+  it('keeps Contemplatif in Ambiances when a theme shares the label', () => {
+    const sixteen = Object.fromEntries(
+      TASTE_MOODS.map((m) => [m, { weight: 1, pct: 6.25 }]),
+    );
+    const chips = profileChips(
+      {
+        ...emptyProfile(),
+        moods: sixteen,
+        themes: { contemplatif: { weight: 9, pct: 100 } },
+      },
+      64,
+    );
+    const moods = chips.filter((c) => c.bucket === 'moods');
+    assert.equal(moods.length, 16);
+    assert.ok(
+      moods.some((c) => c.key === 'contemplatif' && c.label === 'Contemplatif'),
+    );
+    assert.equal(
+      chips.some((c) => c.bucket === 'themes' && c.key === 'contemplatif'),
+      false,
+    );
+    assert.deepEqual(
+      moods.map((c) => c.key).sort(),
+      [...TASTE_MOODS].sort(),
+    );
+  });
+
+  it('maps vocab aliases onto Contemplatif so Ambiances stay at 16', () => {
+    assert.equal(canonicalTasteMood('calme'), 'contemplatif');
+    assert.equal(canonicalTasteMood('contemplative'), 'contemplatif');
+    const without = TASTE_MOODS.filter((m) => m !== 'contemplatif');
+    const chips = profileChips(
+      {
+        ...emptyProfile(),
+        moods: Object.fromEntries([
+          ...without.map((m, i) => [m, { weight: i + 1, pct: 6 }]),
+          ['calme', { weight: 2, pct: 6 }],
+        ]),
+      },
+      64,
+    );
+    const moods = chips.filter((c) => c.bucket === 'moods');
+    assert.equal(moods.length, 16);
+    assert.ok(
+      moods.some((c) => c.key === 'contemplatif' && c.label === 'Contemplatif'),
+    );
   });
 });

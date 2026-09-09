@@ -8,6 +8,7 @@ import {
   type MainCategoryId,
 } from '@/lib/categories';
 import {
+  canonicalTasteMood,
   isTasteMood,
   parsePhraseRules,
   TASTE_MOODS,
@@ -836,7 +837,13 @@ export function mapThenDropTasteTags(
   const nextGenres: string[] = [];
 
   for (const m of srcMoods) {
-    if (isTasteMood(m)) nextMoods.push(m);
+    if (isTasteMood(m)) {
+      nextMoods.push(m);
+      continue;
+    }
+    const canon = canonicalTasteMood(m);
+    // Genre tokens (thriller, horreur…) stay genres — do not invent a mood.
+    if (canon && !TASTE_GENRE_SET.has(m)) nextMoods.push(canon);
   }
   for (const g of srcGenres) {
     if (TASTE_GENRE_SET.has(g) && !isCatTasteKey(g)) nextGenres.push(g);

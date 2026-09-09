@@ -180,6 +180,24 @@ describe('taste ingest — MAP then DROP', () => {
     assert.ok(mapped.moods.every(isTasteMood));
   });
 
+  it('maps calme / contemplative onto contemplatif (not a 17th mood)', () => {
+    assert.deepEqual(mapThenDropTasteTags(['calme'], []), {
+      moods: ['contemplatif'],
+      genres: [],
+    });
+    assert.deepEqual(mapThenDropTasteTags(['contemplative'], []), {
+      moods: ['contemplatif'],
+      genres: [],
+    });
+    const clean = sanitizeTasteProfile({
+      ...emptyProfile(),
+      moods: { calme: { weight: 3, pct: 100 } },
+    });
+    assert.equal(clean.moods.calme, undefined);
+    assert.equal(clean.moods.contemplatif?.weight, 3);
+    assert.equal(Object.keys(clean.moods).length, 1);
+  });
+
   it('writes open_card / reserve / agenda_add already mapped', () => {
     for (const kind of [
       'open_card',

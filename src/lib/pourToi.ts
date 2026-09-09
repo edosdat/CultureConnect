@@ -4,9 +4,11 @@
  */
 import type { MainCategoryId } from '@/lib/categories';
 import {
+  canonicalTasteMood,
   isTasteMood,
   normalizePhrase,
   parsePhraseRules,
+  TASTE_MOODS,
   tasteMoodsOf,
   type PhraseForm,
   type TasteMood,
@@ -125,11 +127,49 @@ export function profileChips(
 ): ProfileChip[] {
   if (!profile) return [];
   const raw: ProfileChip[] = [];
-  const push = (bucket: Exclude<ProfileBucket, 'cats'>, map?: Record<string, TasteEntry>) => {
+  const foldedMoods = new Map<
+    TasteMood,
+    { weight: number; pct: number }
+  >();
+  const foldMood = (key: string, entry: TasteEntry) => {
+    const canon = canonicalTasteMood(key);
+    if (!canon) return;
+    const weight = entryWeight(entry);
+    if (weight <= 0) return;
+    const prev = foldedMoods.get(canon);
+    if (!prev || weight > prev.weight) {
+      foldedMoods.set(canon, { weight, pct: entryPct(entry) });
+    }
+  };
+  for (const [key, entry] of Object.entries(profile.moods ?? {})) {
+    foldMood(key, entry);
+  }
+  // Mood slugs leaked into genres/themes still belong in Ambiances.
+  for (const bucket of ['genres', 'themes'] as const) {
+    for (const [key, entry] of Object.entries(profile[bucket] ?? {})) {
+      if (isTasteMood(key)) foldMood(key, entry);
+    }
+  }
+  for (const key of TASTE_MOODS) {
+    const hit = foldedMoods.get(key);
+    if (!hit) continue;
+    raw.push({
+      bucket: 'moods',
+      key,
+      label: labelTasteMood(key) ?? key,
+      weight: hit.weight,
+      pct: hit.pct,
+    });
+  }
+  const pushOther = (
+    bucket: Exclude<ProfileBucket, 'cats' | 'moods'>,
+    map?: Record<string, TasteEntry>,
+  ) => {
     for (const [key, entry] of Object.entries(map ?? {})) {
       const weight = entryWeight(entry);
       if (weight <= 0 || !key || isCatTasteKey(key)) continue;
-      if (bucket === 'moods' && !isTasteMood(key)) continue;
+      // Locked taste moods render under Ambiances only.
+      if (isTasteMood(key)) continue;
       raw.push({
         bucket,
         key,
@@ -139,13 +179,16 @@ export function profileChips(
       });
     }
   };
-  push('moods', profile.moods);
-  push('genres', profile.genres);
-  push('themes', profile.themes);
-  // Dedup festival/Festival (same human label across keys).
+  pushOther('genres', profile.genres);
+  pushOther('themes', profile.themes);
+  // Dedup festival/Festival within a bucket. Never drop a locked mood.
   const byLabel = new Map<string, ProfileChip>();
   for (const row of raw) {
-    const k = normalizePhrase(row.label);
+    if (row.bucket === 'moods') {
+      byLabel.set(`moods:${row.key}`, row);
+      continue;
+    }
+    const k = `${row.bucket}:${normalizePhrase(row.label)}`;
     const prev = byLabel.get(k);
     if (!prev || row.pct > prev.pct) byLabel.set(k, row);
   }
