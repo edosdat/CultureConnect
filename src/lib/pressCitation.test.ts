@@ -474,6 +474,22 @@ describe('theatreCardPressBadge', () => {
     assert.equal(pressBadgeLabel('La Dépêche du Midi'), 'Presse');
   });
 
+  it('reads evenement.citation* when programme has none (fill-empty fallback)', () => {
+    const row = item({
+      key: 'th-ev',
+      cat: 'theatre_danse',
+      evenement: {
+        citation: 'Un pur régal.',
+        source: 'Télérama',
+        source_url: 'https://www.telerama.fr/scenes/chers',
+      },
+    });
+    assert.deepEqual(theatreCardPressBadge(row), {
+      label: 'Vu dans Télérama',
+      source: 'Télérama',
+    });
+  });
+
   it('reads programme.citation* the same way PressCitation does', () => {
     const row = item({
       key: 'th-prog',
