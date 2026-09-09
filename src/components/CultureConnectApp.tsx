@@ -452,12 +452,14 @@ export default function CultureConnectApp({
     cats: [] as string[],
     genres: [] as string[],
     q: '',
+    title: '',
   });
   bootFiltersRef.current = {
     timeScope,
     cats: selectedCategories,
     genres: selectedGenres,
     q: query,
+    title: committedTitle,
   };
 
   useEffect(() => {
@@ -465,7 +467,16 @@ export default function CultureConnectApp({
     const mergeBoot = (data: AgendaListResponse) => {
       const f = bootFiltersRef.current;
       if (f.timeScope !== initialScope) return;
-      if (f.cats.length || f.genres.length || f.q.trim()) return;
+      // Chip-only / title leftover must not receive the unfiltered
+      // window=home rail (that was the live Balkan leak after #102).
+      if (
+        f.cats.length ||
+        f.genres.length ||
+        f.q.trim() ||
+        f.title.trim()
+      ) {
+        return;
+      }
       setListItems((prev) => {
         const seen = new Set(prev.map((item) => item.key));
         const extra = (data.items ?? []).filter((item) => !seen.has(item.key));
@@ -2302,6 +2313,7 @@ export default function CultureConnectApp({
             }}
           >
             <CinemaCarousel
+              key={`cine-q-${titleLeftover.trim().toLowerCase()}`}
               rows={visibleCineRows}
               pack="cine"
               mobile={narrowHome}
@@ -2352,6 +2364,7 @@ export default function CultureConnectApp({
                 onSeeAll={() => handleLivingPackMore('theatre', true)}
               >
                 <CinemaCarousel
+                  key={`theatre-q-${titleLeftover.trim().toLowerCase()}`}
                   rows={visibleTheatreRows}
                   pack="theatre"
                   mobile={narrowHome}
@@ -2394,6 +2407,7 @@ export default function CultureConnectApp({
                 onSeeAll={() => handleLivingPackMore('musique', true)}
               >
                 <CinemaCarousel
+                  key={`musique-q-${titleLeftover.trim().toLowerCase()}`}
                   rows={visibleMusiqueRows}
                   pack="musique"
                   mobile={narrowHome}
@@ -2438,6 +2452,7 @@ export default function CultureConnectApp({
             onSeeAll={() => handleLivingPackMore('enfants', true)}
           >
             <CinemaCarousel
+              key={`enfants-q-${titleLeftover.trim().toLowerCase()}`}
               rows={visibleEnfantsRows}
               pack="enfants"
               mobile={narrowHome}
@@ -2479,6 +2494,7 @@ export default function CultureConnectApp({
             onSeeAll={() => handleLivingPackMore('expo', true)}
           >
             <CinemaCarousel
+              key={`expo-q-${titleLeftover.trim().toLowerCase()}`}
               rows={visibleExpoRows}
               pack="expo"
               mobile={narrowHome}

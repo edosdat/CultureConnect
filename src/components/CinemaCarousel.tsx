@@ -471,7 +471,7 @@ export default function CinemaCarousel({
   if (stripOrderRef.current.length === 0) {
     stripOrderRef.current = applyStoredStripOrder(
       incomingRows,
-      readPackStripKeys(browseScope),
+      titleFilterOn ? null : readPackStripKeys(browseScope),
       heroPin.current ?? restoredPin,
     );
   }
