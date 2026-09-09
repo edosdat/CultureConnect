@@ -56,11 +56,13 @@ import {
 } from '@/lib/displayHome';
 import { itemKmLabel, minKmLabel, type GeoPos } from '@/lib/nearMe';
 import { cineDistanceOrigin, defaultCineSeance } from '@/lib/cineSeances';
+import { isCinemaDayItem } from '@/lib/nouveautesCine';
 import { pickFilmVivantComplements } from '@/lib/filmVivantComplements';
 import { rawUrls, reservePickOf } from '@/lib/reserve';
 import EventImage from './EventImage';
 import VisualFallback, { categoryLabelOf } from './VisualFallback';
 import TheatreUrgenceBadge from './TheatreUrgenceBadge';
+import FilmVersionBadge from './FilmVersionBadge';
 import FilmPoster from './FilmPoster';
 import FavoriteButton from './FavoriteButton';
 import ShareButton from './ShareButton';
@@ -222,6 +224,11 @@ function FilmThumb({
             <span className="rounded bg-culture-ink/85 px-1.5 py-0.5 text-[11px] font-semibold leading-tight text-white">
               {when}
             </span>
+          ) : null}
+          {isCinemaDayItem(item) ? (
+            <FilmVersionBadge
+              items={row.seances?.length ? row.seances : [item]}
+            />
           ) : null}
           <TheatreUrgenceBadge item={item} />
         </span>
@@ -955,6 +962,7 @@ export default function CinemaCarousel({
           <span className="inline-flex rounded bg-culture-terracotta px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">
             {cat || copy.fallbackCat}
           </span>
+          {pack === 'cine' ? <FilmVersionBadge item={active} /> : null}
           <TheatreUrgenceBadge item={item} />
         </span>
         <FavoriteButton item={item} />

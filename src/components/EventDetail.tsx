@@ -14,6 +14,7 @@ import { isLikelyMobile, itemImageUrl } from '@/lib/displayHome';
 import { pickFilmVivantComplements } from '@/lib/filmVivantComplements';
 import SeanceCard from './SeanceCard';
 import TheatreUrgenceBadge from './TheatreUrgenceBadge';
+import FilmVersionBadge from './FilmVersionBadge';
 import FilmPoster from './FilmPoster';
 import ShareButton from './ShareButton';
 import FavoriteButton from './FavoriteButton';
@@ -443,6 +444,7 @@ export default function EventDetail({
                       {labelTypeItem(p.type_item)}
                     </span>
                   )}
+                  <FilmVersionBadge item={filmForSuggestions} />
                   <TheatreUrgenceBadge item={item} />
                 </div>
                 <h2

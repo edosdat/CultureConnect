@@ -11,6 +11,7 @@ import {
   detailDayItem,
   relatedSeanceDayItem,
 } from './slim';
+import { seanceHeureLabel, seanceVersionLabel } from './cineSeances';
 
 const LONG =
   'Première phrase assez longue pour le test. Deuxième phrase aussi. ' +
@@ -51,6 +52,7 @@ function ev(p: Partial<Evenement> = {}): Evenement {
     moods: 'sombre',
     genres_mood: 'drame|auteur',
     billetterie_url: 'https://tickets.example/buy',
+    langue: 'VOSTFR',
     ...p,
   };
 }
@@ -77,6 +79,7 @@ function item(): DayItem {
     form: 'cine',
     moods: 'sombre',
     genres_mood: 'drame',
+    langue: 'VF',
     billetterie_url: 'https://tickets.example/buy',
   };
   return {
@@ -123,6 +126,27 @@ describe('slimDayItem list wire', () => {
     assert.equal(slim.evenement?.categorie, 'cinema');
     assert.equal(slim.lieu?.commune, 'Toulouse');
     assert.equal(slim.lieu?.nom, 'Utopia');
+    assert.equal(slim.programme.langue, 'VF');
+    assert.equal(slim.evenement?.langue, 'VOSTFR');
+  });
+
+  it('keeps catalogue langue on slim and related seances for VF/VOST', () => {
+    const raw = item();
+    const slim = slimDayItem(raw);
+    const related = relatedSeanceDayItem(raw);
+    const detail = detailDayItem(raw);
+    if (slim.kind !== 'programme') assert.fail('expected programme');
+    if (related.kind !== 'programme') assert.fail('expected programme');
+    if (detail.kind !== 'programme') assert.fail('expected programme');
+    assert.equal(slim.programme.langue, 'VF');
+    assert.equal(slim.evenement?.langue, 'VOSTFR');
+    assert.equal(related.programme.langue, 'VF');
+    assert.equal(related.evenement?.langue, 'VOSTFR');
+    assert.equal(detail.programme.langue, 'VF');
+    assert.equal(detail.evenement?.langue, 'VOSTFR');
+    assert.equal(seanceVersionLabel(slim), 'VF');
+    assert.equal(seanceVersionLabel(related), 'VF');
+    assert.equal(seanceHeureLabel(slim), '20:00 VF');
   });
 
   it('detail still carries full copy and URLs', () => {

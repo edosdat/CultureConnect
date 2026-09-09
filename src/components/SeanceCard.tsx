@@ -21,10 +21,12 @@ import {
   TOP3_RAIL_THUMB_CLASS,
   type SeanceCardPitchSource,
 } from '@/lib/displayHome';
+import { isCinemaDayItem } from '@/lib/nouveautesCine';
 import EventImage from './EventImage';
 import VisualFallback from './VisualFallback';
 import FavoriteButton from './FavoriteButton';
 import TheatreUrgenceBadge from './TheatreUrgenceBadge';
+import FilmVersionBadge from './FilmVersionBadge';
 
 export type SeanceCardVariant = 'default' | 'rail' | 'live' | 'compact';
 
@@ -183,11 +185,13 @@ export default function SeanceCard({
       {catLabel && resolved !== 'rail' ? (
         <span className="absolute left-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-1">
           <CategoryPill label={catLabel} />
+          {isCinemaDayItem(item) ? <FilmVersionBadge item={item} /> : null}
           <TheatreUrgenceBadge item={item} />
         </span>
       ) : null}
       {resolved === 'rail' ? (
         <span className="absolute left-0.5 top-0.5 flex max-w-[calc(100%-0.25rem)] flex-col items-start gap-0.5">
+          {isCinemaDayItem(item) ? <FilmVersionBadge item={item} /> : null}
           <TheatreUrgenceBadge item={item} />
         </span>
       ) : null}

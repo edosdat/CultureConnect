@@ -94,6 +94,8 @@ function slimEvenement(
       : {}),
     statut: ev.statut,
     genre: ev.genre,
+    /** Catalogue VF/VOST — cards + fiche picker read this, never invent it. */
+    langue: ev.langue || '',
     image_url: ev.image_url || '',
   };
 }
@@ -114,6 +116,7 @@ function slimProgramme(
     heure_fin: p.heure_fin || '',
     scene_salle: p.scene_salle || '',
     prix_item: p.prix_item || '',
+    langue: p.langue || '',
     url: '',
     notes: '',
     genre: p.genre || '',
@@ -169,7 +172,7 @@ export function withTasteTags<T extends DayItem>(slim: T, source: DayItem): T {
 
 /**
  * First-paint card: id, titre, heure, lieu, cat, image, film_id
- * (+ prix / genre / type so SeanceCard + densify + Pour toi still work).
+ * (+ prix / genre / type / langue so SeanceCard + densify + VF/VOST work).
  * Default clips fiche copy (1–2 sentences). Pass `keepFicheCopy` for the
  * first unique works of each pack so the visible hero paints once.
  * Drops tickets URLs, mood tags, and nested programme[].
