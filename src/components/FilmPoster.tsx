@@ -10,6 +10,8 @@ type Props = {
   className?: string;
   /** YouTube-style blurred full-bleed behind a sharp contain poster. All packs. */
   blurBackdrop?: boolean;
+  /** Ciné pack hero is the first-paint LCP candidate. */
+  priority?: boolean;
 };
 
 /**
@@ -22,6 +24,7 @@ export default function FilmPoster({
   item,
   className = '',
   blurBackdrop = true,
+  priority = false,
 }: Props) {
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -52,6 +55,9 @@ export default function FilmPoster({
               src={src}
               alt=""
               aria-hidden
+              decoding="async"
+              loading={priority ? 'eager' : 'lazy'}
+              fetchPriority={priority ? 'high' : 'auto'}
               referrerPolicy="no-referrer"
               onError={() => setFailed(true)}
             />
@@ -61,6 +67,9 @@ export default function FilmPoster({
             className="cine-hero-poster"
             src={src}
             alt=""
+            decoding="async"
+            loading={priority ? 'eager' : 'lazy'}
+            fetchPriority={priority ? 'high' : 'auto'}
             referrerPolicy="no-referrer"
             onError={() => setFailed(true)}
           />

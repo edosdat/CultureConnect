@@ -2,12 +2,16 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 import {
+  HOME_FIRST_PAINT_CINE_CAP,
+  HOME_PACK_HERO_COPY_CAP,
   HOME_PACK_WIRE_CAP,
+  listItemHasHeroFicheCopy,
   omitBootScopeSnapshot,
   slimDayItem,
   detailDayItem,
   relatedSeanceDayItem,
 } from './slim';
+import { seanceHeureLabel, seanceVersionLabel } from './cineSeances';
 
 const LONG =
   'Première phrase assez longue pour le test. Deuxième phrase aussi. ' +
@@ -48,6 +52,7 @@ function ev(p: Partial<Evenement> = {}): Evenement {
     moods: 'sombre',
     genres_mood: 'drame|auteur',
     billetterie_url: 'https://tickets.example/buy',
+    langue: 'VOSTFR',
     ...p,
   };
 }
@@ -74,6 +79,7 @@ function item(): DayItem {
     form: 'cine',
     moods: 'sombre',
     genres_mood: 'drame',
+    langue: 'VF',
     billetterie_url: 'https://tickets.example/buy',
   };
   return {
@@ -87,9 +93,9 @@ function item(): DayItem {
 }
 
 describe('slimDayItem list wire', () => {
-  it('keeps full fiche copy; drops tickets URLs and mood tags', () => {
+  it('clips fiche copy; drops tickets URLs and mood tags', () => {
     const slim = slimDayItem(item());
-    assert.equal(slim.evenement?.description_longue, LONG);
+    assert.equal(slim.evenement?.description_longue, undefined);
     assert.equal(slim.evenement?.url_source, '');
     assert.equal(slim.evenement?.billetterie_url, undefined);
     assert.equal(slim.evenement?.form, undefined);
@@ -97,8 +103,18 @@ describe('slimDayItem list wire', () => {
     if (slim.kind !== 'programme') assert.fail('expected programme');
     assert.equal(slim.programme.url, '');
     assert.equal(slim.programme.billetterie_url, undefined);
-    assert.equal(slim.programme.description_item, LONG);
+    assert.ok(slim.programme.description_item.length < LONG.length);
+    assert.ok(slim.programme.description_item.includes('Première phrase'));
     assert.equal(slim.evenement?.description_courte, '');
+    assert.equal(listItemHasHeroFicheCopy(slim), false);
+  });
+
+  it('keepFicheCopy holds full hero copy for first-paint packs', () => {
+    const hero = slimDayItem(item(), { keepFicheCopy: true });
+    assert.equal(hero.evenement?.description_longue, LONG);
+    if (hero.kind !== 'programme') assert.fail('expected programme');
+    assert.equal(hero.programme.description_item, LONG);
+    assert.equal(listItemHasHeroFicheCopy(hero), true);
   });
 
   it('keeps card fields SeanceCard needs', () => {
@@ -110,6 +126,27 @@ describe('slimDayItem list wire', () => {
     assert.equal(slim.evenement?.categorie, 'cinema');
     assert.equal(slim.lieu?.commune, 'Toulouse');
     assert.equal(slim.lieu?.nom, 'Utopia');
+    assert.equal(slim.programme.langue, 'VF');
+    assert.equal(slim.evenement?.langue, 'VOSTFR');
+  });
+
+  it('keeps catalogue langue on slim and related seances for VF/VOST', () => {
+    const raw = item();
+    const slim = slimDayItem(raw);
+    const related = relatedSeanceDayItem(raw);
+    const detail = detailDayItem(raw);
+    if (slim.kind !== 'programme') assert.fail('expected programme');
+    if (related.kind !== 'programme') assert.fail('expected programme');
+    if (detail.kind !== 'programme') assert.fail('expected programme');
+    assert.equal(slim.programme.langue, 'VF');
+    assert.equal(slim.evenement?.langue, 'VOSTFR');
+    assert.equal(related.programme.langue, 'VF');
+    assert.equal(related.evenement?.langue, 'VOSTFR');
+    assert.equal(detail.programme.langue, 'VF');
+    assert.equal(detail.evenement?.langue, 'VOSTFR');
+    assert.equal(seanceVersionLabel(slim), 'VF');
+    assert.equal(seanceVersionLabel(related), 'VF');
+    assert.equal(seanceHeureLabel(slim), '20:00 VF');
   });
 
   it('detail still carries full copy and URLs', () => {
@@ -143,7 +180,7 @@ describe('slimDayItem list wire', () => {
     const fat = Buffer.byteLength(fatJson, 'utf8');
     const wire = Buffer.byteLength(wireJson, 'utf8');
     assert.ok(wire < fat, `slim ${wire} vs fat ${fat}`);
-    assert.ok(wireJson.includes('description_longue'));
+    assert.ok(!wireJson.includes(LONG));
     assert.ok(!wireJson.includes('tickets.example'));
   });
 });
@@ -151,6 +188,8 @@ describe('slimDayItem list wire', () => {
 describe('home boot snapshots', () => {
   it('caps living-arts first-paint wire at 80 unique works', () => {
     assert.equal(HOME_PACK_WIRE_CAP, 80);
+    assert.equal(HOME_PACK_HERO_COPY_CAP, 8);
+    assert.equal(HOME_FIRST_PAINT_CINE_CAP, 10);
   });
 
   it('omits the boot scope duplicate from listByScope', () => {

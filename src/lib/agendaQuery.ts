@@ -53,8 +53,9 @@ import {
 } from './phraseTags';
 import {
   detailDayItem,
+  HOME_FIRST_PAINT_CINE_CAP,
+  HOME_PACK_HERO_COPY_CAP,
   HOME_PACK_WIRE_CAP,
-  omitBootScopeSnapshot,
   relatedSeanceDayItem,
   slimDayItem,
   slimLieu,
@@ -67,7 +68,6 @@ import {
   bootTimeScope,
   filterSeancesForDisplay,
   hideSeancesBeforeToday,
-  itemInDateWindow,
   parisParts,
   resolveScopeRange,
   seanceDateIso,
@@ -927,7 +927,6 @@ function assembleListFromItems(
   const pageMax = dayPage ? AGENDA_DAY_PAGE_MAX : AGENDA_PAGE_MAX;
   const requested = input.limit ?? pageMax;
   const cap = Math.min(Math.max(requested, 0), pageMax);
-  const page = items.slice(offset, offset + cap).map(slimDayItem);
 
   const vivantAll = items.filter(isVivantDayItem);
   const cineAll = items.filter(isCinemaDayItem);
@@ -938,6 +937,23 @@ function assembleListFromItems(
   );
   const expoAll = items.filter(isExpoDayItem);
   const vivantCap = dayPage ? pageMax : HOME_PACK_WIRE_CAP;
+  const heroCopyKeys = new Set<string>();
+  for (const group of [cineAll, theatreAll, musiqueAll, enfantsAll, expoAll]) {
+    for (const item of takeUniqueWorkItems(group, HOME_PACK_HERO_COPY_CAP)) {
+      heroCopyKeys.add(item.key);
+    }
+  }
+  const slimWire = (item: DayItem) =>
+    slimDayItem(item, { keepFicheCopy: heroCopyKeys.has(item.key) });
+  const pageSlice = items.slice(offset, offset + cap);
+  for (const item of takeUniqueWorkItems(
+    pageSlice.filter(isCinemaDayItem),
+    HOME_PACK_HERO_COPY_CAP,
+  )) {
+    heroCopyKeys.add(item.key);
+  }
+  const page = pageSlice.map(slimWire);
+
   const vivantItems =
     !searching && offset === 0
       ? [
@@ -947,7 +963,7 @@ function assembleListFromItems(
           ...takeUniqueWorkItems(expoAll, vivantCap),
         ]
           .filter((item, i, all) => all.findIndex((x) => x.key === item.key) === i)
-          .map(slimDayItem)
+          .map(slimWire)
       : [];
   const vivantTotal = densifiedCardCount(vivantAll);
   const cineTotal = densifiedCardCount(cineAll);
@@ -987,7 +1003,7 @@ function assembleListFromItems(
     total,
     densifiedTotal,
     ...csvRowCounts(),
-    nouveautes: nouveautes.map(slimDayItem),
+    nouveautes: nouveautes.map((item) => slimDayItem(item)),
     communes: input.includeListMeta
       ? collectCommunes(lieuxByIdFromData().values())
       : [],
@@ -1008,9 +1024,12 @@ function assembleListFromItems(
   };
 }
 
-const RECO_BOOT_SCOPES = ['tous', 'soir', 'aujourdhui', 'weekend', 'semaine'] as const;
-
-export type RecoBootScope = (typeof RECO_BOOT_SCOPES)[number];
+export type RecoBootScope =
+  | 'tous'
+  | 'soir'
+  | 'aujourdhui'
+  | 'weekend'
+  | 'semaine';
 
 export type RecoByScope = Record<RecoBootScope, DayItem[]>;
 
@@ -1036,39 +1055,6 @@ export type HomeWindow = AgendaListResponse & {
   listByScope: ListByScope;
 };
 
-function snapshotFromList(res: AgendaListResponse): ScopeListSnapshot {
-  return {
-    items: res.items,
-    total: res.total,
-    densifiedTotal: res.densifiedTotal,
-    nouveautes: res.nouveautes,
-    venues: res.venues,
-    vivantItems: res.vivantItems,
-    vivantTotal: res.vivantTotal,
-    cineTotal: res.cineTotal,
-    theatreTotal: res.theatreTotal,
-    musiqueTotal: res.musiqueTotal,
-    enfantsTotal: res.enfantsTotal,
-    expoTotal: res.expoTotal,
-  };
-}
-
-function itemsForBootScope(
-  upcoming: DayItem[],
-  scope: RecoBootScope,
-  now: Date,
-): DayItem[] {
-  if (scope === 'tous') return upcoming;
-  const range = resolveScopeRange(scope, null, now, parisParts(now));
-  const scoped = upcoming.filter((item) =>
-    itemInDateWindow(item, range.startIso, range.endIso),
-  );
-  if (scope === 'soir') {
-    return filterSoirItems(scoped, loadCultureData().programmeWithContext);
-  }
-  return scoped;
-}
-
 /** Empty guest reco — SSR first paint must not wait on recommendForProfile. */
 export function deferredRecoByScope(): RecoByScope {
   const empty: DayItem[] = [];
@@ -1079,6 +1065,106 @@ export function deferredRecoByScope(): RecoByScope {
     weekend: empty,
     semaine: empty,
   };
+}
+
+/**
+ * First HTML: cine first-paint cards + totals + chip meta.
+ * Living-arts rails hydrate from GET /api/agenda?window=home (append-only).
+ */
+function assembleHomeFirstPaint(
+  items: DayItem[],
+  input: AgendaQueryInput,
+  now: Date,
+): AgendaListResponse {
+  const data = loadCultureData();
+  const paris = parisParts(now);
+  const showNouveautes =
+    !input.recoUpcoming &&
+    catsAllowCinemaPack(input.cats) &&
+    (input.scope === 'tous' ||
+      input.scope === 'aujourdhui' ||
+      input.scope === 'soir' ||
+      input.scope === 'semaine');
+  const nouveautes = filterItemsByCommune(
+    hideSeancesBeforeToday(
+      showNouveautes ? nouveautesCine(data.programmeWithContext, now) : [],
+      paris.iso,
+    ),
+    input.commune,
+  );
+  const cineAll = items.filter(isCinemaDayItem);
+  const theatreAll = items.filter(isTheatreDayItem);
+  const musiqueAll = items.filter(isMusiqueDayItem);
+  const enfantsAll = items.filter(isEnfantsDayItem);
+  const expoAll = items.filter(isExpoDayItem);
+  const vivantAll = items.filter(isVivantDayItem);
+  const heroKeys = new Set(
+    takeUniqueWorkItems(cineAll, 1).map((item) => item.key),
+  );
+  const page = takeUniqueWorkItems(cineAll, HOME_FIRST_PAINT_CINE_CAP).map(
+    (item) => slimDayItem(item, { keepFicheCopy: heroKeys.has(item.key) }),
+  );
+  return {
+    scope: input.scope,
+    commune: input.commune,
+    items: page,
+    total: items.length,
+    densifiedTotal: densifiedCardCount(items),
+    ...csvRowCounts(),
+    nouveautes: nouveautes.map((item) => slimDayItem(item)),
+    communes: input.includeListMeta
+      ? collectCommunes(lieuxByIdFromData().values())
+      : [],
+    venues: [],
+    genreSlugs: genreSlugsFromItems(items),
+    parisIso: paris.iso,
+    weekday: paris.weekday,
+    genresLegend: input.includeListMeta ? data.genresLegend : [],
+    nouveauFilmIds: Array.from(nouveauFilmIds(data.programmeWithContext, now)),
+    vivantItems: [],
+    vivantTotal: densifiedCardCount(vivantAll),
+    cineTotal: densifiedCardCount(cineAll),
+    theatreTotal: densifiedCardCount(theatreAll),
+    musiqueTotal: densifiedCardCount(musiqueAll),
+    enfantsTotal: densifiedCardCount(enfantsAll),
+    expoTotal: densifiedCardCount(expoAll),
+  };
+}
+
+function computeHomeFirstPaint(now = new Date()): HomeWindow {
+  const scope = bootTimeScope();
+  const { year, month } = parisParts(now);
+  const bootInput: AgendaQueryInput = {
+    scope,
+    commune: 'Toulouse',
+    q: '',
+    cats: [],
+    genres: [],
+    lieuId: null,
+    selectedDate: null,
+    year,
+    month,
+    includeListMeta: true,
+  };
+  const { items: upcoming } = listForRange(bootInput, now);
+  const boot = assembleHomeFirstPaint(upcoming, bootInput, now);
+  return {
+    ...boot,
+    recoByScope: deferredRecoByScope(),
+    listByScope: {},
+  };
+}
+
+/** Slim first HTML: chips + Top 3 shell + first cine pack. */
+export async function loadHomeFirstPaint(
+  now = new Date(),
+): Promise<HomeWindow> {
+  const day = parisParts(now).iso;
+  return unstable_cache(
+    async () => computeHomeFirstPaint(new Date()),
+    ['home-first-paint-v2', day],
+    { revalidate: 300 },
+  )();
 }
 
 function computeHomeWindow(now = new Date()): HomeWindow {
@@ -1102,27 +1188,12 @@ function computeHomeWindow(now = new Date()): HomeWindow {
     searching,
     rangeDays,
   });
-  const recoByScope = deferredRecoByScope();
-  const listByScope: ListByScope = {};
-  for (const s of RECO_BOOT_SCOPES) {
-    if (s === scope) continue;
-    const snapInput: AgendaQueryInput = {
-      ...bootInput,
-      scope: s,
-      includeListMeta: false,
-    };
-    const scoped = itemsForBootScope(upcoming, s, now);
-    listByScope[s] = snapshotFromList(
-      assembleListFromItems(scoped, snapInput, now, {
-        searching: false,
-        rangeDays: resolveScopeRange(s, null, now, { year, month }).days,
-      }),
-    );
-  }
+  // Date-chip snapshots are not embedded in first HTML — chips fetch
+  // `/api/agenda?scope=` (5 min server cache). Saves TTFB + download.
   return {
     ...boot,
-    recoByScope,
-    listByScope: omitBootScopeSnapshot(listByScope, scope),
+    recoByScope: deferredRecoByScope(),
+    listByScope: {},
   };
 }
 
@@ -1133,7 +1204,7 @@ export async function loadHomeWindow(
   const day = parisParts(now).iso;
   return unstable_cache(
     async () => computeHomeWindow(new Date()),
-    ['home-window-slim-v2', day],
+    ['home-window-slim-v3', day],
     { revalidate: 300 },
   )();
 }
@@ -1315,7 +1386,9 @@ export function queryAgendaDetail(
         ),
       );
     }
-    aussiCeSoir = collectCinemaLivingCandidates(pool).map(slimDayItem);
+    aussiCeSoir = collectCinemaLivingCandidates(pool).map((item) =>
+      slimDayItem(item),
+    );
   }
 
   return {

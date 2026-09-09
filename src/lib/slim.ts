@@ -35,6 +35,15 @@ export function slimLieu(lieu: Lieu | null | undefined): Lieu | null {
  */
 export const HOME_PACK_WIRE_CAP = 80;
 
+/**
+ * First unique works per pack that keep full fiche copy on the list wire.
+ * Visible hero + nearby thumbs paint once; the rest clip and fetch `/api/agenda?id=`.
+ */
+export const HOME_PACK_HERO_COPY_CAP = 8;
+
+/** Ciné unique works in the first HTML (desktop first-paint cap; mobile shows 3). */
+export const HOME_FIRST_PAINT_CINE_CAP = 10;
+
 /** Drop the boot scope copy — page already sends items + vivantItems. */
 export function omitBootScopeSnapshot<T extends Record<string, unknown>>(
   listByScope: T,
@@ -59,12 +68,13 @@ export function clipListPitch(raw?: string | null): string {
 
 function slimEvenement(
   ev: Evenement | EventWithDetails | null | undefined,
-  opts?: { skipCourte?: boolean },
+  opts?: { skipCourte?: boolean; keepFicheCopy?: boolean },
 ): Evenement | null {
   if (!ev) return null;
-  const courte = opts?.skipCourte
-    ? ''
-    : clipListPitch(ev.description_courte) || clipListPitch(ev.description_longue);
+  const keep = Boolean(opts?.keepFicheCopy);
+  const clipped =
+    clipListPitch(ev.description_courte) || clipListPitch(ev.description_longue);
+  const courte = opts?.skipCourte ? '' : clipped;
   return {
     event_id: ev.event_id,
     lieu_id: ev.lieu_id,
@@ -79,14 +89,22 @@ function slimEvenement(
     gratuit: ev.gratuit,
     url_source: '',
     description_courte: courte,
-    description_longue: (ev.description_longue || '').trim(),
+    ...(keep && (ev.description_longue || '').trim()
+      ? { description_longue: (ev.description_longue || '').trim() }
+      : {}),
     statut: ev.statut,
     genre: ev.genre,
+    /** Catalogue VF/VOST — cards + fiche picker read this, never invent it. */
+    langue: ev.langue || '',
     image_url: ev.image_url || '',
   };
 }
 
-function slimProgramme(p: ProgrammeItem): ProgrammeItem {
+function slimProgramme(
+  p: ProgrammeItem,
+  opts?: { keepFicheCopy?: boolean },
+): ProgrammeItem {
+  const rawItem = (p.description_item || '').trim();
   return {
     programme_id: p.programme_id,
     event_id: p.event_id,
@@ -98,13 +116,14 @@ function slimProgramme(p: ProgrammeItem): ProgrammeItem {
     heure_fin: p.heure_fin || '',
     scene_salle: p.scene_salle || '',
     prix_item: p.prix_item || '',
+    langue: p.langue || '',
     url: '',
     notes: '',
     genre: p.genre || '',
     artiste_id: p.artiste_id || '',
     film_id: p.film_id || '',
     image_url: p.image_url || '',
-    description_item: (p.description_item || '').trim(),
+    description_item: opts?.keepFicheCopy ? rawItem : clipListPitch(rawItem),
   };
 }
 
@@ -153,14 +172,18 @@ export function withTasteTags<T extends DayItem>(slim: T, source: DayItem): T {
 
 /**
  * First-paint card: id, titre, heure, lieu, cat, image, film_id
- * (+ prix / genre / type so SeanceCard + densify + Pour toi still work).
- * Keeps full fiche copy (description_item + description_longue) so the
- * pack hero can paint once — thumbs still clip via itemPitch.
+ * (+ prix / genre / type / langue so SeanceCard + densify + VF/VOST work).
+ * Default clips fiche copy (1–2 sentences). Pass `keepFicheCopy` for the
+ * first unique works of each pack so the visible hero paints once.
  * Drops tickets URLs, mood tags, and nested programme[].
  */
-export function slimDayItem(item: DayItem): DayItem {
+export function slimDayItem(
+  item: DayItem,
+  opts?: { keepFicheCopy?: boolean },
+): DayItem {
+  const keep = Boolean(opts?.keepFicheCopy);
   if (item.kind === 'programme') {
-    const programme = slimProgramme(item.programme);
+    const programme = slimProgramme(item.programme, { keepFicheCopy: keep });
     return {
       kind: 'programme',
       key: item.key,
@@ -168,6 +191,7 @@ export function slimDayItem(item: DayItem): DayItem {
       programme,
       evenement: slimEvenement(item.evenement, {
         skipCourte: Boolean(programme.description_item),
+        keepFicheCopy: keep,
       }),
       lieu: slimLieu(item.lieu),
     };
@@ -176,9 +200,21 @@ export function slimDayItem(item: DayItem): DayItem {
     kind: 'fallback',
     key: item.key,
     dayIso: item.dayIso,
-    evenement: slimEvenement(item.evenement) as Evenement,
+    evenement: slimEvenement(item.evenement, { keepFicheCopy: keep }) as Evenement,
     lieu: slimLieu(item.lieu),
   };
+}
+
+/** True when the list wire still has unclipped fiche copy (first-paint hero). */
+export function listItemHasHeroFicheCopy(item: DayItem): boolean {
+  if (item.kind === 'programme') {
+    const itemCopy = (item.programme.description_item || '').trim();
+    const longue = (item.evenement?.description_longue || '').trim();
+    if (longue) return true;
+    if (itemCopy && itemCopy !== clipListPitch(itemCopy)) return true;
+    return false;
+  }
+  return Boolean((item.evenement.description_longue || '').trim());
 }
 
 /**

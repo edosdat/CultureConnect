@@ -9,11 +9,16 @@ import './globals.css';
 const sans = DM_Sans({
   subsets: ['latin'],
   variable: '--font-sans',
+  display: 'swap',
+  weight: ['400', '500', '600', '700'],
 });
 
 const display = Fraunces({
   subsets: ['latin'],
   variable: '--font-display',
+  display: 'swap',
+  preload: false,
+  weight: ['500', '600', '700'],
 });
 
 export const metadata: Metadata = {

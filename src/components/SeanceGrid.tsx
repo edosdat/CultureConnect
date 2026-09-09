@@ -163,7 +163,7 @@ function FixedSlotsGrid({
         aria-roledescription={carousel ? 'carousel' : undefined}
         aria-label={carousel ? `Le top ${count} du moment` : undefined}
       >
-        {visible.map((item) => (
+        {visible.map((item, i) => (
           <li key={item.key} className={top3CardFrameClass(count)}>
             <SeanceCard
               item={item}
@@ -175,6 +175,7 @@ function FixedSlotsGrid({
               source="top3"
               reason={reasonFor?.(item) ?? null}
               distanceKm={itemKmLabel(item, origin)}
+              priority={i === 0}
             />
           </li>
         ))}

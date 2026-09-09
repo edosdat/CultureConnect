@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import CultureConnectApp from '@/components/CultureConnectApp';
 import HomeTop3BootFallback from '@/components/HomeTop3BootFallback';
-import { loadHomeWindow, queryAgendaDetail } from '@/lib/agendaQuery';
+import { loadHomeFirstPaint, queryAgendaDetail } from '@/lib/agendaQuery';
 import { normalizeDeepLinkId } from '@/lib/deepLink';
 import {
   itemImageUrl,
@@ -97,7 +97,7 @@ async function HomePageContent({
 }: {
   searchParams: Promise<{ e?: string; id?: string }>;
 }) {
-  const boot = await loadHomeWindow();
+  const boot = await loadHomeFirstPaint();
   const params = await searchParams;
   const initialOpenKey = normalizeDeepLinkId(
     firstParam(params?.e) || firstParam(params?.id),
@@ -124,7 +124,6 @@ async function HomePageContent({
         initialYear={Number(boot.parisIso.slice(0, 4))}
         initialMonth={Number(boot.parisIso.slice(5, 7))}
         initialNouveauFilmIds={boot.nouveauFilmIds ?? []}
-        initialListByScope={boot.listByScope}
         initialOpenKey={initialOpenKey}
         initialOpenItem={openDetail?.item ?? null}
         initialRelatedItems={openDetail?.relatedItems}

@@ -9,16 +9,20 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import dynamic from 'next/dynamic';
 import { SessionProvider } from 'next-auth/react';
 import SignalsProvider from './SignalsProvider';
 import FavoritesProvider from './FavoritesProvider';
-import FirstLoginModal from './FirstLoginModal';
 import {
   CLOSE_TASTES_EVENT,
   OPEN_TASTES_EVENT,
   requestCloseTastes,
   requestOpenTastes,
 } from './tastesUiEvents';
+
+const FirstLoginModal = dynamic(() => import('./FirstLoginModal'), {
+  ssr: false,
+});
 
 export {
   CLOSE_TASTES_EVENT,

@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type TouchEvent } from 'react';
 import type { DayItem } from '@/lib/types';
-import type { AgendaDetailResponse } from '@/lib/slim';
+import {
+  listItemHasHeroFicheCopy,
+  type AgendaDetailResponse,
+} from '@/lib/slim';
 import type { DenseRow } from '@/lib/densify';
 import {
   HERO_SCROLL_DEFER_MS,
@@ -53,11 +56,13 @@ import {
 } from '@/lib/displayHome';
 import { itemKmLabel, minKmLabel, type GeoPos } from '@/lib/nearMe';
 import { cineDistanceOrigin, defaultCineSeance } from '@/lib/cineSeances';
+import { isCinemaDayItem } from '@/lib/nouveautesCine';
 import { pickFilmVivantComplements } from '@/lib/filmVivantComplements';
 import { rawUrls, reservePickOf } from '@/lib/reserve';
 import EventImage from './EventImage';
 import VisualFallback, { categoryLabelOf } from './VisualFallback';
 import TheatreUrgenceBadge from './TheatreUrgenceBadge';
+import FilmVersionBadge from './FilmVersionBadge';
 import FilmPoster from './FilmPoster';
 import FavoriteButton from './FavoriteButton';
 import ShareButton from './ShareButton';
@@ -219,6 +224,11 @@ function FilmThumb({
             <span className="rounded bg-culture-ink/85 px-1.5 py-0.5 text-[11px] font-semibold leading-tight text-white">
               {when}
             </span>
+          ) : null}
+          {isCinemaDayItem(item) ? (
+            <FilmVersionBadge
+              items={row.seances?.length ? row.seances : [item]}
+            />
           ) : null}
           <TheatreUrgenceBadge item={item} />
         </span>
@@ -952,6 +962,7 @@ export default function CinemaCarousel({
           <span className="inline-flex rounded bg-culture-terracotta px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">
             {cat || copy.fallbackCat}
           </span>
+          {pack === 'cine' ? <FilmVersionBadge item={active} /> : null}
           <TheatreUrgenceBadge item={item} />
         </span>
         <FavoriteButton item={item} />
@@ -975,7 +986,12 @@ export default function CinemaCarousel({
         onTouchEnd={onHeroTouchEnd}
         className="scroll-mt-16 overflow-hidden rounded-card-lg border border-culture-line bg-culture-surface shadow-card"
       >
-        <FilmPoster src={image} item={item} blurBackdrop />
+        <FilmPoster
+          src={image}
+          item={item}
+          blurBackdrop
+          priority={pack === 'cine'}
+        />
         <div className="flex min-w-0 flex-col gap-2 p-3 md:p-4">
           {titleBlock}
           {pack === 'cine' && seances.length > 0 ? (
@@ -990,7 +1006,10 @@ export default function CinemaCarousel({
               />
             </div>
           ) : null}
-          <FicheDescription item={item} />
+          <FicheDescription
+            item={detailItem ?? item}
+            pending={!detailItem && !listItemHasHeroFicheCopy(item)}
+          />
           {pack === 'theatre' || pack === 'musique' ? (
             <PressCitation
               citation={fichePressCitation(

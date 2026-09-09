@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DayItem, GenreLegend, Lieu } from '@/lib/types';
 import type { AgendaDetailResponse, AgendaListResponse } from '@/lib/slim';
@@ -62,18 +63,23 @@ import CategoryFilter from './CategoryFilter';
 import GenreFilter from './GenreFilter';
 import CityFilter from './CityFilter';
 import VenueFilter from './VenueFilter';
-import MonthCalendar from './MonthCalendar';
-import MonthCalendarDrawer from './MonthCalendarDrawer';
 import SeanceGrid from './SeanceGrid';
 import Top3Skeleton from './Top3Skeleton';
 import TimeScopeBar from './TimeScopeBar';
 import SearchOmnibox from './SearchOmnibox';
 import ListWaitDots, { HomeListWaitSlot } from './ListWaitDots';
 import Top3GuestCta from './Top3GuestCta';
-import EventDetail from './EventDetail';
-import TastesOverlayHost from './TastesOverlayHost';
-import LoginNudge from './LoginNudge';
 import HomeSection from './HomeSection';
+
+const EventDetail = dynamic(() => import('./EventDetail'), { ssr: false });
+const MonthCalendar = dynamic(() => import('./MonthCalendar'), { ssr: false });
+const MonthCalendarDrawer = dynamic(() => import('./MonthCalendarDrawer'), {
+  ssr: false,
+});
+const TastesOverlayHost = dynamic(() => import('./TastesOverlayHost'), {
+  ssr: false,
+});
+const LoginNudge = dynamic(() => import('./LoginNudge'), { ssr: false });
 import CinemaCarousel from './CinemaCarousel';
 import {
   phraseUsesTitleQ,
@@ -432,6 +438,74 @@ export default function CultureConnectApp({
 
   const skipListFetch = useRef(true);
   const skipListFetchBootGps = useRef(false);
+  const bootFiltersRef = useRef({
+    timeScope: initialScope,
+    cats: [] as string[],
+    genres: [] as string[],
+    q: '',
+  });
+  bootFiltersRef.current = {
+    timeScope,
+    cats: selectedCategories,
+    genres: selectedGenres,
+    q: query,
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    const mergeBoot = (data: AgendaListResponse) => {
+      const f = bootFiltersRef.current;
+      if (f.timeScope !== initialScope) return;
+      if (f.cats.length || f.genres.length || f.q.trim()) return;
+      setListItems((prev) => {
+        const seen = new Set(prev.map((item) => item.key));
+        const extra = (data.items ?? []).filter((item) => !seen.has(item.key));
+        return extra.length ? [...prev, ...extra] : prev;
+      });
+      setVivantItems((prev) => {
+        const seen = new Set(prev.map((item) => item.key));
+        const extra = (data.vivantItems ?? []).filter(
+          (item) => !seen.has(item.key),
+        );
+        return extra.length ? [...prev, ...extra] : prev;
+      });
+      if (data.nouveautes?.length) {
+        setNouveautesItems((prev) => {
+          const seen = new Set(prev.map((item) => item.key));
+          const extra = data.nouveautes.filter((item) => !seen.has(item.key));
+          return extra.length ? [...prev, ...extra] : prev;
+        });
+      }
+      if (data.venues?.length) setVenueOptions(data.venues);
+      if (typeof data.vivantTotal === 'number') setVivantTotal(data.vivantTotal);
+      if (typeof data.cineTotal === 'number') setCineTotal(data.cineTotal);
+      if (typeof data.theatreTotal === 'number') setTheatreTotal(data.theatreTotal);
+      if (typeof data.musiqueTotal === 'number') setMusiqueTotal(data.musiqueTotal);
+      if (typeof data.enfantsTotal === 'number') setEnfantsTotal(data.enfantsTotal);
+      if (typeof data.expoTotal === 'number') setExpoTotal(data.expoTotal);
+      if (typeof data.total === 'number') setTotal(data.total);
+      if (typeof data.densifiedTotal === 'number') {
+        setDensifiedTotalApi(data.densifiedTotal);
+      }
+      if (data.nouveauFilmIds?.length) {
+        setNouveauFilmIdSet(new Set(data.nouveauFilmIds));
+      }
+    };
+    const run = () => {
+      void fetch('/api/agenda?window=home')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data: AgendaListResponse | null) => {
+          if (cancelled || !data) return;
+          mergeBoot(data);
+        })
+        .catch(() => undefined);
+    };
+    const idle = window.setTimeout(run, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(idle);
+    };
+  }, [initialScope]);
   const cinePaintedRef = useRef<DenseRow[]>([]);
   const theatrePaintedRef = useRef<DenseRow[]>([]);
   const musiquePaintedRef = useRef<DenseRow[]>([]);
@@ -1900,20 +1974,6 @@ export default function CultureConnectApp({
                 ? `le ${contextLabel}`
                 : contextLabel;
 
-  const monthCalendar = (
-    <MonthCalendar
-      year={year}
-      month={month}
-      selectedDay={timeScope === 'date' ? selectedDay : null}
-      counts={counts}
-      showDayCounts={showAdminCounts}
-      onSelectDay={handleSelectDay}
-      onPrevMonth={goPrevMonth}
-      onNextMonth={goNextMonth}
-      embedded
-    />
-  );
-
   const filterBadge =
     selectedGenres.length +
     (selectedLieuId ? 1 : 0) +
@@ -2077,7 +2137,19 @@ export default function CultureConnectApp({
           onClose={() => setShowMonthPanel(false)}
           title={monthLabel}
         >
-          {monthCalendar}
+          {showMonthPanel ? (
+            <MonthCalendar
+              year={year}
+              month={month}
+              selectedDay={timeScope === 'date' ? selectedDay : null}
+              counts={counts}
+              showDayCounts={showAdminCounts}
+              onSelectDay={handleSelectDay}
+              onPrevMonth={goPrevMonth}
+              onNextMonth={goNextMonth}
+              embedded
+            />
+          ) : null}
         </MonthCalendarDrawer>
 
         {showTop3Section ? (
@@ -2452,21 +2524,23 @@ export default function CultureConnectApp({
 
       <TastesOverlayHost />
 
-      <EventDetail
-        item={selectedItem}
-        onClose={() => setSelectedItemKey(null)}
-        onSelectVenue={handleSelectVenue}
-        relatedItems={relatedFilmItems}
-        aussiCeSoirItems={aussiCeSoirItems}
-        onSelectItem={handleSelectHome}
-        onAgenda={() => selectedItem && trackItem(selectedItem, 'agenda_add')}
-        onIcs={() => selectedItem && trackItem(selectedItem, 'ics')}
-        onReserve={() => selectedItem && trackItem(selectedItem, 'reserve')}
-        selectedCommune={selectedCommune}
-        selectedLieuId={selectedLieuId}
-        fallbackVivant={crossSellPool}
-        origin={gpsOrigin}
-      />
+      {selectedItem ? (
+        <EventDetail
+          item={selectedItem}
+          onClose={() => setSelectedItemKey(null)}
+          onSelectVenue={handleSelectVenue}
+          relatedItems={relatedFilmItems}
+          aussiCeSoirItems={aussiCeSoirItems}
+          onSelectItem={handleSelectHome}
+          onAgenda={() => selectedItem && trackItem(selectedItem, 'agenda_add')}
+          onIcs={() => selectedItem && trackItem(selectedItem, 'ics')}
+          onReserve={() => selectedItem && trackItem(selectedItem, 'reserve')}
+          selectedCommune={selectedCommune}
+          selectedLieuId={selectedLieuId}
+          fallbackVivant={crossSellPool}
+          origin={gpsOrigin}
+        />
+      ) : null}
     </div>
   );
 }

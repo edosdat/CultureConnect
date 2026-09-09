@@ -126,6 +126,19 @@ export function seanceVersionLabel(item: DayItem): string | null {
   return filmVersionLabel(item.evenement.langue);
 }
 
+/** Unique catalogue versions on a film card (VF + VOSTFR if both exist). */
+export function filmVersionLabels(items: DayItem[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const row of items) {
+    const label = seanceVersionLabel(row);
+    if (!label || seen.has(label)) continue;
+    seen.add(label);
+    out.push(label);
+  }
+  return out;
+}
+
 /** Time + catalogue version: « 21:15 VOST ». Empty langue → time only. */
 export function seanceHeureLabel(rel: DayItem): string {
   return [seanceHeure(rel), seanceVersionLabel(rel)].filter(Boolean).join(' ');

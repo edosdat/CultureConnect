@@ -10,8 +10,10 @@ import {
   defaultCineSeance,
   groupCinemasForFilm,
   horaireOptionLabel,
+  filmVersionLabels,
   seanceHeureLabel,
   seanceMetaLabel,
+  seanceVersionLabel,
   seancesAtCinema,
 } from './cineSeances';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
@@ -216,6 +218,15 @@ describe('cine seances cinema-then-time', () => {
     assert.equal(filmVersionLabel('fr'), null);
     assert.equal(filmVersionLabel('VOSTFR'), 'VOSTFR');
     assert.equal(filmVersionLabel(undefined, 'VF'), 'VF');
+    assert.deepEqual(filmVersionLabels([ABC_SOON, ABC, LABEGE]), [
+      'VF',
+      'VOSTFR',
+      'VO',
+    ]);
+    assert.deepEqual(filmVersionLabels([ABC, ABC]), ['VOSTFR']);
+    assert.deepEqual(filmVersionLabels([bare]), []);
+    assert.equal(seanceVersionLabel(ABC_SOON), 'VF');
+    assert.equal(seanceVersionLabel(bare), null);
   });
 
   it('catalogue version/price columns are langue + prix, not invented vo/vost/version', () => {
