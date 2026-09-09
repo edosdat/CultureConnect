@@ -1116,7 +1116,7 @@ function assembleHomeFirstPaint(
       ? collectCommunes(lieuxByIdFromData().values())
       : [],
     venues: [],
-    genreSlugs: [],
+    genreSlugs: genreSlugsFromItems(items),
     parisIso: paris.iso,
     weekday: paris.weekday,
     genresLegend: input.includeListMeta ? data.genresLegend : [],
@@ -1162,7 +1162,7 @@ export async function loadHomeFirstPaint(
   const day = parisParts(now).iso;
   return unstable_cache(
     async () => computeHomeFirstPaint(new Date()),
-    ['home-first-paint-v1', day],
+    ['home-first-paint-v2', day],
     { revalidate: 300 },
   )();
 }
