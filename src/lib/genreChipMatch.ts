@@ -105,6 +105,53 @@ export function matchesSelectedGenres(
   return selected.some((chip) => itemMatchesGenreChip(fields, chip));
 }
 
+/** Scope that rebuilds the GENRES chip list (not the selected Jazz chip). */
+export function genreOptionsScopeKey(input: {
+  scope: string;
+  selectedDay?: string | null;
+  year: number;
+  month: number;
+  commune?: string | null;
+  lieuId?: string | null;
+  cats: readonly string[];
+  q?: string;
+  phrase?: string;
+}): string {
+  const cats = [...input.cats]
+    .map((c) => c.trim().toLowerCase())
+    .filter(Boolean)
+    .sort()
+    .join(',');
+  return [
+    input.scope,
+    (input.selectedDay || '').trim(),
+    String(input.year),
+    String(input.month),
+    (input.commune || '').trim(),
+    (input.lieuId || '').trim(),
+    cats,
+    (input.q || '').trim(),
+    (input.phrase || '').trim(),
+  ].join('|');
+}
+
+export type GenreChipsPaint = 'hidden' | 'loading' | 'empty' | 'ready';
+
+/**
+ * Empty slugs are not final while the filtered list is still computing.
+ * Loading beats « Aucun genre pour cette sélection ».
+ */
+export function genreChipsPaint(opts: {
+  selectedMains: readonly string[];
+  availableCount: number;
+  loading: boolean;
+}): GenreChipsPaint {
+  if (opts.selectedMains.length === 0) return 'hidden';
+  if (opts.loading) return 'loading';
+  if (opts.availableCount === 0) return 'empty';
+  return 'ready';
+}
+
 /**
  * Keep a tapped genre chip even when the filtered page no longer lists it.
  * Only drop chips when the QUOI category is cleared or the slug leaves that main.

@@ -144,6 +144,24 @@ body {
 .cc-wait-dot:nth-child(2) { animation-delay: 0.15s; }
 .cc-wait-dot:nth-child(3) { animation-delay: 0.3s; }
 
+/* GENRES: 3–5 skeleton pills while slugs compute (never « Aucun genre »). */
+@keyframes cc-genre-skel {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+.cc-genre-skel {
+  background-color: var(--cc-sand);
+  background-image: linear-gradient(
+    105deg,
+    var(--cc-sand) 0%,
+    #fff8f0 38%,
+    var(--cc-line) 100%
+  );
+  background-size: 200% 100%;
+  border: 1px solid var(--cc-line);
+  animation: cc-genre-skel 1.15s ease-in-out infinite;
+}
+
 /* QUAND + QUOI: wrap on <md (two stacked groups). Desktop stays one overflow-x row. */
 .cc-axes-row {
   display: flex;
