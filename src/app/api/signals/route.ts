@@ -7,14 +7,14 @@ import {
 } from '@/lib/accountTasteStore';
 import {
   COHORT_COOKIE,
-  GUEST_ID_COOKIE,
+  VID_COOKIE,
   clientIpFromRequest,
-  guestIdCookieOptions,
   isAllowedSignalOrigin,
   itemIdsOutOfBounds,
   payloadExceedsLimit,
   readCookieValue,
-  resolveGuestIdFromCookie,
+  resolveVidFromCookie,
+  vidCookieOptions,
 } from '@/lib/guestSignals';
 import {
   commitGuestSignals,
@@ -139,9 +139,9 @@ function collectIncomingSignals(incoming: {
   return incomingSignals;
 }
 
-function guestCookieResponse(guestId: string): NextResponse {
-  const res = NextResponse.json({ ok: true, guestId });
-  res.cookies.set(GUEST_ID_COOKIE, guestId, guestIdCookieOptions());
+function vidCookieResponse(vid: string): NextResponse {
+  const res = NextResponse.json({ ok: true, vid });
+  res.cookies.set(VID_COOKIE, vid, vidCookieOptions());
   return res;
 }
 
@@ -212,9 +212,7 @@ export async function POST(req: Request) {
 
     const committed = await commitGuestSignals({
       signals: incomingSignals,
-      cookieGuestId: resolveGuestIdFromCookie(
-        readCookieValue(cookieHeader, GUEST_ID_COOKIE),
-      ),
+      cookieVid: resolveVidFromCookie(readCookieValue(cookieHeader, VID_COOKIE)),
       cohortCookie,
       ip,
     });
@@ -224,7 +222,7 @@ export async function POST(req: Request) {
         { status: committed.status },
       );
     }
-    return guestCookieResponse(committed.guestId);
+    return vidCookieResponse(committed.vid);
   }
 
   if (await isSignalRateLimited({ ip })) {

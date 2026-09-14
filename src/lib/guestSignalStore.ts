@@ -8,9 +8,10 @@ import {
   GUEST_SIGNAL_FIFO_CAP,
   IP_RATE_LIMIT_PER_HOUR,
   RATE_WINDOW_MS,
+  assertNoVidAccountJoin,
   formatAppendLogLine,
-  generateGuestId,
-  isValidGuestId,
+  generateVid,
+  isValidVid,
   resolveCohort,
   type AuthedAppendLine,
   type GuestAppendLine,
@@ -105,16 +106,16 @@ async function kvRateLimited(
 
 export async function isSignalRateLimited(opts: {
   ip: string;
-  guestId?: string | null;
+  vid?: string | null;
 }): Promise<boolean> {
   const ipKey = `ip:${opts.ip || 'unknown'}`;
   const kvIp = await kvRateLimited(ipKey, IP_RATE_LIMIT_PER_HOUR);
   const ipHit = kvIp ?? memoryLimited(ipKey, IP_RATE_LIMIT_PER_HOUR);
   if (ipHit) return true;
-  if (!opts.guestId) return false;
-  const gKey = `g:${opts.guestId}`;
-  const kvGuest = await kvRateLimited(gKey, GUEST_RATE_LIMIT_PER_HOUR);
-  return kvGuest ?? memoryLimited(gKey, GUEST_RATE_LIMIT_PER_HOUR);
+  if (!opts.vid) return false;
+  const vKey = `v:${opts.vid}`;
+  const kvVid = await kvRateLimited(vKey, GUEST_RATE_LIMIT_PER_HOUR);
+  return kvVid ?? memoryLimited(vKey, GUEST_RATE_LIMIT_PER_HOUR);
 }
 
 async function kvAppend(
@@ -129,12 +130,14 @@ async function kvAppend(
 }
 
 export async function persistGuestAppend(line: GuestAppendLine): Promise<void> {
+  assertNoVidAccountJoin(line);
   const payload = formatAppendLogLine(line);
-  const stored = await kvAppend(`cc:gs:${line.guestId}`, payload);
+  const stored = await kvAppend(`cc:vs:${line.vid}`, payload);
   if (!stored) console.log(payload);
 }
 
 export async function persistAuthedAppend(line: AuthedAppendLine): Promise<void> {
+  assertNoVidAccountJoin(line);
   const payload = formatAppendLogLine(line);
   const stored = await kvAppend(`cc:as:${line.emailHash}`, payload);
   if (!stored) console.log(payload);
@@ -142,7 +145,7 @@ export async function persistAuthedAppend(line: AuthedAppendLine): Promise<void>
 
 export type GuestCommitOk = {
   ok: true;
-  guestId: string;
+  vid: string;
   created: boolean;
 };
 
@@ -154,22 +157,20 @@ export type GuestCommitErr = {
 
 export async function commitGuestSignals(input: {
   signals: Signal[];
-  cookieGuestId?: string | null;
+  cookieVid?: string | null;
   cohortCookie?: string | null;
   ip: string;
 }): Promise<GuestCommitOk | GuestCommitErr> {
-  const created = !isValidGuestId(input.cookieGuestId);
-  const guestId = created ? generateGuestId() : input.cookieGuestId!;
-  if (await isSignalRateLimited({ ip: input.ip, guestId })) {
+  const created = !isValidVid(input.cookieVid);
+  const vid = created ? generateVid() : input.cookieVid!;
+  if (await isSignalRateLimited({ ip: input.ip, vid })) {
     return { ok: false, status: 429, error: 'Too many requests' };
   }
   const cohort = resolveCohort(input.cohortCookie);
   for (const signal of input.signals) {
-    await persistGuestAppend(
-      buildGuestAppendLine({ signal, guestId, cohort }),
-    );
+    await persistGuestAppend(buildGuestAppendLine({ signal, vid, cohort }));
   }
-  return { ok: true, guestId, created };
+  return { ok: true, vid, created };
 }
 
 /** Optional analytics mirror. Must never replace the Neon account_tastes path. */

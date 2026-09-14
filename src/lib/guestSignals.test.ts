@@ -2,29 +2,35 @@ import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   COHORT_COOKIE,
-  GUEST_ID_COOKIE,
   GUEST_RATE_LIMIT_PER_HOUR,
   GUEST_SIGNAL_FIFO_CAP,
   IP_RATE_LIMIT_PER_HOUR,
   SIGNAL_PAYLOAD_MAX_BYTES,
+  VID_COOKIE,
+  assertNoVidAccountJoin,
   buildAuthedAppendLine,
   buildGuestAppendLine,
   fifoAppend,
   formatAppendLogLine,
-  generateGuestId,
-  guestIdCookieOptions,
+  generateVid,
   hashEmail,
   isAllowedSignalOrigin,
-  isValidGuestId,
+  isValidVid,
   itemIdsOutOfBounds,
   itemKeyFromSignal,
   payloadExceedsLimit,
   readCookieValue,
   resolveCohort,
-  resolveGuestIdFromCookie,
+  resolveVidFromCookie,
   sanitizeCohort,
+  vidCookieOptions,
 } from './guestSignals';
-import { GUEST_STORAGE_KEY, makeSignal } from './signals';
+import {
+  GUEST_STORAGE_KEY,
+  emptyProfile,
+  makeSignal,
+  parseGuestStore,
+} from './signals';
 import {
   commitGuestSignals,
   resetGuestRateLimitForTests,
@@ -40,21 +46,21 @@ function signal(kind: 'open_card' | 'favorite' = 'open_card') {
   });
 }
 
-describe('cc_guest_id format', () => {
-  it('generates g_ + 8–12 alphanumeric and rejects PII / store JSON', () => {
-    const id = generateGuestId();
-    assert.match(id, /^g_[a-z0-9]{8,12}$/);
-    assert.equal(isValidGuestId(id), true);
-    assert.equal(isValidGuestId('g_8f3e2a1b'), true);
-    assert.equal(isValidGuestId('g_short'), false);
-    assert.equal(isValidGuestId('user@example.com'), false);
-    assert.equal(isValidGuestId(GUEST_STORAGE_KEY), false);
-    assert.equal(isValidGuestId('{"events":[]}'), false);
-    assert.equal(resolveGuestIdFromCookie(id), id);
-    assert.equal(resolveGuestIdFromCookie(GUEST_STORAGE_KEY), null);
-    assert.equal(GUEST_ID_COOKIE, 'cc_guest_id');
-    assert.notEqual(GUEST_ID_COOKIE, GUEST_STORAGE_KEY);
-    const opts = guestIdCookieOptions();
+describe('cc_vid format', () => {
+  it('generates v_ + 8–12 alphanumeric and rejects PII / store JSON', () => {
+    const id = generateVid();
+    assert.match(id, /^v_[a-z0-9]{8,12}$/);
+    assert.equal(isValidVid(id), true);
+    assert.equal(isValidVid('v_8f3e2a1b'), true);
+    assert.equal(isValidVid('v_short'), false);
+    assert.equal(isValidVid('user@example.com'), false);
+    assert.equal(isValidVid(GUEST_STORAGE_KEY), false);
+    assert.equal(isValidVid('{"events":[]}'), false);
+    assert.equal(resolveVidFromCookie(id), id);
+    assert.equal(resolveVidFromCookie(GUEST_STORAGE_KEY), null);
+    assert.equal(VID_COOKIE, 'cc_vid');
+    assert.notEqual(VID_COOKIE, GUEST_STORAGE_KEY);
+    const opts = vidCookieOptions();
     assert.equal(opts.httpOnly, true);
     assert.equal(opts.sameSite, 'lax');
     assert.equal(opts.path, '/');
@@ -74,14 +80,14 @@ describe('cohort', () => {
 });
 
 describe('append line schema', () => {
-  it('guest line has guestId+kind+itemKey and authed:false, no email', () => {
+  it('guest line has vid+kind+itemKey and authed:false, no email', () => {
     const s = signal('favorite');
     const line = buildGuestAppendLine({
       signal: s,
-      guestId: 'g_8f3e2a1b',
+      vid: 'v_8f3e2a1b',
       cohort: 'beta30',
     });
-    assert.equal(line.guestId, 'g_8f3e2a1b');
+    assert.equal(line.vid, 'v_8f3e2a1b');
     assert.equal(line.kind, 'favorite');
     assert.equal(line.itemKey, 'ev-guest-1');
     assert.equal(line.cohort, 'beta30');
@@ -90,12 +96,13 @@ describe('append line schema', () => {
     const dumped = formatAppendLogLine(line);
     assert.equal(dumped.includes('example.com'), false);
     assert.equal(dumped.includes('email'), false);
-    assert.match(dumped, /"guestId":"g_8f3e2a1b"/);
+    assert.equal(dumped.includes('guestId'), false);
+    assert.match(dumped, /"vid":"v_8f3e2a1b"/);
     assert.match(dumped, /"kind":"favorite"/);
     assert.match(dumped, /"itemKey":"ev-guest-1"/);
   });
 
-  it('authed mirror hashes email and never stores plaintext', () => {
+  it('authed mirror hashes email, never stores plaintext, never carries vid', () => {
     const s = signal('open_card');
     const line = buildAuthedAppendLine({
       signal: s,
@@ -108,7 +115,48 @@ describe('append line schema', () => {
     const dumped = formatAppendLogLine(line);
     assert.equal(dumped.toLowerCase().includes('tester@example.com'), false);
     assert.equal('email' in line, false);
+    assert.equal('vid' in line, false);
     assert.equal('guestId' in line, false);
+  });
+});
+
+describe('RGPD — 0 join vid × account', () => {
+  it('throws if a record carries vid with email / emailHash / Neon key', () => {
+    assert.throws(
+      () => assertNoVidAccountJoin({ vid: 'v_8f3e2a1b', email: 'a@b.c' }),
+      /RGPD/,
+    );
+    assert.throws(
+      () => assertNoVidAccountJoin({ vid: 'v_8f3e2a1b', emailHash: 'abc' }),
+      /RGPD/,
+    );
+    assert.throws(
+      () => assertNoVidAccountJoin({ vid: 'v_8f3e2a1b', user_key: 'a@b.c' }),
+      /RGPD/,
+    );
+    assert.doesNotThrow(() =>
+      assertNoVidAccountJoin({
+        vid: 'v_8f3e2a1b',
+        kind: 'open_card',
+        authed: false,
+      }),
+    );
+    assert.doesNotThrow(() =>
+      assertNoVidAccountJoin({ emailHash: 'abc', authed: true }),
+    );
+  });
+
+  it('never copies vid into cc_signals_v1 guest store JSON', () => {
+    const parsed = parseGuestStore({
+      events: [],
+      profile: emptyProfile(),
+      vid: 'v_8f3e2a1b',
+      email: 'a@b.c',
+    });
+    const dumped = JSON.stringify(parsed);
+    assert.equal('vid' in parsed, false);
+    assert.equal(dumped.includes('v_8f3e2a1b'), false);
+    assert.equal(dumped.includes('a@b.c'), false);
   });
 });
 
@@ -138,15 +186,15 @@ describe('validation guards', () => {
     assert.equal(isAllowedSignalOrigin(other), false);
   });
 
-  it('reads cc_guest_id from Cookie and ignores cc_signals_v1 JSON', () => {
-    const header = `${GUEST_STORAGE_KEY}=${encodeURIComponent('{"events":[]}')}; ${GUEST_ID_COOKIE}=g_8f3e2a1b`;
-    assert.equal(readCookieValue(header, GUEST_ID_COOKIE), 'g_8f3e2a1b');
-    assert.equal(isValidGuestId(readCookieValue(header, GUEST_STORAGE_KEY)), false);
+  it('reads cc_vid from Cookie and ignores cc_signals_v1 JSON', () => {
+    const header = `${GUEST_STORAGE_KEY}=${encodeURIComponent('{"events":[]}')}; ${VID_COOKIE}=v_8f3e2a1b`;
+    assert.equal(readCookieValue(header, VID_COOKIE), 'v_8f3e2a1b');
+    assert.equal(isValidVid(readCookieValue(header, GUEST_STORAGE_KEY)), false);
   });
 });
 
 describe('FIFO cap', () => {
-  it('keeps the newest 200 signals per guestId', () => {
+  it('keeps the newest 200 signals per vid', () => {
     let list: number[] = [];
     for (let i = 0; i < 205; i += 1) {
       list = fifoAppend(list, i, GUEST_SIGNAL_FIFO_CAP);
@@ -162,7 +210,7 @@ describe('commitGuestSignals — append-only, no account path', () => {
     resetGuestRateLimitForTests();
   });
 
-  it('creates a guest id and logs the append line', async () => {
+  it('creates a cc_vid and logs the append line', async () => {
     const lines: string[] = [];
     const orig = console.log;
     console.log = (...args: unknown[]) => {
@@ -171,74 +219,75 @@ describe('commitGuestSignals — append-only, no account path', () => {
     try {
       const result = await commitGuestSignals({
         signals: [signal('open_card')],
-        cookieGuestId: null,
+        cookieVid: null,
         cohortCookie: 'beta30',
         ip: '203.0.113.10',
       });
       assert.equal(result.ok, true);
       if (!result.ok) return;
       assert.equal(result.created, true);
-      assert.equal(isValidGuestId(result.guestId), true);
+      assert.equal(isValidVid(result.vid), true);
       const dumped = lines.join('\n');
       assert.match(dumped, /"authed":false/);
       assert.match(dumped, /"kind":"open_card"/);
       assert.match(dumped, /"itemKey":"ev-guest-1"/);
-      assert.match(dumped, new RegExp(`"guestId":"${result.guestId}"`));
+      assert.match(dumped, new RegExp(`"vid":"${result.vid}"`));
+      assert.equal(dumped.includes('guestId'), false);
     } finally {
       console.log = orig;
     }
   });
 
-  it('reuses a valid cookie guest id', async () => {
+  it('reuses a valid cc_vid cookie', async () => {
     const result = await commitGuestSignals({
       signals: [signal('favorite')],
-      cookieGuestId: 'g_8f3e2a1b',
+      cookieVid: 'v_8f3e2a1b',
       ip: '203.0.113.11',
     });
     assert.equal(result.ok, true);
     if (!result.ok) return;
     assert.equal(result.created, false);
-    assert.equal(result.guestId, 'g_8f3e2a1b');
+    assert.equal(result.vid, 'v_8f3e2a1b');
   });
 
-  it('rate-limits ~60/guestId/h and ~120/IP/h', async () => {
+  it('rate-limits ~60/vid/h and ~120/IP/h', async () => {
     const orig = console.log;
     console.log = () => {};
     try {
-    for (let i = 0; i < GUEST_RATE_LIMIT_PER_HOUR; i += 1) {
-      const ok = await commitGuestSignals({
+      for (let i = 0; i < GUEST_RATE_LIMIT_PER_HOUR; i += 1) {
+        const ok = await commitGuestSignals({
+          signals: [signal()],
+          cookieVid: 'v_ratelimit1',
+          ip: `198.51.100.${i % 50}`,
+        });
+        assert.equal(ok.ok, true, `vid hit ${i}`);
+      }
+      const blockedVid = await commitGuestSignals({
         signals: [signal()],
-        cookieGuestId: 'g_ratelimit1',
-        ip: `198.51.100.${i % 50}`,
+        cookieVid: 'v_ratelimit1',
+        ip: '198.51.100.200',
       });
-      assert.equal(ok.ok, true, `guest hit ${i}`);
-    }
-    const blockedGuest = await commitGuestSignals({
-      signals: [signal()],
-      cookieGuestId: 'g_ratelimit1',
-      ip: '198.51.100.200',
-    });
-    assert.equal(blockedGuest.ok, false);
-    if (blockedGuest.ok) return;
-    assert.equal(blockedGuest.status, 429);
+      assert.equal(blockedVid.ok, false);
+      if (blockedVid.ok) return;
+      assert.equal(blockedVid.status, 429);
 
-    resetGuestRateLimitForTests();
-    for (let i = 0; i < IP_RATE_LIMIT_PER_HOUR; i += 1) {
-      const ok = await commitGuestSignals({
+      resetGuestRateLimitForTests();
+      for (let i = 0; i < IP_RATE_LIMIT_PER_HOUR; i += 1) {
+        const ok = await commitGuestSignals({
+          signals: [signal()],
+          cookieVid: `v_ip${String(i).padStart(6, '0')}`,
+          ip: '198.51.100.9',
+        });
+        assert.equal(ok.ok, true, `ip hit ${i}`);
+      }
+      const blockedIp = await commitGuestSignals({
         signals: [signal()],
-        cookieGuestId: `g_ip${String(i).padStart(6, '0')}`,
+        cookieVid: 'v_ip999999',
         ip: '198.51.100.9',
       });
-      assert.equal(ok.ok, true, `ip hit ${i}`);
-    }
-    const blockedIp = await commitGuestSignals({
-      signals: [signal()],
-      cookieGuestId: 'g_ip999999',
-      ip: '198.51.100.9',
-    });
-    assert.equal(blockedIp.ok, false);
-    if (blockedIp.ok) return;
-    assert.equal(blockedIp.status, 429);
+      assert.equal(blockedIp.ok, false);
+      if (blockedIp.ok) return;
+      assert.equal(blockedIp.status, 429);
     } finally {
       console.log = orig;
     }

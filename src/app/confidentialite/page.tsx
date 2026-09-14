@@ -74,11 +74,31 @@ export default function ConfidentialitePage() {
         </p>
         <p>On ne la garde pas.</p>
         <p>
+          <span className="font-medium">Cookies.</span> Deux cookies distincts,
+          jamais joints :
+        </p>
+        <p>
+          <span className="font-medium">cc_signals_v1</span> — tes goûts sur
+          cet appareil (personnalisation «&nbsp;Pour toi&nbsp;»). 14 jours.
+          Ce n&apos;est pas un identifiant : on y range seulement les clics /
+          chips qui nourrissent tes goûts. Compacté, il peut oublier les plus
+          anciens évènements.
+        </p>
+        <p>
+          <span className="font-medium">cc_vid</span> — identifiant de mesure
+          anonyme (<span className="font-mono">v_</span> + lettres et
+          chiffres). 14 jours, HttpOnly, SameSite=Lax, Secure. Posé au
+          premier signal (ouvrir une fiche, cœur…), pas au simple chargement
+          de la page. Aucun e-mail, aucun compte, aucun goût. On ne le relie
+          jamais à Neon, à <span className="font-mono">account_tastes</span>,
+          ni à ta session Google.
+        </p>
+        <p>
           Base légale : intérêt légitime à proposer «&nbsp;Pour toi&nbsp;», et
           ton action quand tu indiques tes goûts. Conservation 24 mois après
-          la dernière activité, puis suppression. Cookie visiteur : 14 jours.
-          Compte connecté : tu peux tout effacer via le bouton
-          «&nbsp;Supprimer mon compte&nbsp;» ci-dessous.
+          la dernière activité, puis suppression. Compte connecté : tu peux
+          tout effacer via le bouton «&nbsp;Supprimer mon compte&nbsp;»
+          ci-dessous.
         </p>
       </div>
 

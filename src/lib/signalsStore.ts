@@ -1,6 +1,8 @@
 /**
  * Guest signal store: sessionStorage + first-party cookie (14d, SameSite=Lax).
  * Client-only — do not import from server components.
+ * Taste events only. Visitor identity is cookie `cc_vid` (B2b), never this JSON:
+ * `compactForCookie` trims to ~3500 chars and would drop an embedded id.
  */
 import type { DayItem } from '@/lib/types';
 import { COHORT_COOKIE } from '@/lib/guestId';

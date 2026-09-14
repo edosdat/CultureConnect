@@ -1,17 +1,17 @@
 /**
- * B2 guest-signal helpers (pure). Cookie key is `cc_guest_id`, never `cc_signals_v1`.
+ * B2a/B2b helpers (pure). Visitor key is cookie `cc_vid`, never `cc_signals_v1`.
  */
 import { createHash } from 'crypto';
 import { signalTarget, type Signal, type SignalKind } from '@/lib/signals';
-import { isValidGuestId } from '@/lib/guestId';
+import { isValidVid } from '@/lib/guestId';
 
 export {
   COHORT_COOKIE,
-  GUEST_ID_COOKIE,
-  GUEST_ID_TTL_SEC,
-  generateGuestId,
-  isValidGuestId,
-  guestIdCookieOptions,
+  VID_COOKIE,
+  VID_TTL_SEC,
+  generateVid,
+  isValidVid,
+  vidCookieOptions,
 } from '@/lib/guestId';
 export const GUEST_SIGNAL_FIFO_CAP = 200;
 export const GUEST_RATE_LIMIT_PER_HOUR = 60;
@@ -22,7 +22,7 @@ export const RATE_WINDOW_MS = 60 * 60 * 1000;
 
 export type GuestAppendLine = {
   ts: string;
-  guestId: string;
+  vid: string;
   kind: SignalKind;
   itemKey: string;
   cohort: string;
@@ -145,8 +145,8 @@ export function clientIpFromRequest(req: Request): string {
   return req.headers.get('x-real-ip')?.trim() || 'unknown';
 }
 
-export function resolveGuestIdFromCookie(raw?: string | null): string | null {
-  return isValidGuestId(raw) ? raw : null;
+export function resolveVidFromCookie(raw?: string | null): string | null {
+  return isValidVid(raw) ? raw : null;
 }
 
 export function fifoAppend<T>(list: readonly T[], item: T, cap: number): T[] {
@@ -155,20 +155,43 @@ export function fifoAppend<T>(list: readonly T[], item: T, cap: number): T[] {
   return next.slice(next.length - cap);
 }
 
+/** RGPD hard lock: never persist email / Neon key alongside `cc_vid`. */
+const ACCOUNT_JOIN_KEYS = ['email', 'emailHash', 'user_key', 'userKey'] as const;
+
+export function recordHasVid(record: object): boolean {
+  const rec = record as Record<string, unknown>;
+  return (
+    (typeof rec.vid === 'string' && rec.vid.length > 0) ||
+    (typeof rec.guestId === 'string' && rec.guestId.length > 0)
+  );
+}
+
+export function assertNoVidAccountJoin(record: object): void {
+  if (!recordHasVid(record)) return;
+  const rec = record as Record<string, unknown>;
+  for (const key of ACCOUNT_JOIN_KEYS) {
+    if (rec[key] != null && rec[key] !== '') {
+      throw new Error('RGPD: cc_vid must not be joined with account identity');
+    }
+  }
+}
+
 export function buildGuestAppendLine(opts: {
   signal: Signal;
-  guestId: string;
+  vid: string;
   cohort: string;
   now?: Date;
 }): GuestAppendLine {
-  return {
+  const line: GuestAppendLine = {
     ts: opts.signal.ts || (opts.now ?? new Date()).toISOString(),
-    guestId: opts.guestId,
+    vid: opts.vid,
     kind: opts.signal.kind,
     itemKey: itemKeyFromSignal(opts.signal),
     cohort: opts.cohort,
     authed: false,
   };
+  assertNoVidAccountJoin(line);
+  return line;
 }
 
 export function buildAuthedAppendLine(opts: {
@@ -177,7 +200,7 @@ export function buildAuthedAppendLine(opts: {
   cohort: string;
   now?: Date;
 }): AuthedAppendLine {
-  return {
+  const line: AuthedAppendLine = {
     ts: opts.signal.ts || (opts.now ?? new Date()).toISOString(),
     emailHash: hashEmail(opts.email),
     kind: opts.signal.kind,
@@ -185,6 +208,8 @@ export function buildAuthedAppendLine(opts: {
     cohort: opts.cohort,
     authed: true,
   };
+  assertNoVidAccountJoin(line);
+  return line;
 }
 
 export function formatAppendLogLine(
