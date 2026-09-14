@@ -12,7 +12,7 @@ import type {
   ProgrammeWithContext,
 } from './types';
 import { loadCultureData } from './data';
-import { catsAllowCinemaPack, formFromCategorieAndForm, mainFromForm } from './categories';
+import { catsAllowCinemaPack, mainFromForm } from './categories';
 import { filterItemsByCommune } from './commune';
 import {
   cinemaDisplayStem,
@@ -80,6 +80,7 @@ import {
   pickSoonestPerSlot,
   profileHasChipWeight,
   recommendForProfile,
+  resolvedFormOfItem,
   slotFormOfItem,
 } from './reco';
 import type { TasteEntry, TasteProfile } from './signals';
@@ -386,12 +387,7 @@ function evenementOf(item: DayItem): Evenement | null {
 }
 
 function formOfItem(item: DayItem): string {
-  const p = programmeOf(item);
-  const ev = evenementOf(item);
-  const cat = ev?.categorie || '';
-  // Category main wins over stored form so phrase « musique »/« concert »
-  // matches the Musique chip (e.g. Aurore musicale: form=danse, cat=musique).
-  return formFromCategorieAndForm(cat, p?.form || ev?.form);
+  return resolvedFormOfItem(item);
 }
 
 function moodsOfItem(item: DayItem): string[] {
