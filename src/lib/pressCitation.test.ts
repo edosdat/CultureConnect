@@ -6,6 +6,7 @@ import {
   cataloguePressRating,
   fichePressCitation,
   pickPressCatalogueFields,
+  cardPressBadge,
   pressBadgeLabel,
   pressCitationOf,
   pressItemForFiche,
@@ -541,5 +542,111 @@ describe('theatreCardPressBadge', () => {
     assert.ok(fichePressCitation(music));
     assert.equal(theatreCardPressBadge(music), null);
     assert.equal(theatreCardPressBadge(cine), null);
+  });
+});
+
+describe('cardPressBadge', () => {
+  it('hides when citation/source/note_presse are empty (no ghost)', () => {
+    const music = item({
+      key: 'mu-ghost',
+      cat: 'musique',
+      form: 'concert',
+    });
+    const theatre = item({ key: 'th-ghost-card', cat: 'theatre_danse' });
+    assert.equal(cardPressBadge(music), null);
+    assert.equal(cardPressBadge(theatre), null);
+    assert.equal(fichePressCitation(music), null);
+  });
+
+  it('paints on musique from programme.citation* (same as theatre #104)', () => {
+    const music = item({
+      key: 'mu-prog',
+      cat: 'musique',
+      form: 'concert',
+      programme: {
+        citation: 'Le plus torride des groupes de Nouvelle-Zélande.',
+        source: 'Télérama',
+        source_url: 'https://www.telerama.fr/musique/exemple',
+      },
+    });
+    assert.deepEqual(cardPressBadge(music), {
+      label: 'Vu dans Télérama',
+      source: 'Télérama',
+    });
+    assert.equal(theatreCardPressBadge(music), null);
+  });
+
+  it('reads evenement.citation* when programme has none (fill-empty OR)', () => {
+    const music = item({
+      key: 'mu-ev',
+      cat: 'musique',
+      form: 'concert',
+      evenement: {
+        citation: 'Un premier album époustouflant.',
+        source: 'NME',
+        source_url: 'https://www.nme.com/reviews/a',
+      },
+    });
+    assert.deepEqual(cardPressBadge(music), {
+      label: 'Vu dans NME',
+      source: 'NME',
+    });
+  });
+
+  it('survives slimDayItem so first-paint musique pack/rail cards can show the pill', () => {
+    const raw = item({
+      key: 'mu-wire',
+      cat: 'musique',
+      form: 'concert',
+      programme: {
+        citation: 'Même après le slim concert.',
+        source: 'Pitchfork',
+        source_url: 'https://pitchfork.com/reviews/a',
+      },
+    });
+    const slim = slimDayItem(raw);
+    assert.deepEqual(cardPressBadge(slim), {
+      label: 'Vu dans Pitchfork',
+      source: 'Pitchfork',
+    });
+    assert.equal(fichePressCitation(slim)?.source, 'Pitchfork');
+  });
+
+  it('falls back to Presse when the outlet name is too long for the vignette', () => {
+    const music = item({
+      key: 'mu-long',
+      cat: 'musique',
+      form: 'concert',
+      programme: {
+        citation: 'Le plus torride des groupes.',
+        source: 'Les Inrockuptibles',
+        source_url: 'https://www.lesinrocks.com/musique/a',
+      },
+    });
+    assert.deepEqual(cardPressBadge(music), {
+      label: 'Presse',
+      source: 'Les Inrockuptibles',
+    });
+  });
+
+  it('keeps theatre #104 labels and never paints on cinéma', () => {
+    const theatre = item({
+      key: 'th-card',
+      cat: 'theatre_danse',
+      programme: PRESS,
+    });
+    const cine = item({
+      key: 'cine-card',
+      cat: 'cinema',
+      filmId: 'F1',
+      programme: PRESS,
+    });
+    assert.deepEqual(cardPressBadge(theatre), {
+      label: 'Vu dans Télérama',
+      source: 'Télérama',
+    });
+    assert.deepEqual(theatreCardPressBadge(theatre), cardPressBadge(theatre));
+    assert.ok(fichePressCitation(cine) === null);
+    assert.equal(cardPressBadge(cine), null);
   });
 });

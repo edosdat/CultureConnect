@@ -502,16 +502,22 @@ export function pressBadgeLabel(source: string): string {
 }
 
 /**
- * Theatre pack/rail pill. Same resolution as PressCitation / fichePressCitation
+ * Pack/rail pill. Same resolution as PressCitation / fichePressCitation
  * (programme.citation* + evenement.citation*). Hide when no quote — no ghost.
- * MVP: theatre only (musique packs stay clean).
+ * Theatre + musique (Eloi GO). Cinema / expo / enfants stay clean.
  */
-export function theatreCardPressBadge(item: DayItem): PressBadge | null {
-  if (!isTheatreDayItem(item)) return null;
+export function cardPressBadge(item: DayItem): PressBadge | null {
+  if (!isTheatreDayItem(item) && !isMusiqueDayItem(item)) return null;
   const citation = fichePressCitation(item);
   if (!citation) return null;
   return {
     label: pressBadgeLabel(citation.source),
     source: citation.source,
   };
+}
+
+/** Theatre-only subset — same pill, unchanged gate from #104. */
+export function theatreCardPressBadge(item: DayItem): PressBadge | null {
+  if (!isTheatreDayItem(item)) return null;
+  return cardPressBadge(item);
 }

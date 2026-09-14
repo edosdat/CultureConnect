@@ -187,6 +187,34 @@ describe('slimDayItem list wire', () => {
     assert.equal(slim.evenement?.source, 'Télérama');
   });
 
+  it('keeps programme citation* so musique pack cards can resolve press', () => {
+    const raw = item();
+    if (raw.kind !== 'programme') assert.fail('expected programme');
+    raw.evenement = ev({
+      categorie: 'musique',
+      form: 'concert',
+      citation: '',
+    });
+    raw.programme = {
+      ...raw.programme,
+      form: 'concert',
+      film_id: '',
+      citation: 'Le plus torride des groupes de Nouvelle-Zélande.',
+      source: 'Télérama',
+      source_url: 'https://www.telerama.fr/musique/exemple',
+      note_presse: 'TTT',
+    };
+    const slim = slimDayItem(raw);
+    if (slim.kind !== 'programme') assert.fail('expected programme');
+    assert.equal(
+      slim.programme.citation,
+      'Le plus torride des groupes de Nouvelle-Zélande.',
+    );
+    assert.equal(slim.programme.source, 'Télérama');
+    assert.equal(slim.programme.note_presse, 'TTT');
+    assert.equal(slim.evenement?.citation, undefined);
+  });
+
   it('detail still carries full copy and URLs', () => {
     const detail = detailDayItem(item());
     assert.equal(detail.evenement?.description_longue, LONG);
