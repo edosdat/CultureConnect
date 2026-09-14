@@ -1,8 +1,11 @@
 /**
  * Guest signal store: sessionStorage + first-party cookie (14d, SameSite=Lax).
  * Client-only — do not import from server components.
+ * Taste events only. Visitor identity is cookie `cc_vid` (B2b), never this JSON:
+ * `compactForCookie` trims to ~3500 chars and would drop an embedded id.
  */
 import type { DayItem } from '@/lib/types';
+import { COHORT_COOKIE } from '@/lib/guestId';
 import {
   COOKIE_MAX_AGE_SEC,
   GUEST_CAP,
@@ -183,4 +186,16 @@ export const SIGNALS_CHANGED_EVENT = 'cc-signals-changed';
 export function notifySignalsChanged(): void {
   if (!canUseDom()) return;
   window.dispatchEvent(new Event(SIGNALS_CHANGED_EVENT));
+}
+
+/** Cookie `cc_cohort` from `?cohort=`. Guest id is still only set on first signal POST. */
+export function persistCohortFromLocation(): void {
+  if (!canUseDom()) return;
+  try {
+    const raw = new URLSearchParams(window.location.search).get('cohort');
+    if (!raw || !/^[a-zA-Z0-9_-]{1,32}$/.test(raw)) return;
+    writeCookie(COHORT_COOKIE, raw, COOKIE_MAX_AGE_SEC);
+  } catch {
+    /* ignore */
+  }
 }
