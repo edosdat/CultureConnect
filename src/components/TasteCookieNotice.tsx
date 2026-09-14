@@ -6,6 +6,8 @@ import { GUEST_STORAGE_KEY } from '@/lib/signals';
 
 export const TASTE_COOKIE_NOTICE_KEY = 'cc_taste_cookie_notice';
 export const TASTE_COOKIE_NOTICE_EVENT = 'cc-taste-cookie-notice';
+export const VID_POSED_KEY = 'cc_vid_posed';
+export const VID_POSED_EVENT = 'cc-vid-posed';
 const SIGNALS_CHANGED_EVENT = 'cc-signals-changed';
 
 function hasTasteCookie(): boolean {
@@ -14,7 +16,16 @@ function hasTasteCookie(): boolean {
   return document.cookie.split(';').some((part) => part.trim().startsWith(prefix));
 }
 
-/** Show the one-liner once per tab when a tastes cookie is first set. */
+function hasVidPosedFlag(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return localStorage.getItem(VID_POSED_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+/** Show the goûts line once per tab when `cc_signals_v1` is first set. */
 export function notifyTasteCookieOnce() {
   if (typeof window === 'undefined') return;
   try {
@@ -26,37 +37,72 @@ export function notifyTasteCookieOnce() {
   }
 }
 
-/** One line the first time the tastes cookie is set. Not a banner / CMP. */
+/** Footer `cc_vid` line when the HttpOnly cookie is posed (flag only — never the id). */
+export function notifyVidCookiePosed() {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(VID_POSED_KEY, '1');
+  } catch {
+    /* ignore */
+  }
+  window.dispatchEvent(new Event(VID_POSED_EVENT));
+}
+
+function ConfidentialiteLink() {
+  return (
+    <Link
+      href="/confidentialite"
+      className="underline-offset-2 hover:text-culture-ink hover:underline"
+    >
+      Confidentialité
+    </Link>
+  );
+}
+
+/** Bas de page when cookies are posed. Not a banner / CMP. */
 export default function TasteCookieNotice() {
-  const [show, setShow] = useState(false);
+  const [showTastes, setShowTastes] = useState(false);
+  const [showVid, setShowVid] = useState(false);
 
   useEffect(() => {
-    function onNotice() {
-      setShow(true);
+    function onTasteNotice() {
+      setShowTastes(true);
     }
-    function maybeFromCookie() {
+    function onVidPosed() {
+      setShowVid(true);
+    }
+    function maybeFromTasteCookie() {
       if (!hasTasteCookie()) return;
       notifyTasteCookieOnce();
     }
-    window.addEventListener(TASTE_COOKIE_NOTICE_EVENT, onNotice);
-    window.addEventListener(SIGNALS_CHANGED_EVENT, maybeFromCookie);
+    if (hasVidPosedFlag()) setShowVid(true);
+    window.addEventListener(TASTE_COOKIE_NOTICE_EVENT, onTasteNotice);
+    window.addEventListener(VID_POSED_EVENT, onVidPosed);
+    window.addEventListener(SIGNALS_CHANGED_EVENT, maybeFromTasteCookie);
     return () => {
-      window.removeEventListener(TASTE_COOKIE_NOTICE_EVENT, onNotice);
-      window.removeEventListener(SIGNALS_CHANGED_EVENT, maybeFromCookie);
+      window.removeEventListener(TASTE_COOKIE_NOTICE_EVENT, onTasteNotice);
+      window.removeEventListener(VID_POSED_EVENT, onVidPosed);
+      window.removeEventListener(SIGNALS_CHANGED_EVENT, maybeFromTasteCookie);
     };
   }, []);
 
-  if (!show) return null;
+  if (!showTastes && !showVid) return null;
 
   return (
-    <p>
-      On retient tes goûts 14 jours sur cet appareil.{' '}
-      <Link
-        href="/confidentialite"
-        className="underline-offset-2 hover:text-culture-ink hover:underline"
-      >
-        Confidentialité
-      </Link>
-    </p>
+    <>
+      {showTastes ? (
+        <p>
+          cc_signals_v1 : 14 j, goûts sur cet appareil.{' '}
+          <ConfidentialiteLink />
+        </p>
+      ) : null}
+      {showVid ? (
+        <p>
+          cc_vid : 14 j, id anonyme visiteurs/retours. Pas goûts, pas email.
+          First-party, on ne revend pas.{' '}
+          <ConfidentialiteLink />
+        </p>
+      ) : null}
+    </>
   );
 }

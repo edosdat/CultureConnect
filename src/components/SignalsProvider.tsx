@@ -43,7 +43,7 @@ import {
   rememberGuestItemTags,
   wipeGuestProfileKey,
 } from '@/lib/signalsStore';
-import { notifyTasteCookieOnce } from './TasteCookieNotice';
+import { notifyTasteCookieOnce, notifyVidCookiePosed } from './TasteCookieNotice';
 import { writeAccountProfileCache } from '@/lib/tastesCache';
 
 type SignalsValue = {
@@ -111,6 +111,7 @@ async function postSignals(body: unknown): Promise<{
 
 /** Fire-and-forget guest append. Network failure must not break UX. */
 function postGuestSignal(signal: Signal): void {
+  notifyVidCookiePosed();
   void fetch('/api/signals', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

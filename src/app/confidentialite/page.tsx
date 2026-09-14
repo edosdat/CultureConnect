@@ -78,21 +78,18 @@ export default function ConfidentialitePage() {
           jamais joints :
         </p>
         <p>
-          <span className="font-medium">cc_signals_v1</span> — tes goûts sur
-          cet appareil (personnalisation «&nbsp;Pour toi&nbsp;»). 14 jours.
-          Ce n&apos;est pas un identifiant : on y range seulement les clics /
-          chips qui nourrissent tes goûts. Compacté, il peut oublier les plus
-          anciens évènements.
+          <span className="font-medium">cc_signals_v1</span> : 14 j, goûts sur
+          cet appareil.
         </p>
         <p>
-          <span className="font-medium">cc_vid</span> — identifiant de mesure
-          anonyme first-party (<span className="font-mono">v_</span> + lettres
-          et chiffres). 14 jours, HttpOnly, SameSite=Lax, Secure. Posé au
-          premier signal (ouvrir une fiche, cœur…), pas au simple chargement
-          de la page. Aucun e-mail, aucun compte, aucun goût. On ne le revend
-          pas. On ne le relie jamais à Neon, à{' '}
-          <span className="font-mono">account_tastes</span>, ni à ta session
-          Google.
+          <span className="font-medium">cc_vid</span> : 14 j, id anonyme
+          visiteurs/retours. Pas goûts, pas email. First-party, on ne revend
+          pas.
+        </p>
+        <p>
+          <span className="font-medium">cc_vid</span> est posé au premier
+          signal, pas au chargement. HttpOnly, SameSite=Lax, Secure. On ne le
+          relie jamais à Google ni à Neon.
         </p>
         <p>
           Base légale : intérêt légitime à proposer «&nbsp;Pour toi&nbsp;», et

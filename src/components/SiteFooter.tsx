@@ -6,7 +6,6 @@ export default function SiteFooter() {
     <footer className="mx-auto max-w-7xl px-4 py-3 text-center text-xs text-culture-muted sm:px-6">
       <TasteCookieNotice />
       <p>
-        Identifiant de mesure anonyme : 14 jours.{' '}
         <Link
           href="/confidentialite"
           className="underline-offset-2 hover:text-culture-ink hover:underline"
