@@ -86,12 +86,13 @@ export default function ConfidentialitePage() {
         </p>
         <p>
           <span className="font-medium">cc_vid</span> — identifiant de mesure
-          anonyme (<span className="font-mono">v_</span> + lettres et
-          chiffres). 14 jours, HttpOnly, SameSite=Lax, Secure. Posé au
+          anonyme first-party (<span className="font-mono">v_</span> + lettres
+          et chiffres). 14 jours, HttpOnly, SameSite=Lax, Secure. Posé au
           premier signal (ouvrir une fiche, cœur…), pas au simple chargement
-          de la page. Aucun e-mail, aucun compte, aucun goût. On ne le relie
-          jamais à Neon, à <span className="font-mono">account_tastes</span>,
-          ni à ta session Google.
+          de la page. Aucun e-mail, aucun compte, aucun goût. On ne le revend
+          pas. On ne le relie jamais à Neon, à{' '}
+          <span className="font-mono">account_tastes</span>, ni à ta session
+          Google.
         </p>
         <p>
           Base légale : intérêt légitime à proposer «&nbsp;Pour toi&nbsp;», et
