@@ -12,6 +12,7 @@ import {
   defaultCineSeance,
   groupCinemasForFilm,
   horaireOptionLabel,
+  resolveSharedSeanceKey,
   seanceMetaLabel,
   seanceVersionLabel,
   seancesAtCinema,
@@ -150,18 +151,25 @@ export function CineFilmSeances({
   onReserve,
   onActiveChange,
   tagSource,
+  initialSeanceKey = null,
 }: {
   items: DayItem[];
   origin?: GeoPos | null;
   onReserve?: (item: DayItem) => void;
   onActiveChange?: (item: DayItem) => void;
   tagSource?: DayItem | null;
+  /** B3 shared token séance — same `DayItem.key` as the horaire `<select>`. */
+  initialSeanceKey?: string | null;
 }) {
-  const [pickedKey, setPickedKey] = useState<string | null>(null);
+  const [pickedKey, setPickedKey] = useState<string | null>(() =>
+    resolveSharedSeanceKey(items, initialSeanceKey),
+  );
   const itemKeys = items.map((s) => s.key).join('|');
   useEffect(() => {
-    setPickedKey(null);
-  }, [itemKeys]);
+    setPickedKey(resolveSharedSeanceKey(items, initialSeanceKey));
+    // itemKeys covers the séance list; `items` is a new array each parent render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemKeys, initialSeanceKey]);
   const active =
     items.find((s) => s.key === pickedKey) ??
     defaultCineSeance(items, origin) ??

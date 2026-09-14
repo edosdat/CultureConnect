@@ -10,6 +10,7 @@ import {
   defaultCineSeance,
   groupCinemasForFilm,
   horaireOptionLabel,
+  resolveSharedSeanceKey,
   filmVersionLabels,
   seanceHeureLabel,
   seanceMetaLabel,
@@ -245,5 +246,13 @@ describe('cine seances cinema-then-time', () => {
     assert.ok(!evCols.includes('vo'));
     assert.ok(!evCols.includes('vost'));
     assert.ok(!prCols.includes('version'));
+  });
+
+  it('resolveSharedSeanceKey picks the horaire DayItem.key when present', () => {
+    assert.equal(
+      resolveSharedSeanceKey([{ key: 'p:P1' }, { key: 'p:P2' }], 'p:P2'),
+      'p:P2',
+    );
+    assert.equal(resolveSharedSeanceKey([{ key: 'p:P1' }], 'p:NOPE'), null);
   });
 });

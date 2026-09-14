@@ -332,7 +332,8 @@ export function reasonLineForState(
     best.kind === 'ics' ||
     best.kind === 'favorite' ||
     best.kind === 'outbound_click' ||
-    best.kind === 'share'
+    best.kind === 'share' ||
+    best.kind === 'open_shared'
   ) {
     return 'D’après tes derniers clics';
   }

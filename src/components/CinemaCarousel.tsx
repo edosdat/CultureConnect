@@ -1165,7 +1165,7 @@ export default function CinemaCarousel({
                 )}
               </>
             ) : null}
-            <ShareButton item={active} />
+            <ShareButton item={active} seanceKey={active.key} />
             {pack !== 'cine' && sourceUrlOf(active) ? (
               <a
                 href={sourceUrlOf(active)}

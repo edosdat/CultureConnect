@@ -150,6 +150,16 @@ export function horaireOptionLabel(rel: DayItem): string {
   return [date, seanceHeureLabel(rel)].filter(Boolean).join(' · ');
 }
 
+/** B3: preselect the shared `DayItem.key` when it is in the film's séance list. */
+export function resolveSharedSeanceKey(
+  items: readonly { key: string }[],
+  seanceKey?: string | null,
+): string | null {
+  const key = (seanceKey || '').trim();
+  if (!key) return null;
+  return items.some((s) => s.key === key) ? key : null;
+}
+
 /** Compact « 8,20€ · VOSTFR » — omit either part when the CSV is empty. */
 export function seanceMetaLabel(item: DayItem): string {
   return [seancePrixLabel(item), seanceVersionLabel(item)]

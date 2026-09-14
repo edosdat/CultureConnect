@@ -46,6 +46,7 @@ import VivantComplementLinks from './VivantComplementLinks';
 import PressCitation from './PressCitation';
 import FicheDescription from './FicheDescription';
 import { CineFilmSeances } from './CineSeancePicker';
+import { useShareVisit } from './ShareVisitProvider';
 import { useSignals } from './SignalsProvider';
 
 type Props = {
@@ -344,6 +345,7 @@ export default function EventDetail({
   useEscapeClose(Boolean(item), onClose);
   const [engaged, setEngaged] = useState(false);
   const [mobileCal, setMobileCal] = useState(false);
+  const { seanceKey: sharedSeanceKey } = useShareVisit();
   const [activeSeance, setActiveSeance] = useState<DayItem | null>(null);
 
   useEffect(() => {
@@ -468,6 +470,7 @@ export default function EventDetail({
                     <CineFilmSeances
                       items={seancesForList}
                       origin={origin}
+                      initialSeanceKey={sharedSeanceKey}
                       onActiveChange={setActiveSeance}
                       tagSource={item}
                       onReserve={() => {
@@ -707,7 +710,7 @@ export default function EventDetail({
                   )}
                 </>
               )}
-              <ShareButton item={item} />
+              <ShareButton item={item} seanceKey={activeSeance?.key} />
               <FavoriteButton item={item} />
               {sourceUrlOf(item) && (
                 <a
