@@ -291,9 +291,14 @@ export function resolveHeroAfterRowsChange(opts: {
   };
 }
 
+function scopeTitleKey(titleQuery?: string | null): string {
+  return (titleQuery || '').trim().toLocaleLowerCase('fr');
+}
+
 /**
- * Browse/pin scope must include QUOI chips so Jazz / Festival / Expo / Enfants
- * reset the painted rail.
+ * Browse/pin scope must include QUOI chips and title leftover so Jazz /
+ * Festival / Expo / Enfants / « Balkan » reset the painted rail.
+ * Empty title keeps today's chip-only scope (append-only / scrollLeft locks).
  */
 function chipScopeKey(values: readonly string[] | undefined): string {
   return [...(values ?? [])]
@@ -311,8 +316,9 @@ export function packCarouselBrowseScope(input: {
   soir?: boolean;
   genres?: readonly string[];
   categories?: readonly string[];
+  titleQuery?: string | null;
 }): string {
-  return [
+  const parts = [
     input.pack,
     input.dateFrom ?? '',
     input.dateTo ?? '',
@@ -320,7 +326,10 @@ export function packCarouselBrowseScope(input: {
     input.soir ? '1' : '0',
     chipScopeKey(input.genres),
     chipScopeKey(input.categories),
-  ].join('|');
+  ];
+  const title = scopeTitleKey(input.titleQuery);
+  if (title) parts.push(title);
+  return parts.join('|');
 }
 
 export function packCarouselPinScope(input: {
@@ -332,8 +341,9 @@ export function packCarouselPinScope(input: {
   soir?: boolean;
   genres?: readonly string[];
   categories?: readonly string[];
+  titleQuery?: string | null;
 }): string {
-  return [
+  const parts = [
     input.pack,
     input.dateFrom ?? '',
     input.dateTo ?? '',
@@ -342,12 +352,16 @@ export function packCarouselPinScope(input: {
     input.soir ? '1' : '0',
     chipScopeKey(input.genres),
     chipScopeKey(input.categories),
-  ].join('|');
+  ];
+  const title = scopeTitleKey(input.titleQuery);
+  if (title) parts.push(title);
+  return parts.join('|');
 }
 
 /**
  * Product lock: pack rails never insert to the LEFT while browsing.
- * `pruneMissing` drops painted works that left `incoming` (genre chips).
+ * `pruneMissing` drops painted works that left `incoming`
+ * (genre chips / title leftover).
  */
 export function appendOnlyStripRows<T extends { groupKey: string }>(
   previous: readonly T[],
