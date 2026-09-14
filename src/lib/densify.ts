@@ -1,6 +1,7 @@
 import type { DayItem } from './types';
 import { seanceDateIso } from './timeScope';
 import { itemSortKm, type GeoPos } from './nearMe';
+import { slotFormOfItem } from './reco';
 
 export type DenseRow = {
   item: DayItem;
@@ -131,15 +132,9 @@ function eventIdOf(item: DayItem): string {
   return (item.evenement.event_id || '').trim();
 }
 
-/** Display cinema? Official film_id, form cine, or cinema categorie. Not title invention. */
+/** Display cinema? slotFormOfItem (film_id or resolved form), never raw form alone. */
 function looksCinema(item: DayItem): boolean {
-  if (item.kind === 'programme' && (item.programme.film_id || '').trim()) {
-    return true;
-  }
-  const form = (
-    (item.kind === 'programme' ? item.programme.form : item.evenement.form) || ''
-  ).trim();
-  if (form === 'cine' || form === 'cinema') return true;
+  if (slotFormOfItem(item) === 'cine') return true;
   const cat = (item.evenement?.categorie || '').toLowerCase();
   return cat.includes('cinema') || cat.includes('cinematheque');
 }

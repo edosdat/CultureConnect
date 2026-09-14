@@ -40,3 +40,4 @@ Alias Contexte (même rôle, UI déjà branchée) : `citation_presse`, `citation
 ## Règle merge
 - Nouveaux : remplir tout ce qui est disponible sur la page.
 - Existants : enrichir uniquement les champs **vides** (jamais écraser une valeur déjà remplie).
+- **form=cine** : si `film_id` est présent et `form` est vide → écrire `cine` (fill-empty, jamais d’overwrite). Filtrage / packs / matching lisent `slotFormOfItem` (film_id → cine), jamais `form` brut seul.

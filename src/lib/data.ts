@@ -24,6 +24,7 @@ import type {
   ProgrammeItem,
   ProgrammeWithContext,
 } from './types';
+import { fillEmptyCineForm } from './formCine';
 import { pressFieldDefaults } from './pressCitation';
 
 function readCsv<T extends Record<string, string>>(filename: string): T[] {
@@ -115,7 +116,7 @@ export function loadProgramme(): ProgrammeItem[] {
     public_cible: r.public_cible ?? '',
     langue: r.langue ?? '',
     scraped_at: r.scraped_at ?? '',
-    form: r.form ?? '',
+    form: fillEmptyCineForm(r.form, r.film_id),
     moods: r.moods ?? '',
     mood_source: r.mood_source ?? '',
     mood_confiance: r.mood_confiance ?? '',
@@ -169,6 +170,10 @@ function buildCultureData(): CultureData {
         programmeDates: rows.map((p) => p.date),
         dateFin: ev.date_fin,
       }) ?? '';
+    // Fill-empty: event linked to an official film_id → form=cine. Never overwrite.
+    if (!(ev.form || '').trim() && rows.some((p) => (p.film_id || '').trim())) {
+      ev.form = 'cine';
+    }
   }
 
   const events: EventWithDetails[] = evenements.map((ev) => ({

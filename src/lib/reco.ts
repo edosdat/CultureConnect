@@ -1281,6 +1281,18 @@ export function slotFormOfItem(item: DayItem): RecoSlotForm | null {
   return null;
 }
 
+/**
+ * Phrase / pack / matching form. Prefer slotFormOfItem (film_id → cine)
+ * so empty stored `form` never drops a film from form=cine filters.
+ */
+export function resolvedFormOfItem(item: DayItem): string {
+  const slot = slotFormOfItem(item);
+  if (slot) return slot;
+  const ev = item.evenement ?? null;
+  const prog = item.kind === 'programme' ? item.programme : null;
+  return formFromCategorieAndForm(ev?.categorie || '', prog?.form || ev?.form);
+}
+
 function itemClosedSlugs(item: DayItem): string[] {
   const ev = item.evenement ?? null;
   const prog = item.kind === 'programme' ? item.programme : null;
