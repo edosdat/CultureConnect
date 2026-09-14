@@ -27,6 +27,7 @@ import VisualFallback from './VisualFallback';
 import FavoriteButton from './FavoriteButton';
 import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 import FilmVersionBadge from './FilmVersionBadge';
+import PressBadge from './PressBadge';
 
 export type SeanceCardVariant = 'default' | 'rail' | 'live' | 'compact';
 
@@ -187,10 +188,12 @@ export default function SeanceCard({
           <CategoryPill label={catLabel} />
           {isCinemaDayItem(item) ? <FilmVersionBadge item={item} /> : null}
           <TheatreUrgenceBadge item={item} />
+          <PressBadge item={item} />
         </span>
       ) : null}
       {resolved === 'rail' ? (
-        <span className="absolute left-0.5 top-0.5 flex max-w-[calc(100%-0.25rem)] flex-col items-start gap-0.5">
+        <span className="absolute left-0.5 top-0.5 z-[1] flex max-w-[calc(100%-0.25rem)] flex-col items-start gap-0.5">
+          <PressBadge item={item} compact />
           {isCinemaDayItem(item) ? <FilmVersionBadge item={item} /> : null}
           <TheatreUrgenceBadge item={item} />
         </span>

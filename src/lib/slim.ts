@@ -97,6 +97,7 @@ function slimEvenement(
     /** Catalogue VF/VOST — cards + fiche picker read this, never invent it. */
     langue: ev.langue || '',
     image_url: ev.image_url || '',
+    ...pickPressCatalogueFields(ev as unknown as Record<string, unknown>),
   };
 }
 
@@ -124,6 +125,7 @@ function slimProgramme(
     film_id: p.film_id || '',
     image_url: p.image_url || '',
     description_item: opts?.keepFicheCopy ? rawItem : clipListPitch(rawItem),
+    ...pickPressCatalogueFields(p as unknown as Record<string, unknown>),
   };
 }
 
@@ -173,6 +175,7 @@ export function withTasteTags<T extends DayItem>(slim: T, source: DayItem): T {
 /**
  * First-paint card: id, titre, heure, lieu, cat, image, film_id
  * (+ prix / genre / type / langue so SeanceCard + densify + VF/VOST work).
+ * Keeps catalogue citation* so theatre pack/rail pills match PressCitation.
  * Default clips fiche copy (1–2 sentences). Pass `keepFicheCopy` for the
  * first unique works of each pack so the visible hero paints once.
  * Drops tickets URLs, mood tags, and nested programme[].

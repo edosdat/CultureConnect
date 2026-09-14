@@ -63,6 +63,7 @@ import EventImage from './EventImage';
 import VisualFallback, { categoryLabelOf } from './VisualFallback';
 import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 import FilmVersionBadge from './FilmVersionBadge';
+import PressBadge from './PressBadge';
 import FilmPoster from './FilmPoster';
 import FavoriteButton from './FavoriteButton';
 import ShareButton from './ShareButton';
@@ -219,18 +220,21 @@ function FilmThumb({
           className="h-full w-full object-cover object-top"
           fallback={<VisualFallback item={item} compact />}
         />
-        <span className="absolute left-1.5 top-1.5 flex max-w-[calc(100%-0.75rem)] flex-wrap items-center gap-1">
-          {when ? (
-            <span className="rounded bg-culture-ink/85 px-1.5 py-0.5 text-[11px] font-semibold leading-tight text-white">
-              {when}
-            </span>
-          ) : null}
-          {isCinemaDayItem(item) ? (
-            <FilmVersionBadge
-              items={row.seances?.length ? row.seances : [item]}
-            />
-          ) : null}
-          <TheatreUrgenceBadge item={item} />
+        <span className="absolute left-1.5 top-1.5 flex max-w-[calc(100%-0.75rem)] flex-col items-start gap-1">
+          <span className="flex max-w-full flex-wrap items-center gap-1">
+            {when ? (
+              <span className="rounded bg-culture-ink/85 px-1.5 py-0.5 text-[11px] font-semibold leading-tight text-white">
+                {when}
+              </span>
+            ) : null}
+            {isCinemaDayItem(item) ? (
+              <FilmVersionBadge
+                items={row.seances?.length ? row.seances : [item]}
+              />
+            ) : null}
+            <TheatreUrgenceBadge item={item} />
+          </span>
+          <PressBadge item={item} compact />
         </span>
       </div>
       <p
