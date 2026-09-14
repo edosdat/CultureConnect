@@ -5,13 +5,17 @@ import path from 'path';
 import { TOULOUSE_ORIGIN } from './geo';
 import { filmVersionLabel, knownPrixLabel } from './labels';
 import {
+  cinemaKeyOf,
   cinemaOptionLabel,
   cineDistanceOrigin,
+  cinePickerSelectState,
   defaultCineSeance,
   groupCinemasForFilm,
   horaireOptionLabel,
   nextPickedSeanceKey,
+  resolveActiveCineSeance,
   resolveSharedSeanceKey,
+  seancesIncludingShared,
   filmVersionLabels,
   seanceHeureLabel,
   seanceMetaLabel,
@@ -25,13 +29,14 @@ function lieu(opts: {
   nom: string;
   lat?: string;
   lng?: string;
+  commune?: string;
 }): Lieu {
   return {
     lieu_id: opts.id,
     nom: opts.nom,
     type: 'cinema',
     adresse: '',
-    commune: 'Toulouse',
+    commune: opts.commune ?? 'Toulouse',
     dist_km_capitole: '',
     site_web: '',
     notes: '',
@@ -52,6 +57,7 @@ function item(opts: {
   prixItem?: string;
   langue?: string;
   evLangue?: string;
+  commune?: string;
 }): DayItem {
   const evenement: Evenement = {
     event_id: opts.key,
@@ -99,6 +105,7 @@ function item(opts: {
       nom: opts.nom,
       lat: opts.lat,
       lng: opts.lng,
+      commune: opts.commune,
     }),
   };
 }
@@ -265,6 +272,143 @@ describe('cine seances cinema-then-time', () => {
     assert.equal(
       nextPickedSeanceKey(list, null, 'p:P1345'),
       'p:P1345',
+    );
+  });
+
+  it('token seanceKey for a non-default venue+time drives both selects after hydrate', () => {
+    const wilson1030 = item({
+      key: 'p:P-WILSON-1030',
+      lieuId: 'L-WILSON',
+      nom: 'Pathé Wilson',
+      day: '2026-09-14',
+      heure: '10:30',
+      lat: '43.6044',
+      lng: '1.4470',
+      commune: 'Toulouse',
+    });
+    const wilson1345 = item({
+      key: 'p:P-WILSON-1345',
+      lieuId: 'L-WILSON',
+      nom: 'Pathé Wilson',
+      day: '2026-09-14',
+      heure: '13:45',
+      lat: '43.6044',
+      lng: '1.4470',
+      commune: 'Toulouse',
+    });
+    const blagnac1045 = item({
+      key: 'p:P-BLAGNAC-1045',
+      lieuId: 'L-BLAGNAC',
+      nom: 'Pathé Blagnac',
+      day: '2026-09-14',
+      heure: '10:45',
+      lat: '43.6350',
+      lng: '1.3750',
+      commune: 'Blagnac',
+    });
+    const design1345 = item({
+      key: 'p:P-DESIGN-1345',
+      lieuId: 'L-DESIGN',
+      nom: 'Pathé Design',
+      day: '2026-09-14',
+      heure: '13:45',
+      lat: '43.6008',
+      lng: '1.4540',
+      commune: 'Toulouse',
+    });
+
+    const defaultPick = defaultCineSeance(
+      [wilson1030, wilson1345, blagnac1045, design1345],
+      null,
+    );
+    assert.equal(defaultPick?.key, wilson1030.key);
+
+    // Race: visit returns seanceKey before relatedItems hydrate — only the opened card.
+    const beforeHydrate = [wilson1030];
+    const pending = resolveActiveCineSeance(
+      beforeHydrate,
+      null,
+      blagnac1045.key,
+      null,
+    );
+    assert.equal(pending?.key, wilson1030.key);
+
+    // After relatedItems arrive, apply token to cinema + horaire (not default 10:30).
+    const hydrated = [wilson1030, wilson1345, blagnac1045, design1345];
+    const blagnacActive = resolveActiveCineSeance(
+      hydrated,
+      null,
+      blagnac1045.key,
+      null,
+    );
+    assert.equal(blagnacActive?.key, blagnac1045.key);
+    const blagnacSelects = cinePickerSelectState(
+      hydrated,
+      blagnacActive!,
+      null,
+    );
+    assert.equal(blagnacSelects.cinemaValue, cinemaKeyOf(blagnac1045));
+    assert.equal(blagnacSelects.timeValue, blagnac1045.key);
+    assert.notEqual(blagnacSelects.cinemaValue, cinemaKeyOf(wilson1030));
+    assert.notEqual(blagnacSelects.timeValue, wilson1030.key);
+
+    const designActive = resolveActiveCineSeance(
+      hydrated,
+      null,
+      design1345.key,
+      null,
+    );
+    const designSelects = cinePickerSelectState(hydrated, designActive!, null);
+    assert.equal(designSelects.cinemaValue, cinemaKeyOf(design1345));
+    assert.equal(designSelects.timeValue, design1345.key);
+
+    const sameCinema = resolveActiveCineSeance(
+      hydrated,
+      null,
+      wilson1345.key,
+      null,
+    );
+    const sameCinemaSelects = cinePickerSelectState(
+      hydrated,
+      sameCinema!,
+      null,
+    );
+    assert.equal(sameCinemaSelects.cinemaValue, cinemaKeyOf(wilson1030));
+    assert.equal(sameCinemaSelects.timeValue, wilson1345.key);
+
+    // Commune filter dropped Blagnac — re-inject from the unfiltered pool.
+    const toulouseOnly = [wilson1030, wilson1345, design1345];
+    const withShared = seancesIncludingShared(
+      toulouseOnly,
+      hydrated,
+      blagnac1045.key,
+    );
+    assert.ok(withShared.some((s) => s.key === blagnac1045.key));
+    const restored = resolveActiveCineSeance(
+      withShared,
+      null,
+      blagnac1045.key,
+      null,
+    );
+    const restoredSelects = cinePickerSelectState(withShared, restored!, null);
+    assert.equal(restoredSelects.cinemaValue, cinemaKeyOf(blagnac1045));
+    assert.equal(restoredSelects.timeValue, blagnac1045.key);
+
+    // User override wins after the token applied; film/item key is not a seanceKey.
+    const filmItemKey = wilson1030.key;
+    const userPicked = resolveActiveCineSeance(
+      hydrated,
+      wilson1345.key,
+      blagnac1045.key,
+      null,
+    );
+    assert.equal(userPicked?.key, wilson1345.key);
+    const noToken = resolveActiveCineSeance(hydrated, null, null, null);
+    assert.equal(noToken?.key, defaultPick?.key);
+    assert.notEqual(filmItemKey, blagnac1045.key);
+    assert.equal(
+      resolveSharedSeanceKey(hydrated, filmItemKey),
+      wilson1030.key,
     );
   });
 });

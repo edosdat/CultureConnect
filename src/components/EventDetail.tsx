@@ -8,7 +8,11 @@ import {
   googleCalendarUrl,
 } from '@/lib/calendar';
 import { filterItemsByCommune, normalizeCommune } from '@/lib/commune';
-import { defaultCineSeance, seanceHeureLabel } from '@/lib/cineSeances';
+import {
+  defaultCineSeance,
+  seanceHeureLabel,
+  seancesIncludingShared,
+} from '@/lib/cineSeances';
 import { filterSeancesForActiveFilters } from '@/lib/displayFilter';
 import { isLikelyMobile, itemImageUrl } from '@/lib/displayHome';
 import { pickFilmVivantComplements } from '@/lib/filmVivantComplements';
@@ -345,7 +349,7 @@ export default function EventDetail({
   useEscapeClose(Boolean(item), onClose);
   const [engaged, setEngaged] = useState(false);
   const [mobileCal, setMobileCal] = useState(false);
-  const { seanceKey: sharedSeanceKey, itemKey: sharedItemKey } = useShareVisit();
+  const { seanceKey: sharedSeanceKey } = useShareVisit();
   const [activeSeance, setActiveSeance] = useState<DayItem | null>(null);
 
   useEffect(() => {
@@ -389,12 +393,15 @@ export default function EventDetail({
         commune: selectedCommune,
         lieuId: selectedLieuId,
       }).length > 0;
-    const seancesForList =
+    const seancesForList = seancesIncludingShared(
       upcomingRelated.length > 0
         ? upcomingRelated
         : selfMatches
           ? [item]
-          : [];
+          : [],
+      [...relatedItems, item],
+      sharedSeanceKey,
+    );
     const hasFilmSeances = seancesForList.length > 0;
     const filmForSuggestions =
       (activeSeance && seancesForList.some((s) => s.key === activeSeance.key)
@@ -470,7 +477,7 @@ export default function EventDetail({
                     <CineFilmSeances
                       items={seancesForList}
                       origin={origin}
-                      initialSeanceKey={sharedSeanceKey || sharedItemKey}
+                      initialSeanceKey={sharedSeanceKey}
                       onActiveChange={setActiveSeance}
                       tagSource={item}
                       onReserve={() => {
@@ -716,7 +723,7 @@ export default function EventDetail({
                   activeSeance &&
                   seancesForList.some((s) => s.key === activeSeance.key)
                     ? activeSeance.key
-                    : filmForSuggestions.key
+                    : null
                 }
               />
               <FavoriteButton item={item} />
