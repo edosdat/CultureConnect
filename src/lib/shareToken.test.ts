@@ -15,6 +15,7 @@ import {
   SHARE_TOKEN_RE,
   SHARE_VISIT_STORAGE_PREFIX,
   SHARE_VISITS_CAP,
+  shareCreateItemKey,
   shareVisitStorageKey,
   shouldClientTrackShare,
 } from './shareToken';
@@ -50,6 +51,12 @@ describe('B3 share token format', () => {
     assert.equal(normalizeSeanceKey('p:P1847'), 'p:P1847');
     assert.equal(normalizeSeanceKey('P1847'), 'p:P1847');
     assert.equal(normalizeSeanceKey('not a key'), null);
+    assert.equal(
+      shareCreateItemKey('p:P-WILSON-1030', 'p:P-BLAGNAC-1045'),
+      'p:P-BLAGNAC-1045',
+    );
+    assert.equal(shareCreateItemKey('p:P1847', null), 'p:P1847');
+    assert.equal(shareCreateItemKey('', 'p:P1999'), 'p:P1999');
     assert.equal(resolveSharedSeanceKey([{ key: 'p:A' }, { key: 'p:B' }], 'p:B'), 'p:B');
     assert.equal(resolveSharedSeanceKey([{ key: 'p:A' }], 'p:MISSING'), null);
     assert.equal(resolveSharedSeanceKey([{ key: 'p:A' }], null), null);
@@ -97,8 +104,12 @@ describe('B3 create — unique token per share act', () => {
     assert.ok(withSeance);
     assert.equal(withSeance.seanceKey, 'p:P1999');
     const stored = await readShareToken(withSeance.token);
-    assert.equal(stored?.itemKey, 'p:P1847');
+    assert.equal(stored?.itemKey, 'p:P1999');
     assert.equal(stored?.seanceKey, 'p:P1999');
+    assert.equal(
+      withSeance.url,
+      `https://app.example/?e=${encodeURIComponent('p:P1999')}&t=${withSeance.token}`,
+    );
     assert.equal(stored?.sharerEmail, null);
     assert.equal(stored?.opens, 0);
 
@@ -236,12 +247,28 @@ describe('B3 URL + open_shared + no B3b', () => {
     assert.equal(s.weight, 4);
   });
 
-  it('ShareButton does not double-count Matching A share when create succeeded', () => {
+  it('ShareButton does not double-count Matching A share when create succeeded', async () => {
     assert.equal(shouldClientTrackShare({ created: true, authed: true }), false);
     assert.equal(shouldClientTrackShare({ created: true, authed: false }), true);
     assert.equal(shouldClientTrackShare({ created: false, authed: true }), true);
     assert.equal(shareVisitStorageKey('abcd1234'), `${SHARE_VISIT_STORAGE_PREFIX}abcd1234`);
     assert.equal(SHARE_VISITS_CAP, 500);
+    const src = await readFile(
+      new URL('../components/ShareButton.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(src, /shareCreateItemKey\(item\.key, seanceKey\)/);
+    assert.match(src, /flashCopied\(\)/);
+    assert.match(src, /navigator\.share/);
+    assert.match(src, /if \(copiedOk\) flashCopied\(\)/);
+    assert.match(src, /setTimeout\(resolve, 80\)/);
+    assert.match(src, /data-testid="share-copied-toast"/);
+    const visitSrc = await readFile(
+      new URL('../components/ShareVisitProvider.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(visitSrc, /\/api\/agenda\?id=/);
+    assert.match(visitSrc, /sharedSeanceItem/);
   });
 
   it('B3 files have 0 B3b RSVP / prénom / opinion UI', async () => {

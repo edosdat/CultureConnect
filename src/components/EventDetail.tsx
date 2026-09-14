@@ -12,6 +12,7 @@ import {
   defaultCineSeance,
   seanceHeureLabel,
   seancesIncludingShared,
+  shareSeancePool,
 } from '@/lib/cineSeances';
 import { filterSeancesForActiveFilters } from '@/lib/displayFilter';
 import { isLikelyMobile, itemImageUrl } from '@/lib/displayHome';
@@ -349,7 +350,11 @@ export default function EventDetail({
   useEscapeClose(Boolean(item), onClose);
   const [engaged, setEngaged] = useState(false);
   const [mobileCal, setMobileCal] = useState(false);
-  const { seanceKey: sharedSeanceKey } = useShareVisit();
+  const {
+    seanceKey: sharedSeanceKey,
+    sharedSeanceItem,
+    sharedRelatedItems,
+  } = useShareVisit();
   const [activeSeance, setActiveSeance] = useState<DayItem | null>(null);
 
   useEffect(() => {
@@ -399,7 +404,10 @@ export default function EventDetail({
         : selfMatches
           ? [item]
           : [],
-      [...relatedItems, item],
+      shareSeancePool(relatedItems, item, [
+        sharedSeanceItem,
+        ...sharedRelatedItems,
+      ]),
       sharedSeanceKey,
     );
     const hasFilmSeances = seancesForList.length > 0;
@@ -718,7 +726,12 @@ export default function EventDetail({
                 </>
               )}
               <ShareButton
-                item={item}
+                item={
+                  activeSeance &&
+                  seancesForList.some((s) => s.key === activeSeance.key)
+                    ? activeSeance
+                    : item
+                }
                 seanceKey={
                   activeSeance &&
                   seancesForList.some((s) => s.key === activeSeance.key)

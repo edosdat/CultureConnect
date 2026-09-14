@@ -26,8 +26,8 @@ import {
   normalizeShareToken,
   requestOrigin,
   sessionSharerEmail,
+  shareCreateItemKey,
 } from '@/lib/shareToken';
-import { normalizeDeepLinkId } from '@/lib/deepLink';
 
 function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
@@ -84,13 +84,14 @@ export async function POST(req: Request) {
   const sharerEmail = sessionSharerEmail(session?.user);
 
   if (incoming.kind === 'created') {
-    const itemKey = normalizeDeepLinkId(
-      typeof incoming.itemKey === 'string' ? incoming.itemKey : '',
-    );
-    if (!itemKey) return jsonError('itemKey invalide', 400);
     const seanceKey = normalizeSeanceKey(
       typeof incoming.seanceKey === 'string' ? incoming.seanceKey : '',
     );
+    const itemKey = shareCreateItemKey(
+      typeof incoming.itemKey === 'string' ? incoming.itemKey : '',
+      seanceKey,
+    );
+    if (!itemKey) return jsonError('itemKey invalide', 400);
     if (await isShareCreateRateLimited({ ip, email: sharerEmail })) {
       return jsonError('Too many requests', 429);
     }

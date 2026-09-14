@@ -1,11 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSession } from 'next-auth/react';
 import type { DayItem } from '@/lib/types';
 import { deepLinkUrl, isLikelyMobile, sharePrefill } from '@/lib/displayHome';
-import { normalizeSeanceKey, shouldClientTrackShare } from '@/lib/shareToken';
+import {
+  normalizeSeanceKey,
+  shareCreateItemKey,
+  shouldClientTrackShare,
+} from '@/lib/shareToken';
 import { useSignals } from './SignalsProvider';
 
 type Props = {
@@ -14,6 +18,8 @@ type Props = {
   seanceKey?: string | null;
   className?: string;
 };
+
+const TOAST_MS = 4000;
 
 function ShareCopiedToast({ show }: { show: boolean }) {
   const [mounted, setMounted] = useState(false);
@@ -41,16 +47,33 @@ export default function ShareButton({
 }: Props) {
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
+  const toastTimer = useRef<number | null>(null);
   const { trackItem } = useSignals();
   const { status } = useSession();
 
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current != null) window.clearTimeout(toastTimer.current);
+    };
+  }, []);
+
+  function flashCopied() {
+    setCopied(true);
+    if (toastTimer.current != null) window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => {
+      setCopied(false);
+      toastTimer.current = null;
+    }, TOAST_MS);
+  }
+
   async function createShareUrl(): Promise<{ url: string; created: boolean }> {
     const origin = window.location.origin;
-    const fallback = deepLinkUrl(origin, item.key);
+    const shareItemKey = shareCreateItemKey(item.key, seanceKey) || item.key;
+    const fallback = deepLinkUrl(origin, shareItemKey);
     try {
       const body: { kind: 'created'; itemKey: string; seanceKey?: string } = {
         kind: 'created',
-        itemKey: item.key,
+        itemKey: shareItemKey,
       };
       const seance = normalizeSeanceKey(seanceKey);
       if (seance) body.seanceKey = seance;
@@ -90,16 +113,12 @@ export default function ShareButton({
     }
   }
 
-  function flashCopied() {
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 2400);
-  }
-
   async function handleShare() {
     if (busy) return;
     setBusy(true);
     let created = false;
-    let url = deepLinkUrl(window.location.origin, item.key);
+    const shareItemKey = shareCreateItemKey(item.key, seanceKey) || item.key;
+    let url = deepLinkUrl(window.location.origin, shareItemKey);
     try {
       const result = await createShareUrl();
       created = result.created;
@@ -119,6 +138,10 @@ export default function ShareButton({
     if (copiedOk) {
       trackShare();
       flashCopied();
+      // Let the viewport toast paint before navigator.share steals the frame (380).
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, 80);
+      });
     }
     if (isLikelyMobile() && typeof navigator.share === 'function') {
       try {
@@ -127,14 +150,15 @@ export default function ShareButton({
           text: prefill.text,
           url: prefill.url,
         });
-        if (!copiedOk) {
-          trackShare();
-          flashCopied();
-        }
-        return;
       } catch {
         /* cancelled — toast already shown if copy worked */
       }
+      if (copiedOk) flashCopied();
+      else {
+        trackShare();
+        flashCopied();
+      }
+      return;
     }
     if (!copiedOk) {
       window.prompt('Copier le lien', payload);

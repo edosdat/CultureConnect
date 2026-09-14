@@ -238,6 +238,48 @@ export function seancesIncludingShared(
   return extra ? [...list, extra] : list;
 }
 
+function sameOpenedFilm(
+  opened: DayItem,
+  row: DayItem,
+): boolean {
+  if (row.key === opened.key) return true;
+  const fid =
+    opened.kind === 'programme' ? (opened.programme.film_id || '').trim() : '';
+  if (fid && row.kind === 'programme' && (row.programme.film_id || '').trim() === fid) {
+    return true;
+  }
+  const title =
+    opened.kind === 'programme'
+      ? (opened.programme.nom_item || '').trim()
+      : '';
+  return Boolean(
+    title &&
+      row.kind === 'programme' &&
+      (row.programme.nom_item || '').trim() === title,
+  );
+}
+
+/** Deduped pool for the picker: commune-stripped related + opened + fetched extras. */
+export function shareSeancePool(
+  relatedItems: readonly DayItem[],
+  opened: DayItem | null | undefined,
+  extras: readonly (DayItem | null | undefined)[] = [],
+): DayItem[] {
+  const filteredExtras = extras.filter((row): row is DayItem => {
+    if (!row) return false;
+    if (!opened) return true;
+    return sameOpenedFilm(opened, row);
+  });
+  const out: DayItem[] = [];
+  const seen = new Set<string>();
+  for (const row of [...relatedItems, opened, ...filteredExtras]) {
+    if (!row || seen.has(row.key)) continue;
+    seen.add(row.key);
+    out.push(row);
+  }
+  return out;
+}
+
 /** Compact « 8,20€ · VOSTFR » — omit either part when the CSV is empty. */
 export function seanceMetaLabel(item: DayItem): string {
   return [seancePrixLabel(item), seanceVersionLabel(item)]

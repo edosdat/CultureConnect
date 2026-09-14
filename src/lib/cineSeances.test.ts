@@ -16,6 +16,7 @@ import {
   resolveActiveCineSeance,
   resolveSharedSeanceKey,
   seancesIncludingShared,
+  shareSeancePool,
   filmVersionLabels,
   seanceHeureLabel,
   seanceMetaLabel,
@@ -376,11 +377,19 @@ describe('cine seances cinema-then-time', () => {
     assert.equal(sameCinemaSelects.cinemaValue, cinemaKeyOf(wilson1030));
     assert.equal(sameCinemaSelects.timeValue, wilson1345.key);
 
-    // Commune filter dropped Blagnac — re-inject from the unfiltered pool.
+    // Commune filter dropped Blagnac and relatedItems never had it (Toulouse chip).
+    // Reinject only works once the fetched DayItem is in the pool.
     const toulouseOnly = [wilson1030, wilson1345, design1345];
+    assert.equal(
+      seancesIncludingShared(toulouseOnly, toulouseOnly, blagnac1045.key).some(
+        (s) => s.key === blagnac1045.key,
+      ),
+      false,
+    );
+    const fetchedPool = shareSeancePool(toulouseOnly, wilson1030, [blagnac1045]);
     const withShared = seancesIncludingShared(
       toulouseOnly,
-      hydrated,
+      fetchedPool,
       blagnac1045.key,
     );
     assert.ok(withShared.some((s) => s.key === blagnac1045.key));
@@ -393,6 +402,7 @@ describe('cine seances cinema-then-time', () => {
     const restoredSelects = cinePickerSelectState(withShared, restored!, null);
     assert.equal(restoredSelects.cinemaValue, cinemaKeyOf(blagnac1045));
     assert.equal(restoredSelects.timeValue, blagnac1045.key);
+    assert.match(restored!.lieu?.nom || '', /Blagnac/);
 
     // User override wins after the token applied; film/item key is not a seanceKey.
     const filmItemKey = wilson1030.key;

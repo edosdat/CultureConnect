@@ -42,6 +42,19 @@ export function normalizeSeanceKey(raw: string | null | undefined): string | nul
   return normalizeDeepLinkId((raw || '').trim());
 }
 
+/**
+ * `?e=` must open the same séance the picker stored.
+ * Never pair a Wilson morning `itemKey` with a Blagnac `seanceKey`.
+ */
+export function shareCreateItemKey(
+  itemKey?: string | null,
+  seanceKey?: string | null,
+): string | null {
+  const seance = normalizeSeanceKey(seanceKey);
+  if (seance) return seance;
+  return normalizeDeepLinkId((itemKey || '').trim());
+}
+
 export function shareVisitStorageKey(token: string): string {
   return `${SHARE_VISIT_STORAGE_PREFIX}${token}`;
 }

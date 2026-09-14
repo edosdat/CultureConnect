@@ -16,6 +16,7 @@ import {
   generateShareToken,
   isShareToken,
   normalizeSeanceKey,
+  shareCreateItemKey,
   SHARE_CREATE_RATE_PER_HOUR,
   SHARE_VISITS_CAP,
 } from '@/lib/shareToken';
@@ -326,9 +327,9 @@ export async function createShareToken(opts: {
   sharerEmail: string | null;
   origin: string;
 }): Promise<{ token: string; url: string; seanceKey?: string } | null> {
-  const itemKey = normalizeDeepLinkId(opts.itemKey);
-  if (!itemKey) return null;
   const seanceKey = normalizeSeanceKey(opts.seanceKey);
+  const itemKey = shareCreateItemKey(opts.itemKey, seanceKey);
+  if (!itemKey) return null;
   let token = '';
   for (let i = 0; i < 6; i += 1) {
     const candidate = generateShareToken();

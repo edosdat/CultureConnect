@@ -4,24 +4,30 @@ import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from 'react';
 import { useSession } from 'next-auth/react';
 import { normalizeDeepLinkId } from '@/lib/deepLink';
-import {
-  normalizeShareToken,
-  shareVisitStorageKey,
-} from '@/lib/shareToken';
+import { normalizeShareToken, shareVisitStorageKey } from '@/lib/shareToken';
+import type { DayItem } from '@/lib/types';
 
 type ShareVisitValue = {
   seanceKey: string | null;
   itemKey: string | null;
+  hasShareToken: boolean;
+  /** Token séance fetched without commune — may be outside the Toulouse chip. */
+  sharedSeanceItem: DayItem | null;
+  sharedRelatedItems: DayItem[];
 };
 
 const ShareVisitContext = createContext<ShareVisitValue>({
   seanceKey: null,
   itemKey: null,
+  hasShareToken: false,
+  sharedSeanceItem: null,
+  sharedRelatedItems: [],
 });
 
 export function useShareVisit() {
@@ -30,10 +36,21 @@ export function useShareVisit() {
 
 export default function ShareVisitProvider({ children }: { children: ReactNode }) {
   const { status } = useSession();
-  const [value, setValue] = useState<ShareVisitValue>({
+  const [hasShareToken] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return Boolean(
+      normalizeShareToken(new URLSearchParams(window.location.search).get('t')),
+    );
+  });
+  const [keys, setKeys] = useState<{
+    seanceKey: string | null;
+    itemKey: string | null;
+  }>({
     seanceKey: null,
     itemKey: null,
   });
+  const [sharedSeanceItem, setSharedSeanceItem] = useState<DayItem | null>(null);
+  const [sharedRelatedItems, setSharedRelatedItems] = useState<DayItem[]>([]);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -41,7 +58,7 @@ export default function ShareVisitProvider({ children }: { children: ReactNode }
     const token = normalizeShareToken(params.get('t') || '');
     const eKey = normalizeDeepLinkId(params.get('e') || params.get('id') || '');
     if (!token) return;
-    setValue((prev) => ({
+    setKeys((prev) => ({
       seanceKey: prev.seanceKey,
       itemKey: prev.itemKey || eKey,
     }));
@@ -56,7 +73,7 @@ export default function ShareVisitProvider({ children }: { children: ReactNode }
         sessionStorage.getItem(itemCache) || '',
       );
       if (cachedSeance || cachedItem) {
-        setValue({
+        setKeys({
           seanceKey: cachedSeance,
           itemKey: cachedItem || eKey,
         });
@@ -89,12 +106,46 @@ export default function ShareVisitProvider({ children }: { children: ReactNode }
         } catch {
           /* ignore */
         }
-        setValue({ seanceKey, itemKey });
+        setKeys({ seanceKey, itemKey });
       })
       .catch(() => {
         /* never break the fiche */
       });
   }, [status]);
+
+  useEffect(() => {
+    const key = keys.seanceKey;
+    if (!key) {
+      setSharedSeanceItem(null);
+      setSharedRelatedItems([]);
+      return;
+    }
+    let cancelled = false;
+    void fetch(`/api/agenda?id=${encodeURIComponent(key)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { item?: DayItem; relatedItems?: DayItem[] } | null) => {
+        if (cancelled || !data?.item) return;
+        setSharedSeanceItem(data.item);
+        setSharedRelatedItems(data.relatedItems ?? []);
+      })
+      .catch(() => {
+        /* picker still has the opened card */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [keys.seanceKey]);
+
+  const value = useMemo<ShareVisitValue>(
+    () => ({
+      seanceKey: keys.seanceKey,
+      itemKey: keys.itemKey,
+      hasShareToken,
+      sharedSeanceItem,
+      sharedRelatedItems,
+    }),
+    [keys.seanceKey, keys.itemKey, hasShareToken, sharedSeanceItem, sharedRelatedItems],
+  );
 
   return (
     <ShareVisitContext.Provider value={value}>{children}</ShareVisitContext.Provider>
