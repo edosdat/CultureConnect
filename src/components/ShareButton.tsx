@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSession } from 'next-auth/react';
 import type { DayItem } from '@/lib/types';
 import { deepLinkUrl, isLikelyMobile, sharePrefill } from '@/lib/displayHome';
@@ -9,10 +10,29 @@ import { useSignals } from './SignalsProvider';
 
 type Props = {
   item: DayItem;
-  /** Current cine horaire `DayItem.key` when the picker has a séance. */
+  /** Current cine horaire `DayItem.key` matching the selected `<select>`. */
   seanceKey?: string | null;
   className?: string;
 };
+
+function ShareCopiedToast({ show }: { show: boolean }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  if (!mounted || !show) return null;
+  return createPortal(
+    <div
+      role="status"
+      aria-live="polite"
+      data-testid="share-copied-toast"
+      className="pointer-events-none fixed bottom-5 left-1/2 z-[200] w-[min(92vw,20rem)] -translate-x-1/2 rounded-full bg-culture-ink px-4 py-2.5 text-center text-sm font-medium text-white shadow-lg"
+    >
+      Lien copié
+    </div>,
+    document.body,
+  );
+}
 
 export default function ShareButton({
   item,
@@ -48,6 +68,33 @@ export default function ShareButton({
     }
   }
 
+  async function copyText(payload: string): Promise<boolean> {
+    try {
+      await navigator.clipboard.writeText(payload);
+      return true;
+    } catch {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = payload;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        ta.remove();
+        return ok;
+      } catch {
+        return false;
+      }
+    }
+  }
+
+  function flashCopied() {
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2400);
+  }
+
   async function handleShare() {
     if (busy) return;
     setBusy(true);
@@ -67,6 +114,12 @@ export default function ShareButton({
         trackItem(item, 'share');
       }
     };
+    const payload = `${prefill.text}\n${prefill.url}`;
+    const copiedOk = await copyText(payload);
+    if (copiedOk) {
+      trackShare();
+      flashCopied();
+    }
     if (isLikelyMobile() && typeof navigator.share === 'function') {
       try {
         await navigator.share({
@@ -74,53 +127,36 @@ export default function ShareButton({
           text: prefill.text,
           url: prefill.url,
         });
-        trackShare();
+        if (!copiedOk) {
+          trackShare();
+          flashCopied();
+        }
         return;
       } catch {
-        /* cancelled or unsupported — fall through */
+        /* cancelled — toast already shown if copy worked */
       }
     }
-    const payload = `${prefill.text}\n${prefill.url}`;
-    let copiedOk = false;
-    try {
-      await navigator.clipboard.writeText(payload);
-      copiedOk = true;
-    } catch {
-      try {
-        const ta = document.createElement('textarea');
-        ta.value = payload;
-        ta.setAttribute('readonly', '');
-        ta.style.position = 'fixed';
-        ta.style.left = '-9999px';
-        document.body.appendChild(ta);
-        ta.select();
-        copiedOk = document.execCommand('copy');
-        ta.remove();
-      } catch {
-        copiedOk = false;
-      }
-    }
-    if (copiedOk) {
-      trackShare();
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2200);
-    } else {
+    if (!copiedOk) {
       window.prompt('Copier le lien', payload);
       trackShare();
+      flashCopied();
     }
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleShare}
-      disabled={busy}
-      className={
-        'inline-flex min-h-10 items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand disabled:opacity-60 ' +
-        className
-      }
-    >
-      {copied ? 'Lien copié' : busy ? 'Partage…' : 'Partager'}
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={handleShare}
+        disabled={busy}
+        className={
+          'inline-flex min-h-10 items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand disabled:opacity-60 ' +
+          className
+        }
+      >
+        {copied ? 'Lien copié' : busy ? 'Partage…' : 'Partager'}
+      </button>
+      <ShareCopiedToast show={copied} />
+    </>
   );
 }

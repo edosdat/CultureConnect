@@ -37,22 +37,33 @@ export default function ShareVisitProvider({ children }: { children: ReactNode }
 
   useEffect(() => {
     if (status === 'loading') return;
-    const token = normalizeShareToken(
-      new URLSearchParams(window.location.search).get('t') || '',
-    );
+    const params = new URLSearchParams(window.location.search);
+    const token = normalizeShareToken(params.get('t') || '');
+    const eKey = normalizeDeepLinkId(params.get('e') || params.get('id') || '');
     if (!token) return;
+    setValue((prev) => ({
+      seanceKey: prev.seanceKey,
+      itemKey: prev.itemKey || eKey,
+    }));
     const storageKey = shareVisitStorageKey(token);
     const seanceCache = `${storageKey}:seance`;
     const itemCache = `${storageKey}:item`;
     try {
-      if (sessionStorage.getItem(storageKey) === '1') {
+      const cachedSeance = normalizeDeepLinkId(
+        sessionStorage.getItem(seanceCache) || '',
+      );
+      const cachedItem = normalizeDeepLinkId(
+        sessionStorage.getItem(itemCache) || '',
+      );
+      if (cachedSeance || cachedItem) {
         setValue({
-          seanceKey: normalizeDeepLinkId(sessionStorage.getItem(seanceCache) || ''),
-          itemKey: normalizeDeepLinkId(sessionStorage.getItem(itemCache) || ''),
+          seanceKey: cachedSeance,
+          itemKey: cachedItem || eKey,
         });
+      }
+      if (sessionStorage.getItem(storageKey) === '1' && cachedSeance) {
         return;
       }
-      sessionStorage.setItem(storageKey, '1');
     } catch {
       /* still POST once */
     }
@@ -70,8 +81,9 @@ export default function ShareVisitProvider({ children }: { children: ReactNode }
           itemKey?: string;
         };
         const seanceKey = normalizeDeepLinkId(data.seanceKey || '');
-        const itemKey = normalizeDeepLinkId(data.itemKey || '');
+        const itemKey = normalizeDeepLinkId(data.itemKey || '') || eKey;
         try {
+          sessionStorage.setItem(storageKey, '1');
           if (seanceKey) sessionStorage.setItem(seanceCache, seanceKey);
           if (itemKey) sessionStorage.setItem(itemCache, itemKey);
         } catch {

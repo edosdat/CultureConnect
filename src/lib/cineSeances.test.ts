@@ -10,6 +10,7 @@ import {
   defaultCineSeance,
   groupCinemasForFilm,
   horaireOptionLabel,
+  nextPickedSeanceKey,
   resolveSharedSeanceKey,
   filmVersionLabels,
   seanceHeureLabel,
@@ -254,5 +255,16 @@ describe('cine seances cinema-then-time', () => {
       'p:P2',
     );
     assert.equal(resolveSharedSeanceKey([{ key: 'p:P1' }], 'p:NOPE'), null);
+  });
+
+  it('nextPickedSeanceKey keeps the user horaire and applies a shared token séance', () => {
+    const list = [{ key: 'p:P1030' }, { key: 'p:P1345' }];
+    assert.equal(nextPickedSeanceKey(list, 'p:P1345', null), 'p:P1345');
+    assert.equal(nextPickedSeanceKey(list, 'p:P1030', 'p:P1345'), 'p:P1345');
+    assert.equal(nextPickedSeanceKey([{ key: 'p:P1030' }], 'p:P1345', null), null);
+    assert.equal(
+      nextPickedSeanceKey(list, null, 'p:P1345'),
+      'p:P1345',
+    );
   });
 });

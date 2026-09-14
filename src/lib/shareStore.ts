@@ -4,6 +4,7 @@
  * RGPD: never persist cc_vid next to email / emailHash on the same record.
  */
 import { createHash } from 'crypto';
+import { VercelPool } from '@vercel/postgres';
 import { deepLinkUrl } from '@/lib/displayHome';
 import { normalizeDeepLinkId } from '@/lib/deepLink';
 import {
@@ -156,6 +157,112 @@ export function emailHash(email: string): string {
   return createHash('sha256').update(email.trim().toLowerCase()).digest('hex');
 }
 
+function postgresUrl(): string | undefined {
+  const env = process.env;
+  const url = (env['POSTGRES_URL'] || env['POSTGRES_URL_NON_POOLING'] || '').trim();
+  if (!url || url === 'undefined') return undefined;
+  return url;
+}
+
+let pool: VercelPool | null = null;
+let tableReady: Promise<void> | null = null;
+
+function getPool(): VercelPool | null {
+  const url = postgresUrl();
+  if (!url) return null;
+  if (!pool) pool = new VercelPool({ connectionString: url });
+  return pool;
+}
+
+async function ensureShareTokensTable(): Promise<VercelPool | null> {
+  const pg = getPool();
+  if (!pg) return null;
+  if (!tableReady) {
+    tableReady = (async () => {
+      await pg.query(`
+        CREATE TABLE IF NOT EXISTS share_tokens (
+          token TEXT PRIMARY KEY,
+          item_key TEXT NOT NULL,
+          seance_key TEXT,
+          created_at TIMESTAMPTZ NOT NULL,
+          sharer_email TEXT,
+          opens INTEGER NOT NULL DEFAULT 0
+        )
+      `);
+    })().catch((err: unknown) => {
+      tableReady = null;
+      throw err;
+    });
+  }
+  await tableReady;
+  return pg;
+}
+
+async function readShareTokenNeon(token: string): Promise<ShareTokenRecord | null> {
+  try {
+    const pg = await ensureShareTokensTable();
+    if (!pg) return null;
+    const result = await pg.query(
+      `SELECT token, item_key, seance_key, created_at, sharer_email, opens
+       FROM share_tokens WHERE token = $1 LIMIT 1`,
+      [token],
+    );
+    const row = result.rows[0] as
+      | {
+          token?: string;
+          item_key?: string;
+          seance_key?: string | null;
+          created_at?: Date | string;
+          sharer_email?: string | null;
+          opens?: number;
+        }
+      | undefined;
+    if (!row) return null;
+    const createdAt =
+      row.created_at instanceof Date
+        ? row.created_at.toISOString()
+        : typeof row.created_at === 'string'
+          ? row.created_at
+          : new Date().toISOString();
+    return parseTokenRecord({
+      token: row.token,
+      itemKey: row.item_key,
+      seanceKey: row.seance_key,
+      createdAt,
+      sharerEmail: row.sharer_email,
+      opens: row.opens,
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function writeShareTokenNeon(record: ShareTokenRecord): Promise<void> {
+  try {
+    const pg = await ensureShareTokensTable();
+    if (!pg) return;
+    await pg.query(
+      `INSERT INTO share_tokens (token, item_key, seance_key, created_at, sharer_email, opens)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (token) DO UPDATE SET
+         item_key = EXCLUDED.item_key,
+         seance_key = EXCLUDED.seance_key,
+         sharer_email = EXCLUDED.sharer_email,
+         opens = EXCLUDED.opens`,
+      [
+        record.token,
+        record.itemKey,
+        record.seanceKey ?? null,
+        record.createdAt,
+        record.sharerEmail,
+        record.opens,
+      ],
+    );
+  } catch {
+    /* preview / local without a writable Neon — KV or memory still used */
+  }
+}
+
 function tokKey(token: string): string {
   return `share:tok:${token}`;
 }
@@ -189,23 +296,28 @@ function parseTokenRecord(raw: unknown): ShareTokenRecord | null {
 
 export async function readShareToken(token: string): Promise<ShareTokenRecord | null> {
   if (!isShareToken(token)) return null;
+  const mem = memoryTokens.get(token);
+  if (mem) return mem;
   const rows = await kvPipeline([['GET', tokKey(token)]]);
   if (rows) {
     const raw = pipelineString(rows[0]);
-    if (!raw) return null;
-    try {
-      return parseTokenRecord(JSON.parse(raw));
-    } catch {
-      return null;
+    if (raw) {
+      try {
+        const parsed = parseTokenRecord(JSON.parse(raw));
+        if (parsed) return parsed;
+      } catch {
+        /* fall through */
+      }
     }
   }
-  return memoryTokens.get(token) ?? null;
+  return readShareTokenNeon(token);
 }
 
 async function writeShareToken(record: ShareTokenRecord): Promise<void> {
+  memoryTokens.set(record.token, { ...record });
   const payload = JSON.stringify(record);
-  const stored = await kvPipeline([['SET', tokKey(record.token), payload]]);
-  if (!stored) memoryTokens.set(record.token, { ...record });
+  await kvPipeline([['SET', tokKey(record.token), payload]]);
+  await writeShareTokenNeon(record);
 }
 
 export async function createShareToken(opts: {

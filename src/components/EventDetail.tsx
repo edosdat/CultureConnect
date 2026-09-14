@@ -345,7 +345,7 @@ export default function EventDetail({
   useEscapeClose(Boolean(item), onClose);
   const [engaged, setEngaged] = useState(false);
   const [mobileCal, setMobileCal] = useState(false);
-  const { seanceKey: sharedSeanceKey } = useShareVisit();
+  const { seanceKey: sharedSeanceKey, itemKey: sharedItemKey } = useShareVisit();
   const [activeSeance, setActiveSeance] = useState<DayItem | null>(null);
 
   useEffect(() => {
@@ -470,7 +470,7 @@ export default function EventDetail({
                     <CineFilmSeances
                       items={seancesForList}
                       origin={origin}
-                      initialSeanceKey={sharedSeanceKey}
+                      initialSeanceKey={sharedSeanceKey || sharedItemKey}
                       onActiveChange={setActiveSeance}
                       tagSource={item}
                       onReserve={() => {
@@ -710,7 +710,15 @@ export default function EventDetail({
                   )}
                 </>
               )}
-              <ShareButton item={item} seanceKey={activeSeance?.key} />
+              <ShareButton
+                item={item}
+                seanceKey={
+                  activeSeance &&
+                  seancesForList.some((s) => s.key === activeSeance.key)
+                    ? activeSeance.key
+                    : filmForSuggestions.key
+                }
+              />
               <FavoriteButton item={item} />
               {sourceUrlOf(item) && (
                 <a

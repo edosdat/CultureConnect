@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { deepLinkUrl } from './displayHome';
 import { normalizeDeepLinkId } from './deepLink';
-import { resolveSharedSeanceKey } from './cineSeances';
+import { nextPickedSeanceKey, resolveSharedSeanceKey } from './cineSeances';
 import { SIGNAL_WEIGHTS, isKnownSignalKind, makeSignal } from './signals';
 import {
   generateShareToken,
@@ -53,6 +53,14 @@ describe('B3 share token format', () => {
     assert.equal(resolveSharedSeanceKey([{ key: 'p:A' }, { key: 'p:B' }], 'p:B'), 'p:B');
     assert.equal(resolveSharedSeanceKey([{ key: 'p:A' }], 'p:MISSING'), null);
     assert.equal(resolveSharedSeanceKey([{ key: 'p:A' }], null), null);
+    assert.equal(
+      nextPickedSeanceKey([{ key: 'p:P1030' }, { key: 'p:P1345' }], 'p:P1345', null),
+      'p:P1345',
+    );
+    assert.equal(
+      nextPickedSeanceKey([{ key: 'p:P1030' }, { key: 'p:P1345' }], 'p:P1030', 'p:P1345'),
+      'p:P1345',
+    );
   });
 });
 

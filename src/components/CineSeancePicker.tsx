@@ -12,7 +12,7 @@ import {
   defaultCineSeance,
   groupCinemasForFilm,
   horaireOptionLabel,
-  resolveSharedSeanceKey,
+  nextPickedSeanceKey,
   seanceMetaLabel,
   seanceVersionLabel,
   seancesAtCinema,
@@ -162,11 +162,11 @@ export function CineFilmSeances({
   initialSeanceKey?: string | null;
 }) {
   const [pickedKey, setPickedKey] = useState<string | null>(() =>
-    resolveSharedSeanceKey(items, initialSeanceKey),
+    nextPickedSeanceKey(items, null, initialSeanceKey),
   );
   const itemKeys = items.map((s) => s.key).join('|');
   useEffect(() => {
-    setPickedKey(resolveSharedSeanceKey(items, initialSeanceKey));
+    setPickedKey((prev) => nextPickedSeanceKey(items, prev, initialSeanceKey));
     // itemKeys covers the séance list; `items` is a new array each parent render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemKeys, initialSeanceKey]);

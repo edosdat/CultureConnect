@@ -160,6 +160,22 @@ export function resolveSharedSeanceKey(
   return items.some((s) => s.key === key) ? key : null;
 }
 
+/**
+ * Keep the user's horaire (or the shared token séance) when the related
+ * list hydrates. Never fall back to default soonest if a valid pick exists.
+ */
+export function nextPickedSeanceKey(
+  items: readonly { key: string }[],
+  prev: string | null | undefined,
+  sharedSeanceKey?: string | null,
+): string | null {
+  const shared = resolveSharedSeanceKey(items, sharedSeanceKey);
+  if (shared) return shared;
+  const keep = (prev || '').trim();
+  if (keep && items.some((s) => s.key === keep)) return keep;
+  return null;
+}
+
 /** Compact « 8,20€ · VOSTFR » — omit either part when the CSV is empty. */
 export function seanceMetaLabel(item: DayItem): string {
   return [seancePrixLabel(item), seanceVersionLabel(item)]
