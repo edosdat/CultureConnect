@@ -383,7 +383,7 @@ describe('B3b source contract', () => {
       new URL('../components/ShareSocial.tsx', import.meta.url),
       'utf8',
     );
-    assert.match(ui, />Envie</);
+    assert.match(ui, /Envie/);
     assert.match(ui, /J’y vais/);
     assert.match(ui, /DAUGHTER_NOTICE/);
     assert.equal(/intéress/i.test(ui), false);
