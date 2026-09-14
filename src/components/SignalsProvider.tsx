@@ -29,6 +29,7 @@ import {
   type GuestSignalsStore,
   type ProfileBucket,
   type ItemSignalKind,
+  type Signal,
   type TrackPayload,
 } from '@/lib/signals';
 import {
@@ -37,6 +38,7 @@ import {
   appendGuestSignal,
   clearGuestStore,
   notifySignalsChanged,
+  persistCohortFromLocation,
   readGuestStore,
   rememberGuestItemTags,
   wipeGuestProfileKey,
@@ -90,15 +92,34 @@ async function postSignals(body: unknown): Promise<{
   const res = await fetch('/api/signals', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
     body: JSON.stringify(body),
   });
   if (!res.ok) return null;
-  return (await res.json()) as {
-    tasteState?: AccountTasteState;
-    tastes?: string;
-    tastesSetAt?: string;
-    wroteGuest?: boolean;
-  };
+  if (res.status === 204) return { ok: true } as { wroteGuest?: boolean };
+  try {
+    return (await res.json()) as {
+      tasteState?: AccountTasteState;
+      tastes?: string;
+      tastesSetAt?: string;
+      wroteGuest?: boolean;
+    };
+  } catch {
+    return { ok: true } as { wroteGuest?: boolean };
+  }
+}
+
+/** Fire-and-forget guest append. Network failure must not break UX. */
+function postGuestSignal(signal: Signal): void {
+  void fetch('/api/signals', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    keepalive: true,
+    body: JSON.stringify({ signal }),
+  }).catch(() => {
+    /* ignore */
+  });
 }
 
 export default function SignalsProvider({ children }: { children: ReactNode }) {
@@ -108,6 +129,7 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
   const mergedRef = useRef(false);
 
   useEffect(() => {
+    persistCohortFromLocation();
     setGuestStore(readGuestStore());
     try {
       setDismissed(sessionStorage.getItem(LOGIN_NUDGE_DISMISS_KEY) === '1');
@@ -204,6 +226,7 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
       setGuestStore(next);
       notifySignalsChanged();
       notifyTasteCookieOnce();
+      postGuestSignal(signal);
     },
     [applyAccountTaste, session?.user, status],
   );

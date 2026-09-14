@@ -6,6 +6,22 @@ import {
   writeAccountTaste,
 } from '@/lib/accountTasteStore';
 import {
+  COHORT_COOKIE,
+  GUEST_ID_COOKIE,
+  clientIpFromRequest,
+  guestIdCookieOptions,
+  isAllowedSignalOrigin,
+  itemIdsOutOfBounds,
+  payloadExceedsLimit,
+  readCookieValue,
+  resolveGuestIdFromCookie,
+} from '@/lib/guestSignals';
+import {
+  commitGuestSignals,
+  isSignalRateLimited,
+  mirrorAuthedSignals,
+} from '@/lib/guestSignalStore';
+import {
   ACCOUNT_CAP,
   coerceProfile,
   commitTasteSignals,
@@ -103,15 +119,47 @@ function stateFromTokenUser(user: {
   return rebuildTasteState([], tastes || undefined, user.tastesSetAt);
 }
 
+function collectIncomingSignals(incoming: {
+  signal?: unknown;
+  signals?: unknown;
+}): Signal[] {
+  const incomingSignals: Signal[] = [];
+  if (Array.isArray(incoming.signals)) {
+    incomingSignals.push(
+      ...incoming.signals.filter(isSignalLike).map(normalizeIncomingSignal),
+    );
+  } else if (
+    incoming.signal &&
+    (isSignalLike(incoming.signal) || isTrackPayload(incoming.signal))
+  ) {
+    incomingSignals.push(
+      normalizeIncomingSignal(incoming.signal as Signal | TrackPayload),
+    );
+  }
+  return incomingSignals;
+}
+
+function guestCookieResponse(guestId: string): NextResponse {
+  const res = NextResponse.json({ ok: true, guestId });
+  res.cookies.set(GUEST_ID_COOKIE, guestId, guestIdCookieOptions());
+  return res;
+}
+
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+  if (!isAllowedSignalOrigin(req)) {
+    return NextResponse.json({ error: 'Origine non autorisée' }, { status: 403 });
+  }
+
+  let rawText: string;
+  try {
+    rawText = await req.text();
+  } catch {
+    return NextResponse.json({ error: 'JSON invalide' }, { status: 400 });
   }
 
   let body: unknown;
   try {
-    body = await req.json();
+    body = rawText ? JSON.parse(rawText) : null;
   } catch {
     return NextResponse.json({ error: 'JSON invalide' }, { status: 400 });
   }
@@ -128,6 +176,60 @@ export async function POST(req: Request) {
     wipe?: unknown;
     guestProfile?: unknown;
   };
+  const isMerge = incoming.merge === true;
+
+  if (!isMerge && payloadExceedsLimit(rawText)) {
+    return NextResponse.json(
+      { error: 'Payload trop volumineux' },
+      { status: 413 },
+    );
+  }
+
+  const incomingSignals = collectIncomingSignals(incoming);
+  if (incomingSignals.some(itemIdsOutOfBounds)) {
+    return NextResponse.json({ error: 'Identifiant trop long' }, { status: 400 });
+  }
+
+  const session = await auth();
+  const cookieHeader = req.headers.get('cookie');
+  const cohortCookie = readCookieValue(cookieHeader, COHORT_COOKIE);
+  const ip = clientIpFromRequest(req);
+
+  if (!session?.user) {
+    const extraText =
+      typeof incoming.tastesText === 'string' ? incoming.tastesText : undefined;
+    const wipe = isWipe(incoming.wipe);
+    const accountOnly = isMerge || wipe || Boolean((extraText || '').trim());
+    if (accountOnly && incomingSignals.length === 0) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    if (incomingSignals.length === 0) {
+      return NextResponse.json(
+        { error: 'signal ou signals requis' },
+        { status: 400 },
+      );
+    }
+
+    const committed = await commitGuestSignals({
+      signals: incomingSignals,
+      cookieGuestId: resolveGuestIdFromCookie(
+        readCookieValue(cookieHeader, GUEST_ID_COOKIE),
+      ),
+      cohortCookie,
+      ip,
+    });
+    if (!committed.ok) {
+      return NextResponse.json(
+        { error: committed.error },
+        { status: committed.status },
+      );
+    }
+    return guestCookieResponse(committed.guestId);
+  }
+
+  if (await isSignalRateLimited({ ip })) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
 
   const userRef = { id: session.user.id, email: session.user.email };
   const jwtState = stateFromTokenUser(session.user);
@@ -137,23 +239,8 @@ export async function POST(req: Request) {
   const wipe = isWipe(incoming.wipe) ? incoming.wipe : undefined;
   const guestProfile = parseIncomingProfile(incoming.guestProfile);
 
-  const incomingSignals: Signal[] = [];
-
-  if (Array.isArray(incoming.signals)) {
-    incomingSignals.push(
-      ...incoming.signals.filter(isSignalLike).map(normalizeIncomingSignal),
-    );
-  } else if (
-    incoming.signal &&
-    (isSignalLike(incoming.signal) || isTrackPayload(incoming.signal))
-  ) {
-    incomingSignals.push(
-      normalizeIncomingSignal(incoming.signal as Signal | TrackPayload),
-    );
-  }
-
   // Login: empty guest / chip_cat-only must not overwrite JWT or store.
-  if (incoming.merge === true) {
+  if (isMerge) {
     const merged = resolveLoginMerge({
       stored,
       jwt: jwtState,
@@ -182,6 +269,13 @@ export async function POST(req: Request) {
     const nextUser = updated?.user as
       | { tasteState?: AccountTasteState; tastes?: string; tastesSetAt?: string }
       | undefined;
+    void mirrorAuthedSignals({
+      signals: incomingSignals,
+      email: session.user.email ?? '',
+      cohortCookie,
+    }).catch(() => {
+      /* analytics must not break Matching A */
+    });
     return NextResponse.json({
       ok: true,
       wroteGuest: merged.wroteGuest,
@@ -243,6 +337,14 @@ export async function POST(req: Request) {
   const nextUser = updated?.user as
     | { tasteState?: AccountTasteState; tastes?: string; tastesSetAt?: string }
     | undefined;
+
+  void mirrorAuthedSignals({
+    signals: incomingSignals,
+    email: session.user.email ?? '',
+    cohortCookie,
+  }).catch(() => {
+    /* analytics must not break Matching A */
+  });
 
   return NextResponse.json({
     ok: true,
