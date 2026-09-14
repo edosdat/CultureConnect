@@ -17,6 +17,7 @@ import {
   resolveSharedSeanceKey,
   seancesIncludingShared,
   shareSeancePool,
+  shareVisitPickerFilter,
   filmVersionLabels,
   seanceHeureLabel,
   seanceMetaLabel,
@@ -377,8 +378,30 @@ describe('cine seances cinema-then-time', () => {
     assert.equal(sameCinemaSelects.cinemaValue, cinemaKeyOf(wilson1030));
     assert.equal(sameCinemaSelects.timeValue, wilson1345.key);
 
+    // Widen city filter (Manager): film-wide pool + sharing → Blagnac in both selects.
+    const filmWide = [wilson1030, wilson1345, blagnac1045, design1345];
+    const widened = shareVisitPickerFilter(true, 'Toulouse', 'L-WILSON');
+    assert.equal(widened.commune, null);
+    assert.equal(widened.lieuId, null);
+    const narrowed = shareVisitPickerFilter(false, 'Toulouse', 'L-WILSON');
+    assert.equal(narrowed.commune, 'Toulouse');
+    const afterWiden = seancesIncludingShared(
+      filmWide,
+      filmWide,
+      blagnac1045.key,
+    );
+    const widenActive = resolveActiveCineSeance(
+      afterWiden,
+      null,
+      blagnac1045.key,
+      null,
+    );
+    const widenSelects = cinePickerSelectState(afterWiden, widenActive!, null);
+    assert.equal(widenSelects.cinemaValue, cinemaKeyOf(blagnac1045));
+    assert.equal(widenSelects.timeValue, blagnac1045.key);
+
     // Commune filter dropped Blagnac and relatedItems never had it (Toulouse chip).
-    // Reinject only works once the fetched DayItem is in the pool.
+    // Fetch backup: reinject once the DayItem is in the pool.
     const toulouseOnly = [wilson1030, wilson1345, design1345];
     assert.equal(
       seancesIncludingShared(toulouseOnly, toulouseOnly, blagnac1045.key).some(

@@ -259,6 +259,16 @@ function sameOpenedFilm(
   );
 }
 
+/** Share visit: drop city/lieu so a Blagnac séance can appear in the cinema select. */
+export function shareVisitPickerFilter(
+  sharing: boolean,
+  commune?: string | null,
+  lieuId?: string | null,
+): { commune: string | null; lieuId: string | null } {
+  if (sharing) return { commune: null, lieuId: null };
+  return { commune: commune || null, lieuId: lieuId || null };
+}
+
 /** Deduped pool for the picker: commune-stripped related + opened + fetched extras. */
 export function shareSeancePool(
   relatedItems: readonly DayItem[],

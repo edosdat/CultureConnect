@@ -13,6 +13,7 @@ import {
   seanceHeureLabel,
   seancesIncludingShared,
   shareSeancePool,
+  shareVisitPickerFilter,
 } from '@/lib/cineSeances';
 import { filterSeancesForActiveFilters } from '@/lib/displayFilter';
 import { isLikelyMobile, itemImageUrl } from '@/lib/displayHome';
@@ -394,11 +395,11 @@ export default function EventDetail({
       sharedSeanceItem,
       ...sharedRelatedItems,
     ]);
-    // Share visit: clear city/lieu so Blagnac (etc.) stays in the cinema select.
-    const pickerFilter =
-      sharedSeanceKey || hasShareToken
-        ? { commune: null, lieuId: null }
-        : { commune: selectedCommune, lieuId: selectedLieuId };
+    const pickerFilter = shareVisitPickerFilter(
+      Boolean(sharedSeanceKey || hasShareToken),
+      selectedCommune,
+      selectedLieuId,
+    );
     const upcomingRelated = filterSeancesForActiveFilters(
       hideSeancesBeforeToday(sharePool, parisParts().iso),
       pickerFilter,

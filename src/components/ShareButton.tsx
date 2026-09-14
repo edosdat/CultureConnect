@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useSession } from 'next-auth/react';
 import type { DayItem } from '@/lib/types';
 import { deepLinkUrl, isLikelyMobile, sharePrefill } from '@/lib/displayHome';
@@ -19,25 +18,69 @@ type Props = {
   className?: string;
 };
 
-const TOAST_MS = 4000;
+const TOAST_MS = 5000;
+const TOAST_TESTID = 'share-copied-toast';
 
-function ShareCopiedToast({ show }: { show: boolean }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-  if (!mounted || !show) return null;
-  return createPortal(
-    <div
-      role="status"
-      aria-live="polite"
-      data-testid="share-copied-toast"
-      className="pointer-events-none fixed bottom-5 left-1/2 z-[200] w-[min(92vw,20rem)] -translate-x-1/2 rounded-full bg-culture-ink px-4 py-2.5 text-center text-sm font-medium text-white shadow-lg"
-    >
-      Lien copié
-    </div>,
-    document.body,
-  );
+let toastNode: HTMLDivElement | null = null;
+let toastHideTimer: number | null = null;
+let toastUntil = 0;
+let toastResumeBound = false;
+
+function toastElement(): HTMLDivElement | null {
+  if (typeof document === 'undefined') return null;
+  if (toastNode && toastNode.isConnected) return toastNode;
+  const el = document.createElement('div');
+  el.setAttribute('role', 'status');
+  el.setAttribute('aria-live', 'polite');
+  el.setAttribute('data-testid', TOAST_TESTID);
+  el.className =
+    'pointer-events-none fixed bottom-5 left-1/2 z-[200] w-[min(92vw,20rem)] -translate-x-1/2 rounded-full bg-culture-ink px-4 py-2.5 text-center text-sm font-medium text-white shadow-lg';
+  el.textContent = 'Lien copié';
+  document.body.appendChild(el);
+  toastNode = el;
+  return el;
+}
+
+function hideShareCopiedToast() {
+  if (toastHideTimer != null) {
+    window.clearTimeout(toastHideTimer);
+    toastHideTimer = null;
+  }
+  if (toastNode) toastNode.style.display = 'none';
+}
+
+function showShareCopiedToast() {
+  const el = toastElement();
+  if (!el) return;
+  el.style.display = 'block';
+  toastUntil = Date.now() + TOAST_MS;
+  if (toastHideTimer != null) window.clearTimeout(toastHideTimer);
+  toastHideTimer = window.setTimeout(() => {
+    hideShareCopiedToast();
+  }, TOAST_MS);
+}
+
+function resumeShareCopiedToast() {
+  if (Date.now() < toastUntil) showShareCopiedToast();
+}
+
+function bindShareToastResume() {
+  if (toastResumeBound || typeof window === 'undefined') return;
+  toastResumeBound = true;
+  window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') resumeShareCopiedToast();
+  });
+  window.addEventListener('pageshow', resumeShareCopiedToast);
+}
+
+async function waitForToastPaint() {
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.setTimeout(resolve, 120);
+      });
+    });
+  });
 }
 
 export default function ShareButton({
@@ -47,22 +90,24 @@ export default function ShareButton({
 }: Props) {
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
-  const toastTimer = useRef<number | null>(null);
+  const copiedTimer = useRef<number | null>(null);
   const { trackItem } = useSignals();
   const { status } = useSession();
 
   useEffect(() => {
+    bindShareToastResume();
     return () => {
-      if (toastTimer.current != null) window.clearTimeout(toastTimer.current);
+      if (copiedTimer.current != null) window.clearTimeout(copiedTimer.current);
     };
   }, []);
 
   function flashCopied() {
     setCopied(true);
-    if (toastTimer.current != null) window.clearTimeout(toastTimer.current);
-    toastTimer.current = window.setTimeout(() => {
+    showShareCopiedToast();
+    if (copiedTimer.current != null) window.clearTimeout(copiedTimer.current);
+    copiedTimer.current = window.setTimeout(() => {
       setCopied(false);
-      toastTimer.current = null;
+      copiedTimer.current = null;
     }, TOAST_MS);
   }
 
@@ -138,10 +183,7 @@ export default function ShareButton({
     if (copiedOk) {
       trackShare();
       flashCopied();
-      // Let the viewport toast paint before navigator.share steals the frame (380).
-      await new Promise<void>((resolve) => {
-        window.setTimeout(resolve, 80);
-      });
+      await waitForToastPaint();
     }
     if (isLikelyMobile() && typeof navigator.share === 'function') {
       try {
@@ -151,7 +193,7 @@ export default function ShareButton({
           url: prefill.url,
         });
       } catch {
-        /* cancelled — toast already shown if copy worked */
+        /* cancelled — toast lives on document.body */
       }
       if (copiedOk) flashCopied();
       else {
@@ -168,19 +210,16 @@ export default function ShareButton({
   }
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={handleShare}
-        disabled={busy}
-        className={
-          'inline-flex min-h-10 items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand disabled:opacity-60 ' +
-          className
-        }
-      >
-        {copied ? 'Lien copié' : busy ? 'Partage…' : 'Partager'}
-      </button>
-      <ShareCopiedToast show={copied} />
-    </>
+    <button
+      type="button"
+      onClick={handleShare}
+      disabled={busy}
+      className={
+        'inline-flex min-h-10 items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand disabled:opacity-60 ' +
+        className
+      }
+    >
+      {copied ? 'Lien copié' : busy ? 'Partage…' : 'Partager'}
+    </button>
   );
 }

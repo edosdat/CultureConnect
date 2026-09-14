@@ -259,10 +259,13 @@ describe('B3 URL + open_shared + no B3b', () => {
     );
     assert.match(src, /shareCreateItemKey\(item\.key, seanceKey\)/);
     assert.match(src, /flashCopied\(\)/);
+    assert.match(src, /showShareCopiedToast/);
+    assert.match(src, /visibilitychange/);
+    assert.match(src, /pageshow/);
     assert.match(src, /navigator\.share/);
     assert.match(src, /if \(copiedOk\) flashCopied\(\)/);
-    assert.match(src, /setTimeout\(resolve, 80\)/);
-    assert.match(src, /data-testid="share-copied-toast"/);
+    assert.match(src, /waitForToastPaint/);
+    assert.match(src, /share-copied-toast/);
     const visitSrc = await readFile(
       new URL('../components/ShareVisitProvider.tsx', import.meta.url),
       'utf8',

@@ -1809,7 +1809,9 @@ export default function CultureConnectApp({
         ) {
           qs.set('commune', selectedCommune);
         }
-        if (selectedLieuId) qs.set('lieu', selectedLieuId);
+        if (selectedLieuId && !hasShareToken && !sharedSeanceKey) {
+          qs.set('lieu', selectedLieuId);
+        }
         if (scopeRange.startIso) qs.set('date_from', scopeRange.startIso);
         if (scopeRange.endIso) qs.set('date_to', scopeRange.endIso);
         if (timeScope === 'soir') qs.set('soir', '1');
@@ -1820,7 +1822,11 @@ export default function CultureConnectApp({
         setDetailItem(data.item);
         const relatedFilter =
           hasShareToken || sharedSeanceKey
-            ? { ...relatedSeancesFilter(activeFilter, data.item), commune: null }
+            ? {
+                ...relatedSeancesFilter(activeFilter, data.item),
+                commune: null,
+                lieuId: null,
+              }
             : relatedSeancesFilter(activeFilter, data.item);
         setRelatedFilmItems(
           filterSeancesForActiveFilters(data.relatedItems ?? [], relatedFilter),
