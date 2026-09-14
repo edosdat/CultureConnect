@@ -765,19 +765,44 @@ export type HomeCardOpen =
   | { mode: 'fiche'; key: string }
   | { mode: 'pack'; pack: HomePackId; key: string };
 
+export type HomeCardOpenSource = 'top3' | 'grid' | 'deeplink';
+
 /**
- * Top 3 always opens the event fiche (dialog), even when a QUOI chip has
- * hidden that pack's grid. Catalogue / leftover cards still focus their pack.
+ * Top 3 and `?e=` / `?id=` deep links always open the event fiche (dialog),
+ * even when the item belongs to a home pack. Catalogue / leftover cards
+ * still focus their pack.
  */
 export function resolveHomeCardOpen(
   key: string,
   found: DayItem | null,
-  source: 'top3' | 'grid' = 'grid',
+  source: HomeCardOpenSource = 'grid',
 ): HomeCardOpen {
-  if (source === 'top3') return { mode: 'fiche', key };
+  if (source === 'top3' || source === 'deeplink') return { mode: 'fiche', key };
   const pack = found ? homePackOfItem(found) : null;
   if (pack) return { mode: 'pack', pack, key };
   return { mode: 'fiche', key };
+}
+
+/**
+ * SSR / first-paint keys for `?e=` / `?id=`. Always the fiche (same as Top 3).
+ * Never apply `homePackOfItem` pack-focus on this path.
+ */
+export function deepLinkBootState(openKey: string | null | undefined): {
+  selectedItemKey: string | null;
+  cineFocusKey: null;
+  theatreFocusKey: null;
+  musiqueFocusKey: null;
+  enfantsFocusKey: null;
+  expoFocusKey: null;
+} {
+  return {
+    selectedItemKey: openKey ?? null,
+    cineFocusKey: null,
+    theatreFocusKey: null,
+    musiqueFocusKey: null,
+    enfantsFocusKey: null,
+    expoFocusKey: null,
+  };
 }
 
 export function cineFirstPaint(mobile: boolean): number {

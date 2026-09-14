@@ -45,6 +45,7 @@ import {
   leftoverSectionVisible,
   homeSectionsVisible,
   musiqueRows,
+  deepLinkBootState,
   resolveHomeCardOpen,
   resolveSearchSubmit,
   shouldInvalidateProfileRecoCache,
@@ -341,40 +342,26 @@ export default function CultureConnectApp({
   const [month, setMonth] = useState(initialMonth);
   const [timeScope, setTimeScope] = useState<TimeScopeId>(initialScope);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const [selectedItemKey, setSelectedItemKey] = useState<string | null>(() => {
-    if (initialOpenItem && homePackOfItem(initialOpenItem)) return null;
-    return initialOpenKey ?? null;
-  });
-  const [cineFocusKey, setCineFocusKey] = useState<string | null>(() => {
-    if (initialOpenItem && homePackOfItem(initialOpenItem) === 'cine') {
-      return initialOpenKey ?? null;
-    }
-    return null;
-  });
-  const [theatreFocusKey, setTheatreFocusKey] = useState<string | null>(() => {
-    if (initialOpenItem && homePackOfItem(initialOpenItem) === 'theatre') {
-      return initialOpenKey ?? null;
-    }
-    return null;
-  });
-  const [musiqueFocusKey, setMusiqueFocusKey] = useState<string | null>(() => {
-    if (initialOpenItem && homePackOfItem(initialOpenItem) === 'musique') {
-      return initialOpenKey ?? null;
-    }
-    return null;
-  });
-  const [enfantsFocusKey, setEnfantsFocusKey] = useState<string | null>(() => {
-    if (initialOpenItem && homePackOfItem(initialOpenItem) === 'enfants') {
-      return initialOpenKey ?? null;
-    }
-    return null;
-  });
-  const [expoFocusKey, setExpoFocusKey] = useState<string | null>(() => {
-    if (initialOpenItem && homePackOfItem(initialOpenItem) === 'expo') {
-      return initialOpenKey ?? null;
-    }
-    return null;
-  });
+  // `?e=` / `?id=`: always open the fiche (same as Top 3). Never pack-focus.
+  const deepLinkBoot = deepLinkBootState(initialOpenKey);
+  const [selectedItemKey, setSelectedItemKey] = useState<string | null>(
+    deepLinkBoot.selectedItemKey,
+  );
+  const [cineFocusKey, setCineFocusKey] = useState<string | null>(
+    deepLinkBoot.cineFocusKey,
+  );
+  const [theatreFocusKey, setTheatreFocusKey] = useState<string | null>(
+    deepLinkBoot.theatreFocusKey,
+  );
+  const [musiqueFocusKey, setMusiqueFocusKey] = useState<string | null>(
+    deepLinkBoot.musiqueFocusKey,
+  );
+  const [enfantsFocusKey, setEnfantsFocusKey] = useState<string | null>(
+    deepLinkBoot.enfantsFocusKey,
+  );
+  const [expoFocusKey, setExpoFocusKey] = useState<string | null>(
+    deepLinkBoot.expoFocusKey,
+  );
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedLieuId, setSelectedLieuId] = useState<string | null>(null);
@@ -596,11 +583,12 @@ export default function CultureConnectApp({
   const titleLeftover = committedTitle;
 
   // Client fallback: `?e=` / `?id=` when SSR did not pass a key (client nav).
+  // Same contract as deepLinkBootState — fiche only, no pack-focus.
   useEffect(() => {
     if (initialOpenKey) return;
     const params = new URLSearchParams(window.location.search);
     const key = normalizeDeepLinkId(params.get('e') || params.get('id') || '');
-    if (key) setSelectedItemKey(key);
+    if (key) setSelectedItemKey(deepLinkBootState(key).selectedItemKey);
   }, [initialOpenKey]);
 
   function applyScopeFromSearch(scope: TimeScopeId, dateIso: string | null) {
