@@ -19,6 +19,7 @@ import {
   leftoverSectionVisible,
   homeSectionsVisible,
   musiqueRows,
+  deepLinkBootState,
   resolveHomeCardOpen,
   itemPitch,
   rowDisplayTitle,
@@ -928,6 +929,35 @@ describe('top 3 click opens fiche outside QUOI grid', () => {
       mode: 'fiche',
       key: cine.key,
     });
+  });
+
+  it('?e= / ?id= deep links open the fiche, never pack-focus (B1 PRIOP0022)', () => {
+    const labess = item({
+      key: 'p:PRIOP0022',
+      cat: 'concert',
+      title: 'Labess + Tiwiza',
+    });
+    assert.equal(homePackOfItem(labess), 'musique');
+    assert.deepEqual(resolveHomeCardOpen(labess.key, labess, 'deeplink'), {
+      mode: 'fiche',
+      key: labess.key,
+    });
+    assert.deepEqual(deepLinkBootState(labess.key), {
+      selectedItemKey: 'p:PRIOP0022',
+      cineFocusKey: null,
+      theatreFocusKey: null,
+      musiqueFocusKey: null,
+      enfantsFocusKey: null,
+      expoFocusKey: null,
+    });
+    for (const packItem of [theatre, concert, cine]) {
+      assert.deepEqual(
+        resolveHomeCardOpen(packItem.key, packItem, 'deeplink'),
+        { mode: 'fiche', key: packItem.key },
+      );
+      assert.equal(deepLinkBootState(packItem.key).selectedItemKey, packItem.key);
+      assert.equal(deepLinkBootState(packItem.key).musiqueFocusKey, null);
+    }
   });
 
   it('grid pack cards still focus their strip', () => {
