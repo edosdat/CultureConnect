@@ -623,7 +623,18 @@ export function visibleTop3Nearest(
  * Enfants-only is a kids view: Enfants carousel (+ filtered kids grid),
  * not an awkward Sorties-pack hide. Combined extra chips stay open (#49).
  * No home chip → all five. Cats never apply to Top 3.
+ *
+ * Festival rows with no theatre/musique/expo/enfants pack land in leftover.
+ * Default home hides leftover behind packs; a QUOI chip must still show them.
  */
+export function leftoverSectionVisible(opts: {
+  anyPackVisible: boolean;
+  selectedCategories: readonly string[];
+}): boolean {
+  if (!opts.anyPackVisible) return true;
+  return opts.selectedCategories.length > 0;
+}
+
 export function homeSectionsVisible(cats: readonly string[]): {
   cine: boolean;
   theatre: boolean;

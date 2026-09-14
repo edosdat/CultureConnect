@@ -292,8 +292,17 @@ export function resolveHeroAfterRowsChange(opts: {
 }
 
 /**
- * Browse/pin scope must include genre chips so Jazz resets the painted rail.
+ * Browse/pin scope must include QUOI chips so Jazz / Festival / Expo / Enfants
+ * reset the painted rail.
  */
+function chipScopeKey(values: readonly string[] | undefined): string {
+  return [...(values ?? [])]
+    .map((v) => v.trim().toLowerCase())
+    .filter(Boolean)
+    .sort()
+    .join(',');
+}
+
 export function packCarouselBrowseScope(input: {
   pack: string;
   dateFrom?: string | null;
@@ -301,19 +310,16 @@ export function packCarouselBrowseScope(input: {
   selectedLieuId?: string | null;
   soir?: boolean;
   genres?: readonly string[];
+  categories?: readonly string[];
 }): string {
-  const genreKey = [...(input.genres ?? [])]
-    .map((g) => g.trim().toLowerCase())
-    .filter(Boolean)
-    .sort()
-    .join(',');
   return [
     input.pack,
     input.dateFrom ?? '',
     input.dateTo ?? '',
     input.selectedLieuId ?? '',
     input.soir ? '1' : '0',
-    genreKey,
+    chipScopeKey(input.genres),
+    chipScopeKey(input.categories),
   ].join('|');
 }
 
@@ -325,6 +331,7 @@ export function packCarouselPinScope(input: {
   selectedLieuId?: string | null;
   soir?: boolean;
   genres?: readonly string[];
+  categories?: readonly string[];
 }): string {
   return [
     input.pack,
@@ -333,11 +340,8 @@ export function packCarouselPinScope(input: {
     input.selectedCommune ?? '',
     input.selectedLieuId ?? '',
     input.soir ? '1' : '0',
-    [...(input.genres ?? [])]
-      .map((g) => g.trim().toLowerCase())
-      .filter(Boolean)
-      .sort()
-      .join(','),
+    chipScopeKey(input.genres),
+    chipScopeKey(input.categories),
   ].join('|');
 }
 

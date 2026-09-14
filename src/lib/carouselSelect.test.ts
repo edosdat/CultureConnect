@@ -466,7 +466,32 @@ describe('appendOnlyStripRows', () => {
     const open = packCarouselBrowseScope(base);
     const jazz = packCarouselBrowseScope({ ...base, genres: ['jazz'] });
     assert.notEqual(open, jazz);
-    assert.ok(jazz.endsWith('|jazz'));
+    assert.ok(jazz.includes('|jazz|') || jazz.endsWith('|jazz'));
+  });
+
+  it('browse scope changes when Festival / Expo / Enfants is selected', () => {
+    const base = {
+      pack: 'theatre',
+      dateFrom: '2026-09-09',
+      dateTo: '2026-09-09',
+      selectedLieuId: null,
+      soir: false,
+    };
+    const open = packCarouselBrowseScope(base);
+    const fest = packCarouselBrowseScope({ ...base, categories: ['festival'] });
+    const expo = packCarouselBrowseScope({
+      ...base,
+      categories: ['expo_patrimoine'],
+    });
+    const kids = packCarouselBrowseScope({
+      ...base,
+      categories: ['enfants_famille'],
+    });
+    assert.notEqual(open, fest);
+    assert.notEqual(fest, expo);
+    assert.ok(fest.includes('festival'));
+    assert.ok(expo.includes('expo_patrimoine'));
+    assert.ok(kids.includes('enfants_famille'));
   });
 
   it('first-load reco then GPS must not replace painted hero slot 0', () => {

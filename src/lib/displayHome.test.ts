@@ -14,6 +14,7 @@ import {
   findDayItemByKey,
   enfantsRows,
   expoRows,
+  leftoverSectionVisible,
   homeSectionsVisible,
   musiqueRows,
   resolveHomeCardOpen,
@@ -229,6 +230,29 @@ describe('homeSectionsVisible', () => {
   });
 });
 
+describe('leftoverSectionVisible', () => {
+  it('hides leftover behind packs on the default home', () => {
+    assert.equal(
+      leftoverSectionVisible({ anyPackVisible: true, selectedCategories: [] }),
+      false,
+    );
+  });
+
+  it('keeps leftover when a QUOI chip is on (Festival rows with no pack)', () => {
+    assert.equal(
+      leftoverSectionVisible({
+        anyPackVisible: true,
+        selectedCategories: ['festival'],
+      }),
+      true,
+    );
+    assert.equal(
+      leftoverSectionVisible({ anyPackVisible: false, selectedCategories: [] }),
+      true,
+    );
+  });
+});
+
 describe('home pack classifiers', () => {
   it('keeps films in cine only', () => {
     const film = item({ key: 'f1', cat: 'cinema', filmId: 'F1' });
@@ -288,6 +312,16 @@ describe('home pack classifiers', () => {
     assert.equal(isMusiqueDayItem(expo), false);
     assert.equal(isTheatreDayItem(kids), false);
     assert.equal(isMusiqueDayItem(kids), false);
+    const jep = item({
+      key: 'jep1',
+      cat: 'expo_patrimoine',
+      genre: 'atelier_mediation',
+      title: 'JEP — Théâtre de la Cité',
+    });
+    assert.equal(isExpoDayItem(jep), true);
+    assert.equal(isEnfantsDayItem(jep), false);
+    assert.equal(homePackOfItem(jep), 'expo');
+    assert.equal(isEnfantsChipItem(jep), true);
   });
 
   it('Enfants chip includes kids films / jeune-public theatre without stealing default packs', () => {
@@ -633,6 +667,118 @@ describe('pack rows + date filter', () => {
         false,
       );
     }
+  });
+
+  it('Expo / Festival / Enfants chips prune packs immediately (like Jazz)', () => {
+    const kidsFilm = item({
+      key: 'kf1',
+      cat: 'cinema',
+      filmId: 'F-KIDS',
+      genre: 'animation_jeune_public',
+      title: 'Toy Story 5',
+    });
+    const thriller = item({
+      key: 'ad1',
+      cat: 'cinema',
+      filmId: 'F-AD',
+      genre: 'fiction',
+      title: 'Adult thriller',
+    });
+    const kidsTheatre = item({
+      key: 'kt1',
+      cat: 'theatre_danse',
+      genre: 'jeune_public',
+      title: 'Cosmos 1979',
+    });
+    const adultTheatre = item({
+      key: 'th1',
+      cat: 'theatre',
+      genre: 'theatre_contemporain',
+      title: 'Pièce adulte',
+    });
+    const concert = item({
+      key: 'mu1',
+      cat: 'concert',
+      genre: 'chanson_variete',
+      title: 'Concert',
+    });
+    const expo = item({
+      key: 'ex1',
+      cat: 'exposition',
+      title: 'Les Abattoirs',
+    });
+    const festMusic = item({
+      key: 'fm1',
+      cat: 'festival',
+      genre: 'rock_metal_punk',
+      title: 'Rose Festival',
+    });
+    const festTheatre = item({
+      key: 'ft1',
+      cat: 'festival',
+      genre: 'cirque_arts_rue',
+      title: 'Fleur de peau',
+    });
+    const festBare = item({
+      key: 'fb1',
+      cat: 'festival',
+      title: 'les classiques',
+    });
+    const pool = [
+      kidsFilm,
+      thriller,
+      kidsTheatre,
+      adultTheatre,
+      concert,
+      expo,
+      festMusic,
+      festTheatre,
+      festBare,
+    ];
+    const emptyTop3 = new Set<string>();
+
+    const expoKept = filterSeancesForActiveFilters(pool, {
+      categories: ['expo_patrimoine'],
+    });
+    assert.deepEqual(
+      expoRows(expoKept, emptyTop3).map((r) => r.item.key),
+      ['ex1'],
+    );
+    assert.equal(cineRows(expoKept, emptyTop3).length, 0);
+    assert.equal(theatreRows(expoKept, emptyTop3).length, 0);
+    assert.equal(musiqueRows(expoKept, emptyTop3).length, 0);
+
+    const festKept = filterSeancesForActiveFilters(pool, {
+      categories: ['festival'],
+    });
+    assert.deepEqual(
+      musiqueRows(festKept, emptyTop3).map((r) => r.item.key),
+      ['fm1'],
+    );
+    assert.deepEqual(
+      theatreRows(festKept, emptyTop3).map((r) => r.item.key),
+      ['ft1'],
+    );
+    assert.equal(cineRows(festKept, emptyTop3).length, 0);
+    assert.equal(
+      festKept.some((row) => row.key === 'fb1'),
+      true,
+    );
+    assert.equal(homePackOfItem(festBare), null);
+
+    const kidsKept = filterSeancesForActiveFilters(pool, {
+      categories: ['enfants_famille'],
+    });
+    const kidsKeys = enfantsRows(kidsKept, emptyTop3, {
+      includeCrossCatKids: true,
+    }).map((r) => r.item.key);
+    assert.ok(kidsKeys.includes('kf1') && kidsKeys.includes('kt1'));
+    assert.equal(kidsKeys.includes('ad1'), false);
+    assert.equal(kidsKept.some((row) => row.key === 'ad1'), false);
+    assert.equal(kidsKept.some((row) => row.key === 'mu1'), false);
+
+    const cleared = filterSeancesForActiveFilters(pool, { categories: [] });
+    assert.equal(cleared.length, pool.length);
   });
 });
 
