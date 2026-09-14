@@ -19,6 +19,7 @@ import { filterSeancesForActiveFilters } from '@/lib/displayFilter';
 import { isLikelyMobile, itemImageUrl } from '@/lib/displayHome';
 import { pickFilmVivantComplements } from '@/lib/filmVivantComplements';
 import SeanceCard from './SeanceCard';
+import CategoryBadge from './CategoryBadge';
 import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 import FilmVersionBadge from './FilmVersionBadge';
 import FilmPoster from './FilmPoster';
@@ -30,7 +31,6 @@ import {
   formatLieuAffiche,
   formatPrix,
   formatDateFr,
-  labelCategorie,
   labelTypeItem,
 } from '@/lib/labels';
 import { formatFicheHoraires } from '@/lib/eventTimes';
@@ -390,7 +390,6 @@ export default function EventDetail({
   if (item.kind === 'programme') {
     const { programme: p, evenement: ev, lieu } = item;
     const time = formatFicheHoraires(item);
-    const categorie = ev?.categorie ?? '';
     const sharePool = shareSeancePool(relatedItems, item, [
       sharedSeanceItem,
       ...sharedRelatedItems,
@@ -456,11 +455,7 @@ export default function EventDetail({
               <FilmPoster src={itemImageUrl(item)} item={item} blurBackdrop />
               <div className="min-w-0 break-words px-5 pt-3">
                 <div className="flex flex-wrap gap-2">
-                  {categorie && (
-                    <span className="rounded-full bg-white px-2.5 py-0.5 text-xs text-culture-terracotta">
-                      {labelCategorie(categorie)}
-                    </span>
-                  )}
+                  <CategoryBadge item={item} className="rounded-full px-2.5 text-xs" />
                   {p.type_item && (
                     <span className="rounded-full bg-culture-sage/15 px-2.5 py-0.5 text-xs text-culture-sage">
                       {labelTypeItem(p.type_item)}
@@ -514,11 +509,7 @@ export default function EventDetail({
             <div className="px-5 pt-4">
               <div className="min-w-0 break-words">
                 <div className="flex flex-wrap gap-2">
-                  {categorie && (
-                    <span className="rounded-full bg-white px-2.5 py-0.5 text-xs text-culture-terracotta">
-                      {labelCategorie(categorie)}
-                    </span>
-                  )}
+                  <CategoryBadge item={item} className="rounded-full px-2.5 text-xs" />
                   {p.type_item && (
                     <span className="rounded-full bg-culture-sage/15 px-2.5 py-0.5 text-xs text-culture-sage">
                       {labelTypeItem(p.type_item)}
@@ -801,9 +792,7 @@ export default function EventDetail({
             <FilmPoster src={itemImageUrl(item)} item={item} blurBackdrop />
             <div className="min-w-0 break-words px-5 pt-3">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-white px-2.5 py-0.5 text-xs text-culture-terracotta">
-                  {labelCategorie(event.categorie)}
-                </span>
+                <CategoryBadge item={item} className="rounded-full px-2.5 text-xs" />
                 <TheatreUrgenceBadge item={item} />
               </div>
               <h2
@@ -836,9 +825,7 @@ export default function EventDetail({
           <div className="px-5 pt-4">
             <div className="min-w-0 break-words">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-white px-2.5 py-0.5 text-xs text-culture-terracotta">
-                  {labelCategorie(event.categorie)}
-                </span>
+                <CategoryBadge item={item} className="rounded-full px-2.5 text-xs" />
                 <TheatreUrgenceBadge item={item} />
               </div>
               <h2

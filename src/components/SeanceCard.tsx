@@ -8,12 +8,10 @@ import {
   formatItemPrix,
   formatLieuAffiche,
   formatPrix,
-  labelCategorie,
 } from '@/lib/labels';
 import { seanceTimeLabel } from '@/lib/eventTimes';
 import { seanceDateIso } from '@/lib/timeScope';
-import { MAIN_CATEGORY_LABELS, mainFromCategorie, mainFromGenreSlug } from '@/lib/categories';
-import { catCssVar, catGradient } from '@/lib/categoryColor';
+import { catCssVarOfItem, catKeyOfItem } from '@/lib/categoryColor';
 import {
   itemPitch,
   seanceCardShowsPitch,
@@ -24,6 +22,7 @@ import {
 import { isCinemaDayItem } from '@/lib/nouveautesCine';
 import EventImage from './EventImage';
 import VisualFallback from './VisualFallback';
+import CategoryBadge from './CategoryBadge';
 import FavoriteButton from './FavoriteButton';
 import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 import FilmVersionBadge from './FilmVersionBadge';
@@ -56,32 +55,6 @@ function cardPitch(item: DayItem): string {
   return itemPitch(item);
 }
 
-function categoryLabelFor(item: DayItem): string {
-  if (item.kind === 'programme') {
-    const cat = item.evenement?.categorie ?? '';
-    const main = mainFromCategorie(cat) ?? mainFromGenreSlug(item.programme.genre);
-    if (main) return MAIN_CATEGORY_LABELS[main];
-    return labelCategorie(cat);
-  }
-  const main =
-    mainFromCategorie(item.evenement.categorie) ??
-    mainFromGenreSlug(item.evenement.genre);
-  if (main) return MAIN_CATEGORY_LABELS[main];
-  return labelCategorie(item.evenement.categorie);
-}
-
-function CategoryPill({ label }: { label: string }) {
-  const cssVar = catCssVar(label);
-  return (
-    <span
-      className="inline-flex w-fit whitespace-nowrap rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white"
-      style={{ backgroundColor: `var(${cssVar})` }}
-    >
-      {label}
-    </span>
-  );
-}
-
 function imageUrlOf(item: DayItem): string {
   return item.kind === 'programme'
     ? item.programme.image_url || item.evenement?.image_url || ''
@@ -106,7 +79,7 @@ export default function SeanceCard({
   priority = false,
 }: Props) {
   const resolved: SeanceCardVariant = variant ?? (compact ? 'compact' : 'default');
-  const catLabel = categoryLabelFor(item);
+  const catKey = catKeyOfItem(item);
   const imageUrl = imageUrlOf(item);
   const title =
     item.kind === 'programme' ? item.programme.nom_item : item.evenement.titre;
@@ -118,7 +91,7 @@ export default function SeanceCard({
   const lieu = item.lieu;
   const isPeriod = item.kind === 'fallback';
   const isFilmGroup = salleCount > 0;
-  const cssVar = catCssVar(catLabel);
+  const cssVar = catCssVarOfItem(item);
   const accentStyle = { borderLeftColor: `var(${cssVar})` } as CSSProperties;
   const desHeure = earliestHeure
     ? formatHeure(earliestHeure)
@@ -160,8 +133,7 @@ export default function SeanceCard({
       className={
         (resolved === 'rail'
           ? TOP3_RAIL_THUMB_CLASS + ' '
-          : 'relative overflow-hidden ') +
-        catGradient(catLabel) +
+          : 'relative overflow-hidden bg-culture-cream ') +
         (resolved === 'rail'
           ? ''
           : resolved === 'live'
@@ -183,9 +155,9 @@ export default function SeanceCard({
         }
         fallback={<VisualFallback item={item} compact={resolved !== 'live'} />}
       />
-      {catLabel && resolved !== 'rail' ? (
+      {resolved !== 'rail' ? (
         <span className="absolute left-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-1">
-          <CategoryPill label={catLabel} />
+          <CategoryBadge item={item} />
           {isCinemaDayItem(item) ? <FilmVersionBadge item={item} /> : null}
           <TheatreUrgenceBadge item={item} />
           <PressBadge item={item} />
@@ -275,9 +247,9 @@ export default function SeanceCard({
             : 'flex flex-wrap items-start justify-between gap-2'
         }
       >
-        {resolved === 'rail' && catLabel ? (
+        {resolved === 'rail' ? (
           <span className="min-w-0 truncate">
-            <CategoryPill label={catLabel} />
+            <CategoryBadge item={item} />
           </span>
         ) : null}
         {showDate && resolved !== 'rail' && (
@@ -359,6 +331,7 @@ export default function SeanceCard({
     <button
       type="button"
       onClick={() => onSelect(item.key)}
+      data-cat-key={catKey}
       className={
         'group flex w-full min-w-0 overflow-hidden rounded-card border border-culture-line border-l-4 bg-culture-surface text-left shadow-card transition duration-200 ease-out ' +
         (resolved === 'rail' ? 'h-full flex-row items-stretch ' : 'flex-col ') +

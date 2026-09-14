@@ -26,6 +26,7 @@ import {
   catsAllowCinemaPack,
   isEnfantsOnlyChip,
 } from '@/lib/categories';
+import { PACK_CAT_CSS_VAR } from '@/lib/categoryColor';
 import {
   genreOptionsScopeKey,
   retainSelectedGenreChips,
@@ -51,8 +52,10 @@ import {
   resolveSearchSubmit,
   shouldInvalidateProfileRecoCache,
   HOME_CHROME_STACK_CLASS,
+  HOME_SECTION_TITLE_ACCENT_VAR,
   HOME_SECTION_TITLE_CLASS,
   HOME_SECTION_TITLE_RULE_CLASS,
+  homeSectionAccentStyle,
   TOP3_SECTION_CLASS,
   top3Heading,
   top3PaintMode,
@@ -2259,7 +2262,10 @@ export default function CultureConnectApp({
           data-top3-pending={top3Mode === 'skeleton' ? '' : undefined}
         >
           <h2 className={HOME_SECTION_TITLE_CLASS}>
-            <span className={HOME_SECTION_TITLE_RULE_CLASS}>
+            <span
+              className={HOME_SECTION_TITLE_RULE_CLASS}
+              style={homeSectionAccentStyle(HOME_SECTION_TITLE_ACCENT_VAR)}
+            >
               {top3Heading(
                 recoReady ? top3Cards.length : 3,
                 sessionStatus === 'authenticated',
@@ -2378,6 +2384,7 @@ export default function CultureConnectApp({
           <HomeSection
             id="cine"
             title="Ciné"
+            accentVar={PACK_CAT_CSS_VAR.cine}
             count={cineCount}
             hideCount={!showAdminCounts}
             shown={visibleCineRows.length}
@@ -2433,6 +2440,7 @@ export default function CultureConnectApp({
               <HomeSection
                 id="theatre"
                 title="Théâtre & spectacle vivant"
+                accentVar={PACK_CAT_CSS_VAR.theatre}
                 count={theatreCount}
                 hideCount={!showAdminCounts}
                 shown={visibleTheatreRows.length}
@@ -2477,6 +2485,7 @@ export default function CultureConnectApp({
               <HomeSection
                 id="musique"
                 title="Musique"
+                accentVar={PACK_CAT_CSS_VAR.musique}
                 count={musiqueCount}
                 hideCount={!showAdminCounts}
                 shown={visibleMusiqueRows.length}
@@ -2523,6 +2532,7 @@ export default function CultureConnectApp({
           <HomeSection
             id="enfants"
             title="Enfants"
+            accentVar={PACK_CAT_CSS_VAR.enfants}
             count={enfantsCount}
             hideCount={!showAdminCounts}
             shown={visibleEnfantsRows.length}
@@ -2566,6 +2576,7 @@ export default function CultureConnectApp({
           <HomeSection
             id="expos"
             title="Expos"
+            accentVar={PACK_CAT_CSS_VAR.expo}
             count={expoCount}
             hideCount={!showAdminCounts}
             shown={visibleExpoRows.length}

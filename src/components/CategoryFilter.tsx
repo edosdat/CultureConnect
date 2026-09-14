@@ -6,22 +6,13 @@ import {
   MAIN_CATEGORIES,
   type MainCategoryId,
 } from '@/lib/categories';
+import { MAIN_CAT_CSS_VAR } from '@/lib/categoryColor';
 
 type Props = {
   selected: string[];
   onChange: (next: string[]) => void;
   /** Horizontal chips (home P0) vs stacked sidebar list */
   variant?: 'chips' | 'list' | 'home' | 'extra';
-};
-
-/** Same --cc-cat-* hex as card bar / pastille. */
-const CHIP_VAR: Record<MainCategoryId, string> = {
-  musique: '--cc-cat-musique',
-  theatre_danse: '--cc-cat-theatre',
-  festival: '--cc-cat-festival',
-  cinema: '--cc-cat-cinema',
-  expo_patrimoine: '--cc-cat-expo',
-  enfants_famille: '--cc-cat-famille',
 };
 
 export default function CategoryFilter({
@@ -51,13 +42,14 @@ export default function CategoryFilter({
       <>
         {chips.map(({ id, label }) => {
           const active = selected.includes(id);
-          const tint = `var(${CHIP_VAR[id]})`;
+          const tint = `var(${MAIN_CAT_CSS_VAR[id]})`;
           return (
             <button
               key={id}
               type="button"
               onClick={() => toggle(id)}
               aria-pressed={active}
+              data-cat-chip={id}
               className="cc-axes__chip shrink-0 whitespace-nowrap rounded-full transition"
               style={{
                 borderWidth: 1.5,
@@ -117,18 +109,22 @@ export default function CategoryFilter({
       <div className="flex flex-col gap-1.5">
         {MAIN_CATEGORIES.map(({ id, label }) => {
           const active = selected.includes(id);
+          const tint = `var(${MAIN_CAT_CSS_VAR[id]})`;
           return (
             <button
               key={id}
               type="button"
               onClick={() => toggle(id)}
               aria-pressed={active}
-              className={
-                'w-full rounded-xl border px-3 py-2 text-left text-sm transition ' +
-                (active
-                  ? 'border-culture-terracotta bg-culture-terracotta text-white shadow-sm'
-                  : 'border-culture-line bg-culture-surface text-culture-ink hover:border-culture-terracotta/50')
-              }
+              data-cat-chip={id}
+              className="w-full rounded-xl px-3 py-2 text-left text-sm transition"
+              style={{
+                borderWidth: 1.5,
+                borderStyle: 'solid',
+                borderColor: tint,
+                backgroundColor: active ? tint : 'var(--cc-surface)',
+                color: active ? '#fff' : 'var(--cc-ink)',
+              }}
             >
               {label}
             </button>

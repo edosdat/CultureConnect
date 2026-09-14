@@ -6,7 +6,8 @@ import { formatLieuAffiche } from '@/lib/labels';
 import { itemPitch, itemTitle, seanceWhen } from '@/lib/displayHome';
 import { itemKmLabel, minKmLabel, type GeoPos } from '@/lib/nearMe';
 import EventImage from './EventImage';
-import VisualFallback, { categoryLabelOf } from './VisualFallback';
+import VisualFallback from './VisualFallback';
+import CategoryBadge from './CategoryBadge';
 import FavoriteButton from './FavoriteButton';
 import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 import PressBadge from './PressBadge';
@@ -49,7 +50,6 @@ export default function LiveCarousel({
         {rows.map((row) => {
           const item = row.item;
           const image = imageUrl(row);
-          const cat = categoryLabelOf(item);
           const when = seanceWhen(item, row.earliestHeure);
           const km =
             minKmLabel(row.seances, origin) ?? itemKmLabel(item, origin);
@@ -72,11 +72,7 @@ export default function LiveCarousel({
                     fallback={<VisualFallback item={item} />}
                   />
                   <span className="absolute left-2 top-2 flex max-w-[calc(100%-1rem)] flex-wrap items-center gap-1">
-                    {cat ? (
-                      <span className="rounded bg-culture-terracotta px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">
-                        {cat}
-                      </span>
-                    ) : null}
+                    <CategoryBadge item={item} className="rounded" />
                     <TheatreUrgenceBadge item={item} />
                     <PressBadge item={item} />
                   </span>
