@@ -1,7 +1,9 @@
 /**
- * Append-only guest (and optional authed-mirror) signal store.
+ * Append-only guest signal store (vid only).
  * Prefer Vercel KV / Upstash list; fall back to a stdout JSON line.
  * Never writes Neon `account_tastes` or JWT.
+ * Authed Matching A is Neon-only — no analytics mirror of visitor id
+ * with account identity.
  */
 import {
   GUEST_RATE_LIMIT_PER_HOUR,
@@ -13,9 +15,7 @@ import {
   generateVid,
   isValidVid,
   resolveCohort,
-  type AuthedAppendLine,
   type GuestAppendLine,
-  buildAuthedAppendLine,
   buildGuestAppendLine,
 } from '@/lib/guestSignals';
 import type { Signal } from '@/lib/signals';
@@ -136,13 +136,6 @@ export async function persistGuestAppend(line: GuestAppendLine): Promise<void> {
   if (!stored) console.log(payload);
 }
 
-export async function persistAuthedAppend(line: AuthedAppendLine): Promise<void> {
-  assertNoVidAccountJoin(line);
-  const payload = formatAppendLogLine(line);
-  const stored = await kvAppend(`cc:as:${line.emailHash}`, payload);
-  if (!stored) console.log(payload);
-}
-
 export type GuestCommitOk = {
   ok: true;
   vid: string;
@@ -171,20 +164,4 @@ export async function commitGuestSignals(input: {
     await persistGuestAppend(buildGuestAppendLine({ signal, vid, cohort }));
   }
   return { ok: true, vid, created };
-}
-
-/** Optional analytics mirror. Must never replace the Neon account_tastes path. */
-export async function mirrorAuthedSignals(input: {
-  signals: Signal[];
-  email: string;
-  cohortCookie?: string | null;
-}): Promise<void> {
-  const email = input.email.trim();
-  if (!email) return;
-  const cohort = resolveCohort(input.cohortCookie);
-  for (const signal of input.signals) {
-    await persistAuthedAppend(
-      buildAuthedAppendLine({ signal, email, cohort }),
-    );
-  }
 }

@@ -8,12 +8,10 @@ import {
   SIGNAL_PAYLOAD_MAX_BYTES,
   VID_COOKIE,
   assertNoVidAccountJoin,
-  buildAuthedAppendLine,
   buildGuestAppendLine,
   fifoAppend,
   formatAppendLogLine,
   generateVid,
-  hashEmail,
   isAllowedSignalOrigin,
   isValidVid,
   itemIdsOutOfBounds,
@@ -102,21 +100,17 @@ describe('append line schema', () => {
     assert.match(dumped, /"itemKey":"ev-guest-1"/);
   });
 
-  it('authed mirror hashes email, never stores plaintext, never carries vid', () => {
-    const s = signal('open_card');
-    const line = buildAuthedAppendLine({
-      signal: s,
-      email: 'Tester@Example.com',
+  it('guest append never carries emailHash (0 vid+email mirror)', () => {
+    const line = buildGuestAppendLine({
+      signal: signal('open_card'),
+      vid: 'v_8f3e2a1b',
       cohort: 'public',
     });
-    assert.equal(line.authed, true);
-    assert.equal(line.emailHash, hashEmail('tester@example.com'));
-    assert.equal(line.emailHash.length, 64);
     const dumped = formatAppendLogLine(line);
-    assert.equal(dumped.toLowerCase().includes('tester@example.com'), false);
-    assert.equal('email' in line, false);
-    assert.equal('vid' in line, false);
-    assert.equal('guestId' in line, false);
+    assert.equal('emailHash' in line, false);
+    assert.equal(dumped.includes('emailHash'), false);
+    assert.equal(dumped.includes('email'), false);
+    assert.equal(line.authed, false);
   });
 });
 
@@ -144,6 +138,23 @@ describe('RGPD — 0 join vid × account', () => {
     assert.doesNotThrow(() =>
       assertNoVidAccountJoin({ emailHash: 'abc', authed: true }),
     );
+  });
+
+  it('connected path has no analytics mirror of vid or emailHash', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const route = await readFile(
+      new URL('../app/api/signals/route.ts', import.meta.url),
+      'utf8',
+    );
+    const store = await readFile(
+      new URL('./guestSignalStore.ts', import.meta.url),
+      'utf8',
+    );
+    assert.equal(route.includes('mirrorAuthedSignals'), false);
+    assert.equal(route.includes('emailHash'), false);
+    assert.equal(store.includes('mirrorAuthedSignals'), false);
+    assert.equal(store.includes('persistAuthedAppend'), false);
+    assert.equal(store.includes('buildAuthedAppendLine'), false);
   });
 
   it('never copies vid into cc_signals_v1 guest store JSON', () => {

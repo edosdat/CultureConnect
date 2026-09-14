@@ -19,7 +19,6 @@ import {
 import {
   commitGuestSignals,
   isSignalRateLimited,
-  mirrorAuthedSignals,
 } from '@/lib/guestSignalStore';
 import {
   ACCOUNT_CAP,
@@ -267,13 +266,6 @@ export async function POST(req: Request) {
     const nextUser = updated?.user as
       | { tasteState?: AccountTasteState; tastes?: string; tastesSetAt?: string }
       | undefined;
-    void mirrorAuthedSignals({
-      signals: incomingSignals,
-      email: session.user.email ?? '',
-      cohortCookie,
-    }).catch(() => {
-      /* analytics must not break Matching A */
-    });
     return NextResponse.json({
       ok: true,
       wroteGuest: merged.wroteGuest,
@@ -335,14 +327,6 @@ export async function POST(req: Request) {
   const nextUser = updated?.user as
     | { tasteState?: AccountTasteState; tastes?: string; tastesSetAt?: string }
     | undefined;
-
-  void mirrorAuthedSignals({
-    signals: incomingSignals,
-    email: session.user.email ?? '',
-    cohortCookie,
-  }).catch(() => {
-    /* analytics must not break Matching A */
-  });
 
   return NextResponse.json({
     ok: true,

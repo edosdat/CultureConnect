@@ -1,7 +1,6 @@
 /**
  * B2a/B2b helpers (pure). Visitor key is cookie `cc_vid`, never `cc_signals_v1`.
  */
-import { createHash } from 'crypto';
 import { signalTarget, type Signal, type SignalKind } from '@/lib/signals';
 import { isValidVid } from '@/lib/guestId';
 
@@ -27,15 +26,6 @@ export type GuestAppendLine = {
   itemKey: string;
   cohort: string;
   authed: false;
-};
-
-export type AuthedAppendLine = {
-  ts: string;
-  emailHash: string;
-  kind: SignalKind;
-  itemKey: string;
-  cohort: string;
-  authed: true;
 };
 
 export function readCookieValue(
@@ -83,10 +73,6 @@ export function itemKeyFromSignal(
   s: Pick<Signal, 'film_id' | 'event_id' | 'programme_id' | 'chip' | 'query'>,
 ): string {
   return signalTarget(s);
-}
-
-export function hashEmail(email: string): string {
-  return createHash('sha256').update(email.trim().toLowerCase()).digest('hex');
 }
 
 export function itemIdsOutOfBounds(s: Signal): boolean {
@@ -194,26 +180,6 @@ export function buildGuestAppendLine(opts: {
   return line;
 }
 
-export function buildAuthedAppendLine(opts: {
-  signal: Signal;
-  email: string;
-  cohort: string;
-  now?: Date;
-}): AuthedAppendLine {
-  const line: AuthedAppendLine = {
-    ts: opts.signal.ts || (opts.now ?? new Date()).toISOString(),
-    emailHash: hashEmail(opts.email),
-    kind: opts.signal.kind,
-    itemKey: itemKeyFromSignal(opts.signal),
-    cohort: opts.cohort,
-    authed: true,
-  };
-  assertNoVidAccountJoin(line);
-  return line;
-}
-
-export function formatAppendLogLine(
-  line: GuestAppendLine | AuthedAppendLine,
-): string {
+export function formatAppendLogLine(line: GuestAppendLine): string {
   return JSON.stringify(line);
 }
