@@ -352,6 +352,7 @@ export default function EventDetail({
   const [mobileCal, setMobileCal] = useState(false);
   const {
     seanceKey: sharedSeanceKey,
+    hasShareToken,
     sharedSeanceItem,
     sharedRelatedItems,
   } = useShareVisit();
@@ -389,25 +390,28 @@ export default function EventDetail({
     const { programme: p, evenement: ev, lieu } = item;
     const time = formatFicheHoraires(item);
     const categorie = ev?.categorie ?? '';
+    const sharePool = shareSeancePool(relatedItems, item, [
+      sharedSeanceItem,
+      ...sharedRelatedItems,
+    ]);
+    // Share visit: clear city/lieu so Blagnac (etc.) stays in the cinema select.
+    const pickerFilter =
+      sharedSeanceKey || hasShareToken
+        ? { commune: null, lieuId: null }
+        : { commune: selectedCommune, lieuId: selectedLieuId };
     const upcomingRelated = filterSeancesForActiveFilters(
-      hideSeancesBeforeToday(relatedItems, parisParts().iso),
-      { commune: selectedCommune, lieuId: selectedLieuId },
+      hideSeancesBeforeToday(sharePool, parisParts().iso),
+      pickerFilter,
     );
     const selfMatches =
-      filterSeancesForActiveFilters([item], {
-        commune: selectedCommune,
-        lieuId: selectedLieuId,
-      }).length > 0;
+      filterSeancesForActiveFilters([item], pickerFilter).length > 0;
     const seancesForList = seancesIncludingShared(
       upcomingRelated.length > 0
         ? upcomingRelated
         : selfMatches
           ? [item]
           : [],
-      shareSeancePool(relatedItems, item, [
-        sharedSeanceItem,
-        ...sharedRelatedItems,
-      ]),
+      sharePool,
       sharedSeanceKey,
     );
     const hasFilmSeances = seancesForList.length > 0;
