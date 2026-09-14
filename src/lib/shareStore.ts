@@ -1,7 +1,9 @@
 /**
- * B3 token store. KV keys: `share:tok:<token>`, `share:visits:<token>`
- * (cap 500), `share:visitors:<token>`. Memory fallback for tests / local.
- * RGPD: never persist cc_vid next to email / emailHash on the same record.
+ * B3 token store + B3b RSVP. KV keys: `share:tok:<token>`,
+ * `share:visits:<token>` (cap 500), `share:visitors:<token>`,
+ * `share:rsvp:<token>`, `share:rsvp:work:<workId>`.
+ * Memory fallback for tests / local.
+ * RGPD: never persist cc_vid next to email / emailHash / firstName.
  */
 import { createHash } from 'crypto';
 import { VercelPool } from '@vercel/postgres';
@@ -20,6 +22,19 @@ import {
   SHARE_CREATE_RATE_PER_HOUR,
   SHARE_VISITS_CAP,
 } from '@/lib/shareToken';
+import {
+  applyRsvpToggle,
+  assertRsvpRgpd,
+  buildTokenSocial,
+  isRsvpKind,
+  motherStatsFromRsvps,
+  parseRsvpRecord,
+  RSVP_RATE_PER_HOUR,
+  rsvpsForEventStats,
+  type RsvpKind,
+  type ShareRsvpRecord,
+  type TokenSocialPayload,
+} from '@/lib/shareRsvp';
 
 export type ShareTokenRecord = {
   token: string;
@@ -109,6 +124,7 @@ function hourBucket(now = Date.now()): string {
 const memoryTokens = new Map<string, ShareTokenRecord>();
 const memoryVisits = new Map<string, ShareVisitRecord[]>();
 const memoryVisitors = new Map<string, Set<string>>();
+const memoryRsvps = new Map<string, ShareRsvpRecord[]>();
 const memoryHits = new Map<string, number[]>();
 const memoryOrphans: string[] = [];
 
@@ -116,6 +132,7 @@ export function resetShareStoreForTests(): void {
   memoryTokens.clear();
   memoryVisits.clear();
   memoryVisitors.clear();
+  memoryRsvps.clear();
   memoryHits.clear();
   memoryOrphans.length = 0;
 }
@@ -154,6 +171,15 @@ export async function isShareCreateRateLimited(opts: {
   return kv ?? memoryLimited(`create:${bucket}`, SHARE_CREATE_RATE_PER_HOUR);
 }
 
+export async function isShareRsvpRateLimited(opts: {
+  ip: string;
+  email?: string | null;
+}): Promise<boolean> {
+  const bucket = (opts.email || '').trim().toLowerCase() || `ip:${opts.ip || 'unknown'}`;
+  const kv = await kvRateLimited(`rsvp:${bucket}`, RSVP_RATE_PER_HOUR);
+  return kv ?? memoryLimited(`rsvp:${bucket}`, RSVP_RATE_PER_HOUR);
+}
+
 export function emailHash(email: string): string {
   return createHash('sha256').update(email.trim().toLowerCase()).digest('hex');
 }
@@ -167,6 +193,7 @@ function postgresUrl(): string | undefined {
 
 let pool: VercelPool | null = null;
 let tableReady: Promise<void> | null = null;
+let rsvpTableReady: Promise<void> | null = null;
 
 function getPool(): VercelPool | null {
   const url = postgresUrl();
@@ -412,4 +439,307 @@ export function memoryVisitCount(token: string): number {
 
 export function memoryVisitorCount(token: string): number {
   return memoryVisitors.get(token)?.size ?? 0;
+}
+
+function rsvpTokKey(token: string): string {
+  return `share:rsvp:${token}`;
+}
+function rsvpWorkKey(workId: string): string {
+  return `share:rsvp:work:${workId}`;
+}
+
+async function readWorkRsvpsKv(workId: string): Promise<ShareRsvpRecord[] | null> {
+  const rows = await kvPipeline([['GET', rsvpWorkKey(workId)]]);
+  if (!rows) return null;
+  const raw = pipelineString(rows[0]);
+  if (!raw) return [];
+  try {
+    return parseRsvpList(JSON.parse(raw));
+  } catch {
+    return [];
+  }
+}
+
+async function upsertWorkIndex(opts: {
+  workId: string;
+  token: string;
+  emailHash: string;
+  record: ShareRsvpRecord | null;
+}): Promise<void> {
+  const current = (await readWorkRsvpsKv(opts.workId)) ?? [];
+  const rest = current.filter(
+    (r) => !(r.token === opts.token && r.emailHash === opts.emailHash),
+  );
+  const next = opts.record ? [...rest, opts.record] : rest;
+  await kvPipeline([['SET', rsvpWorkKey(opts.workId), JSON.stringify(next)]]);
+}
+
+async function ensureShareRsvpsTable(): Promise<VercelPool | null> {
+  const pg = getPool();
+  if (!pg) return null;
+  if (!rsvpTableReady) {
+    rsvpTableReady = (async () => {
+      await pg.query(`
+        CREATE TABLE IF NOT EXISTS share_rsvps (
+          token TEXT NOT NULL,
+          email_hash TEXT NOT NULL,
+          item_key TEXT NOT NULL,
+          work_id TEXT NOT NULL,
+          kind TEXT NOT NULL,
+          first_name TEXT NOT NULL,
+          updated_at TIMESTAMPTZ NOT NULL,
+          PRIMARY KEY (token, email_hash)
+        )
+      `);
+      await pg.query(
+        `CREATE INDEX IF NOT EXISTS share_rsvps_work_idx ON share_rsvps (work_id)`,
+      );
+      await pg.query(
+        `CREATE INDEX IF NOT EXISTS share_rsvps_item_idx ON share_rsvps (item_key)`,
+      );
+    })().catch((err: unknown) => {
+      rsvpTableReady = null;
+      throw err;
+    });
+  }
+  await rsvpTableReady;
+  return pg;
+}
+
+function parseRsvpList(raw: unknown): ShareRsvpRecord[] {
+  if (Array.isArray(raw)) {
+    return raw.map(parseRsvpRecord).filter((r): r is ShareRsvpRecord => Boolean(r));
+  }
+  if (raw && typeof raw === 'object') {
+    return Object.values(raw as Record<string, unknown>)
+      .map(parseRsvpRecord)
+      .filter((r): r is ShareRsvpRecord => Boolean(r));
+  }
+  return [];
+}
+
+async function readTokenRsvpsNeon(token: string): Promise<ShareRsvpRecord[] | null> {
+  try {
+    const pg = await ensureShareRsvpsTable();
+    if (!pg) return null;
+    const result = await pg.query(
+      `SELECT token, email_hash, item_key, work_id, kind, first_name, updated_at
+       FROM share_rsvps WHERE token = $1`,
+      [token],
+    );
+    return result.rows
+      .map((row: {
+        token?: string;
+        email_hash?: string;
+        item_key?: string;
+        work_id?: string;
+        kind?: string;
+        first_name?: string;
+        updated_at?: Date | string;
+      }) =>
+        parseRsvpRecord({
+          token: row.token,
+          emailHash: row.email_hash,
+          itemKey: row.item_key,
+          workId: row.work_id,
+          kind: row.kind,
+          firstName: row.first_name,
+          ts:
+            row.updated_at instanceof Date
+              ? row.updated_at.toISOString()
+              : row.updated_at,
+        }),
+      )
+      .filter((r: ShareRsvpRecord | null): r is ShareRsvpRecord => Boolean(r));
+  } catch {
+    return null;
+  }
+}
+
+async function writeTokenRsvpsNeon(
+  token: string,
+  rsvps: ShareRsvpRecord[],
+): Promise<void> {
+  try {
+    const pg = await ensureShareRsvpsTable();
+    if (!pg) return;
+    await pg.query(`DELETE FROM share_rsvps WHERE token = $1`, [token]);
+    for (const r of rsvps) {
+      await pg.query(
+        `INSERT INTO share_rsvps
+          (token, email_hash, item_key, work_id, kind, first_name, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [r.token, r.emailHash, r.itemKey, r.workId, r.kind, r.firstName, r.ts],
+      );
+    }
+  } catch {
+    /* preview / local without writable Neon */
+  }
+}
+
+async function readEventRsvpsNeon(opts: {
+  itemKey: string;
+  workId: string;
+}): Promise<ShareRsvpRecord[] | null> {
+  try {
+    const pg = await ensureShareRsvpsTable();
+    if (!pg) return null;
+    const result = await pg.query(
+      `SELECT token, email_hash, item_key, work_id, kind, first_name, updated_at
+       FROM share_rsvps WHERE work_id = $1 OR item_key = $2`,
+      [opts.workId, opts.itemKey],
+    );
+    return result.rows
+      .map((row: {
+        token?: string;
+        email_hash?: string;
+        item_key?: string;
+        work_id?: string;
+        kind?: string;
+        first_name?: string;
+        updated_at?: Date | string;
+      }) =>
+        parseRsvpRecord({
+          token: row.token,
+          emailHash: row.email_hash,
+          itemKey: row.item_key,
+          workId: row.work_id,
+          kind: row.kind,
+          firstName: row.first_name,
+          ts:
+            row.updated_at instanceof Date
+              ? row.updated_at.toISOString()
+              : row.updated_at,
+        }),
+      )
+      .filter((r: ShareRsvpRecord | null): r is ShareRsvpRecord => Boolean(r));
+  } catch {
+    return null;
+  }
+}
+
+export async function listTokenRsvps(token: string): Promise<ShareRsvpRecord[]> {
+  if (!isShareToken(token)) return [];
+  const mem = memoryRsvps.get(token);
+  if (mem) return mem.map((r) => ({ ...r }));
+  const rows = await kvPipeline([['GET', rsvpTokKey(token)]]);
+  if (rows) {
+    const raw = pipelineString(rows[0]);
+    if (raw) {
+      try {
+        return parseRsvpList(JSON.parse(raw));
+      } catch {
+        /* fall through */
+      }
+    }
+  }
+  return (await readTokenRsvpsNeon(token)) ?? [];
+}
+
+async function writeTokenRsvps(
+  token: string,
+  rsvps: ShareRsvpRecord[],
+): Promise<void> {
+  for (const r of rsvps) assertRsvpRgpd(r);
+  memoryRsvps.set(token, rsvps.map((r) => ({ ...r })));
+  await kvPipeline([['SET', rsvpTokKey(token), JSON.stringify(rsvps)]]);
+  await writeTokenRsvpsNeon(token, rsvps);
+}
+
+export async function toggleShareRsvp(opts: {
+  token: string;
+  itemKey: string;
+  workId: string;
+  emailHash: string;
+  firstName: string;
+  kind: RsvpKind;
+}): Promise<{
+  kind: RsvpKind | null;
+  rsvps: ShareRsvpRecord[];
+}> {
+  if (!isShareToken(opts.token) || !isRsvpKind(opts.kind)) {
+    return { kind: null, rsvps: [] };
+  }
+  const tokenRec = await readShareToken(opts.token);
+  if (!tokenRec) return { kind: null, rsvps: [] };
+  const itemKey = tokenRec.itemKey || opts.itemKey;
+  const workId = opts.workId || itemKey;
+  const current = await listTokenRsvps(opts.token);
+  const existing = current.find((r) => r.emailHash === opts.emailHash) ?? null;
+  const nextKind = applyRsvpToggle(existing?.kind ?? null, opts.kind);
+  const rest = current.filter((r) => r.emailHash !== opts.emailHash);
+  let next = rest;
+  if (nextKind) {
+    const record: ShareRsvpRecord = {
+      token: opts.token,
+      itemKey,
+      workId,
+      emailHash: opts.emailHash,
+      firstName: opts.firstName,
+      kind: nextKind,
+      ts: new Date().toISOString(),
+    };
+    assertRsvpRgpd(record);
+    next = [...rest, record];
+  }
+  await writeTokenRsvps(opts.token, next);
+  const written = next.find((r) => r.emailHash === opts.emailHash) ?? null;
+  await upsertWorkIndex({
+    workId,
+    token: opts.token,
+    emailHash: opts.emailHash,
+    record: written,
+  });
+  if (itemKey !== workId) {
+    await upsertWorkIndex({
+      workId: itemKey,
+      token: opts.token,
+      emailHash: opts.emailHash,
+      record: written,
+    });
+  }
+  return { kind: nextKind, rsvps: next };
+}
+
+export async function tokenSocialPayload(opts: {
+  token: string;
+  viewerEmailHash: string | null;
+}): Promise<TokenSocialPayload | null> {
+  const tokenRec = await readShareToken(opts.token);
+  if (!tokenRec) return null;
+  const rsvps = await listTokenRsvps(opts.token);
+  return buildTokenSocial({
+    rsvps,
+    viewerEmailHash: opts.viewerEmailHash,
+  });
+}
+
+export async function eventRsvpStats(opts: {
+  itemKey: string;
+  workId: string;
+}): Promise<{ envie: number; going: number }> {
+  const collected: ShareRsvpRecord[] = [];
+  for (const list of memoryRsvps.values()) {
+    collected.push(...list);
+  }
+  if (collected.length > 0) {
+    return motherStatsFromRsvps(rsvpsForEventStats(collected, opts));
+  }
+  const neon = await readEventRsvpsNeon(opts);
+  if (neon && neon.length > 0) return motherStatsFromRsvps(neon);
+  const fromWork = await readWorkRsvpsKv(opts.workId);
+  const fromItem =
+    opts.itemKey !== opts.workId ? await readWorkRsvpsKv(opts.itemKey) : null;
+  const kv = [...(fromWork ?? []), ...(fromItem ?? [])];
+  if (kv.length > 0) return motherStatsFromRsvps(kv);
+  if (neon) return motherStatsFromRsvps(neon);
+  return { envie: 0, going: 0 };
+}
+
+export function memoryRsvpCount(token: string): number {
+  return memoryRsvps.get(token)?.length ?? 0;
+}
+
+export function memoryAllRsvps(): ShareRsvpRecord[] {
+  return [...memoryRsvps.values()].flat().map((r) => ({ ...r }));
 }

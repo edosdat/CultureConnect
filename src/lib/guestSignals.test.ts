@@ -128,6 +128,10 @@ describe('RGPD — 0 join vid × account', () => {
       () => assertNoVidAccountJoin({ vid: 'v_8f3e2a1b', user_key: 'a@b.c' }),
       /RGPD/,
     );
+    assert.throws(
+      () => assertNoVidAccountJoin({ vid: 'v_8f3e2a1b', firstName: 'Léa' }),
+      /RGPD/,
+    );
     assert.doesNotThrow(() =>
       assertNoVidAccountJoin({
         vid: 'v_8f3e2a1b',

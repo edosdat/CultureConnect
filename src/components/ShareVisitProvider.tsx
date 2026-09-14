@@ -16,6 +16,7 @@ import type { DayItem } from '@/lib/types';
 type ShareVisitValue = {
   seanceKey: string | null;
   itemKey: string | null;
+  token: string | null;
   hasShareToken: boolean;
   /** Token séance fetched without commune — may be outside the Toulouse chip. */
   sharedSeanceItem: DayItem | null;
@@ -25,6 +26,7 @@ type ShareVisitValue = {
 const ShareVisitContext = createContext<ShareVisitValue>({
   seanceKey: null,
   itemKey: null,
+  token: null,
   hasShareToken: false,
   sharedSeanceItem: null,
   sharedRelatedItems: [],
@@ -36,12 +38,13 @@ export function useShareVisit() {
 
 export default function ShareVisitProvider({ children }: { children: ReactNode }) {
   const { status } = useSession();
-  const [hasShareToken] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return Boolean(
-      normalizeShareToken(new URLSearchParams(window.location.search).get('t')),
+  const [token] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    return normalizeShareToken(
+      new URLSearchParams(window.location.search).get('t'),
     );
   });
+  const hasShareToken = Boolean(token);
   const [keys, setKeys] = useState<{
     seanceKey: string | null;
     itemKey: string | null;
@@ -140,11 +143,19 @@ export default function ShareVisitProvider({ children }: { children: ReactNode }
     () => ({
       seanceKey: keys.seanceKey,
       itemKey: keys.itemKey,
+      token,
       hasShareToken,
       sharedSeanceItem,
       sharedRelatedItems,
     }),
-    [keys.seanceKey, keys.itemKey, hasShareToken, sharedSeanceItem, sharedRelatedItems],
+    [
+      keys.seanceKey,
+      keys.itemKey,
+      token,
+      hasShareToken,
+      sharedSeanceItem,
+      sharedRelatedItems,
+    ],
   );
 
   return (

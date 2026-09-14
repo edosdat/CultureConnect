@@ -24,6 +24,7 @@ import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 import FilmVersionBadge from './FilmVersionBadge';
 import FilmPoster from './FilmPoster';
 import ShareButton from './ShareButton';
+import ShareSocial from './ShareSocial';
 import FavoriteButton from './FavoriteButton';
 import {
   formatDateRange,
@@ -353,6 +354,7 @@ export default function EventDetail({
   const [mobileCal, setMobileCal] = useState(false);
   const {
     seanceKey: sharedSeanceKey,
+    token: shareToken,
     hasShareToken,
     sharedSeanceItem,
     sharedRelatedItems,
@@ -748,6 +750,8 @@ export default function EventDetail({
               )}
             </div>
 
+            <ShareSocial item={item} token={shareToken} />
+
             {showCrossSell ? (
               <AussiCeSoirSection
                 items={crossSellItems}
@@ -978,6 +982,8 @@ export default function EventDetail({
               </a>
             )}
           </div>
+
+          <ShareSocial item={item} token={shareToken} />
 
           {showCrossSell ? (
             <AussiCeSoirSection

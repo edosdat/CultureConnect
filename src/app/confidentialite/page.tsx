@@ -92,6 +92,14 @@ export default function ConfidentialitePage() {
           relie jamais à Google ni à Neon.
         </p>
         <p>
+          <span className="font-medium">Partage.</span> Si tu tapes Envie ou
+          J’y vais sur un lien, on garde ton prénom avec ce lien. Les autres
+          comptes qui ont aussi tapé Envie ou J’y vais sur ce même lien voient
+          ce prénom. Ouvrir le lien ne suffit pas. Sur la fiche sans lien : des
+          compteurs seuls, sans noms. On n’associe jamais <span className="font-medium">cc_vid</span> à
+          un prénom ni à un e-mail.
+        </p>
+        <p>
           Base légale : intérêt légitime à proposer «&nbsp;Pour toi&nbsp;», et
           ton action quand tu indiques tes goûts. Conservation 24 mois après
           la dernière activité, puis suppression. Compte connecté : tu peux

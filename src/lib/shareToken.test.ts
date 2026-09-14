@@ -274,14 +274,11 @@ describe('B3 URL + open_shared + no B3b', () => {
     assert.match(visitSrc, /sharedSeanceItem/);
   });
 
-  it('B3 files have 0 B3b RSVP / prénom / opinion UI', async () => {
+  it('B3 create/visit UI and Matching A ingest stay free of B3b RSVP', async () => {
     const files = [
       new URL('./shareToken.ts', import.meta.url),
-      new URL('./shareStore.ts', import.meta.url),
       new URL('./shareIngest.ts', import.meta.url),
-      new URL('../app/api/share/route.ts', import.meta.url),
       new URL('../components/ShareButton.tsx', import.meta.url),
-      new URL('../components/ShareVisitProvider.tsx', import.meta.url),
     ];
     const banned =
       /rsvp|envie|going|prénom|prenom|opinion|feedback|cercle|mother.?counter/i;
@@ -289,5 +286,11 @@ describe('B3 URL + open_shared + no B3b', () => {
       const src = await readFile(file, 'utf8');
       assert.equal(banned.test(src), false, file.pathname);
     }
+    const ingest = await readFile(
+      new URL('./shareIngest.ts', import.meta.url),
+      'utf8',
+    );
+    assert.equal(/ingestAccountItemSignal/.test(ingest), true);
+    assert.equal(/envie|going/.test(ingest), false);
   });
 });
