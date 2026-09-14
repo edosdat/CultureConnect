@@ -25,7 +25,7 @@ function rsvpButtonClass(active: boolean): string {
     'inline-flex min-h-10 items-center rounded-full border px-4 py-2 text-sm font-medium ' +
     (active
       ? 'border-culture-terracotta bg-culture-terracotta text-white'
-      : 'border-culture-sand bg-white text-culture-ink hover:bg-culture-sand')
+      : 'border-culture-line bg-culture-surface text-culture-ink hover:bg-white')
   );
 }
 
@@ -64,7 +64,7 @@ function MotherStatsBlock({ itemKey }: { itemKey: string }) {
   return (
     <p
       data-testid="share-rsvp-mother"
-      className="text-sm text-culture-muted"
+      className="mt-2 text-sm text-culture-muted"
     >
       {label}
     </p>
@@ -136,7 +136,10 @@ function DaughterRsvp({ item, token }: { item: DayItem; token: string }) {
       : '';
 
   return (
-    <section data-testid="share-rsvp-daughter" className="space-y-2">
+    <section
+      data-testid="share-rsvp-daughter"
+      className="mt-3 rounded-2xl bg-culture-sand px-3.5 py-3"
+    >
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
@@ -158,7 +161,7 @@ function DaughterRsvp({ item, token }: { item: DayItem; token: string }) {
         </button>
       </div>
       {nudge && !authed ? (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           <p className="text-sm text-culture-ink">{RSVP_LOGIN_ERROR}</p>
           <button
             type="button"
@@ -172,15 +175,18 @@ function DaughterRsvp({ item, token }: { item: DayItem; token: string }) {
         </div>
       ) : null}
       {names ? (
-        <p data-testid="share-rsvp-names" className="text-sm text-culture-ink">
+        <p
+          data-testid="share-rsvp-names"
+          className="mt-2 text-sm font-medium text-culture-ink"
+        >
           {names}
         </p>
       ) : anon ? (
-        <p data-testid="share-rsvp-anon" className="text-sm text-culture-muted">
+        <p data-testid="share-rsvp-anon" className="mt-2 text-sm text-culture-muted">
           {anon}
         </p>
       ) : null}
-      <p className="text-xs text-culture-muted">{DAUGHTER_NOTICE}</p>
+      <p className="mt-1.5 text-xs text-culture-muted">{DAUGHTER_NOTICE}</p>
     </section>
   );
 }

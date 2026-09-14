@@ -483,6 +483,9 @@ export default function EventDetail({
                   </p>
                 )}
                 {hasFilmSeances ? (
+                  <ShareSocial item={item} token={shareToken} />
+                ) : null}
+                {hasFilmSeances ? (
                   <div className="mt-3">
                     <CineFilmSeances
                       items={seancesForList}
@@ -582,6 +585,10 @@ export default function EventDetail({
             ) : null}
 
             {hasFilmSeances && !cinemaFiche ? (
+              <ShareSocial item={item} token={shareToken} />
+            ) : null}
+
+            {hasFilmSeances && !cinemaFiche ? (
               <section>
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
                   Séances
@@ -645,6 +652,10 @@ export default function EventDetail({
                 )}
               </section>
             )}
+
+            {!hasFilmSeances ? (
+              <ShareSocial item={item} token={shareToken} />
+            ) : null}
 
             {ev && (
               <section>
@@ -749,8 +760,6 @@ export default function EventDetail({
                 </a>
               )}
             </div>
-
-            <ShareSocial item={item} token={shareToken} />
 
             {showCrossSell ? (
               <AussiCeSoirSection
@@ -916,6 +925,8 @@ export default function EventDetail({
             </section>
           )}
 
+          <ShareSocial item={item} token={shareToken} />
+
           <FichePressBlock item={item} />
 
           <div className="flex flex-wrap items-center gap-2">
@@ -982,8 +993,6 @@ export default function EventDetail({
               </a>
             )}
           </div>
-
-          <ShareSocial item={item} token={shareToken} />
 
           {showCrossSell ? (
             <AussiCeSoirSection

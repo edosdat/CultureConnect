@@ -386,7 +386,22 @@ describe('B3b source contract', () => {
     assert.match(ui, /Envie/);
     assert.match(ui, /J’y vais/);
     assert.match(ui, /DAUGHTER_NOTICE/);
+    assert.match(ui, /bg-culture-sand/);
+    assert.match(ui, /share-rsvp-mother/);
     assert.equal(/intéress/i.test(ui), false);
+
+    const detail = await readFile(
+      new URL('../components/EventDetail.tsx', import.meta.url),
+      'utf8',
+    );
+    const firstSocial = detail.indexOf('<ShareSocial');
+    const cine = detail.indexOf('<CineFilmSeances');
+    const seancesHeading = detail.indexOf('Séances');
+    const lastSocial = detail.lastIndexOf('<ShareSocial');
+    const lastFavorite = detail.lastIndexOf('<FavoriteButton');
+    assert.ok(firstSocial > 0 && cine > 0 && firstSocial < cine);
+    assert.ok(seancesHeading > 0 && firstSocial < seancesHeading);
+    assert.ok(lastSocial > 0 && lastSocial < lastFavorite);
 
     const conf = await readFile(
       new URL('../app/confidentialite/page.tsx', import.meta.url),
