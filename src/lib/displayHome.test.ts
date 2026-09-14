@@ -20,6 +20,7 @@ import {
   homeSectionsVisible,
   musiqueRows,
   deepLinkBootState,
+  deepLinkUrl,
   resolveHomeCardOpen,
   itemPitch,
   rowDisplayTitle,
@@ -958,6 +959,20 @@ describe('top 3 click opens fiche outside QUOI grid', () => {
       assert.equal(deepLinkBootState(packItem.key).selectedItemKey, packItem.key);
       assert.equal(deepLinkBootState(packItem.key).musiqueFocusKey, null);
     }
+  });
+
+  it('B3 t= does not change the B1 fiche key', () => {
+    const key = 'p:PRIOP0022';
+    const url = deepLinkUrl('https://cc.test', key, 'abcd1234');
+    assert.equal(url, 'https://cc.test/?e=p%3APRIOP0022&t=abcd1234');
+    assert.deepEqual(deepLinkBootState(key), {
+      selectedItemKey: key,
+      cineFocusKey: null,
+      theatreFocusKey: null,
+      musiqueFocusKey: null,
+      enfantsFocusKey: null,
+      expoFocusKey: null,
+    });
   });
 
   it('grid pack cards still focus their strip', () => {

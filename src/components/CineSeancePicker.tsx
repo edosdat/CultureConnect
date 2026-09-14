@@ -5,13 +5,14 @@ import type { DayItem } from '@/lib/types';
 import type { GeoPos } from '@/lib/nearMe';
 import { reservePickOf } from '@/lib/reserve';
 import { useSignals } from './SignalsProvider';
+import { useShareVisit } from './ShareVisitProvider';
 import {
-  cinemaKeyOf,
   cinemaOptionLabel,
   cineDistanceOrigin,
-  defaultCineSeance,
+  cinePickerSelectState,
   groupCinemasForFilm,
   horaireOptionLabel,
+  resolveActiveCineSeance,
   seanceMetaLabel,
   seanceVersionLabel,
   seancesAtCinema,
@@ -76,8 +77,12 @@ export default function CineSeancePicker({
   const kmOrigin = cineDistanceOrigin(origin);
   const groups = groupCinemasForFilm(seances, kmOrigin);
   if (groups.length === 0) return null;
-  const cinemaId = cinemaKeyOf(active);
-  const times = seancesAtCinema(seances, cinemaId);
+  const { cinemaValue, timeValue } = cinePickerSelectState(
+    seances,
+    active,
+    origin,
+  );
+  const times = seancesAtCinema(seances, cinemaValue);
   const horaireRows = times.length ? times : [active];
   const meta = seanceMetaLabel(active);
   return (
@@ -92,11 +97,7 @@ export default function CineSeancePicker({
       </div>
       <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <select
-          value={
-            groups.some((g) => g.lieuId === cinemaId)
-              ? cinemaId
-              : groups[0]!.lieuId
-          }
+          value={cinemaValue}
           onChange={(e) => {
             const next = seancesAtCinema(seances, e.target.value)[0];
             if (next) onPick(next.key);
@@ -112,11 +113,7 @@ export default function CineSeancePicker({
         </select>
         <div className="flex w-full min-w-0 items-center gap-2 sm:flex-1 sm:basis-36">
           <select
-            value={
-              times.some((s) => s.key === active.key)
-                ? active.key
-                : (times[0]?.key ?? active.key)
-            }
+            value={timeValue}
             onChange={(e) => onPick(e.target.value)}
             aria-label="Choisir un horaire"
             className="h-11 min-w-0 flex-1 rounded-lg border border-culture-line bg-culture-surface px-2.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
@@ -150,22 +147,26 @@ export function CineFilmSeances({
   onReserve,
   onActiveChange,
   tagSource,
+  initialSeanceKey = null,
 }: {
   items: DayItem[];
   origin?: GeoPos | null;
   onReserve?: (item: DayItem) => void;
   onActiveChange?: (item: DayItem) => void;
   tagSource?: DayItem | null;
+  /** B3 shared token séance — same `DayItem.key` as the horaire `<select>`. */
+  initialSeanceKey?: string | null;
 }) {
+  const { seanceKey: contextSeanceKey } = useShareVisit();
+  // Visit context is the source of truth. Never treat a film/item key as seanceKey.
+  const sharedSeanceKey = contextSeanceKey || initialSeanceKey || null;
   const [pickedKey, setPickedKey] = useState<string | null>(null);
-  const itemKeys = items.map((s) => s.key).join('|');
-  useEffect(() => {
-    setPickedKey(null);
-  }, [itemKeys]);
-  const active =
-    items.find((s) => s.key === pickedKey) ??
-    defaultCineSeance(items, origin) ??
-    items[0];
+  const active = resolveActiveCineSeance(
+    items,
+    pickedKey,
+    sharedSeanceKey,
+    origin,
+  );
   useEffect(() => {
     if (active) onActiveChange?.(active);
   }, [active, onActiveChange]);

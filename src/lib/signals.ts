@@ -25,6 +25,7 @@ export type SignalKind =
   | 'unfavorite'
   | 'outbound_click'
   | 'share'
+  | 'open_shared'
   | 'chip_time'
   | 'chip_cat'
   | 'chip_genre'
@@ -42,6 +43,7 @@ export type ItemSignalKind = Extract<
   | 'unfavorite'
   | 'outbound_click'
   | 'share'
+  | 'open_shared'
 >;
 
 export type Signal = {
@@ -101,6 +103,7 @@ export const SIGNAL_WEIGHTS: Record<SignalKind, number> = {
   ics: 5,
   agenda_add: 5,
   outbound_click: 4,
+  open_shared: 4,
   share: 3,
   open_card: 2,
   chip_cat: 1,
@@ -118,6 +121,7 @@ const ACTION_KINDS: ReadonlySet<SignalKind> = new Set([
   'favorite',
   'outbound_click',
   'share',
+  'open_shared',
 ]);
 
 const KNOWN_SIGNAL_KINDS: ReadonlySet<string> = new Set(Object.keys(SIGNAL_WEIGHTS));
@@ -135,6 +139,7 @@ const TASTE_TAG_PEER_KINDS: ReadonlySet<SignalKind> = new Set([
   'reserve',
   'outbound_click',
   'share',
+  'open_shared',
   'agenda_add',
   'ics',
 ]);
@@ -149,6 +154,7 @@ const TASTE_INHERIT_KINDS: ReadonlySet<SignalKind> = new Set([
   'unfavorite',
   'outbound_click',
   'share',
+  'open_shared',
 ]);
 
 export function isKnownSignalKind(kind: string): kind is SignalKind {
@@ -807,7 +813,8 @@ export function shouldMapTasteIngest(
     kind === 'favorite' ||
     kind === 'unfavorite' ||
     kind === 'outbound_click' ||
-    kind === 'share'
+    kind === 'share' ||
+    kind === 'open_shared'
   ) {
     return true;
   }
@@ -1355,7 +1362,8 @@ export function shouldPromptLogin(signals: Signal[]): boolean {
       s.kind === 'reserve' ||
       s.kind === 'favorite' ||
       s.kind === 'outbound_click' ||
-      s.kind === 'share'
+      s.kind === 'share' ||
+      s.kind === 'open_shared'
     ) {
       return true;
     }
@@ -1650,8 +1658,10 @@ export function payloadFromDayItem(
     lieu_id: item.lieu?.lieu_id || undefined,
     dayIso: item.dayIso,
   };
-  // open_card: moods/genres/themes of the fiche, not categorie (not a goût).
-  if (kind !== 'open_card') payload.categorie = categorie || undefined;
+  // open_card / open_shared: moods/genres/themes of the fiche, not categorie (not a goût).
+  if (kind !== 'open_card' && kind !== 'open_shared') {
+    payload.categorie = categorie || undefined;
+  }
   if (item.kind === 'programme') {
     payload.programme_id = item.programme.programme_id || undefined;
     payload.event_id =

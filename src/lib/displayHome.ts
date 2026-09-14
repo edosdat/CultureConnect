@@ -1045,8 +1045,14 @@ export function sharePrefill(item: DayItem, pageUrl: string): {
   };
 }
 
-export function deepLinkUrl(origin: string, itemKey: string): string {
-  return `${origin}/?e=${encodeURIComponent(itemKey)}`;
+export function deepLinkUrl(
+  origin: string,
+  itemKey: string,
+  token?: string | null,
+): string {
+  const base = `${origin.replace(/\/$/, '')}/?e=${encodeURIComponent(itemKey)}`;
+  const t = (token || '').trim();
+  return t ? `${base}&t=${encodeURIComponent(t)}` : base;
 }
 
 export function isLikelyMobile(): boolean {

@@ -8,7 +8,13 @@ import {
   googleCalendarUrl,
 } from '@/lib/calendar';
 import { filterItemsByCommune, normalizeCommune } from '@/lib/commune';
-import { defaultCineSeance, seanceHeureLabel } from '@/lib/cineSeances';
+import {
+  defaultCineSeance,
+  seanceHeureLabel,
+  seancesIncludingShared,
+  shareSeancePool,
+  shareVisitPickerFilter,
+} from '@/lib/cineSeances';
 import { filterSeancesForActiveFilters } from '@/lib/displayFilter';
 import { isLikelyMobile, itemImageUrl } from '@/lib/displayHome';
 import { pickFilmVivantComplements } from '@/lib/filmVivantComplements';
@@ -46,6 +52,7 @@ import VivantComplementLinks from './VivantComplementLinks';
 import PressCitation from './PressCitation';
 import FicheDescription from './FicheDescription';
 import { CineFilmSeances } from './CineSeancePicker';
+import { useShareVisit } from './ShareVisitProvider';
 import { useSignals } from './SignalsProvider';
 
 type Props = {
@@ -344,6 +351,12 @@ export default function EventDetail({
   useEscapeClose(Boolean(item), onClose);
   const [engaged, setEngaged] = useState(false);
   const [mobileCal, setMobileCal] = useState(false);
+  const {
+    seanceKey: sharedSeanceKey,
+    hasShareToken,
+    sharedSeanceItem,
+    sharedRelatedItems,
+  } = useShareVisit();
   const [activeSeance, setActiveSeance] = useState<DayItem | null>(null);
 
   useEffect(() => {
@@ -378,21 +391,30 @@ export default function EventDetail({
     const { programme: p, evenement: ev, lieu } = item;
     const time = formatFicheHoraires(item);
     const categorie = ev?.categorie ?? '';
+    const sharePool = shareSeancePool(relatedItems, item, [
+      sharedSeanceItem,
+      ...sharedRelatedItems,
+    ]);
+    const pickerFilter = shareVisitPickerFilter(
+      Boolean(sharedSeanceKey || hasShareToken),
+      selectedCommune,
+      selectedLieuId,
+    );
     const upcomingRelated = filterSeancesForActiveFilters(
-      hideSeancesBeforeToday(relatedItems, parisParts().iso),
-      { commune: selectedCommune, lieuId: selectedLieuId },
+      hideSeancesBeforeToday(sharePool, parisParts().iso),
+      pickerFilter,
     );
     const selfMatches =
-      filterSeancesForActiveFilters([item], {
-        commune: selectedCommune,
-        lieuId: selectedLieuId,
-      }).length > 0;
-    const seancesForList =
+      filterSeancesForActiveFilters([item], pickerFilter).length > 0;
+    const seancesForList = seancesIncludingShared(
       upcomingRelated.length > 0
         ? upcomingRelated
         : selfMatches
           ? [item]
-          : [];
+          : [],
+      sharePool,
+      sharedSeanceKey,
+    );
     const hasFilmSeances = seancesForList.length > 0;
     const filmForSuggestions =
       (activeSeance && seancesForList.some((s) => s.key === activeSeance.key)
@@ -468,6 +490,7 @@ export default function EventDetail({
                     <CineFilmSeances
                       items={seancesForList}
                       origin={origin}
+                      initialSeanceKey={sharedSeanceKey}
                       onActiveChange={setActiveSeance}
                       tagSource={item}
                       onReserve={() => {
@@ -707,7 +730,20 @@ export default function EventDetail({
                   )}
                 </>
               )}
-              <ShareButton item={item} />
+              <ShareButton
+                item={
+                  activeSeance &&
+                  seancesForList.some((s) => s.key === activeSeance.key)
+                    ? activeSeance
+                    : item
+                }
+                seanceKey={
+                  activeSeance &&
+                  seancesForList.some((s) => s.key === activeSeance.key)
+                    ? activeSeance.key
+                    : null
+                }
+              />
               <FavoriteButton item={item} />
               {sourceUrlOf(item) && (
                 <a

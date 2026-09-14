@@ -150,6 +150,146 @@ export function horaireOptionLabel(rel: DayItem): string {
   return [date, seanceHeureLabel(rel)].filter(Boolean).join(' · ');
 }
 
+/** B3: preselect the shared `DayItem.key` when it is in the film's séance list. */
+export function resolveSharedSeanceKey(
+  items: readonly { key: string }[],
+  seanceKey?: string | null,
+): string | null {
+  const key = (seanceKey || '').trim();
+  if (!key) return null;
+  return items.some((s) => s.key === key) ? key : null;
+}
+
+/**
+ * Keep the user's horaire (or the shared token séance) when the related
+ * list hydrates. Never fall back to default soonest if a valid pick exists.
+ */
+export function nextPickedSeanceKey(
+  items: readonly { key: string }[],
+  prev: string | null | undefined,
+  sharedSeanceKey?: string | null,
+): string | null {
+  const shared = resolveSharedSeanceKey(items, sharedSeanceKey);
+  if (shared) return shared;
+  const keep = (prev || '').trim();
+  if (keep && items.some((s) => s.key === keep)) return keep;
+  return null;
+}
+
+/**
+ * Séance active du picker. Recalculée à chaque render (pas seulement en
+ * useEffect) : si relatedItems hydratent après le visit, le token s’applique.
+ * `pickedKey` = choix utilisateur (`onPick`) uniquement — jamais un itemKey/film key.
+ * `sharedSeanceKey` = DayItem.key exact du token, jusqu’au override utilisateur.
+ */
+export function resolveActiveCineSeance(
+  items: DayItem[],
+  pickedKey: string | null | undefined,
+  sharedSeanceKey: string | null | undefined,
+  origin: GeoPos | null | undefined,
+): DayItem | null {
+  if (!items.length) return null;
+  const user = (pickedKey || '').trim();
+  if (user) {
+    const picked = items.find((i) => i.key === user);
+    if (picked) return picked;
+  }
+  const shared = resolveSharedSeanceKey(items, sharedSeanceKey);
+  if (shared) {
+    const match = items.find((i) => i.key === shared);
+    if (match) return match;
+  }
+  return defaultCineSeance(items, origin) ?? items[0] ?? null;
+}
+
+/**
+ * Valeurs des deux `<select>` (cinéma + horaire) pour `active`.
+ * Même dérivation que `CineSeancePicker`.
+ */
+export function cinePickerSelectState(
+  seances: DayItem[],
+  active: DayItem,
+  origin: GeoPos | null | undefined,
+): { cinemaValue: string; timeValue: string } {
+  const groups = groupCinemasForFilm(seances, cineDistanceOrigin(origin));
+  const cinemaId = cinemaKeyOf(active);
+  const cinemaValue = groups.some((g) => g.lieuId === cinemaId)
+    ? cinemaId
+    : (groups[0]?.lieuId ?? cinemaId);
+  const times = seancesAtCinema(seances, cinemaId);
+  const timeValue = times.some((s) => s.key === active.key)
+    ? active.key
+    : (times[0]?.key ?? active.key);
+  return { cinemaValue, timeValue };
+}
+
+/**
+ * Si le filtre commune (ex. Toulouse) masque la séance du token (ex. Blagnac),
+ * on la réinjecte depuis le pool non filtré pour que les deux selects l’affichent.
+ */
+export function seancesIncludingShared(
+  list: DayItem[],
+  pool: readonly DayItem[],
+  sharedSeanceKey?: string | null,
+): DayItem[] {
+  const shared = resolveSharedSeanceKey(pool, sharedSeanceKey);
+  if (!shared || list.some((i) => i.key === shared)) return list;
+  const extra = pool.find((i) => i.key === shared);
+  return extra ? [...list, extra] : list;
+}
+
+function sameOpenedFilm(
+  opened: DayItem,
+  row: DayItem,
+): boolean {
+  if (row.key === opened.key) return true;
+  const fid =
+    opened.kind === 'programme' ? (opened.programme.film_id || '').trim() : '';
+  if (fid && row.kind === 'programme' && (row.programme.film_id || '').trim() === fid) {
+    return true;
+  }
+  const title =
+    opened.kind === 'programme'
+      ? (opened.programme.nom_item || '').trim()
+      : '';
+  return Boolean(
+    title &&
+      row.kind === 'programme' &&
+      (row.programme.nom_item || '').trim() === title,
+  );
+}
+
+/** Share visit: drop city/lieu so a Blagnac séance can appear in the cinema select. */
+export function shareVisitPickerFilter(
+  sharing: boolean,
+  commune?: string | null,
+  lieuId?: string | null,
+): { commune: string | null; lieuId: string | null } {
+  if (sharing) return { commune: null, lieuId: null };
+  return { commune: commune || null, lieuId: lieuId || null };
+}
+
+/** Deduped pool for the picker: commune-stripped related + opened + fetched extras. */
+export function shareSeancePool(
+  relatedItems: readonly DayItem[],
+  opened: DayItem | null | undefined,
+  extras: readonly (DayItem | null | undefined)[] = [],
+): DayItem[] {
+  const filteredExtras = extras.filter((row): row is DayItem => {
+    if (!row) return false;
+    if (!opened) return true;
+    return sameOpenedFilm(opened, row);
+  });
+  const out: DayItem[] = [];
+  const seen = new Set<string>();
+  for (const row of [...relatedItems, opened, ...filteredExtras]) {
+    if (!row || seen.has(row.key)) continue;
+    seen.add(row.key);
+    out.push(row);
+  }
+  return out;
+}
+
 /** Compact « 8,20€ · VOSTFR » — omit either part when the CSV is empty. */
 export function seanceMetaLabel(item: DayItem): string {
   return [seancePrixLabel(item), seanceVersionLabel(item)]

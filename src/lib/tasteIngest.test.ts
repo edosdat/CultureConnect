@@ -206,6 +206,7 @@ describe('taste ingest — MAP then DROP', () => {
       'favorite',
       'outbound_click',
       'share',
+      'open_shared',
     ] as const) {
       const s = makeSignal({
         kind,

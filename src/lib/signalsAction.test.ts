@@ -99,6 +99,7 @@ describe('SIGNAL_WEIGHTS — matching engine step A', () => {
     assert.equal(SIGNAL_WEIGHTS.unfavorite, -6);
     assert.equal(SIGNAL_WEIGHTS.reserve, 6);
     assert.equal(SIGNAL_WEIGHTS.outbound_click, 4);
+    assert.equal(SIGNAL_WEIGHTS.open_shared, 4);
     assert.equal(SIGNAL_WEIGHTS.share, 3);
     assert.equal(SIGNAL_WEIGHTS.ics, 5);
     assert.equal(SIGNAL_WEIGHTS.agenda_add, 5);
@@ -110,7 +111,7 @@ describe('SIGNAL_WEIGHTS — matching engine step A', () => {
   });
 
   it('makeSignal uses table weights for new kinds', () => {
-    for (const kind of ['favorite', 'unfavorite', 'outbound_click', 'share'] as const) {
+    for (const kind of ['favorite', 'unfavorite', 'outbound_click', 'share', 'open_shared'] as const) {
       const s = makeSignal({ kind, event_id: 'ev-1', genres: [], moods: [] });
       assert.equal(s.weight, SIGNAL_WEIGHTS[kind], kind);
       assert.equal(s.kind, kind);
@@ -280,6 +281,7 @@ describe('UI tracking paths — payloadFromDayItem', () => {
     assert.equal(shouldMapTasteIngest('unfavorite', []), true);
     assert.equal(shouldMapTasteIngest('outbound_click', []), true);
     assert.equal(shouldMapTasteIngest('share', []), true);
+    assert.equal(shouldMapTasteIngest('open_shared', []), true);
     assert.equal(shouldMapTasteIngest('reserve', []), true);
   });
 
@@ -297,6 +299,10 @@ describe('UI tracking paths — payloadFromDayItem', () => {
     );
     assert.equal(
       shouldPromptLogin([{ ...base, kind: 'share', weight: 3 } as Signal]),
+      true,
+    );
+    assert.equal(
+      shouldPromptLogin([{ ...base, kind: 'open_shared', weight: 4 } as Signal]),
       true,
     );
     assert.equal(

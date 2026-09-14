@@ -13,6 +13,7 @@ import {
   showHomeEventsCounter,
 } from '@/lib/homeEventsCounter';
 import { useSignals } from './SignalsProvider';
+import { useShareVisit } from './ShareVisitProvider';
 import { filterItemsByCommune, normalizeCommune } from '@/lib/commune';
 import {
   filterSeancesForActiveFilters,
@@ -333,6 +334,7 @@ export default function CultureConnectApp({
 }: Props) {
   const { track, trackItem, rememberItem, tasteState, sessionStatus } =
     useSignals();
+  const { seanceKey: sharedSeanceKey, hasShareToken } = useShareVisit();
   const { data: session, status: authStatus } = useSession();
   // Session email only — never searchParams / analytics / page copy.
   const showAdminCounts =
@@ -1797,10 +1799,19 @@ export default function CultureConnectApp({
       try {
         const qs = new URLSearchParams();
         qs.set('id', selectedItemKey);
-        if (selectedCommune && slim && isCinemaDayItem(slim)) {
+        // Share visit: keep film-wide related (Blagnac must not be stripped by Toulouse).
+        if (
+          selectedCommune &&
+          slim &&
+          isCinemaDayItem(slim) &&
+          !hasShareToken &&
+          !sharedSeanceKey
+        ) {
           qs.set('commune', selectedCommune);
         }
-        if (selectedLieuId) qs.set('lieu', selectedLieuId);
+        if (selectedLieuId && !hasShareToken && !sharedSeanceKey) {
+          qs.set('lieu', selectedLieuId);
+        }
         if (scopeRange.startIso) qs.set('date_from', scopeRange.startIso);
         if (scopeRange.endIso) qs.set('date_to', scopeRange.endIso);
         if (timeScope === 'soir') qs.set('soir', '1');
@@ -1809,11 +1820,16 @@ export default function CultureConnectApp({
         const data = (await res.json()) as AgendaDetailResponse;
         if (cancelled || gen !== detailFetchGen.current) return;
         setDetailItem(data.item);
+        const relatedFilter =
+          hasShareToken || sharedSeanceKey
+            ? {
+                ...relatedSeancesFilter(activeFilter, data.item),
+                commune: null,
+                lieuId: null,
+              }
+            : relatedSeancesFilter(activeFilter, data.item);
         setRelatedFilmItems(
-          filterSeancesForActiveFilters(
-            data.relatedItems ?? [],
-            relatedSeancesFilter(activeFilter, data.item),
-          ),
+          filterSeancesForActiveFilters(data.relatedItems ?? [], relatedFilter),
         );
         setAussiCeSoirItems(data.aussiCeSoir ?? []);
         if (!slim) trackItem(data.item, 'open_card');
@@ -1826,7 +1842,7 @@ export default function CultureConnectApp({
       cancelled = true;
     };
     // track by key so reopening the same fiche dedups in 30 min
-  }, [selectedItemKey, activeFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedItemKey, activeFilter, hasShareToken, sharedSeanceKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const showDateLabels = !searching && scopeRange.days.length > 1;
 

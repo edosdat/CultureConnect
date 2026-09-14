@@ -12,6 +12,7 @@ import {
 import dynamic from 'next/dynamic';
 import { SessionProvider } from 'next-auth/react';
 import SignalsProvider from './SignalsProvider';
+import ShareVisitProvider from './ShareVisitProvider';
 import FavoritesProvider from './FavoritesProvider';
 import {
   CLOSE_TASTES_EVENT,
@@ -88,12 +89,14 @@ export default function Providers({ children, googleAuthEnabled }: Props) {
   return (
     <SessionProvider>
       <SignalsProvider>
-        <FavoritesProvider>
-          <TastesUiContext.Provider value={value}>
-            {children}
-            <FirstLoginModal />
-          </TastesUiContext.Provider>
-        </FavoritesProvider>
+        <ShareVisitProvider>
+          <FavoritesProvider>
+            <TastesUiContext.Provider value={value}>
+              {children}
+              <FirstLoginModal />
+            </TastesUiContext.Provider>
+          </FavoritesProvider>
+        </ShareVisitProvider>
       </SignalsProvider>
     </SessionProvider>
   );
