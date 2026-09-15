@@ -43,3 +43,18 @@ export function ficheDescriptionOf(item: DayItem): string {
   const ev = item.evenement;
   return filled(ev.description_longue) || filled(ev.description_courte);
 }
+
+/**
+ * Casting line for the cine fiche. Formats existing `evenement.casting` only —
+ * never invents names. Empty / whitespace → hide.
+ */
+export function ficheCastLine(item: DayItem): string | null {
+  const raw = filled(item.evenement?.casting);
+  if (!raw) return null;
+  const names = raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (names.length === 0) return null;
+  return `Avec : ${names.join(' · ')}`;
+}

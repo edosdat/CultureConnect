@@ -2,7 +2,11 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 import { detailDayItem, slimDayItem } from './slim';
-import { ficheDescriptionOf, ficheDescriptionView } from './ficheDescription';
+import {
+  ficheCastLine,
+  ficheDescriptionOf,
+  ficheDescriptionView,
+} from './ficheDescription';
 
 const LONG_PITCH =
   'Taïwan, 1988. Hsiao-lee, une jeune adolescente timide, peine à trouver sa place à l’école. ' +
@@ -240,6 +244,28 @@ describe('ficheDescriptionOf', () => {
       }),
     );
     assert.equal(ficheDescriptionOf(item), text);
+  });
+
+  it('formats existing casting as Avec : and never invents', () => {
+    const withCast = detailDayItem(
+      programmeItem({
+        cat: 'cinema',
+        evenement: { casting: 'Jacques-Yves Cousteau, archival' },
+      }),
+    );
+    assert.equal(
+      ficheCastLine(withCast),
+      'Avec : Jacques-Yves Cousteau · archival',
+    );
+    const empty = detailDayItem(
+      programmeItem({
+        cat: 'cinema',
+        evenement: { casting: '  ' },
+      }),
+    );
+    assert.equal(ficheCastLine(empty), null);
+    const missing = detailDayItem(programmeItem({ cat: 'cinema' }));
+    assert.equal(ficheCastLine(missing), null);
   });
 
   it('works for fallback event fiches (expo / période)', () => {

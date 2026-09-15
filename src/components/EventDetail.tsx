@@ -18,7 +18,6 @@ import SeanceCard from './SeanceCard';
 import CategoryBadge from './CategoryBadge';
 import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 import FilmVersionBadge from './FilmVersionBadge';
-import FilmPoster from './FilmPoster';
 import ShareSocial from './ShareSocial';
 import SharerActivitySand from './SharerActivitySand';
 import EventCtaRow from './EventCtaRow';
@@ -43,7 +42,8 @@ import { fichePressCitation } from '@/lib/pressCitation';
 import { itemKmLabel, type GeoPos } from '@/lib/nearMe';
 import VivantComplementLinks from './VivantComplementLinks';
 import PressCitation from './PressCitation';
-import FicheDescription from './FicheDescription';
+import FicheDescription, { FicheCast } from './FicheDescription';
+import CineFicheFrame from './CineFicheFrame';
 import { CineFilmSeances } from './CineSeancePicker';
 import { useShareVisit } from './ShareVisitProvider';
 import { useSignals } from './SignalsProvider';
@@ -410,7 +410,10 @@ export default function EventDetail({
         onClick={onClose}
       >
         <div
-          className="max-h-[92vh] w-full max-w-2xl min-w-0 overflow-y-auto overflow-x-hidden rounded-t-3xl border border-culture-sand bg-culture-cream shadow-xl sm:rounded-3xl"
+          className={
+            'max-h-[92vh] w-full min-w-0 overflow-y-auto overflow-x-hidden rounded-t-3xl border border-culture-sand bg-culture-cream shadow-xl sm:rounded-3xl ' +
+            (cinemaFiche ? 'max-w-2xl min-[900px]:max-w-6xl' : 'max-w-2xl')
+          }
           onClick={(e) => e.stopPropagation()}
         >
           <div className="sticky top-0 z-10 flex items-start justify-end border-b border-culture-sand bg-culture-cream/95 px-5 py-3 backdrop-blur">
@@ -425,9 +428,11 @@ export default function EventDetail({
           </div>
 
           {cinemaFiche ? (
-            <div>
-              <FilmPoster src={itemImageUrl(item)} item={item} blurBackdrop />
-              <div className="min-w-0 break-words px-5 pt-3">
+            <CineFicheFrame
+              item={item}
+              imageSrc={itemImageUrl(item)}
+              bodyClassName="px-5 pt-3 min-[900px]:px-7 min-[900px]:pt-6"
+            >
                 <div className="flex flex-wrap gap-2">
                   <CategoryBadge item={item} className="rounded-full px-2.5 text-xs" />
                   {p.type_item && (
@@ -444,11 +449,6 @@ export default function EventDetail({
                 >
                   {p.nom_item}
                 </h2>
-                {creditNamesOf(item).length > 0 && (
-                  <p className="mt-1 text-sm text-culture-ink break-words">
-                    {creditNamesOf(item).join(' · ')}
-                  </p>
-                )}
                 {ev?.titre && ev.titre !== p.nom_item && (
                   <p className="mt-1 text-sm text-culture-muted break-words">
                     {ev.titre}
@@ -491,6 +491,7 @@ export default function EventDetail({
                   </div>
                 ) : null}
                 <FicheDescription item={item} />
+                <FicheCast item={item} />
                 <div className="mt-3">
                   <VivantComplementLinks
                     film={filmForSuggestions}
@@ -498,8 +499,7 @@ export default function EventDetail({
                     onSelect={onSelectItem}
                   />
                 </div>
-              </div>
-            </div>
+            </CineFicheFrame>
           ) : (
             <div className="px-5 pt-4">
               <div className="min-w-0 break-words">
@@ -746,7 +746,10 @@ export default function EventDetail({
       onClick={onClose}
     >
       <div
-        className="max-h-[92vh] w-full max-w-2xl min-w-0 overflow-y-auto overflow-x-hidden rounded-t-3xl border border-culture-sand bg-culture-cream shadow-xl sm:rounded-3xl"
+        className={
+          'max-h-[92vh] w-full min-w-0 overflow-y-auto overflow-x-hidden rounded-t-3xl border border-culture-sand bg-culture-cream shadow-xl sm:rounded-3xl ' +
+          (cinemaFiche ? 'max-w-2xl min-[900px]:max-w-6xl' : 'max-w-2xl')
+        }
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 z-10 flex items-start justify-end border-b border-culture-sand bg-culture-cream/95 px-5 py-3 backdrop-blur">
@@ -761,9 +764,11 @@ export default function EventDetail({
         </div>
 
         {cinemaFiche ? (
-          <div>
-            <FilmPoster src={itemImageUrl(item)} item={item} blurBackdrop />
-            <div className="min-w-0 break-words px-5 pt-3">
+          <CineFicheFrame
+            item={item}
+            imageSrc={itemImageUrl(item)}
+            bodyClassName="px-5 pt-3 min-[900px]:px-7 min-[900px]:pt-6"
+          >
               <div className="flex flex-wrap items-center gap-2">
                 <CategoryBadge item={item} className="rounded-full px-2.5 text-xs" />
                 <TheatreUrgenceBadge item={item} />
@@ -774,15 +779,11 @@ export default function EventDetail({
               >
                 {event.titre}
               </h2>
-              {creditNamesOf(item).length > 0 && (
-                <p className="mt-1 text-sm text-culture-ink break-words">
-                  {creditNamesOf(item).join(' · ')}
-                </p>
-              )}
               <p className="mt-1 text-xs uppercase tracking-wide text-culture-muted">
                 Sur la période (pas de séance datée ce jour)
               </p>
               <FicheDescription item={item} />
+              <FicheCast item={item} />
               <div className="mt-3">
                 <VivantComplementLinks
                   film={item}
@@ -792,8 +793,7 @@ export default function EventDetail({
                   onSelect={onSelectItem}
                 />
               </div>
-            </div>
-          </div>
+          </CineFicheFrame>
         ) : (
           <div className="px-5 pt-4">
             <div className="min-w-0 break-words">

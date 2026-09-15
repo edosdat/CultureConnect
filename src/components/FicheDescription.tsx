@@ -1,5 +1,17 @@
 import type { DayItem } from '@/lib/types';
-import { ficheDescriptionView } from '@/lib/ficheDescription';
+import { ficheCastLine, ficheDescriptionView } from '@/lib/ficheDescription';
+
+/** Parked under DESCRIPTION. Hidden when the catalogue has no casting. */
+export function FicheCast({ item }: { item: DayItem }) {
+  const line = ficheCastLine(item);
+  if (!line) return null;
+  const names = line.replace(/^Avec :\s*/, '');
+  return (
+    <p data-testid="fiche-cast" className="mt-2 text-sm text-culture-muted">
+      <strong className="font-medium text-culture-ink">Avec :</strong> {names}
+    </p>
+  );
+}
 
 /** Programme: description_item, then longue, then courte. Hidden only if empty. */
 export default function FicheDescription({
