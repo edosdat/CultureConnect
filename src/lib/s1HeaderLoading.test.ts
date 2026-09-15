@@ -126,8 +126,16 @@ describe('S1 deep-link share — fiche + photo first, social skeleton', () => {
       new URL('../components/EventDetail.tsx', import.meta.url),
       'utf8',
     );
+    const cineFrameCount = detail.split('<CineFicheFrame').length - 1;
     const filmPosterCount = detail.split('<FilmPoster').length - 1;
-    assert.ok(filmPosterCount >= 3, `fiche paints photo on living-arts too (${filmPosterCount})`);
+    assert.ok(
+      cineFrameCount >= 2,
+      `cine fiche still paints photo first via CineFicheFrame (${cineFrameCount})`,
+    );
+    assert.ok(
+      filmPosterCount >= 2,
+      `fiche paints photo on living-arts too (${filmPosterCount})`,
+    );
     assert.equal(/S5|#121/i.test(detail + social + page), false);
   });
 });
