@@ -20,6 +20,10 @@ import {
   unreadBadgeLabel,
 } from './shareActivity';
 import {
+  fetchActivityInbox,
+  fetchActivityItem,
+} from './shareActivityClient';
+import {
   createShareToken,
   resetShareStoreForTests,
   sharerActivityInbox,
@@ -122,6 +126,20 @@ describe('B3b activity copy', () => {
     assert.equal(formatActivityDateShort('2026-09-16'), '16/09');
   });
 
+  it('client fetchers treat 404 as empty — no invented RSVPs', async () => {
+    const prev = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response(null, { status: 404 })) as typeof fetch;
+    try {
+      const inbox = await fetchActivityInbox();
+      assert.deepEqual(inbox.items, []);
+      assert.equal(inbox.lastSeen, undefined);
+      assert.equal(await fetchActivityItem('p:P1847'), null);
+    } finally {
+      globalThis.fetch = prev;
+    }
+  });
+
   it('parser drops email / vid and keeps empty lists honest', () => {
     assert.equal(
       parseActivityItemPayload({
@@ -198,8 +216,8 @@ describe('B3b activity source contract', () => {
     );
     assert.match(inbox, /share-activity-bell/);
     assert.match(inbox, /Mes partages/);
-    assert.match(inbox, /\/api\/share\/activity\?limit=30/);
-    assert.match(inbox, /\/api\/share\/activity\/seen/);
+    assert.match(inbox, /fetchActivityInbox/);
+    assert.match(inbox, /markActivitySeen/);
     assert.match(inbox, /activityFicheHref/);
     assert.match(inbox, /ACTIVITY_EMPTY/);
     assert.match(inbox, /\{ACTIVITY_EMPTY\}/);
@@ -211,8 +229,18 @@ describe('B3b activity source contract', () => {
       'utf8',
     );
     assert.match(sand, /Depuis ton lien/);
-    assert.match(sand, /\/api\/share\/activity\/item\//);
+    assert.match(sand, /fetchActivityItem/);
     assert.equal(/intéress/i.test(sand), false);
+
+    const client = await readFile(
+      new URL('./shareActivityClient.ts', import.meta.url),
+      'utf8',
+    );
+    assert.match(client, /\/api\/share\/activity/);
+    assert.match(client, /\/api\/share\/activity\/item/);
+    assert.match(client, /status === 404/);
+    assert.match(client, /emptyInbox/);
+    assert.equal(client.includes('ingestAccountItemSignal'), false);
 
     const auth = await readFile(
       new URL('../components/AuthButtons.tsx', import.meta.url),

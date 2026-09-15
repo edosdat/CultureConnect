@@ -1,3 +1,7 @@
+/**
+ * Preview of the Connexion inbox contract. actorId = session email.
+ * Reads real sharer tokens / RSVPs — 0 invented rows, 0 Matching A.
+ */
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { isAllowedSignalOrigin } from '@/lib/guestSignals';

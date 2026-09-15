@@ -1,3 +1,7 @@
+/**
+ * Preview of GET /api/share/activity/item/<itemKey>.
+ * Names only for tokens owned by session email. 0 invented RSVPs.
+ */
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { normalizeDeepLinkId } from '@/lib/deepLink';

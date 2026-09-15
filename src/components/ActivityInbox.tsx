@@ -13,12 +13,13 @@ import {
   formatActivityDateShort,
   formatActivityRelative,
   itemIsUnread,
-  parseActivityListPayload,
-  resolveLastSeen,
   unreadBadgeLabel,
-  writeClientLastSeen,
   type ActivityListItem,
 } from '@/lib/shareActivity';
+import {
+  fetchActivityInbox,
+  markActivitySeen,
+} from '@/lib/shareActivityClient';
 import { itemImageUrl, itemTitle } from '@/lib/displayHome';
 import { formatLieuAffiche } from '@/lib/labels';
 import type { DayItem } from '@/lib/types';
@@ -53,28 +54,6 @@ function BellIcon({ muted }: { muted: boolean }) {
   );
 }
 
-async function markActivitySeen(): Promise<string> {
-  const now = new Date().toISOString();
-  writeClientLastSeen(now);
-  try {
-    const res = await fetch('/api/share/activity/seen', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: '{}',
-    });
-    if (!res.ok) return now;
-    const data = (await res.json()) as { lastSeen?: string };
-    if (data.lastSeen) {
-      writeClientLastSeen(data.lastSeen);
-      return data.lastSeen;
-    }
-  } catch {
-    /* client lastSeen still written */
-  }
-  return now;
-}
-
 function hydrateMeta(item: DayItem): Meta {
   const lieu = formatLieuAffiche(item.lieu);
   const date = formatActivityDateShort(item.dayIso);
@@ -99,20 +78,9 @@ export default function ActivityInbox() {
       setItems([]);
       return;
     }
-    try {
-      const res = await fetch('/api/share/activity?limit=30', {
-        credentials: 'same-origin',
-      });
-      if (res.status === 401 || res.status === 404 || !res.ok) {
-        setItems([]);
-        return;
-      }
-      const parsed = parseActivityListPayload(await res.json());
-      setItems(parsed.items);
-      setLastSeen(resolveLastSeen(parsed.lastSeen ?? null));
-    } catch {
-      setItems([]);
-    }
+    const parsed = await fetchActivityInbox(30);
+    setItems(parsed.items);
+    setLastSeen(parsed.lastSeen ?? null);
   }, [signedIn]);
 
   useEffect(() => {

@@ -6,9 +6,9 @@ import {
   ACTIVITY_NOTICE,
   activitySandLines,
   hasSharerSand,
-  parseActivityItemPayload,
   type ActivityItemPayload,
 } from '@/lib/shareActivity';
+import { fetchActivityItem } from '@/lib/shareActivityClient';
 
 type Props = {
   itemKey: string;
@@ -28,13 +28,9 @@ export default function SharerActivitySand({ itemKey }: Props) {
       return;
     }
     let cancelled = false;
-    void fetch(`/api/share/activity/item/${encodeURIComponent(itemKey)}`, {
-      credentials: 'same-origin',
-    })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((raw: unknown) => {
+    void fetchActivityItem(itemKey)
+      .then((next) => {
         if (cancelled) return;
-        const next = parseActivityItemPayload(raw);
         setPayload(next && hasSharerSand(next) ? next : null);
       })
       .catch(() => {
