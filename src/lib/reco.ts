@@ -1042,15 +1042,20 @@ export function resolvedFormOfItem(item: DayItem): string {
 function itemClosedSlugs(item: DayItem): string[] {
   const ev = item.evenement ?? null;
   const prog = item.kind === 'programme' ? item.programme : null;
+  // Cinema séances: own programme tags only. Season parents (E003/E003b/E006
+  // etc.) store the union of child-film moods on the event — inheriting them
+  // fabricated reasons like « Des Fleurs — parce que tu aimes rire ».
+  const inheritParent =
+    !((prog?.film_id || '').trim() || slotFormOfItem(item) === 'cine');
   const raw = [
     ...splitTagSlugs(prog?.moods),
-    ...splitTagSlugs(ev?.moods),
+    ...(inheritParent ? splitTagSlugs(ev?.moods) : []),
     ...splitTagSlugs(prog?.genres_mood),
-    ...splitTagSlugs(ev?.genres_mood),
+    ...(inheritParent ? splitTagSlugs(ev?.genres_mood) : []),
     ...splitTagSlugs(prog?.genre),
-    ...splitTagSlugs(ev?.genre),
+    ...(inheritParent ? splitTagSlugs(ev?.genre) : []),
     ...splitTagSlugs(prog?.themes),
-    ...splitTagSlugs(ev?.themes),
+    ...(inheritParent ? splitTagSlugs(ev?.themes) : []),
   ];
   const seen = new Set<string>();
   const out: string[] = [];
