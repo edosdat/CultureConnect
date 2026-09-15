@@ -15,7 +15,7 @@ type Props = {
 
 /**
  * Cine fiche chrome.
- * Mobile (~380) essai: ~32% constrained contain frame | ~68% text + Prop A.
+ * Mobile (~380) essai: cadre contain (~28–32% × ≤13rem) | text + Prop A.
  * Web ≥900 KEEP: ~1/4 image | ~3/4 text — do not change that split.
  * Live-ref FAIL: full-bleed landscape hero / huge cover-crop photo.
  */

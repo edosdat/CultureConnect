@@ -118,12 +118,13 @@ describe('cine fiche mobile split essai (~380, ciné only)', () => {
     assert.equal(carousel.includes('flex flex-col min-[900px]:grid'), false);
 
     assert.match(css, /max-width: 899\.98px/);
-    assert.match(css, /max-width: 7\.25rem/);
-    assert.match(css, /max-height: 10rem/);
+    assert.match(css, /max-width: 7\.5rem/);
+    assert.match(css, /max-height: 13rem/);
     assert.match(css, /object-fit: contain/);
+    assert.match(css, /object-position: center/);
     assert.match(css, /height: 0/);
-    assert.match(css, /min-height: 100%/);
-    assert.match(css, /constrained contain frame/);
+    assert.match(css, /PAS poster géant/);
+    assert.equal(/max-height: 10rem/.test(css), false);
   });
 
   it('théâtre / musique stay stacked — cine-fiche-split is ciné only', async () => {
