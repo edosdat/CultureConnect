@@ -53,6 +53,7 @@ import {
   itemPitch,
   rowDisplayTitle,
   seanceWhen,
+  seanceWhenShort,
 } from '@/lib/displayHome';
 import { itemKmLabel, minKmLabel, type GeoPos } from '@/lib/nearMe';
 import { cineDistanceOrigin, defaultCineSeance } from '@/lib/cineSeances';
@@ -900,7 +901,7 @@ export default function CinemaCarousel({
     seances.find((s) => s.key === item.key) ??
     seances[0] ??
     item;
-  const when = seanceWhen(active);
+  const when = pack === 'cine' ? seanceWhenShort(active) : seanceWhen(active);
   const venue = formatLieuAffiche(active.lieu);
   const kmOrigin = pack === 'cine' ? cineDistanceOrigin(origin) : origin;
   const km =

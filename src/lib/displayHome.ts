@@ -144,6 +144,11 @@ export function seanceWhen(item: DayItem, earliestHeure?: string): string {
   return [date, time].filter(Boolean).join(' · ');
 }
 
+/** Mock / pack cine: `15/09 · 13:45` (same when, year dropped). */
+export function seanceWhenShort(item: DayItem, earliestHeure?: string): string {
+  return seanceWhen(item, earliestHeure).replace(/\/\d{4}/, '');
+}
+
 /**
  * One-line FR example in the field itself: style + date + place.
  * Chips under `#cc-search` stay retired (`searchExamplesVisible` is false).

@@ -407,6 +407,7 @@ describe('B3b source contract', () => {
     assert.ok(seancesHeading > 0 && firstSocial < seancesHeading);
     assert.ok(lastSocial > 0 && lastSocial < lastFavorite);
     assert.match(detail, /cineMeta/);
+    assert.match(detail, /seanceWhenShort/);
 
     const carousel = await readFile(
       new URL('../components/CinemaCarousel.tsx', import.meta.url),

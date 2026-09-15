@@ -17,7 +17,7 @@ import {
   shareVisitPickerFilter,
 } from '@/lib/cineSeances';
 import { filterSeancesForActiveFilters } from '@/lib/displayFilter';
-import { isLikelyMobile, itemImageUrl, seanceWhen } from '@/lib/displayHome';
+import { isLikelyMobile, itemImageUrl, seanceWhenShort } from '@/lib/displayHome';
 import { pickFilmVivantComplements } from '@/lib/filmVivantComplements';
 import SeanceCard from './SeanceCard';
 import CategoryBadge from './CategoryBadge';
@@ -433,7 +433,7 @@ export default function EventDetail({
       ? [
           formatLieuAffiche(filmForSuggestions.lieu),
           itemKmLabel(filmForSuggestions, cineDistanceOrigin(origin)),
-          seanceWhen(filmForSuggestions),
+          seanceWhenShort(filmForSuggestions),
         ]
           .filter(Boolean)
           .join(' · ')
