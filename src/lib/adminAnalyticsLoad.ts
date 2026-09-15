@@ -4,9 +4,21 @@
  */
 import 'server-only';
 import {
+  ADMIN_RSVPS_CAP,
+  ADMIN_TASTES_CAP,
+  ADMIN_TOKENS_CAP,
+  adminCsvFilename,
   analyticsWindowDays,
+  analyticsWindowDaysN,
+  ANALYTICS_WINDOW_DAYS_30,
+  buildRsvpTableRows,
+  buildTokenTableRows,
+  buildVisitsAgg,
   emptyTagDistribution,
+  formatRsvpExportCsv,
   formatTasteExportCsv,
+  formatTokenExportCsv,
+  formatVisitsAggExportCsv,
   inParisWindow,
   incrementKindCounts,
   kindCountsToList,
@@ -15,11 +27,16 @@ import {
   mergeVidDay,
   parisDayOfIso,
   round1,
+  rsvpTableTotals,
   tagBucket,
   tasteExportRows,
+  tasteTableRows,
+  tokenTableTotals,
+  topTagsComptes,
   uniquesAndReturns,
   usefulTagsFromFields,
   usefulTasteTags,
+  type AdminTablesPayload,
   type DailyUniques,
   type GuestKindCount,
   type MixMain,
@@ -294,6 +311,7 @@ export type AdminAnalyticsSnapshot = {
     rows: number;
     interne: true;
   };
+  adminTables: AdminTablesPayload;
 };
 
 function postgresConfigured(): boolean {
@@ -312,9 +330,9 @@ export async function loadAdminAnalytics(
   const [guestLines, loginCounts, tokens, rsvps, accounts] = await Promise.all([
     listGuestAppendLines(),
     readGoogleLoginCounts(windowDays),
-    listShareTokensForAdmin(),
-    listShareRsvpsForAdmin(),
-    listAccountTastesForAdmin(),
+    listShareTokensForAdmin(ADMIN_TOKENS_CAP),
+    listShareRsvpsForAdmin(ADMIN_RSVPS_CAP),
+    listAccountTastesForAdmin(ADMIN_TASTES_CAP),
   ]);
 
   // Mesure LOCK: KPI 1–2 from KV cc:vs:* lines only (not cc:vu daily index).
@@ -458,6 +476,11 @@ export async function loadAdminAnalytics(
     .slice(0, 15);
 
   const exportRows = tasteExportRows(accounts);
+  const tasteRows = tasteTableRows(accounts);
+  const tokenRows = buildTokenTableRows(tokens);
+  const rsvpRows = buildRsvpTableRows(rsvps);
+  const windowDays30 = analyticsWindowDaysN(ANALYTICS_WINDOW_DAYS_30, now);
+  const visitsAgg = buildVisitsAgg(tokenRows, daySet);
 
   return {
     windowDays,
@@ -503,7 +526,19 @@ export async function loadAdminAnalytics(
       matchable,
     },
     export18: { rows: exportRows.length, interne: true },
+    adminTables: {
+      tastes: { rows: tasteRows, topTagsUsers: topTagsComptes(accounts) },
+      tokens: { rows: tokenRows, totals: tokenTableTotals(tokenRows) },
+      rsvps: { rows: rsvpRows, totals: rsvpTableTotals(rsvpRows) },
+      visitsAgg,
+      windowDays30,
+    },
   };
+}
+
+function parisToday(now = new Date()): string {
+  const days = analyticsWindowDays(now);
+  return days[days.length - 1] || analyticsWindowDays(now)[0]!;
 }
 
 export async function loadTasteExportCsv(now = new Date()): Promise<{
@@ -511,12 +546,56 @@ export async function loadTasteExportCsv(now = new Date()): Promise<{
   rows: TasteExportRow[];
   filename: string;
 }> {
-  const accounts = await listAccountTastesForAdmin();
+  const accounts = await listAccountTastesForAdmin(ADMIN_TASTES_CAP);
   const rows = tasteExportRows(accounts);
-  const day = analyticsWindowDays(now)[analyticsWindowDays(now).length - 1];
+  const day = parisToday(now);
   return {
     csv: formatTasteExportCsv(rows),
     rows,
-    filename: `cc-gouts-internes-${day}.csv`,
+    filename: adminCsvFilename('tastes', day),
+  };
+}
+
+export type AdminCsvStore = 'tastes' | 'tokens' | 'rsvps' | 'visits';
+
+export function isAdminCsvStore(value: string): value is AdminCsvStore {
+  return (
+    value === 'tastes' ||
+    value === 'tokens' ||
+    value === 'rsvps' ||
+    value === 'visits'
+  );
+}
+
+export async function loadAdminStoreCsv(
+  store: AdminCsvStore,
+  now = new Date(),
+): Promise<{ csv: string; filename: string }> {
+  const day = parisToday(now);
+  if (store === 'tastes') {
+    const out = await loadTasteExportCsv(now);
+    return { csv: out.csv, filename: out.filename };
+  }
+  if (store === 'tokens') {
+    const tokens = await listShareTokensForAdmin(ADMIN_TOKENS_CAP);
+    const rows = buildTokenTableRows(tokens);
+    return {
+      csv: formatTokenExportCsv(rows),
+      filename: adminCsvFilename('tokens', day),
+    };
+  }
+  if (store === 'rsvps') {
+    const rsvps = await listShareRsvpsForAdmin(ADMIN_RSVPS_CAP);
+    const rows = buildRsvpTableRows(rsvps);
+    return {
+      csv: formatRsvpExportCsv(rows),
+      filename: adminCsvFilename('rsvps', day),
+    };
+  }
+  const tokens = await listShareTokensForAdmin(ADMIN_TOKENS_CAP);
+  const rows = buildTokenTableRows(tokens);
+  return {
+    csv: formatVisitsAggExportCsv(rows),
+    filename: adminCsvFilename('visits', day),
   };
 }

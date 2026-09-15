@@ -17,6 +17,26 @@ export const SECTION_COPY = {
     intro:
       'Préférences renseignées par les comptes (Mes goûts) — pas les tags du catalogue.',
   },
+  comptesTable: {
+    title: 'Comptes',
+    intro:
+      'Une ligne par compte. Hash e-mail seulement. Tri par hash / nombre de goûts / date. Top tags = comptes, ≠ catalogue.',
+  },
+  tokensTable: {
+    title: 'Liens de partage',
+    intro:
+      'Liens créés (identifiant tronqué à l’écran). Hash du compte qui a partagé — jamais l’e-mail en clair.',
+  },
+  rsvpsTable: {
+    title: 'Réponses Envie / J’y vais',
+    intro:
+      'Réponses sur les liens de partage. Hash store seulement — aucun prénom.',
+  },
+  visitsTable: {
+    title: 'Lectures des liens',
+    intro:
+      'Agrégat des ouvertures (compteur Neon). Pas de liste visiteur par visiteur, pas d’identifiant anonyme.',
+  },
   tagsCatalogue: {
     title: 'Tags catalogue',
     intro:
@@ -120,7 +140,7 @@ export const KPI_COPY: Record<string, KpiCopy> = {
   '18': {
     title: 'Export CSV des profils goûts',
     glossary:
-      'Téléchargement interne des ~30 premiers profils (e-mail masqué, pas de liste nominative). 0 profil est normal s’il n’y a pas encore de goûts enregistrés.',
+      'Téléchargement interne de tous les comptes avec goûts (e-mail masqué, pas de liste nominative). 0 profil est normal s’il n’y a pas encore de goûts enregistrés.',
   },
 };
 

@@ -461,7 +461,7 @@ export type AccountTasteAdminRow = {
 
 /** Admin analytics — all persisted comptes. Never joins cc_vid. */
 export async function listAccountTastesForAdmin(
-  limit = 500,
+  limit = 2000,
 ): Promise<AccountTasteAdminRow[]> {
   try {
     const pg = await ensureAccountTastesTable();

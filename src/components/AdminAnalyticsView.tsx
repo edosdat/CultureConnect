@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { AdminAnalyticsSnapshot } from '@/lib/adminAnalyticsLoad';
+import AdminDataTables from '@/components/AdminDataTables';
 import {
   KPI_COPY,
   SECTION_COPY,
@@ -107,7 +108,7 @@ export default function AdminAnalyticsView({
   const mixTotal = snap.mix.total;
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <p className="text-xs font-medium uppercase tracking-[0.15em] text-culture-terracotta">
         Admin · HOLD · first-party
       </p>
@@ -254,6 +255,8 @@ export default function AdminAnalyticsView({
           <Card kpi="17" value={fmt(snap.gouts.matchable)} />
           <Card kpi="18" value={`${fmt(snap.export18.rows)} profils`}>
             <p className="mt-3">
+              {/* CSV attachment — not in-app navigation */}
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
               <a
                 href="/admin/analytics/export"
                 className="inline-block rounded-full bg-culture-terracotta px-3 py-1.5 text-sm font-semibold text-white hover:bg-culture-clay"
@@ -264,6 +267,11 @@ export default function AdminAnalyticsView({
           </Card>
         </div>
       </SectionBlock>
+
+      <AdminDataTables
+        tables={snap.adminTables}
+        windowDays7={snap.windowDays}
+      />
 
       <SectionBlock
         title={SECTION_COPY.tagsCatalogue.title}
@@ -303,8 +311,9 @@ export default function AdminAnalyticsView({
       ) : null}
 
       <p className="mt-6 text-xs text-culture-muted">
-        RGPD : page admin privée. Agrégats seuls. Export 18 interne. Merge
-        bloqué — revue RGPD + smoke Design.
+        RGPD : page admin privée. Tables hash only. 0 e-mail clair, 0 prénom,
+        0 identifiant visiteur. Exports CSV allowlist. Merge bloqué — QA
+        Connexion + revue RGPD.
       </p>
     </main>
   );
