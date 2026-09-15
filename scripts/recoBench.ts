@@ -579,6 +579,8 @@ function runBench(set: BenchProfileSet): BenchJson {
   const runs: RunRecord[] = [];
   const recommendedVivant = new Set<string>();
   const feasibleVivant = new Set<string>();
+  /** Work ids already retained for earlier windows of the same profile (P2). */
+  const priorWorks = new Map<string, Set<string>>();
 
   for (const scenario of scenarios) {
     const items = windowItems.get(scenario.id) ?? [];
@@ -589,9 +591,11 @@ function runBench(set: BenchProfileSet): BenchJson {
 
     for (const profile of profiles) {
       const t0 = performance.now();
+      const demoteWorkIds = priorWorks.get(profile.id) ?? new Set<string>();
       const scored = recommendForProfile(items, profile.state, TOP_N, {
         now: scenario.now,
         nouveauFilmIds: nouveauIds,
+        demoteWorkIds,
       });
       const elapsedMs = performance.now() - t0;
       const listItems = scored.map((s) => s.item);
@@ -613,6 +617,9 @@ function runBench(set: BenchProfileSet): BenchJson {
         elapsedMs,
         list: scored.map(toListRow),
       });
+      const acc = priorWorks.get(profile.id) ?? new Set<string>();
+      for (const item of listItems) acc.add(workKey(item));
+      priorWorks.set(profile.id, acc);
     }
   }
 
