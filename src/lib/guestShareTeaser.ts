@@ -105,7 +105,9 @@ export function parseGuestTeaserPayload(raw: unknown): { count: number } {
     'goingNames' in o ||
     'envieNames' in o ||
     'envie' in o ||
-    'going' in o
+    'going' in o ||
+    'names' in o ||
+    'items' in o
   ) {
     return { count: 0 };
   }

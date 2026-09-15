@@ -103,6 +103,12 @@ describe('guest share teaser — Innovateur KEEP', () => {
     assert.deepEqual(parseGuestTeaserPayload({ count: 2, going: 1 }), {
       count: 0,
     });
+    assert.deepEqual(parseGuestTeaserPayload({ count: 2, names: ['Ludo'] }), {
+      count: 0,
+    });
+    assert.deepEqual(parseGuestTeaserPayload({ count: 2, items: [] }), {
+      count: 0,
+    });
     assert.deepEqual(parseGuestTeaserPayload(null), { count: 0 });
   });
 

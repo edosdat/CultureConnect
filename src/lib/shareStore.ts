@@ -767,21 +767,31 @@ export async function toggleShareRsvp(opts: {
   return { kind: nextKind, rsvps: next };
 }
 
-/** Guest teaser: aggregate RSVP count only. No names, no envie/going split. */
+/**
+ * Guest teaser: unique emailHash with envie|going. No names, no kind split.
+ * Opens / visits do not count. Optional `since` keeps only RSVP ts > since.
+ */
 export async function guestActivityTeaserCount(
   tokens: readonly string[],
+  since?: string | null,
 ): Promise<number> {
-  let count = 0;
-  const seen = new Set<string>();
+  const hashes = new Set<string>();
+  const seenTok = new Set<string>();
+  const sinceMs = since ? Date.parse(since) : Number.NaN;
   for (const raw of tokens) {
-    if (!isShareToken(raw) || seen.has(raw)) continue;
-    seen.add(raw);
+    if (!isShareToken(raw) || seenTok.has(raw)) continue;
+    seenTok.add(raw);
     const rec = await readShareToken(raw);
     if (!rec) continue;
     const rsvps = await listTokenRsvps(raw);
-    count += rsvps.length;
+    for (const r of rsvps) {
+      if (r.kind !== 'envie' && r.kind !== 'going') continue;
+      if (!r.emailHash) continue;
+      if (Number.isFinite(sinceMs) && Date.parse(r.ts) <= sinceMs) continue;
+      hashes.add(r.emailHash);
+    }
   }
-  return count;
+  return hashes.size;
 }
 
 export async function tokenSocialPayload(opts: {

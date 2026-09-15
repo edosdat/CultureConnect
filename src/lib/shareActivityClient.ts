@@ -58,7 +58,7 @@ export async function fetchGuestTeaserCount(
 ): Promise<number> {
   if (tokens.length === 0) return 0;
   try {
-    const q = tokens.slice(0, 30).join(',');
+    const q = tokens.slice(0, 20).join(',');
     const res = await fetch(
       `${ACTIVITY_TEASER_PATH}?tokens=${encodeURIComponent(q)}`,
       { credentials: 'same-origin' },

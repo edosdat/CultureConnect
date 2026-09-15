@@ -157,8 +157,8 @@ export const SEARCH_PLACEHOLDER =
   'Je veux écouter du jazz ce week-end au centre-ville';
 
 /** S2 LOCK Eloi — typographic apostrophe, always visible (even teaser sheet). */
-export const HOME_ACCROCHE_H1 = 'J’y vais… vous venez ?';
-export const HOME_ACCROCHE_H2 = 'L’agenda culturel de Toulouse.';
+export const HOME_ACCROCHE_H1 = 'L’agenda culturel de Toulouse.';
+export const HOME_ACCROCHE_H2 = 'Partagez une sortie — voyez qui vient.';
 
 /**
  * Extra existing chips for the 3 example taps.
