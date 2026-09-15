@@ -1195,6 +1195,16 @@ export async function loadHomeWindow(
   )();
 }
 
+/**
+ * Civil day only — inbox date filter. Do not use `queryAgendaDetail`
+ * (related seances + aussiCeSoir) on this path; that is the cold ~10s.
+ */
+export function queryAgendaItemDateIso(id: string): string {
+  const item = findItemByKey(id);
+  if (!item) return '';
+  return seanceDateIso(item);
+}
+
 function findItemByKey(id: string): DayItem | null {
   const normalized = normalizeDeepLinkId(id);
   if (!normalized) return null;

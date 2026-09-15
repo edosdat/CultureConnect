@@ -5,6 +5,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { isAllowedSignalOrigin } from '@/lib/guestSignals';
+import { slimActivityListForWire } from '@/lib/shareActivity';
 import { sharerActivityInbox } from '@/lib/shareStore';
 import { sessionSharerEmail } from '@/lib/shareToken';
 
@@ -29,5 +30,7 @@ export async function GET(req: Request) {
   const limit = Number.isFinite(rawLimit)
     ? Math.min(50, Math.max(1, Math.floor(rawLimit)))
     : 30;
-  return NextResponse.json(await sharerActivityInbox({ email, limit }));
+  return NextResponse.json(
+    slimActivityListForWire(await sharerActivityInbox({ email, limit })),
+  );
 }
