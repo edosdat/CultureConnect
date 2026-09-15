@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import type { DayItem } from '@/lib/types';
 import {
-  circleNamesCopy,
+  circleEnvieLine,
+  circleGoingLine,
   DAUGHTER_NOTICE,
   motherCountersLabel,
   RSVP_LOGIN_ERROR,
@@ -126,10 +127,10 @@ function DaughterRsvp({ item, token }: { item: DayItem; token: string }) {
     }
   }
 
-  const names =
-    social?.inCircle
-      ? circleNamesCopy(social.goingNames, social.envieNames)
-      : '';
+  const goingLine =
+    social?.inCircle ? circleGoingLine(social.goingNames) : '';
+  const envieLine =
+    social?.inCircle ? circleEnvieLine(social.envieNames) : '';
   const anon =
     social && !social.inCircle && (social.envie >= 1 || social.going >= 1)
       ? motherCountersLabel(social.envie, social.going)
@@ -174,13 +175,15 @@ function DaughterRsvp({ item, token }: { item: DayItem; token: string }) {
           </button>
         </div>
       ) : null}
-      {names ? (
-        <p
-          data-testid="share-rsvp-names"
-          className="mt-2 text-sm font-medium text-culture-ink"
-        >
-          {names}
-        </p>
+      {goingLine || envieLine ? (
+        <div data-testid="share-rsvp-names" className="mt-2 space-y-0.5">
+          {goingLine ? (
+            <p className="text-sm font-medium text-culture-ink">{goingLine}</p>
+          ) : null}
+          {envieLine ? (
+            <p className="text-sm font-medium text-culture-ink">{envieLine}</p>
+          ) : null}
+        </div>
       ) : anon ? (
         <p data-testid="share-rsvp-anon" className="mt-2 text-sm text-culture-muted">
           {anon}

@@ -171,23 +171,33 @@ export function motherCountersLabel(envie: number, going: number): string {
   return parts.join(' · ');
 }
 
+/** « Ludo et Benjamin » — last joiner is et, no 3+K cap. */
+export function joinFrNames(names: readonly string[]): string {
+  if (names.length <= 1) return names[0] || '';
+  if (names.length === 2) return `${names[0]} et ${names[1]}`;
+  return `${names.slice(0, -1).join(', ')} et ${names[names.length - 1]}`;
+}
+
+export function circleGoingLine(goingNames: readonly string[]): string {
+  if (goingNames.length === 1) return `${goingNames[0]} y va`;
+  if (goingNames.length > 1) return `${joinFrNames(goingNames)} y vont`;
+  return '';
+}
+
+export function circleEnvieLine(envieNames: readonly string[]): string {
+  if (envieNames.length === 1) return `${envieNames[0]} a envie`;
+  if (envieNames.length > 1) return `${joinFrNames(envieNames)} ont envie`;
+  return '';
+}
+
 /** Cercle copy: « y vont » first, then envie. All prénoms, no 3+K cap. */
 export function circleNamesCopy(
   goingNames: readonly string[],
   envieNames: readonly string[],
 ): string {
-  const parts: string[] = [];
-  if (goingNames.length === 1) {
-    parts.push(`${goingNames[0]} y va`);
-  } else if (goingNames.length > 1) {
-    parts.push(`${goingNames.join(', ')} y vont`);
-  }
-  if (envieNames.length === 1) {
-    parts.push(`${envieNames[0]} a envie`);
-  } else if (envieNames.length > 1) {
-    parts.push(`${envieNames.join(', ')} ont envie`);
-  }
-  return parts.join(' · ');
+  return [circleGoingLine(goingNames), circleEnvieLine(envieNames)]
+    .filter(Boolean)
+    .join(' · ');
 }
 
 export function parseRsvpRecord(raw: unknown): ShareRsvpRecord | null {

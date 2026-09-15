@@ -54,8 +54,9 @@ describe('B3b RSVP helpers', () => {
     assert.equal(circleNamesCopy(['Marie'], ['Léa']), 'Marie y va · Léa a envie');
     assert.equal(
       circleNamesCopy(['Marie', 'Paul'], ['Léa', 'Tom']),
-      'Marie, Paul y vont · Léa, Tom ont envie',
+      'Marie et Paul y vont · Léa et Tom ont envie',
     );
+    assert.equal(circleNamesCopy(['Ludo', 'Benjamin'], ['Camille']), 'Ludo et Benjamin y vont · Camille a envie');
     assert.equal(DAUGHTER_NOTICE, 'Visibles par ceux qui ont ce lien.');
     assert.match(RSVP_LOGIN_ERROR, /Envie ou J’y vais/);
   });
@@ -343,8 +344,8 @@ describe('B3b mother counts + no vid↔name', () => {
     const going = ['Zoé', 'Anne', 'Marie', 'Paul'];
     const envie = ['Tom', 'Léa', 'Sam', 'Nina'];
     const copy = circleNamesCopy(going, envie);
-    assert.match(copy, /^Zoé, Anne, Marie, Paul y vont/);
-    assert.match(copy, /Tom, Léa, Sam, Nina ont envie$/);
+    assert.match(copy, /^Zoé, Anne, Marie et Paul y vont/);
+    assert.match(copy, /Tom, Léa, Sam et Nina ont envie$/);
     assert.equal(copy.includes('+'), false);
     assert.equal(/intéress/i.test(copy), false);
   });
@@ -386,6 +387,8 @@ describe('B3b source contract', () => {
     assert.match(ui, /Envie/);
     assert.match(ui, /J’y vais/);
     assert.match(ui, /DAUGHTER_NOTICE/);
+    assert.match(ui, /circleGoingLine/);
+    assert.match(ui, /circleEnvieLine/);
     assert.match(ui, /bg-culture-sand/);
     assert.match(ui, /share-rsvp-mother/);
     assert.equal(/intéress/i.test(ui), false);
