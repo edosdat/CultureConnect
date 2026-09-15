@@ -294,7 +294,7 @@ export function tasteExportRows(
         .map(([k]) => k)
         .sort();
       const tastesSetAt = r.state.tastesSetAt || r.updatedAt || '';
-      return {
+      const row: TasteExportRow = {
         emailHash: hashEmailKey(r.userKey),
         updatedAt: r.updatedAt || '',
         tastesSetAt,
@@ -304,13 +304,14 @@ export function tasteExportRows(
         genres: genres.join('|'),
         themes: themes.join('|'),
         tastesTextChars: (r.state.tastesText || '').trim().length,
-        sortKey: Date.parse(tastesSetAt) || Date.parse(r.updatedAt || '') || 0,
       };
+      const sortKey = Date.parse(tastesSetAt) || Date.parse(r.updatedAt || '') || 0;
+      return { row, sortKey };
     })
     .sort((a, b) => a.sortKey - b.sortKey)
     .slice(0, limit);
 
-  return scored.map(({ sortKey: _s, ...row }) => row);
+  return scored.map((item) => item.row);
 }
 
 export function formatTasteExportCsv(rows: readonly TasteExportRow[]): string {

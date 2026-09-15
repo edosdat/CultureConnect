@@ -39,7 +39,7 @@ describe('analytics window', () => {
     assert.equal(days[0], '2026-09-09');
     assert.equal(days[6], '2026-09-15');
     assert.equal(inParisWindow('2026-09-15T08:00:00.000Z', new Set(days)), true);
-    assert.equal(inParisWindow('2026-09-08T22:00:00.000Z', new Set(days)), false);
+    assert.equal(inParisWindow('2026-09-08T10:00:00.000Z', new Set(days)), false);
   });
 
   it('maps ISO timestamps to Paris civil days', () => {
@@ -181,12 +181,16 @@ describe('admin gate + export route', () => {
       new URL('../app/admin/analytics/export/route.ts', import.meta.url),
       'utf8',
     );
+    const loader = readFileSync(
+      new URL('./adminAnalyticsLoad.ts', import.meta.url),
+      'utf8',
+    );
     assert.match(page, /showHomeEventsCounter/);
     assert.match(page, /notFound\(\)/);
     assert.equal(page.includes('searchParams'), false);
     assert.match(exportRoute, /showHomeEventsCounter/);
     assert.match(exportRoute, /status: 404/);
-    assert.match(exportRoute, /cc-gouts-internes/);
-    assert.match(exportRoute, /INTERNE|interne|filename/);
+    assert.match(loader, /cc-gouts-internes/);
+    assert.match(exportRoute, /filename/);
   });
 });
