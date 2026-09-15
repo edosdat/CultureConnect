@@ -32,7 +32,7 @@ export default function CineFicheFrame({
       data-testid="cine-fiche-split"
       data-cine-mobile-split="1"
       className={
-        'cine-fiche-split grid grid-cols-[minmax(0,32%)_minmax(0,1fr)] min-[900px]:grid-cols-[1fr_3fr] ' +
+        'cine-fiche-split grid grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)] min-[900px]:grid-cols-[1fr_3fr] ' +
         className
       }
     >

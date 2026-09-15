@@ -932,7 +932,7 @@ export default function CinemaCarousel({
         className={
           'scroll-mt-16 overflow-hidden rounded-card-lg border border-culture-line bg-culture-surface shadow-card' +
           (pack === 'cine'
-            ? ' cine-fiche-split grid grid-cols-[minmax(0,32%)_minmax(0,1fr)] min-[900px]:grid-cols-[1fr_3fr]'
+            ? ' cine-fiche-split grid grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)] min-[900px]:grid-cols-[1fr_3fr]'
             : '')
         }
       >

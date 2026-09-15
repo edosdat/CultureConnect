@@ -110,19 +110,20 @@ describe('cine fiche mobile split essai (~380, ciné only)', () => {
     const css = await readFile(new URL('../app/globals.css', import.meta.url), 'utf8');
 
     assert.match(frame, /data-cine-mobile-split="1"/);
-    assert.match(frame, /grid-cols-\[minmax\(0,32%\)_minmax\(0,1fr\)\]/);
+    assert.match(frame, /grid-cols-\[minmax\(0,7\.5rem\)_minmax\(0,1fr\)\]/);
     assert.equal(frame.includes('flex flex-col'), false);
 
-    assert.match(carousel, /grid-cols-\[minmax\(0,32%\)_minmax\(0,1fr\)\]/);
+    assert.match(carousel, /grid-cols-\[minmax\(0,7\.5rem\)_minmax\(0,1fr\)\]/);
     assert.match(carousel, /data-cine-mobile-split=\{pack === 'cine' \? '1'/);
     assert.equal(carousel.includes('flex flex-col min-[900px]:grid'), false);
 
     assert.match(css, /max-width: 899\.98px/);
     assert.match(css, /max-width: 7\.5rem/);
     assert.match(css, /max-height: 13rem/);
+    assert.match(css, /aspect-ratio: 2 \/ 3/);
     assert.match(css, /object-fit: contain/);
     assert.match(css, /object-position: center/);
-    assert.match(css, /height: 0/);
+    assert.equal(/\n\s*height: 0;/.test(css), false);
     assert.match(css, /PAS poster géant/);
     assert.equal(/max-height: 10rem/.test(css), false);
   });
