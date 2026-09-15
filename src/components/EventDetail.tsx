@@ -432,7 +432,7 @@ export default function EventDetail({
             <CineFicheFrame
               item={item}
               imageSrc={itemImageUrl(item)}
-              bodyClassName="px-1 pt-0 min-[900px]:px-7 min-[900px]:pt-6"
+              bodyClassName="px-5 pt-3 min-[900px]:px-7 min-[900px]:pt-6"
             >
                 <div className="flex flex-wrap gap-2">
                   <CategoryBadge item={item} className="rounded-full px-2.5 text-xs" />
@@ -769,7 +769,7 @@ export default function EventDetail({
           <CineFicheFrame
             item={item}
             imageSrc={itemImageUrl(item)}
-            bodyClassName="px-1 pt-0 min-[900px]:px-7 min-[900px]:pt-6"
+            bodyClassName="px-5 pt-3 min-[900px]:px-7 min-[900px]:pt-6"
           >
               <div className="flex flex-wrap items-center gap-2">
                 <CategoryBadge item={item} className="rounded-full px-2.5 text-xs" />
