@@ -463,13 +463,25 @@ export function top3PaintMode(opts: Top3SectionOpts): Top3PaintMode {
   return opts.cardCount > 0 ? 'cards' : 'hidden';
 }
 
-/** H2 for the reco row. Matches visible card count; 0 is hidden by the caller. */
-export function top3Heading(
-  cardCount: number,
-  signedIn = false,
-): string {
-  const n = cardCount === 1 || cardCount === 2 || cardCount === 3 ? cardCount : 3;
-  return signedIn ? `Mon top ${n} du moment` : `Le top ${n} du moment`;
+/** S5 Design LOCK 2026-09-15 — same H2 for guest and signed-in. */
+export const TOP3_HEADING = 'Pas d’idée ? Trois sorties';
+
+/** Mix promise under the Top 3 H2. Words use S8 `--cat-*` tokens. */
+export const TOP3_SUBLINE_CLASS =
+  'mt-1 text-xs tracking-[0.01em] text-culture-muted';
+
+export const TOP3_SUBLINE_PARTS = [
+  { label: 'Ciné', cssVar: '--cat-cine' },
+  { label: 'Théâtre', cssVar: '--cat-theatre' },
+  { label: 'Musique', cssVar: '--cat-musique' },
+] as const;
+
+/**
+ * H2 for the reco row. Card count and auth no longer change the title
+ * (S5 — no Le / Mon / Ton split).
+ */
+export function top3Heading(_cardCount?: number, _signedIn?: boolean): string {
+  return TOP3_HEADING;
 }
 
 export function eventIdOf(item: DayItem): string {

@@ -52,12 +52,7 @@ import {
   resolveSearchSubmit,
   shouldInvalidateProfileRecoCache,
   HOME_CHROME_STACK_CLASS,
-  HOME_SECTION_TITLE_ACCENT_VAR,
-  HOME_SECTION_TITLE_CLASS,
-  HOME_SECTION_TITLE_RULE_CLASS,
-  homeSectionAccentStyle,
   TOP3_SECTION_CLASS,
-  top3Heading,
   top3PaintMode,
   theatreRows,
   top3IdentitySet,
@@ -80,6 +75,7 @@ import TimeScopeBar from './TimeScopeBar';
 import SearchOmnibox from './SearchOmnibox';
 import ListWaitDots, { HomeListWaitSlot } from './ListWaitDots';
 import Top3GuestCta from './Top3GuestCta';
+import Top3SectionHeading from './Top3SectionHeading';
 import HomeSection from './HomeSection';
 
 const EventDetail = dynamic(() => import('./EventDetail'), { ssr: false });
@@ -2270,17 +2266,7 @@ export default function CultureConnectApp({
           data-top3-count={recoReady ? top3Cards.length : undefined}
           data-top3-pending={top3Mode === 'skeleton' ? '' : undefined}
         >
-          <h2 className={HOME_SECTION_TITLE_CLASS}>
-            <span
-              className={HOME_SECTION_TITLE_RULE_CLASS}
-              style={homeSectionAccentStyle(HOME_SECTION_TITLE_ACCENT_VAR)}
-            >
-              {top3Heading(
-                recoReady ? top3Cards.length : 3,
-                sessionStatus === 'authenticated',
-              )}
-            </span>
-          </h2>
+          <Top3SectionHeading />
           {sessionStatus !== 'authenticated' ? (
             <Top3GuestCta
               onClick={

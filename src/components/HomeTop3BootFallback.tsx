@@ -1,12 +1,7 @@
-import {
-  HOME_SECTION_TITLE_ACCENT_VAR,
-  HOME_SECTION_TITLE_CLASS,
-  HOME_SECTION_TITLE_RULE_CLASS,
-  homeSectionAccentStyle,
-  TOP3_SECTION_CLASS,
-} from '@/lib/displayHome';
+import { TOP3_SECTION_CLASS } from '@/lib/displayHome';
 import HomeBootChrome from './HomeBootChrome';
 import Top3GuestCta from './Top3GuestCta';
+import Top3SectionHeading from './Top3SectionHeading';
 import Top3Skeleton from './Top3Skeleton';
 
 /**
@@ -26,14 +21,7 @@ export default function HomeTop3BootFallback() {
           data-top3-boot-fallback=""
           data-top3-pending=""
         >
-          <h2 className={HOME_SECTION_TITLE_CLASS}>
-            <span
-              className={HOME_SECTION_TITLE_RULE_CLASS}
-              style={homeSectionAccentStyle(HOME_SECTION_TITLE_ACCENT_VAR)}
-            >
-              Le top 3 du moment
-            </span>
-          </h2>
+          <Top3SectionHeading />
           <Top3GuestCta />
           <Top3Skeleton />
         </section>

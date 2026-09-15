@@ -41,8 +41,12 @@ import {
   TOP3_RAIL_CARD_HEIGHT_CLASS,
   TOP3_RAIL_IMAGE_CLASS,
   TOP3_RAIL_THUMB_CLASS,
+  TOP3_HEADING,
   TOP3_SECTION_CLASS,
+  TOP3_SUBLINE_CLASS,
+  TOP3_SUBLINE_PARTS,
   top3CardFrameClass,
+  top3Heading,
   top3GridClass,
   top3IndicatorLabel,
   top3PaintMode,
@@ -1413,6 +1417,23 @@ describe('Top 3 mobile carousel (<md)', () => {
     assert.equal(HOME_SECTION_TITLE_CLASS.includes('w-full'), false);
     assert.equal(HOME_SECTION_TITLE_CLASS.includes('leading-tight'), false);
     assert.ok(TOP3_SECTION_CLASS.includes('px-2'));
+  });
+
+  it('S5 LOCK H2 + S8-colored mix subline (same guest / signed-in)', () => {
+    assert.equal(TOP3_HEADING, 'Pas d’idée ? Trois sorties');
+    assert.equal(TOP3_HEADING.includes('\u2019'), true);
+    assert.equal(/Le top|Mon top|Ton top/i.test(TOP3_HEADING), false);
+    assert.equal(top3Heading(3, true), TOP3_HEADING);
+    assert.equal(top3Heading(1, false), TOP3_HEADING);
+    assert.ok(TOP3_SUBLINE_CLASS.includes('text-xs'));
+    assert.deepEqual(
+      TOP3_SUBLINE_PARTS.map((p) => [p.label, p.cssVar]),
+      [
+        ['Ciné', '--cat-cine'],
+        ['Théâtre', '--cat-theatre'],
+        ['Musique', '--cat-musique'],
+      ],
+    );
   });
 
   it('maps scroll position to a 1-based 1/3 label', () => {

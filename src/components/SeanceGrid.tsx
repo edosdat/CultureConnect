@@ -12,6 +12,7 @@ import type { DayItem } from '@/lib/types';
 import { densify, densifiedCardCount } from '@/lib/densify';
 import { filmIdOfItem } from '@/lib/nouveautesCine';
 import {
+  TOP3_HEADING,
   TOP3_INDICATOR_CLASS,
   top3CardFrameClass,
   top3IndicatorLabel,
@@ -161,7 +162,7 @@ function FixedSlotsGrid({
         data-top3-count={count}
         data-top3-carousel={carousel ? '' : undefined}
         aria-roledescription={carousel ? 'carousel' : undefined}
-        aria-label={carousel ? `Le top ${count} du moment` : undefined}
+        aria-label={carousel ? TOP3_HEADING : undefined}
       >
         {visible.map((item, i) => (
           <li key={item.key} className={top3CardFrameClass(count)}>
