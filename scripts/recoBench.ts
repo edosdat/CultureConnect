@@ -39,7 +39,12 @@ import {
   type MoodFormCounts,
   type MoodStockReference,
 } from './benchProfiles';
-import { slotsFilledOf } from './benchMetrics';
+import {
+  INHERITED_FAMILY_DEFINITION,
+  INHERITED_FAMILY_MIN_PARENT_MOODS,
+  isSeasonMegaMoodParent,
+  slotsFilledOf,
+} from './benchMetrics';
 import { loadBenchCatalogue } from './loadCatalogue';
 import { itemsForDateRange, itemsForDay } from '../src/lib/events';
 import { nouveauFilmIds } from '../src/lib/nouveautesCine';
@@ -90,10 +95,34 @@ type Scenario = {
   definition: string;
 };
 
+type InheritedFamilyParent = {
+  eventId: string;
+  title: string;
+  parentMoodCount: number;
+};
+
+type InheritedFamilyByParent = InheritedFamilyParent & {
+  recommendedWorks: number;
+  recommendedRows: number;
+};
+
+type InheritedFamilyMetric = {
+  definition: string;
+  minParentTasteMoods: number;
+  parentEvents: InheritedFamilyParent[];
+  recommendedWorks: number;
+  recommendedRows: number;
+  recommendedWorkIds: string[];
+  byFamily: InheritedFamilyByParent[];
+};
+
 type ListRow = {
   key: string;
   workId: string;
   title: string;
+  eventId: string;
+  inheritedFamily: boolean;
+  inheritedFamilyEventId?: string;
   slot: RecoSlotForm | null;
   form: string;
   moods: string[];
@@ -149,6 +178,7 @@ type BenchJson = {
     };
     vivantRule: string;
     slotsFilledRule: string;
+    inheritedFamilyRule: string;
   };
   profiles: Array<{
     id: string;
@@ -180,6 +210,7 @@ type BenchJson = {
     vivantShare: number | null;
     fallbackRate: number | null;
     meanElapsedMs: number;
+    inheritedFamily: InheritedFamilyMetric;
   };
 };
 
@@ -200,15 +231,17 @@ function splitTags(raw: string | string[] | undefined | null): string[] {
   return parts.map((s) => s.trim().toLowerCase()).filter(Boolean);
 }
 
-/** Closed goût slugs on the item (ambiance vector). */
+/** Closed goût slugs the engine sees (P0: cine skips parent event moods). */
 function itemTasteMoods(item: DayItem): string[] {
   const ev = item.evenement ?? null;
   const prog = item.kind === 'programme' ? item.programme : null;
+  const inheritParent =
+    !((prog?.film_id || '').trim() || slotFormOfItem(item) === 'cine');
   const raw = [
     ...splitTags(prog?.moods),
-    ...splitTags(ev?.moods),
+    ...(inheritParent ? splitTags(ev?.moods) : []),
     ...splitTags(prog?.genres_mood),
-    ...splitTags(ev?.genres_mood),
+    ...(inheritParent ? splitTags(ev?.genres_mood) : []),
   ];
   const seen = new Set<string>();
   const out: string[] = [];
@@ -218,6 +251,73 @@ function itemTasteMoods(item: DayItem): string[] {
     out.push(slug);
   }
   return out;
+}
+
+function eventIdOf(item: DayItem): string {
+  if (item.kind === 'programme') {
+    return (
+      (item.programme.event_id || '').trim() ||
+      (item.evenement?.event_id || '').trim()
+    );
+  }
+  return (item.evenement.event_id || '').trim();
+}
+
+function seasonMegaMoodParents(
+  events: Array<{
+    event_id?: string;
+    titre?: string;
+    form?: string;
+    categorie?: string;
+    moods?: string;
+  }>,
+): InheritedFamilyParent[] {
+  const out: InheritedFamilyParent[] = [];
+  for (const ev of events) {
+    const eventId = (ev.event_id || '').trim();
+    if (!eventId) continue;
+    const moods = splitTags(ev.moods).filter((s) => isTasteMood(s));
+    if (!isSeasonMegaMoodParent(moods, ev.form, ev.categorie)) continue;
+    out.push({
+      eventId,
+      title: (ev.titre || '').trim() || eventId,
+      parentMoodCount: moods.length,
+    });
+  }
+  return out;
+}
+
+function inheritedFamilyMetric(
+  parents: InheritedFamilyParent[],
+  rows: ReadonlyArray<{ workId: string; eventId: string }>,
+): InheritedFamilyMetric {
+  const parentById = new Map(parents.map((p) => [p.eventId, p]));
+  const works = new Set<string>();
+  const byFamilyWorks = new Map<string, Set<string>>();
+  const byFamilyRows = new Map<string, number>();
+  let recommendedRows = 0;
+  for (const row of rows) {
+    if (!parentById.has(row.eventId)) continue;
+    recommendedRows += 1;
+    works.add(row.workId);
+    const set = byFamilyWorks.get(row.eventId) ?? new Set<string>();
+    set.add(row.workId);
+    byFamilyWorks.set(row.eventId, set);
+    byFamilyRows.set(row.eventId, (byFamilyRows.get(row.eventId) ?? 0) + 1);
+  }
+  return {
+    definition: INHERITED_FAMILY_DEFINITION,
+    minParentTasteMoods: INHERITED_FAMILY_MIN_PARENT_MOODS,
+    parentEvents: parents,
+    recommendedWorks: works.size,
+    recommendedRows,
+    recommendedWorkIds: [...works].sort(),
+    byFamily: parents.map((p) => ({
+      ...p,
+      recommendedWorks: byFamilyWorks.get(p.eventId)?.size ?? 0,
+      recommendedRows: byFamilyRows.get(p.eventId) ?? 0,
+    })),
+  };
 }
 
 function workKey(item: DayItem): string {
@@ -352,12 +452,20 @@ function reasonPhrase(reason: RecoReason | undefined): string | null {
   return 'profil';
 }
 
-function toListRow(scored: ScoredDayItem): ListRow {
+function toListRow(
+  scored: ScoredDayItem,
+  familyEventIds: ReadonlySet<string>,
+): ListRow {
   const { item, reason } = scored;
+  const eventId = eventIdOf(item);
+  const inheritedFamily = familyEventIds.has(eventId);
   return {
     key: item.key,
     workId: workKey(item),
     title: titleOf(item),
+    eventId,
+    inheritedFamily,
+    ...(inheritedFamily ? { inheritedFamilyEventId: eventId } : {}),
     slot: slotFormOfItem(item),
     form: resolvedFormOfItem(item),
     moods: itemTasteMoods(item),
@@ -564,6 +672,8 @@ function coverageOf(
 
 function runBench(set: BenchProfileSet): BenchJson {
   const catalogue = loadBenchCatalogue();
+  const familyParents = seasonMegaMoodParents(catalogue.evenements);
+  const familyEventIds = new Set(familyParents.map((p) => p.eventId));
   const scenarios = buildScenarios(FIXED_NOW);
   const nouveauIds = nouveauFilmIds(catalogue.programmeWithContext, FIXED_NOW);
   const { profiles } = set;
@@ -615,7 +725,7 @@ function runBench(set: BenchProfileSet): BenchJson {
         calibration: calibrationKl(profile.state, listItems),
         fallbackRate: scored.length ? fallbackCount / scored.length : null,
         elapsedMs,
-        list: scored.map(toListRow),
+        list: scored.map((row) => toListRow(row, familyEventIds)),
       });
       const acc = priorWorks.get(profile.id) ?? new Set<string>();
       for (const item of listItems) acc.add(workKey(item));
@@ -668,6 +778,7 @@ function runBench(set: BenchProfileSet): BenchJson {
         'slotFormOfItem ∈ {theatre, concert} (festival/enfants follow that resolver; raw form is ignored)',
       slotsFilledRule:
         'top 3: count of cine/theatre/concert actually present (0–3). vivantShare kept only for free lists.',
+      inheritedFamilyRule: INHERITED_FAMILY_DEFINITION,
     },
     profiles: profiles.map((p) => ({
       id: p.id,
@@ -686,6 +797,10 @@ function runBench(set: BenchProfileSet): BenchJson {
       vivantShare: mean(runs.map((r) => r.vivantShare)),
       fallbackRate: mean(runs.map((r) => r.fallbackRate)),
       meanElapsedMs: mean(runs.map((r) => r.elapsedMs)) ?? 0,
+      inheritedFamily: inheritedFamilyMetric(
+        familyParents,
+        runs.flatMap((r) => r.list),
+      ),
     },
   };
 }
@@ -762,6 +877,13 @@ function printTable(result: BenchJson, set: BenchProfileSet): void {
   console.log(
     `temps moyen / appel         : ${fmtNum(result.global.meanElapsedMs, 1)} ms`,
   );
+  const fam = result.global.inheritedFamily;
+  if (fam) {
+    const parents = fam.parentEvents.map((p) => p.eventId).join(', ') || '—';
+    console.log(
+      `familles héritées (works)   : ${fam.recommendedWorks} works / ${fam.recommendedRows} rows  [${parents}]`,
+    );
+  }
   console.log('');
   console.log(
     '⚠ seuils: couverture < 15 % · diversité < 0.3 · repli > 50 %  (exit 0 quand même)',
@@ -792,7 +914,10 @@ function formatListRow(row: ListRow, index: number): string {
   const slot = row.slot ?? row.form ?? '?';
   const moods = row.moods.length ? row.moods.join('|') : '—';
   const why = [row.reasonSource, row.reasonPhrase].filter(Boolean).join(' · ');
-  return `    ${index + 1}. ${row.title}  [${slot}]  ${moods}  — ${why}  (${row.dayIso})`;
+  const family = row.inheritedFamily
+    ? `  family=${row.inheritedFamilyEventId ?? row.eventId}`
+    : '';
+  return `    ${index + 1}. ${row.title}  [${slot}]  ${moods}  — ${why}  (${row.dayIso})${family}`;
 }
 
 function printTop3(result: BenchJson, profiles: BenchProfile[]): void {
@@ -841,6 +966,25 @@ function readableDump(result: BenchJson, profiles: BenchProfile[]): string {
   lines.push(
     `couverture : ${fmtPct(cov.ratio, 1)} (${cov.recommended} / ${cov.feasible}) · slots ${fmtSlots(result.global.slotsFilled)} · repli ${fmtPct(result.global.fallbackRate, 1)}`,
   );
+  const fam = result.global.inheritedFamily;
+  if (fam) {
+    const parentList = fam.parentEvents
+      .map((p) => `${p.eventId} (${p.parentMoodCount} moods)`)
+      .join(', ');
+    lines.push('');
+    lines.push('## Familles héritées (saison mega-moods)');
+    lines.push('');
+    lines.push(fam.definition);
+    lines.push('');
+    lines.push(
+      `Parents détectés : ${parentList || '—'} · works recommandés dans une famille : **${fam.recommendedWorks}** (${fam.recommendedRows} rows)`,
+    );
+    for (const row of fam.byFamily) {
+      lines.push(
+        `- ${row.eventId} — ${row.title} : ${row.recommendedWorks} works / ${row.recommendedRows} rows`,
+      );
+    }
+  }
   lines.push('');
   for (const profile of profiles) {
     lines.push(`## ${profile.id} — ${profile.label}`);

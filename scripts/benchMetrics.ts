@@ -26,3 +26,42 @@ export function slotsFilledOf(
   }
   return seen.size;
 }
+
+/**
+ * Banc 2 — inherited family (season mega-mood parents).
+ *
+ * A parent event is a family when it is cinema (`form` cine/cinema or
+ * `categorie` cinema) AND it carries ≥ 8 closed taste moods. Those rows
+ * (E003 / E003b / E006 today) store the union of child-film ambiances.
+ *
+ * A recommended work **belongs** to a family when its `event_id` is one of
+ * those parents (or is the parent card itself). This is membership, not
+ * “still inheriting moods” — P0 stops inheritance; children can still be
+ * recommended on their own tags / fallback.
+ */
+export const INHERITED_FAMILY_MIN_PARENT_MOODS = 8;
+
+export const INHERITED_FAMILY_DEFINITION =
+  'Cinema parent event with ≥ 8 closed taste moods (season mega-tags). ' +
+  'A recommended work belongs to the family when its event_id matches. ' +
+  'Membership ≠ mood inheritance (P0). Catalogue peers of E003/E003b/E006.';
+
+function isCinemaParent(form?: string, categorie?: string): boolean {
+  const f = (form || '').trim().toLowerCase();
+  const c = (categorie || '').trim().toLowerCase();
+  return f === 'cine' || f === 'cinema' || c === 'cinema' || c.includes('cinema');
+}
+
+export function isSeasonMegaMoodParent(
+  parentMoods: readonly string[],
+  form?: string,
+  categorie?: string,
+): boolean {
+  if (!isCinemaParent(form, categorie)) return false;
+  const seen = new Set<string>();
+  for (const raw of parentMoods) {
+    const slug = raw.trim().toLowerCase();
+    if (slug) seen.add(slug);
+  }
+  return seen.size >= INHERITED_FAMILY_MIN_PARENT_MOODS;
+}
