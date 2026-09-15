@@ -207,7 +207,7 @@ export default function AuthButtons() {
                 data-account-control="admin-analytics"
                 className="block w-full px-3 py-2 text-left text-[13px] text-culture-ink hover:bg-culture-cream"
               >
-                Analytics
+                Analytics / Admin
               </Link>
             ) : null}
             <div className="px-3 py-2">

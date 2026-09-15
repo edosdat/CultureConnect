@@ -263,6 +263,22 @@ describe('RGPD — export 18 + 0 join vid', () => {
   });
 });
 
+describe('UX admin — allowlist + menu', () => {
+  it('menu Analytics / Admin is gated on HOME_EVENTS_COUNTER_EMAIL only', () => {
+    assert.equal(HOME_EVENTS_COUNTER_EMAIL, 'edosdat@gmail.com');
+    const auth = readFileSync(
+      new URL('../components/AuthButtons.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(auth, /showHomeEventsCounter\(user\?\.email\)/);
+    assert.match(auth, /Analytics \/ Admin/);
+    assert.match(auth, /data-account-control="admin-analytics"/);
+    assert.equal(auth.includes('@gmail.com'), false);
+    const gate = readFileSync(new URL('./adminGate.ts', import.meta.url), 'utf8');
+    assert.match(gate, /showHomeEventsCounter/);
+  });
+});
+
 describe('Mesure — approx. / minorant on guest KV KPIs', () => {
   it('labels KPI 1–2, 10, 16 only', () => {
     const view = readFileSync(
