@@ -309,7 +309,7 @@ export function tasteExportRows(
       return { row, sortKey };
     })
     .sort((a, b) => a.sortKey - b.sortKey)
-    .slice(0, limit);
+    .slice(0, Math.min(TASTE_EXPORT_LIMIT, Math.max(0, Math.floor(limit))));
 
   return scored.map((item) => item.row);
 }

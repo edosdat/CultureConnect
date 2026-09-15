@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
-import { showHomeEventsCounter } from '@/lib/homeEventsCounter';
+import { isAdminSession } from '@/lib/adminGate';
 import { loadTasteExportCsv } from '@/lib/adminAnalyticsLoad';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const session = await auth();
-  if (!showHomeEventsCounter(session?.user?.email)) {
+  if (!(await isAdminSession())) {
     return new NextResponse(null, { status: 404 });
   }
   const { csv, filename } = await loadTasteExportCsv();

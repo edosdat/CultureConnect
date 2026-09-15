@@ -18,6 +18,7 @@ import {
   splitCatalogueTagSlugs,
   tagBucket,
   tasteExportRows,
+  TASTE_EXPORT_LIMIT,
   uniquesAndReturns,
   usefulTagsFromFields,
   usefulTasteTags,
@@ -171,8 +172,12 @@ describe('KV key helpers', () => {
 });
 
 describe('admin gate + export route', () => {
-  it('reuses the existing admin Google email and 404s everyone else', () => {
+  it('gates the whole /admin namespace and 404s everyone else', () => {
     assert.equal(HOME_EVENTS_COUNTER_EMAIL, 'edosdat@gmail.com');
+    const layout = readFileSync(
+      new URL('../app/admin/layout.tsx', import.meta.url),
+      'utf8',
+    );
     const page = readFileSync(
       new URL('../app/admin/analytics/page.tsx', import.meta.url),
       'utf8',
@@ -181,17 +186,68 @@ describe('admin gate + export route', () => {
       new URL('../app/admin/analytics/export/route.ts', import.meta.url),
       'utf8',
     );
+    const gate = readFileSync(new URL('./adminGate.ts', import.meta.url), 'utf8');
     const loader = readFileSync(
       new URL('./adminAnalyticsLoad.ts', import.meta.url),
       'utf8',
     );
-    assert.match(page, /showHomeEventsCounter/);
+    assert.match(gate, /showHomeEventsCounter/);
+    assert.match(layout, /isAdminSession/);
+    assert.match(layout, /notFound\(\)/);
+    assert.match(page, /isAdminSession/);
     assert.match(page, /notFound\(\)/);
     assert.equal(page.includes('searchParams'), false);
-    assert.match(exportRoute, /showHomeEventsCounter/);
+    assert.match(exportRoute, /isAdminSession/);
     assert.match(exportRoute, /status: 404/);
     assert.match(loader, /cc-gouts-internes/);
     assert.match(exportRoute, /filename/);
+  });
+});
+
+describe('RGPD — export 18 + 0 join vid', () => {
+  it('caps at 30, hashes email, useful columns only, no vid↔compte', () => {
+    assert.equal(TASTE_EXPORT_LIMIT, 30);
+    const many = Array.from({ length: 40 }, (_, i) => ({
+      userKey: `u${i}@gmail.com`,
+      state: state({
+        tastesText: `jazz ${i}`,
+        tastesSetAt: `2026-08-${String((i % 28) + 1).padStart(2, '0')}T00:00:00.000Z`,
+      }),
+      updatedAt: `2026-08-${String((i % 28) + 1).padStart(2, '0')}T00:00:00.000Z`,
+    }));
+    const rows = tasteExportRows(many, 99);
+    assert.equal(rows.length, 30);
+    assert.equal(rows.every((r) => !r.emailHash.includes('@')), true);
+    const csv = formatTasteExportCsv(rows);
+    assert.match(csv, /INTERNE/);
+    assert.equal(csv.includes('@gmail.com'), false);
+    assert.equal(csv.includes('signalsRecent'), false);
+    assert.equal(csv.includes('user_key'), false);
+    assert.match(csv, /email_hash/);
+    const load = readFileSync(
+      new URL('./adminAnalyticsLoad.ts', import.meta.url),
+      'utf8',
+    );
+    const helpers = readFileSync(
+      new URL('./adminAnalytics.ts', import.meta.url),
+      'utf8',
+    );
+    assert.match(load, /assertNoVidAccountJoin/);
+    assert.match(load, /Never joins cc_vid/);
+    assert.match(helpers, /no cc_vid ↔ email join/);
+    assert.equal(load.includes('firstName'), false);
+    const gitignore = readFileSync(
+      new URL('../../.gitignore', import.meta.url),
+      'utf8',
+    );
+    assert.match(gitignore, /gouts-internes/);
+    const conf = readFileSync(
+      new URL('../app/confidentialite/page.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(conf, /export interne limité/);
+    assert.match(conf, /Pour toi/);
+    assert.match(conf, /agrégats de goûts/);
   });
 });
 

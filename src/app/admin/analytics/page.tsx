@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { auth } from '@/auth';
 import AdminAnalyticsView from '@/components/AdminAnalyticsView';
-import { showHomeEventsCounter } from '@/lib/homeEventsCounter';
+import { isAdminSession } from '@/lib/adminGate';
 import { loadAdminAnalytics } from '@/lib/adminAnalyticsLoad';
 
 export const dynamic = 'force-dynamic';
@@ -13,10 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminAnalyticsPage() {
-  const session = await auth();
-  if (!showHomeEventsCounter(session?.user?.email)) {
-    notFound();
-  }
+  if (!(await isAdminSession())) notFound();
   const snap = await loadAdminAnalytics();
   return <AdminAnalyticsView snap={snap} />;
 }
