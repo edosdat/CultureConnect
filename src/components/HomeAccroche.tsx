@@ -1,6 +1,6 @@
 import { HOME_ACCROCHE_H1, HOME_ACCROCHE_H2 } from '@/lib/displayHome';
 
-/** S2 LOCK — H1 + H2 stay in page flow (visible under the guest teaser sheet). */
+/** S2 — H1 locked. H2 slot stays in flow; copy is HOLD until Design remock. */
 export default function HomeAccroche() {
   return (
     <div data-testid="home-accroche" className="mb-3 px-0 pt-0.5">
