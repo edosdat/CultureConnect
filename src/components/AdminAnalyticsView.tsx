@@ -1,5 +1,10 @@
 import type { ReactNode } from 'react';
 import type { AdminAnalyticsSnapshot } from '@/lib/adminAnalyticsLoad';
+import {
+  KPI_COPY,
+  SECTION_COPY,
+  signalKindLabel,
+} from '@/lib/adminAnalyticsCopy';
 
 function fmt(n: number): string {
   if (!Number.isFinite(n)) return '0';
@@ -26,19 +31,17 @@ function ApproxBadge() {
 
 function Card({
   kpi,
-  title,
   value,
-  hint,
   approx,
   children,
 }: {
   kpi: string;
-  title: string;
   value?: string;
-  hint?: string;
   approx?: boolean;
   children?: ReactNode;
 }) {
+  const copy = KPI_COPY[kpi];
+  const title = copy?.title ?? `KPI ${kpi}`;
   return (
     <section className="rounded-2xl border border-culture-line bg-white px-4 py-3">
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
@@ -48,7 +51,47 @@ function Card({
       {value != null ? (
         <p className="mt-1 font-display text-2xl text-culture-ink">{value}</p>
       ) : null}
-      {hint ? <p className="mt-1 text-xs text-culture-muted">{hint}</p> : null}
+      {copy?.glossary ? (
+        <p className="mt-1 text-xs text-culture-muted">{copy.glossary}</p>
+      ) : null}
+      {copy?.hint ? (
+        <p className="mt-1 text-xs font-medium text-culture-ink">{copy.hint}</p>
+      ) : null}
+      {children}
+    </section>
+  );
+}
+
+function SectionBlock({
+  title,
+  intro,
+  boxed,
+  children,
+}: {
+  title: string;
+  intro?: string;
+  boxed?: boolean;
+  children: ReactNode;
+}) {
+  const heading = (
+    <>
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
+        {title}
+      </h2>
+      {intro ? <p className="mt-1 text-xs text-culture-muted">{intro}</p> : null}
+    </>
+  );
+  if (boxed) {
+    return (
+      <section className="mt-8 rounded-2xl border border-culture-line bg-culture-surface px-4 py-4">
+        {heading}
+        {children}
+      </section>
+    );
+  }
+  return (
+    <section className="mt-8">
+      {heading}
       {children}
     </section>
   );
@@ -76,237 +119,180 @@ export default function AdminAnalyticsView({
         {snap.sources.kv ? 'ok' : 'off'}. 0 GA / PostHog.
       </p>
 
-      <h2 className="mt-8 text-sm font-semibold uppercase tracking-wide text-culture-muted">
-        Trafic
-      </h2>
-      <div className="mt-2 grid gap-3 sm:grid-cols-2">
-        <Card
-          kpi="1"
-          title="Uniques cc_vid / j"
-          value={fmt(snap.traffic.distinct7j)}
-          hint="cc:vs:* only · jour Paris · minorant (nav privée / multi-device)"
-          approx
-        >
-          <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
-            {snap.traffic.perDay.map((d) => (
-              <li key={d.day} className="flex justify-between gap-3">
-                <span className="text-culture-muted">{d.day}</span>
-                <span>{fmt(d.uniques)}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-        <Card
-          kpi="2"
-          title="Retours (même vid j+1+)"
-          value={`${fmt(snap.traffic.returners)} · ${pct(snap.traffic.returners, snap.traffic.distinct7j)}`}
-          hint="≥2 jours distincts / uniques-fenêtre · minorant (nav privée / multi-device)"
-          approx
-        >
-          <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
-            {snap.traffic.perDay.map((d) => (
-              <li key={d.day} className="flex justify-between gap-3">
-                <span className="text-culture-muted">{d.day}</span>
-                <span>{fmt(d.returns)}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      </div>
-
-      <h2 className="mt-8 text-sm font-semibold uppercase tracking-wide text-culture-muted">
-        Funnel agenda
-      </h2>
-      <div className="mt-2 grid gap-3 sm:grid-cols-2">
-        <Card
-          kpi="3"
-          title="Ouvertures fiche ?e="
-          value={fmt(snap.funnel.openCard)}
-          hint="kind open_card · guest KV + account_tastes.signalsRecent"
-        />
-        <Card
-          kpi="4"
-          title="Clics Réserver outbound"
-          value={fmt(snap.funnel.outboundClick)}
-          hint="kind outbound_click (pas le pair reserve)"
-        />
-      </div>
-
-      <h2 className="mt-8 text-sm font-semibold uppercase tracking-wide text-culture-muted">
-        Partage
-      </h2>
-      <div className="mt-2 grid gap-3 sm:grid-cols-2">
-        <Card
-          kpi="5"
-          title="Tokens créés"
-          value={fmt(snap.share.tokensCreated)}
-          hint="share_tokens.created_at ∈ 7j"
-        />
-        <Card
-          kpi="6"
-          title="Opens / token"
-          value={`${fmt(snap.share.opensMean)} moy · ${fmt(snap.share.opensMedian)} méd.`}
-          hint="Sur tokens 7j, sinon tous"
-        />
-        <Card
-          kpi="7"
-          title="Envie + Going"
-          value={`${fmt(snap.share.envie)} envie · ${fmt(snap.share.going)} going`}
-          hint={`${fmt(snap.share.enviePerToken)} / ${fmt(snap.share.goingPerToken)} par token · share_rsvps`}
-        />
-        <Card
-          kpi="8"
-          title="Partageurs distincts"
-          value={fmt(snap.share.distinctSharers)}
-          hint="sharer_email distincts, tokens 7j"
-        />
-      </div>
-
-      <h2 className="mt-8 text-sm font-semibold uppercase tracking-wide text-culture-muted">
-        Compte
-      </h2>
-      <div className="mt-2 grid gap-3 sm:grid-cols-2">
-        <Card
-          kpi="9"
-          title="Logins Google"
-          value={fmt(snap.compte.googleLogins)}
-          hint="INCR KV au sign-in Auth.js — pas d’historique pré-déploiement"
-        />
-        <Card
-          kpi="10"
-          title="Signaux guest append"
-          value={fmt(snap.compte.guestAppends)}
-          hint="Lignes cc:vs:<vid> dans la fenêtre"
-          approx
-        />
-      </div>
-
-      <h2 className="mt-8 text-sm font-semibold uppercase tracking-wide text-culture-muted">
-        Mix
-      </h2>
-      <div className="mt-2 grid gap-3">
-        <Card
-          kpi="11"
-          title="Part ciné / théâtre / musique"
-          hint="Fiches ouvertes (open_card) · lookup catalogue"
-        >
-          <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
-            <li className="flex justify-between gap-3">
-              <span>Cinéma</span>
-              <span>
-                {fmt(snap.mix.cinema)} · {pct(snap.mix.cinema, mixTotal)}
-              </span>
-            </li>
-            <li className="flex justify-between gap-3">
-              <span>Théâtre</span>
-              <span>
-                {fmt(snap.mix.theatre)} · {pct(snap.mix.theatre, mixTotal)}
-              </span>
-            </li>
-            <li className="flex justify-between gap-3">
-              <span>Musique</span>
-              <span>
-                {fmt(snap.mix.musique)} · {pct(snap.mix.musique, mixTotal)}
-              </span>
-            </li>
-            <li className="flex justify-between gap-3 text-culture-muted">
-              <span>Autre / inconnu</span>
-              <span>
-                {fmt(snap.mix.other)} · {pct(snap.mix.other, mixTotal)}
-              </span>
-            </li>
-          </ul>
-        </Card>
-      </div>
-
-      <h2 className="mt-8 text-sm font-semibold uppercase tracking-wide text-culture-muted">
-        Goûts / matching
-      </h2>
-      <div className="mt-2 grid gap-3 sm:grid-cols-2">
-        <Card
-          kpi="12"
-          title="Comptes avec / sans goûts"
-          value={`${fmt(snap.gouts.withTastes)} / ${fmt(snap.gouts.withoutTastes)}`}
-          hint={`${fmt(snap.gouts.accounts)} rows account_tastes · hasScorableState`}
-        />
-        <Card
-          kpi="13"
-          title="# tags / user"
-          hint="moods ∪ genres weight>0 · 0 themes · 0 tastesText-only · 0 cats · 0 / 1–5 / 6–15 / 15+"
-        >
-          <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
-            {(['0', '1-5', '6-15', '15+'] as const).map((b) => (
-              <li key={b} className="flex justify-between gap-3">
-                <span className="text-culture-muted">{b}</span>
-                <span>{fmt(snap.gouts.tagDistribution[b])}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-        <Card
-          kpi="14"
-          title="Couverture tags catalogue"
-          value={`${fmt(snap.gouts.catalogueCoveragePct)} %`}
-          hint={`${fmt(snap.gouts.catalogueTagged)} / ${fmt(snap.gouts.catalogueEvents)} events ≥1 tag utile (vocab fermé)`}
-        />
-        <Card
-          kpi="17"
-          title="Users matchables"
-          value={fmt(snap.gouts.matchable)}
-          hint="≥5 tags (même déf. : moods ∪ genres weight>0, 0 themes / tastesText / cats)"
-        />
-      </div>
-
-      <div className="mt-3 grid gap-3">
-        <Card kpi="15" title="Top tags Toulouse" hint="Agrégat catalogue, commune = Toulouse">
-          {snap.gouts.topTagsToulouse.length === 0 ? (
-            <p className="mt-2 text-sm text-culture-muted">Aucun tag utile.</p>
-          ) : (
+      <SectionBlock title={SECTION_COPY.trafic.title}>
+        <div className="mt-2 grid gap-3 sm:grid-cols-2">
+          <Card kpi="1" value={fmt(snap.traffic.distinct7j)} approx>
             <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
-              {snap.gouts.topTagsToulouse.map((t) => (
-                <li key={t.tag} className="flex justify-between gap-3">
-                  <span>{t.tag}</span>
-                  <span className="text-culture-muted">{fmt(t.count)}</span>
+              {snap.traffic.perDay.map((d) => (
+                <li key={d.day} className="flex justify-between gap-3">
+                  <span className="text-culture-muted">{d.day}</span>
+                  <span>{fmt(d.uniques)}</span>
                 </li>
               ))}
             </ul>
-          )}
-        </Card>
-        <Card
-          kpi="16"
-          title="Signaux guest par kind"
-          hint="Fenêtre 7j · cc:vs"
-          approx
-        >
-          {snap.gouts.guestByKind.length === 0 ? (
-            <p className="mt-2 text-sm text-culture-muted">Aucun append guest.</p>
-          ) : (
+          </Card>
+          <Card
+            kpi="2"
+            value={`${fmt(snap.traffic.returners)} · ${pct(snap.traffic.returners, snap.traffic.distinct7j)}`}
+            approx
+          >
             <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
-              {snap.gouts.guestByKind.map((k) => (
-                <li key={k.kind} className="flex justify-between gap-3">
-                  <span>{k.kind}</span>
-                  <span className="text-culture-muted">{fmt(k.count)}</span>
+              {snap.traffic.perDay.map((d) => (
+                <li key={d.day} className="flex justify-between gap-3">
+                  <span className="text-culture-muted">{d.day}</span>
+                  <span>{fmt(d.returns)}</span>
                 </li>
               ))}
             </ul>
-          )}
-        </Card>
-        <Card
-          kpi="18"
-          title="Export CSV profils goûts"
-          value={`${fmt(snap.export18.rows)} profils`}
-          hint="Interne · ~30 premiers · hash email · pas de payload complet dans la page"
-        >
-          <p className="mt-3">
-            <a
-              href="/admin/analytics/export"
-              className="inline-block rounded-full bg-culture-terracotta px-3 py-1.5 text-sm font-semibold text-white hover:bg-culture-clay"
-            >
-              Télécharger CSV interne
-            </a>
-          </p>
-        </Card>
-      </div>
+          </Card>
+        </div>
+      </SectionBlock>
+
+      <SectionBlock title={SECTION_COPY.funnel.title}>
+        <div className="mt-2 grid gap-3 sm:grid-cols-2">
+          <Card kpi="3" value={fmt(snap.funnel.openCard)} />
+          <Card kpi="4" value={fmt(snap.funnel.outboundClick)} />
+        </div>
+      </SectionBlock>
+
+      <SectionBlock title={SECTION_COPY.partage.title}>
+        <div className="mt-2 grid gap-3 sm:grid-cols-2">
+          <Card kpi="5" value={fmt(snap.share.tokensCreated)} />
+          <Card
+            kpi="6"
+            value={`${fmt(snap.share.opensMean)} moy · ${fmt(snap.share.opensMedian)} méd.`}
+          />
+          <Card
+            kpi="7"
+            value={`${fmt(snap.share.envie)} Envie · ${fmt(snap.share.going)} J’y vais`}
+          />
+          <Card kpi="8" value={fmt(snap.share.distinctSharers)} />
+        </div>
+      </SectionBlock>
+
+      <SectionBlock title={SECTION_COPY.compte.title}>
+        <div className="mt-2 grid gap-3 sm:grid-cols-2">
+          <Card kpi="9" value={fmt(snap.compte.googleLogins)} />
+          <Card kpi="10" value={fmt(snap.compte.guestAppends)} approx />
+        </div>
+      </SectionBlock>
+
+      <SectionBlock title={SECTION_COPY.mix.title}>
+        <div className="mt-2 grid gap-3">
+          <Card kpi="11">
+            <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
+              <li className="flex justify-between gap-3">
+                <span>Cinéma</span>
+                <span>
+                  {fmt(snap.mix.cinema)} · {pct(snap.mix.cinema, mixTotal)}
+                </span>
+              </li>
+              <li className="flex justify-between gap-3">
+                <span>Théâtre</span>
+                <span>
+                  {fmt(snap.mix.theatre)} · {pct(snap.mix.theatre, mixTotal)}
+                </span>
+              </li>
+              <li className="flex justify-between gap-3">
+                <span>Musique</span>
+                <span>
+                  {fmt(snap.mix.musique)} · {pct(snap.mix.musique, mixTotal)}
+                </span>
+              </li>
+              <li className="flex justify-between gap-3 text-culture-muted">
+                <span>Autre / inconnu</span>
+                <span>
+                  {fmt(snap.mix.other)} · {pct(snap.mix.other, mixTotal)}
+                </span>
+              </li>
+            </ul>
+          </Card>
+        </div>
+      </SectionBlock>
+
+      <SectionBlock title={SECTION_COPY.activite.title}>
+        <div className="mt-2 grid gap-3">
+          <Card kpi="16" approx>
+            {snap.gouts.guestByKind.length === 0 ? (
+              <p className="mt-2 text-sm text-culture-muted">
+                Aucune action visiteur pour l’instant — 0 est normal.
+              </p>
+            ) : (
+              <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
+                {snap.gouts.guestByKind.map((k) => (
+                  <li key={k.kind} className="flex justify-between gap-3">
+                    <span>{signalKindLabel(k.kind)}</span>
+                    <span className="text-culture-muted">{fmt(k.count)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+      </SectionBlock>
+
+      <SectionBlock
+        title={SECTION_COPY.goutsComptes.title}
+        intro={SECTION_COPY.goutsComptes.intro}
+        boxed
+      >
+        <div className="mt-2 grid gap-3 sm:grid-cols-2">
+          <Card
+            kpi="12"
+            value={`${fmt(snap.gouts.withTastes)} / ${fmt(snap.gouts.withoutTastes)}`}
+          />
+          <Card kpi="13">
+            <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
+              {(['0', '1-5', '6-15', '15+'] as const).map((b) => (
+                <li key={b} className="flex justify-between gap-3">
+                  <span className="text-culture-muted">{b}</span>
+                  <span>{fmt(snap.gouts.tagDistribution[b])}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+          <Card kpi="17" value={fmt(snap.gouts.matchable)} />
+          <Card kpi="18" value={`${fmt(snap.export18.rows)} profils`}>
+            <p className="mt-3">
+              <a
+                href="/admin/analytics/export"
+                className="inline-block rounded-full bg-culture-terracotta px-3 py-1.5 text-sm font-semibold text-white hover:bg-culture-clay"
+              >
+                Télécharger CSV interne
+              </a>
+            </p>
+          </Card>
+        </div>
+      </SectionBlock>
+
+      <SectionBlock
+        title={SECTION_COPY.tagsCatalogue.title}
+        intro={SECTION_COPY.tagsCatalogue.intro}
+        boxed
+      >
+        <div className="mt-2 grid gap-3">
+          <Card
+            kpi="14"
+            value={`${fmt(snap.gouts.catalogueCoveragePct)} %`}
+          />
+          <Card kpi="15">
+            {snap.gouts.topTagsToulouse.length === 0 ? (
+              <p className="mt-2 text-sm text-culture-muted">
+                Aucun tag utile sur le catalogue Toulouse — 0 est normal.
+              </p>
+            ) : (
+              <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
+                {snap.gouts.topTagsToulouse.map((t) => (
+                  <li key={t.tag} className="flex justify-between gap-3">
+                    <span>{t.tag}</span>
+                    <span className="text-culture-muted">{fmt(t.count)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+      </SectionBlock>
 
       {snap.notes.length > 0 ? (
         <div className="mt-8 space-y-1 text-xs text-culture-muted">

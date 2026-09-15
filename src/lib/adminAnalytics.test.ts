@@ -23,6 +23,12 @@ import {
   usefulTagsFromFields,
   usefulTasteTags,
 } from './adminAnalytics';
+import {
+  KPI_COPY,
+  KPI9_LOGIN_HINT,
+  SECTION_COPY,
+  signalKindLabel,
+} from './adminAnalyticsCopy';
 import { emptyProfile, type AccountTasteState } from './signals';
 
 function state(partial: Partial<AccountTasteState>): AccountTasteState {
@@ -311,8 +317,58 @@ describe('Mesure — approx. / minorant on guest KV KPIs', () => {
     assert.deepEqual(approxKpis, ['1', '2', '10', '16']);
     assert.equal(cards.some((b) => /kpi="5"/.test(b) && /\bapprox\b/.test(b)), false);
     assert.equal(cards.some((b) => /kpi="18"/.test(b) && /\bapprox\b/.test(b)), false);
-    assert.match(view, /nav privée \/ multi-device/);
-    assert.match(view, /cc:vs:\* only/);
-    assert.match(view, /0 tastesText-only/);
+  });
+});
+
+describe('UX admin — labels FR + glossaire + sections', () => {
+  it('plain French titles, 0-normal glossary, goûts vs catalogue split', () => {
+    const ids = Array.from({ length: 18 }, (_, i) => String(i + 1));
+    for (const id of ids) {
+      const copy = KPI_COPY[id];
+      assert.ok(copy, `KPI ${id} copy`);
+      assert.ok(copy.title.trim().length > 0);
+      assert.ok(copy.glossary.trim().length > 0);
+      assert.match(copy.glossary, /0/);
+      assert.equal(/\btoken\b/i.test(copy.title), false, `KPI ${id} title jargon`);
+      assert.equal(/\bopen_card\b/i.test(copy.title), false);
+      assert.equal(/\bcc_vid\b/i.test(copy.title), false);
+    }
+    assert.equal(KPI_COPY['15']?.title, 'Top tags catalogue Toulouse');
+    assert.match(KPI_COPY['15']?.glossary ?? '', /≠/);
+    assert.match(KPI_COPY['15']?.glossary ?? '', /pas ce que les gens aiment/i);
+    assert.equal(KPI_COPY['9']?.hint, KPI9_LOGIN_HINT);
+    assert.equal(KPI9_LOGIN_HINT, 'Logins = depuis le deploy du 15/09');
+    assert.equal(SECTION_COPY.goutsComptes.title, 'Goûts comptes');
+    assert.equal(SECTION_COPY.tagsCatalogue.title, 'Tags catalogue');
+    assert.match(SECTION_COPY.goutsComptes.intro, /pas les tags du catalogue/);
+    assert.match(SECTION_COPY.tagsCatalogue.intro, /≠ ce que les gens aiment/);
+    assert.equal(signalKindLabel('open_card'), 'Ouverture de fiche');
+    assert.equal(signalKindLabel('outbound_click'), 'Clic Réserver');
+
+    const view = readFileSync(
+      new URL('../components/AdminAnalyticsView.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(view, /SECTION_COPY\.goutsComptes/);
+    assert.match(view, /SECTION_COPY\.tagsCatalogue/);
+    assert.match(view, /kpi="12"/);
+    assert.match(view, /kpi="13"/);
+    assert.match(view, /kpi="17"/);
+    assert.match(view, /kpi="18"/);
+    assert.match(view, /kpi="14"/);
+    assert.match(view, /kpi="15"/);
+    const goutsIdx = view.indexOf('SECTION_COPY.goutsComptes');
+    const tagsIdx = view.indexOf('SECTION_COPY.tagsCatalogue');
+    const kpi14 = view.indexOf('kpi="14"');
+    const kpi15 = view.indexOf('kpi="15"');
+    const kpi12 = view.indexOf('kpi="12"');
+    const kpi18 = view.indexOf('kpi="18"');
+    assert.ok(goutsIdx > 0 && tagsIdx > goutsIdx);
+    assert.ok(kpi12 > goutsIdx && kpi18 > goutsIdx && kpi18 < tagsIdx);
+    assert.ok(kpi14 > tagsIdx && kpi15 > tagsIdx);
+    assert.equal(view.includes('Tokens créés'), false);
+    assert.equal(view.includes('Uniques cc_vid'), false);
+    assert.equal(view.includes('Top tags Toulouse"'), false);
+    assert.match(KPI_COPY['1']?.glossary ?? '', /nav privée \/ multi-device/);
   });
 });
