@@ -10,7 +10,7 @@ const APOSTROPHE = '’';
 describe('S2 header accroche LOCK', () => {
   it('uses typographic apostrophe and locked H1/H2', () => {
     assert.equal(HOME_ACCROCHE_H1, 'L’agenda culturel de Toulouse.');
-    assert.equal(HOME_ACCROCHE_H2, 'Partagez une sortie — voyez qui vient.');
+    assert.equal(HOME_ACCROCHE_H2, 'Trouvez une sortie, partagez, voyez qui vient.');
     assert.ok(HOME_ACCROCHE_H1.includes(APOSTROPHE));
     assert.equal(HOME_ACCROCHE_H1.includes("'"), false);
     assert.equal(HOME_ACCROCHE_H2.includes("'"), false);
