@@ -785,26 +785,6 @@ function withRecoTags(item: DayItem): DayItem {
 }
 
 
-/** Reco pool: keep every theatre + concert, then fill cine up to cap. */
-function recoSlotOf(item: DayItem): "cine" | "theatre" | "concert" | null {
-  return slotFormOfItem(item);
-}
-
-function balanceRecoPool(items: DayItem[], cap: number): DayItem[] {
-  const cine: DayItem[] = [];
-  const theatre: DayItem[] = [];
-  const concert: DayItem[] = [];
-  for (const item of items) {
-    const slot = recoSlotOf(item);
-    if (slot === "cine") cine.push(item);
-    else if (slot === "theatre") theatre.push(item);
-    else if (slot === "concert") concert.push(item);
-  }
-  const must = [...theatre, ...concert];
-  const rest = Math.max(0, cap - must.length);
-  return [...must, ...cine.slice(0, rest)].slice(0, cap);
-}
-
 /**
  * Short-window list: default scope + commune, slim cards.
  * Search / multi-day pages are capped at ~50.

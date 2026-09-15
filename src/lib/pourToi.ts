@@ -45,15 +45,6 @@ const CAT_CHIP_LABELS: Record<string, string> = {
   enfants_famille: 'Famille',
 };
 
-const CAT_REASON_LABELS: Record<string, string> = {
-  cinema: 'ciné',
-  theatre_danse: 'théâtre',
-  musique: 'musique',
-  festival: 'festival',
-  expo_patrimoine: 'expo',
-  enfants_famille: 'famille',
-};
-
 /**
  * Display-only FR labels for the 16 locked taste moods.
  * Overlay + reco why-lines. Never a 17th. Slugs / scoring unchanged.
