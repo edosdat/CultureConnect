@@ -171,6 +171,21 @@ export function motherCountersLabel(envie: number, going: number): string {
   return parts.join(' · ');
 }
 
+/**
+ * Mother card payload → counts only when a real total is ≥ 1.
+ * Missing / non-numeric / 0+0 → omit (never default going to 1).
+ */
+export function visibleMotherStats(
+  data: { envie?: unknown; going?: unknown } | null | undefined,
+): MotherStats | null {
+  if (!data || typeof data !== 'object') return null;
+  const envie = Number(data.envie);
+  const going = Number(data.going);
+  if (!Number.isFinite(envie) || !Number.isFinite(going)) return null;
+  if (envie < 1 && going < 1) return null;
+  return { envie, going };
+}
+
 /** « Ludo et Benjamin » — last joiner is et, no 3+K cap. */
 export function joinFrNames(names: readonly string[]): string {
   if (names.length <= 1) return names[0] || '';

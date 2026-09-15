@@ -12,6 +12,7 @@ import {
   motherCountersLabel,
   motherStatsFromRsvps,
   parseRsvpRecord,
+  visibleMotherStats,
   RSVP_LOGIN_ERROR,
   rsvpsForEventStats,
   viewerInCircle,
@@ -51,6 +52,21 @@ describe('B3b RSVP helpers', () => {
     assert.equal(motherCountersLabel(1, 0), '1 envie');
     assert.equal(motherCountersLabel(0, 1), '1 y va');
     assert.equal(motherCountersLabel(0, 0), '');
+    assert.deepEqual(visibleMotherStats({ envie: 0, going: 1 }), {
+      envie: 0,
+      going: 1,
+    });
+    assert.equal(visibleMotherStats({ envie: 0, going: 0 }), null);
+    assert.equal(visibleMotherStats({ envie: 1, going: 0 })?.envie, 1);
+    assert.equal(visibleMotherStats(null), null);
+    assert.equal(visibleMotherStats(undefined), null);
+    assert.equal(visibleMotherStats({}), null);
+    assert.equal(visibleMotherStats({ going: 1 }), null);
+    // Stale-card path: a later 0/0 must omit, not keep the previous 1.
+    let shown = visibleMotherStats({ envie: 0, going: 1 });
+    shown = visibleMotherStats({ envie: 0, going: 0 });
+    assert.equal(shown, null);
+    assert.equal(motherCountersLabel(shown?.envie ?? 0, shown?.going ?? 0), '');
     assert.equal(circleNamesCopy(['Marie'], ['Léa']), 'Marie y va · Léa a envie');
     assert.equal(
       circleNamesCopy(['Marie', 'Paul'], ['Léa', 'Tom']),
@@ -391,6 +407,9 @@ describe('B3b source contract', () => {
     assert.match(ui, /circleEnvieLine/);
     assert.match(ui, /share-rsvp-daughter/);
     assert.match(ui, /share-rsvp-mother/);
+    assert.match(ui, /visibleMotherStats/);
+    assert.match(ui, /setStats\(null\)/);
+    assert.match(ui, /key=\{item\.key\}/);
     assert.equal(ui.includes('rounded-2xl bg-culture-sand'), false);
     assert.equal(/intéress/i.test(ui), false);
 
