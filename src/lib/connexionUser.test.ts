@@ -8,6 +8,7 @@ import {
 } from './phraseTags';
 import {
   displayReasonForItem,
+  reasonTasteSlugsForItem,
   recoWhyForMood,
   seanceCardShowsPitch,
   shouldShowTop3Section,
@@ -141,6 +142,46 @@ function item(opts: {
     programme,
     evenement,
     lieu: lieu(opts.commune ?? 'Toulouse'),
+  };
+}
+
+function itemSplitMoods(opts: {
+  key: string;
+  cat: string;
+  filmId?: string;
+  form?: string;
+  progMoods?: string;
+  evMoods?: string;
+  titre?: string;
+}): DayItem {
+  const eventId = opts.key;
+  const evenement = ev({
+    event_id: eventId,
+    categorie: opts.cat,
+    titre: opts.titre ?? opts.key,
+    moods: opts.evMoods,
+    form: opts.form,
+    heure_debut: '20:00',
+    date_debut: '2026-09-02',
+    date_fin: '2026-09-02',
+  });
+  const programme = prog({
+    programme_id: `p-${opts.key}`,
+    event_id: eventId,
+    nom_item: opts.titre ?? opts.key,
+    date: '2026-09-02',
+    heure_debut: '20:00',
+    moods: opts.progMoods,
+    film_id: opts.filmId,
+    form: opts.form,
+  });
+  return {
+    kind: 'programme',
+    key: opts.key,
+    dayIso: '2026-09-02',
+    programme,
+    evenement,
+    lieu: lieu(),
   };
 }
 
@@ -683,6 +724,105 @@ describe('displayReasonForItem — reco why-line only', () => {
       scope: 'soir',
     });
     assert.equal(line, 'Ce soir à Toulouse');
+  });
+
+  it('cine film_id does not claim a mood that exists only on the parent event', () => {
+    const row = itemSplitMoods({
+      key: 'P0936',
+      cat: 'cinema',
+      filmId: 'F0007',
+      form: 'cine',
+      progMoods: '',
+      evMoods: 'rigolo|cerveau|epique|tendre|festif|critique|leger|intense',
+      titre: 'La Vie d’une femme',
+    });
+    const rireOpts = {
+      ...opts,
+      tasteState: state({
+        profile: profile({ moods: { rigolo: { weight: 8, pct: 100 } } }),
+      }),
+    };
+    assert.equal(reasonTasteSlugsForItem(row).includes('rigolo'), false);
+    assert.equal(displayReasonForItem(row, rireOpts), null);
+  });
+
+  it('cine slotForm without film_id still ignores parent mega-moods', () => {
+    const row = itemSplitMoods({
+      key: 'saison-card',
+      cat: 'cinema',
+      form: 'cine',
+      progMoods: '',
+      evMoods: 'rigolo|tendre|festif|intense',
+      titre: 'Rentrée saison',
+    });
+    assert.equal(
+      displayReasonForItem(row, {
+        ...opts,
+        tasteState: state({
+          profile: profile({ moods: { rigolo: { weight: 8, pct: 100 } } }),
+        }),
+      }),
+      null,
+    );
+  });
+
+  it('cine still reasons from its own programme moods', () => {
+    const row = itemSplitMoods({
+      key: 'cine-own',
+      cat: 'cinema',
+      filmId: 'F-OWN',
+      form: 'cine',
+      progMoods: 'tendre',
+      evMoods: 'rigolo|intense',
+    });
+    assert.equal(displayReasonForItem(row, opts), 'parce que tu aimes le tendre');
+    assert.equal(
+      displayReasonForItem(row, {
+        ...opts,
+        tasteState: state({
+          profile: profile({ moods: { rigolo: { weight: 8, pct: 100 } } }),
+        }),
+      }),
+      null,
+    );
+  });
+
+  it('theatre still reasons from parent-event moods', () => {
+    const row = itemSplitMoods({
+      key: 'th-parent',
+      cat: 'theatre',
+      progMoods: '',
+      evMoods: 'rigolo',
+      titre: 'Sketch enfant',
+    });
+    assert.equal(
+      displayReasonForItem(row, {
+        ...opts,
+        tasteState: state({
+          profile: profile({ moods: { rigolo: { weight: 8, pct: 100 } } }),
+        }),
+      }),
+      'parce que tu aimes rire',
+    );
+  });
+
+  it('concert still reasons from parent-event moods', () => {
+    const row = itemSplitMoods({
+      key: 'co-parent',
+      cat: 'musique',
+      form: 'concert',
+      progMoods: '',
+      evMoods: 'festif',
+    });
+    assert.equal(
+      displayReasonForItem(row, {
+        ...opts,
+        tasteState: state({
+          profile: profile({ moods: { festif: { weight: 5, pct: 100 } } }),
+        }),
+      }),
+      'parce que tu aimes l’ambiance festive',
+    );
   });
 
   it('covers all 16 moods in French, never a raw slug after ambiance', () => {

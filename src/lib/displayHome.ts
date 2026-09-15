@@ -41,7 +41,11 @@ import {
   type TasteMood,
 } from './phraseTags';
 import type { RecoSlotForm } from './reco';
-import { fillEmptyCineSlot, slotFormOfItem } from './reco';
+import {
+  fillEmptyCineSlot,
+  itemInheritsParentClosedTags,
+  slotFormOfItem,
+} from './reco';
 import { parseSearchChips, type SearchChipParse } from './parseSearchChips';
 import { seanceDateIso, type TimeScopeId } from './timeScope';
 import { sortItemsNearestFirst, type GeoPos } from './nearMe';
@@ -255,6 +259,25 @@ export function itemGenreSlugs(item: DayItem): string[] {
       ? `${item.programme.genre || ''} ${item.programme.genres_mood || ''} ${item.evenement?.genre || ''} ${item.evenement?.genres_mood || ''}`
       : `${item.evenement.genre || ''} ${item.evenement.genres_mood || ''}`;
   return splitTagField(raw);
+}
+
+/**
+ * Moods / genres that may drive « parce que tu aimes … ».
+ * Same P0 cine rule as scoring: no parent-event inheritance for film_id /
+ * slotForm cine. Theatre and concert still concatenate programme + event.
+ */
+export function reasonTasteSlugsForItem(item: DayItem): string[] {
+  const skipParent =
+    item.kind === 'programme' && !itemInheritsParentClosedTags(item);
+  const moods = skipParent
+    ? splitTagField(item.programme.moods || '')
+    : itemMoods(item);
+  const genres = skipParent
+    ? splitTagField(
+        `${item.programme.genre || ''} ${item.programme.genres_mood || ''}`,
+      )
+    : itemGenreSlugs(item);
+  return [...moods, ...genres].filter(isTasteMood);
 }
 
 /** Reco cards that actually exist (1 ciné + 1 théâtre + 1 concert). Omit empty slots. */
@@ -1069,9 +1092,7 @@ export function displayReasonForItem(
   if (opts.guest || !opts.tasteState) {
     return guestReasonLine(opts.scope, opts.commune);
   }
-  const itemLocked = new Set(
-    [...itemMoods(item), ...itemGenreSlugs(item)].filter(isTasteMood),
-  );
+  const itemLocked = new Set(reasonTasteSlugsForItem(item));
   if (itemLocked.size === 0) return null;
   const chips = profileChips(opts.tasteState.profile, 16).filter(
     (c) => c.bucket === 'moods' && c.weight > 0 && itemLocked.has(c.key),
