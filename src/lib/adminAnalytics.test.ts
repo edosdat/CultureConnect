@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { ADMIN_EMAILS, HOME_EVENTS_COUNTER_EMAIL } from './homeEventsCounter';
 import {
+  adminCsvContentDisposition,
   adminCsvFilename,
   analyticsWindowDays,
   analyticsWindowDaysN,
@@ -247,7 +248,14 @@ describe('admin gate + export route', () => {
     assert.match(loader, /cc:vs:\*/);
     assert.match(loader, /not cc:vu daily index/);
     assert.equal(loader.includes('readDailyVidSets'), false);
-    assert.match(exportRoute, /filename/);
+    assert.match(exportRoute, /adminCsvContentDisposition/);
+    assert.match(exportRoute, /text\/csv; charset=utf-8/);
+    assert.match(exportRoute, /private, no-store/);
+    assert.match(exportRoute, /X-Robots-Tag/);
+    assert.match(storeExport, /adminCsvContentDisposition/);
+    assert.match(storeExport, /text\/csv; charset=utf-8/);
+    assert.match(storeExport, /private, no-store/);
+    assert.match(storeExport, /X-Robots-Tag/);
   });
 });
 
@@ -419,7 +427,18 @@ describe('P1 admin tables + CSV (hash only)', () => {
     assert.equal(displayEmailHash(hash + 'deadbeefcafebabe'), hash);
     assert.equal(truncateTokenUi('abcd1234'), 'abcd1234');
     assert.equal(truncateTokenUi('abcdefghijklmnop'), 'abcdefgh…mnop');
-    assert.equal(adminCsvFilename('tastes', '2026-09-15'), 'cc-tastes-2026-09-15.csv');
+    const day = '2026-09-15';
+    for (const store of ['tastes', 'tokens', 'rsvps', 'visits'] as const) {
+      assert.equal(adminCsvFilename(store, day), `cc-${store}-${day}.csv`);
+    }
+    assert.equal(
+      adminCsvContentDisposition('cc-tastes-2026-09-15.csv'),
+      `attachment; filename="cc-tastes-2026-09-15.csv"; filename*=UTF-8''cc-tastes-2026-09-15.csv`,
+    );
+    assert.match(
+      adminCsvContentDisposition('cc-tokens-2026-09-15.csv'),
+      /filename\*=UTF-8''cc-tokens-2026-09-15\.csv/,
+    );
   });
 
   it('table comptes includes empty rows; top tags count users ≠ catalogue', () => {
@@ -552,5 +571,12 @@ describe('P1 admin tables + CSV (hash only)', () => {
     assert.match(tablesUi, /export\/tokens/);
     assert.match(tablesUi, /export\/rsvps/);
     assert.match(tablesUi, /export\/visits/);
+    assert.match(tablesUi, /download=\{suggested\}/);
+    const view = readFileSync(
+      new URL('../components/AdminAnalyticsView.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(view, /download=\{tastesCsvName\}/);
+    assert.match(view, /adminCsvFilename\(\s*'tastes'/);
   });
 });
