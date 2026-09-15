@@ -66,6 +66,7 @@ describe('uniques and returns (même vid j+1+)', () => {
     assert.equal(out.perDay[0]?.returns, 0);
     assert.equal(out.perDay[2]?.uniques, 2);
     assert.equal(out.perDay[2]?.returns, 1);
+    assert.equal(out.returnRate, 0.5);
   });
 });
 
@@ -80,12 +81,12 @@ describe('mean / median', () => {
 });
 
 describe('taste tags + matchable threshold', () => {
-  it('counts moods ∪ genres with value > 0 only — 0 themes', () => {
+  it('counts moods ∪ genres with value > 0 only — 0 themes / tastesText / cats', () => {
     const tags = usefulTasteTags(
       state({
-        tastesText: 'histoire politique',
+        tastesText: 'histoire politique rigolo jazz',
         profile: {
-          cats: { cinema: { weight: 9, pct: 100 } },
+          cats: { cinema: { weight: 9, pct: 100 }, theatre: { weight: 3, pct: 50 } },
           moods: { rigolo: { weight: 4, pct: 50 }, sortie: { weight: 2, pct: 25 } },
           genres: { comedie: { weight: 2, pct: 40 }, cinema: { weight: 3, pct: 60 } },
           themes: { histoire: { weight: 1, pct: 100 } },
@@ -99,10 +100,15 @@ describe('taste tags + matchable threshold', () => {
     assert.equal(tags.includes('histoire'), false);
     assert.equal(tags.some((t) => t.startsWith('t:')), false);
     assert.equal(tags.some((t) => t.includes('cinema')), false);
+    assert.equal(tags.some((t) => t.includes('theatre')), false);
     assert.equal(tagBucket(0), '0');
     assert.equal(tagBucket(5), '1-5');
     assert.equal(tagBucket(6), '6-15');
     assert.equal(tagBucket(16), '15+');
+    const textOnly = usefulTasteTags(
+      state({ tastesText: 'rigolo jazz intimiste histoire politique' }),
+    );
+    assert.deepEqual(textOnly, []);
   });
 });
 
@@ -211,6 +217,9 @@ describe('admin gate + export route', () => {
     assert.match(exportRoute, /isAdminSession/);
     assert.match(exportRoute, /status: 404/);
     assert.match(loader, /cc-gouts-internes/);
+    assert.match(loader, /cc:vs:\*/);
+    assert.match(loader, /not cc:vu daily index/);
+    assert.equal(loader.includes('readDailyVidSets'), false);
     assert.match(exportRoute, /filename/);
   });
 });
@@ -302,5 +311,8 @@ describe('Mesure — approx. / minorant on guest KV KPIs', () => {
     assert.deepEqual(approxKpis, ['1', '2', '10', '16']);
     assert.equal(cards.some((b) => /kpi="5"/.test(b) && /\bapprox\b/.test(b)), false);
     assert.equal(cards.some((b) => /kpi="18"/.test(b) && /\bapprox\b/.test(b)), false);
+    assert.match(view, /nav privée \/ multi-device/);
+    assert.match(view, /cc:vs:\* only/);
+    assert.match(view, /0 tastesText-only/);
   });
 });

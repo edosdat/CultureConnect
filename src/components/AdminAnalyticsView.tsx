@@ -84,7 +84,7 @@ export default function AdminAnalyticsView({
           kpi="1"
           title="Uniques cc_vid / j"
           value={fmt(snap.traffic.distinct7j)}
-          hint="Distincts sur 7j · guest signals + index journalier"
+          hint="cc:vs:* only · jour Paris · minorant (nav privée / multi-device)"
           approx
         >
           <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
@@ -99,8 +99,8 @@ export default function AdminAnalyticsView({
         <Card
           kpi="2"
           title="Retours (même vid j+1+)"
-          value={fmt(snap.traffic.returners)}
-          hint="Vids présents ≥2 jours distincts dans la fenêtre"
+          value={`${fmt(snap.traffic.returners)} · ${pct(snap.traffic.returners, snap.traffic.distinct7j)}`}
+          hint="≥2 jours distincts / uniques-fenêtre · minorant (nav privée / multi-device)"
           approx
         >
           <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
@@ -232,7 +232,7 @@ export default function AdminAnalyticsView({
         <Card
           kpi="13"
           title="# tags / user"
-          hint="moods ∪ genres > 0 · 0 themes · 0 / 1–5 / 6–15 / 15+"
+          hint="moods ∪ genres weight>0 · 0 themes · 0 tastesText-only · 0 cats · 0 / 1–5 / 6–15 / 15+"
         >
           <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
             {(['0', '1-5', '6-15', '15+'] as const).map((b) => (
@@ -253,7 +253,7 @@ export default function AdminAnalyticsView({
           kpi="17"
           title="Users matchables"
           value={fmt(snap.gouts.matchable)}
-          hint="Seuil provisoire ≥5 tags (moods ∪ genres > 0, 0 themes)"
+          hint="≥5 tags (même déf. : moods ∪ genres weight>0, 0 themes / tastesText / cats)"
         />
       </div>
 

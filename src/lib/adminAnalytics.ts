@@ -6,7 +6,7 @@
 import { createHash } from 'crypto';
 import { dailyVidUniquesKey } from '@/lib/guestSignals';
 import { addDaysIso, parisParts } from '@/lib/timeScope';
-import { isTasteMood, parsePhraseRules, TASTE_MOODS } from '@/lib/phraseTags';
+import { isTasteMood, TASTE_MOODS } from '@/lib/phraseTags';
 import {
   entryWeight,
   hasScorableState,
@@ -102,9 +102,11 @@ export function round1(n: number): number {
 }
 
 /**
- * Uniques = distinct vids present that Paris day.
- * Retour / j = vid also present on an earlier day in the same 7j window.
- * Returners = vids with ≥2 distinct days in the window (j+1+).
+ * Mesure LOCK — KPI 1–2.
+ * Uniques / j = DISTINCT vid with ≥1 `cc:vs:*` line whose ts falls on that
+ * Paris calendar day. Returners = vids active on ≥2 distinct days in the
+ * 7j window. Rate = returners / distinct-window (0 if none).
+ * Retour / j = same vid already present on an earlier day in the window.
  */
 export function uniquesAndReturns(
   vidDays: ReadonlyMap<string, ReadonlySet<string>>,
@@ -113,6 +115,7 @@ export function uniquesAndReturns(
   perDay: DailyUniques[];
   distinct: number;
   returners: number;
+  returnRate: number;
 } {
   const dayIndex = new Map(windowDays.map((d, i) => [d, i]));
   const perDay = windowDays.map((day) => ({ day, uniques: 0, returns: 0 }));
@@ -134,7 +137,12 @@ export function uniquesAndReturns(
     }
   }
 
-  return { perDay, distinct, returners };
+  return {
+    perDay,
+    distinct,
+    returners,
+    returnRate: distinct > 0 ? returners / distinct : 0,
+  };
 }
 
 export function mergeVidDay(
@@ -148,7 +156,11 @@ export function mergeVidDay(
   map.set(vid, set);
 }
 
-/** Distinct useful goût tags: moods ∪ genres with weight > 0. Never themes. */
+/**
+ * Mesure LOCK — KPI 13 / 17 countable tags.
+ * moods ∪ genres keys with weight > 0 only.
+ * Exclude themes, entities, tastesText-only, and Musique/Théâtre/Cinéma cats.
+ */
 export function usefulTasteTags(state: AccountTasteState): string[] {
   const seen = new Set<string>();
   const push = (prefix: string, key: string) => {
@@ -163,14 +175,6 @@ export function usefulTasteTags(state: AccountTasteState): string[] {
   for (const [k, e] of Object.entries(p.genres ?? {})) {
     if (isCatTasteKey(k) || entryWeight(e) <= 0) continue;
     push('g:', k);
-  }
-  const text = (state.tastesText || '').trim();
-  if (text) {
-    const parsed = parsePhraseRules(text);
-    for (const m of parsed.moods) {
-      if (isTasteMood(m)) push('', m);
-    }
-    for (const g of parsed.genres) push('g:', g);
   }
   return [...seen];
 }

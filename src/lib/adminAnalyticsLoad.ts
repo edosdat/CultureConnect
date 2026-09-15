@@ -35,7 +35,6 @@ import { normalizeCommune } from '@/lib/commune';
 import { mainsForItem, type MainCategoryId } from '@/lib/categories';
 import {
   assertNoVidAccountJoin,
-  dailyVidUniquesKey,
   isValidVid,
   type GuestAppendLine,
 } from '@/lib/guestSignals';
@@ -181,21 +180,6 @@ async function listGuestAppendLines(): Promise<GuestAppendLine[]> {
   return lines;
 }
 
-async function readDailyVidSets(
-  days: readonly string[],
-): Promise<Map<string, string[]>> {
-  const out = new Map<string, string[]>();
-  if (days.length === 0) return out;
-  const rows = await kvPipeline(
-    days.map((d) => ['SMEMBERS', dailyVidUniquesKey(d)]),
-  );
-  if (!rows) return out;
-  days.forEach((day, i) => {
-    out.set(day, pipelineStrings(rows[i]));
-  });
-  return out;
-}
-
 const MIX_MAINS: ReadonlySet<string> = new Set([
   'cinema',
   'theatre_danse',
@@ -265,6 +249,8 @@ export type AdminAnalyticsSnapshot = {
     perDay: DailyUniques[];
     distinct7j: number;
     returners: number;
+    /** Mesure: returners / distinct7j. */
+    returnRate: number;
   };
   funnel: {
     openCard: number;
@@ -323,30 +309,24 @@ export async function loadAdminAnalytics(
   const daySet = new Set(windowDays);
   const notes: string[] = [];
 
-  const [guestLines, dailySets, loginCounts, tokens, rsvps, accounts] =
-    await Promise.all([
-      listGuestAppendLines(),
-      readDailyVidSets(windowDays),
-      readGoogleLoginCounts(windowDays),
-      listShareTokensForAdmin(),
-      listShareRsvpsForAdmin(),
-      listAccountTastesForAdmin(),
-    ]);
+  const [guestLines, loginCounts, tokens, rsvps, accounts] = await Promise.all([
+    listGuestAppendLines(),
+    readGoogleLoginCounts(windowDays),
+    listShareTokensForAdmin(),
+    listShareRsvpsForAdmin(),
+    listAccountTastesForAdmin(),
+  ]);
 
+  // Mesure LOCK: KPI 1–2 from KV cc:vs:* lines only (not cc:vu daily index).
   const vidDays = new Map<string, Set<string>>();
-  for (const [day, vids] of dailySets) {
-    for (const vid of vids) mergeVidDay(vidDays, vid, day);
-  }
   for (const line of guestLines) {
     const day = parisDayOfIso(line.ts);
     if (day && daySet.has(day)) mergeVidDay(vidDays, line.vid, day);
   }
   const traffic = uniquesAndReturns(vidDays, windowDays);
-  if (guestLines.length === 0 && traffic.distinct === 0) {
-    notes.push(
-      'KPI 1–2 : uniques / retours = vids guest (`cc:vs:*` + index `cc:vu:YYYY-MM-DD`). Authed sans miroir vid. Vide si KV indisponible ou aucun signal guest.',
-    );
-  }
+  notes.push(
+    'KPI 1–2 : uniques / retours = DISTINCT vid sur lignes `cc:vs:*` (SCAN). Minorant — nav privée / multi-device. Authed sans miroir vid.',
+  );
 
   const windowGuest = guestLines.filter((l) => inParisWindow(l.ts, daySet));
   const guestKindMap = new Map<string, number>();
@@ -491,6 +471,7 @@ export async function loadAdminAnalytics(
       perDay: traffic.perDay,
       distinct7j: traffic.distinct,
       returners: traffic.returners,
+      returnRate: round1(traffic.returnRate),
     },
     funnel: { openCard, outboundClick },
     share: {
