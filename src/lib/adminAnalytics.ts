@@ -22,33 +22,10 @@ export const TASTE_EXPORT_LIMIT = 30;
 export const TAG_BUCKETS = ['0', '1-5', '6-15', '15+'] as const;
 export type TagBucket = (typeof TAG_BUCKETS)[number];
 
-/** Mirrors reco CLOSED_THEMES — tag utile = closed mood / genre / theme. */
-const CLOSED_THEMES = new Set([
-  'feminisme',
-  'histoire',
-  'politique',
-  'guerre',
-  'ecologie',
-  'science',
-  'amour',
-  'famille',
-  'colonial',
-  'immigration',
-  'lgbt',
-  'religion',
-  'sport',
-  'mer',
-  'voyage',
-  'amitie',
-  'travail',
-  'deuil',
-  'jeunesse',
-]);
-
+/** Mesure LOCK: countable tags = moods ∪ genres only. 0 themes. */
 const USEFUL_CATALOGUE_TAGS = new Set<string>([
   ...TASTE_MOODS,
   ...TASTE_GENRE_SLUGS,
-  ...CLOSED_THEMES,
 ]);
 
 export type MixMain = 'cinema' | 'theatre_danse' | 'musique';
@@ -74,7 +51,6 @@ export type TasteExportRow = {
   matchable: boolean;
   moods: string;
   genres: string;
-  themes: string;
   tastesTextChars: number;
 };
 
@@ -172,7 +148,7 @@ export function mergeVidDay(
   map.set(vid, set);
 }
 
-/** Distinct useful goût tags (moods 16 + genres + themes). Cats / communes excluded. */
+/** Distinct useful goût tags: moods ∪ genres with weight > 0. Never themes. */
 export function usefulTasteTags(state: AccountTasteState): string[] {
   const seen = new Set<string>();
   const push = (prefix: string, key: string) => {
@@ -188,10 +164,6 @@ export function usefulTasteTags(state: AccountTasteState): string[] {
     if (isCatTasteKey(k) || entryWeight(e) <= 0) continue;
     push('g:', k);
   }
-  for (const [k, e] of Object.entries(p.themes ?? {})) {
-    if (isCatTasteKey(k) || entryWeight(e) <= 0) continue;
-    push('t:', k);
-  }
   const text = (state.tastesText || '').trim();
   if (text) {
     const parsed = parsePhraseRules(text);
@@ -199,7 +171,6 @@ export function usefulTasteTags(state: AccountTasteState): string[] {
       if (isTasteMood(m)) push('', m);
     }
     for (const g of parsed.genres) push('g:', g);
-    for (const t of parsed.themes) push('t:', t);
   }
   return [...seen];
 }
@@ -239,14 +210,12 @@ export function usefulTagsFromFields(fields: {
   moods?: string;
   genres_mood?: string;
   genre?: string;
-  themes?: string;
   tags?: string;
 }): string[] {
   const raw = [
     ...splitCatalogueTagSlugs(fields.moods),
     ...splitCatalogueTagSlugs(fields.genres_mood),
     ...splitCatalogueTagSlugs(fields.genre),
-    ...splitCatalogueTagSlugs(fields.themes),
     ...splitCatalogueTagSlugs(fields.tags),
   ];
   const out: string[] = [];
@@ -289,10 +258,6 @@ export function tasteExportRows(
         .filter(([k, e]) => !isCatTasteKey(k) && entryWeight(e) > 0)
         .map(([k]) => k)
         .sort();
-      const themes = Object.entries(r.state.profile.themes ?? {})
-        .filter(([k, e]) => !isCatTasteKey(k) && entryWeight(e) > 0)
-        .map(([k]) => k)
-        .sort();
       const tastesSetAt = r.state.tastesSetAt || r.updatedAt || '';
       const row: TasteExportRow = {
         emailHash: hashEmailKey(r.userKey),
@@ -302,7 +267,6 @@ export function tasteExportRows(
         matchable: tags.length >= MATCHABLE_TAG_THRESHOLD,
         moods: moods.join('|'),
         genres: genres.join('|'),
-        themes: themes.join('|'),
         tastesTextChars: (r.state.tastesText || '').trim().length,
       };
       const sortKey = Date.parse(tastesSetAt) || Date.parse(r.updatedAt || '') || 0;
@@ -323,11 +287,10 @@ export function formatTasteExportCsv(rows: readonly TasteExportRow[]): string {
     'matchable_ge5',
     'moods',
     'genres',
-    'themes',
     'tastes_text_chars',
   ];
   const lines = [
-    '# INTERNE — export goûts KPI 18. Ne pas diffuser. email_hash = sha256(email)[:16]. Pas de payload complet.',
+    '# INTERNE — export goûts KPI 18. Ne pas diffuser. email_hash = sha256(email)[:16]. Pas de payload complet. Tags = moods∪genres > 0 only.',
     header.join(','),
     ...rows.map((r) =>
       [
@@ -338,7 +301,6 @@ export function formatTasteExportCsv(rows: readonly TasteExportRow[]): string {
         csvEscape(r.matchable ? '1' : '0'),
         csvEscape(r.moods),
         csvEscape(r.genres),
-        csvEscape(r.themes),
         csvEscape(r.tastesTextChars),
       ].join(','),
     ),

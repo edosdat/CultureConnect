@@ -229,7 +229,11 @@ export default function AdminAnalyticsView({
           value={`${fmt(snap.gouts.withTastes)} / ${fmt(snap.gouts.withoutTastes)}`}
           hint={`${fmt(snap.gouts.accounts)} rows account_tastes · hasScorableState`}
         />
-        <Card kpi="13" title="# tags / user" hint="0 / 1–5 / 6–15 / 15+">
+        <Card
+          kpi="13"
+          title="# tags / user"
+          hint="moods ∪ genres > 0 · 0 themes · 0 / 1–5 / 6–15 / 15+"
+        >
           <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
             {(['0', '1-5', '6-15', '15+'] as const).map((b) => (
               <li key={b} className="flex justify-between gap-3">
@@ -249,7 +253,7 @@ export default function AdminAnalyticsView({
           kpi="17"
           title="Users matchables"
           value={fmt(snap.gouts.matchable)}
-          hint="Seuil provisoire ≥5 tags utiles"
+          hint="Seuil provisoire ≥5 tags (moods ∪ genres > 0, 0 themes)"
         />
       </div>
 

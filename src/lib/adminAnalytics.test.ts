@@ -80,9 +80,10 @@ describe('mean / median', () => {
 });
 
 describe('taste tags + matchable threshold', () => {
-  it('counts moods / genres / themes and ignores cats', () => {
+  it('counts moods ∪ genres with value > 0 only — 0 themes', () => {
     const tags = usefulTasteTags(
       state({
+        tastesText: 'histoire politique',
         profile: {
           cats: { cinema: { weight: 9, pct: 100 } },
           moods: { rigolo: { weight: 4, pct: 50 }, sortie: { weight: 2, pct: 25 } },
@@ -94,7 +95,9 @@ describe('taste tags + matchable threshold', () => {
     );
     assert.equal(tags.includes('rigolo'), true);
     assert.equal(tags.includes('g:comedie'), true);
-    assert.equal(tags.includes('t:histoire'), true);
+    assert.equal(tags.includes('t:histoire'), false);
+    assert.equal(tags.includes('histoire'), false);
+    assert.equal(tags.some((t) => t.startsWith('t:')), false);
     assert.equal(tags.some((t) => t.includes('cinema')), false);
     assert.equal(tagBucket(0), '0');
     assert.equal(tagBucket(5), '1-5');
@@ -116,6 +119,7 @@ describe('catalogue tag utile', () => {
       usefulTagsFromFields({ moods: 'rigolo|sortie', genre: 'comedie|foo' }),
       ['rigolo', 'comedie'],
     );
+    assert.equal(isUsefulCatalogueTag('histoire'), false);
   });
 });
 
@@ -160,6 +164,9 @@ describe('KPI 18 CSV interne', () => {
     assert.equal(csv.includes('signalsRecent'), false);
     assert.equal(csv.includes('comédie tendre'), false);
     assert.match(csv, /email_hash/);
+    assert.equal(/,themes,/.test(csv), false);
+    assert.equal(csv.includes('\nthemes'), false);
+    assert.equal(Object.prototype.hasOwnProperty.call(rows[0], 'themes'), false);
     assert.equal(csvEscape('a,b').includes('"'), true);
   });
 });
@@ -224,6 +231,7 @@ describe('RGPD — export 18 + 0 join vid', () => {
     assert.equal(csv.includes('signalsRecent'), false);
     assert.equal(csv.includes('user_key'), false);
     assert.match(csv, /email_hash/);
+    assert.equal(csv.includes('themes'), false);
     const load = readFileSync(
       new URL('./adminAnalyticsLoad.ts', import.meta.url),
       'utf8',
@@ -248,6 +256,10 @@ describe('RGPD — export 18 + 0 join vid', () => {
     assert.match(conf, /export interne limité/);
     assert.match(conf, /Pour toi/);
     assert.match(conf, /agrégats de goûts/);
+    assert.match(
+      conf,
+      /L’éditeur consulte des\s+agrégats de goûts et un export interne limité pour ajuster/,
+    );
   });
 });
 

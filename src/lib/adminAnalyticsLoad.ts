@@ -436,7 +436,6 @@ export async function loadAdminAnalytics(
       moods?: string;
       genres_mood?: string;
       genre?: string;
-      themes?: string;
       tags?: string;
     },
   ) => {
@@ -462,7 +461,6 @@ export async function loadAdminAnalytics(
       moods: row.programme.moods || row.evenement?.moods,
       genres_mood: row.programme.genres_mood || row.evenement?.genres_mood,
       genre: row.programme.genre || row.evenement?.genre,
-      themes: row.programme.themes || row.evenement?.themes,
       tags: row.evenement?.tags,
     });
   }
