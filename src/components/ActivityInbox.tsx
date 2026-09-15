@@ -139,9 +139,10 @@ export default function ActivityInbox() {
   async function openSheet() {
     setRowFlags(Object.fromEntries(items.map((it) => [it.token, it.unread])));
     setOpen(true);
-    const seen = await markActivitySeen({ scope: 'all' });
-    if (seen.unreadCount >= 0) setUnreadCount(seen.unreadCount);
-    else setUnreadCount(0);
+    await markActivitySeen({ scope: 'all' });
+    const parsed = await fetchActivityInbox(30);
+    setItems(parsed.items);
+    setUnreadCount(parsed.unreadCount);
   }
 
   async function openFiche(item: ActivityListItem) {

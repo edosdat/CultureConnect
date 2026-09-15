@@ -10,6 +10,7 @@ import {
   type RsvpKind,
   type ShareRsvpRecord,
 } from '@/lib/shareRsvp';
+import { isNotBeforeToday } from '@/lib/timeScope';
 export type ActivityTokenRef = {
   token: string;
   itemKey: string;
@@ -215,11 +216,38 @@ function asRecord(raw: unknown): Record<string, unknown> | null {
   return raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : null;
 }
 
+/**
+ * Chronological max of global + per-token lastSeen.
+ * `tokens[token] || global` is wrong: an older per-token stamp
+ * shadows a newer scope=all global and leaves RSVPs unread.
+ */
 export function lastSeenForToken(
   state: ActivitySeenState,
   token: string,
 ): string | null {
-  return state.tokens[token] || state.global;
+  const tokenSeen = state.tokens[token];
+  const global = state.global;
+  const tokenMs = tokenSeen ? Date.parse(tokenSeen) : NaN;
+  const globalMs = global ? Date.parse(global) : NaN;
+  const hasToken = Number.isFinite(tokenMs);
+  const hasGlobal = Number.isFinite(globalMs);
+  if (hasToken && hasGlobal) {
+    return tokenMs >= globalMs ? tokenSeen : global;
+  }
+  if (hasToken) return tokenSeen;
+  if (hasGlobal) return global;
+  return null;
+}
+
+/** Missing / past event date → out of inbox (Paris civil day). */
+export function filterActivityTokensByEventDate<T extends { itemKey: string }>(
+  tokens: readonly T[],
+  dateIsoForItemKey: (itemKey: string) => string,
+  todayIso: string,
+): T[] {
+  return tokens.filter((t) =>
+    isNotBeforeToday(dateIsoForItemKey(t.itemKey), todayIso),
+  );
 }
 
 export function parseActivitySeenState(raw: unknown): ActivitySeenState {
