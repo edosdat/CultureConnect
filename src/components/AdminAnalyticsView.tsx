@@ -72,7 +72,7 @@ export default function AdminAnalyticsView({
         Analytics 7 jours
       </h1>
       <p className="mt-2 text-sm text-culture-muted">
-        Fenêtre Paris {from} → {to}. Neon {snap.sources.neon ? 'ok' : 'off'} · KV{' '}
+        Fenêtre Europe/Paris {from} → {to}. Neon {snap.sources.neon ? 'ok' : 'off'} · KV{' '}
         {snap.sources.kv ? 'ok' : 'off'}. 0 GA / PostHog.
       </p>
 
@@ -84,7 +84,7 @@ export default function AdminAnalyticsView({
           kpi="1"
           title="Uniques cc_vid / j"
           value={fmt(snap.traffic.distinct7j)}
-          hint="cc:vs:* only · jour Paris · minorant (nav privée / multi-device)"
+          hint="cc:vs:* only · jour Europe/Paris · approx. / minorant (nav privée / multi-device)"
           approx
         >
           <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
@@ -100,7 +100,7 @@ export default function AdminAnalyticsView({
           kpi="2"
           title="Retours (même vid j+1+)"
           value={`${fmt(snap.traffic.returners)} · ${pct(snap.traffic.returners, snap.traffic.distinct7j)}`}
-          hint="≥2 jours distincts / uniques-fenêtre · minorant (nav privée / multi-device)"
+          hint="≥2 jours distincts / uniques-fenêtre · Europe/Paris · approx. / minorant"
           approx
         >
           <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
@@ -232,7 +232,7 @@ export default function AdminAnalyticsView({
         <Card
           kpi="13"
           title="# tags / user"
-          hint="moods ∪ genres weight>0 · 0 themes · 0 tastesText-only · 0 cats · 0 / 1–5 / 6–15 / 15+"
+          hint="moods ∪ genres (pas moods seuls) weight/value > 0 · 0 themes · 0 tastesText-only · 0 cats"
         >
           <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
             {(['0', '1-5', '6-15', '15+'] as const).map((b) => (
@@ -253,7 +253,7 @@ export default function AdminAnalyticsView({
           kpi="17"
           title="Users matchables"
           value={fmt(snap.gouts.matchable)}
-          hint="≥5 tags (même déf. : moods ∪ genres weight>0, 0 themes / tastesText / cats)"
+          hint="≥5 tags — même déf. moods ∪ genres (pas moods seuls) weight/value > 0"
         />
       </div>
 

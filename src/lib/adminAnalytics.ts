@@ -54,7 +54,7 @@ export type TasteExportRow = {
   tastesTextChars: number;
 };
 
-/** Inclusive last 7 Paris calendar days (today − 6 … today). */
+/** Inclusive last 7 Europe/Paris calendar days (today − 6 … today). */
 export function analyticsWindowDays(now = new Date()): string[] {
   const today = parisParts(now).iso;
   const days: string[] = [];
@@ -158,7 +158,7 @@ export function mergeVidDay(
 
 /**
  * Mesure LOCK — KPI 13 / 17 countable tags.
- * moods ∪ genres keys with weight > 0 only.
+ * moods ∪ genres keys with weight/value > 0 (not moods-only).
  * Exclude themes, entities, tastesText-only, and Musique/Théâtre/Cinéma cats.
  */
 export function usefulTasteTags(state: AccountTasteState): string[] {

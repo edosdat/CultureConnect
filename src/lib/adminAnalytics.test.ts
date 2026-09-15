@@ -313,6 +313,8 @@ describe('Mesure — approx. / minorant on guest KV KPIs', () => {
     assert.equal(cards.some((b) => /kpi="18"/.test(b) && /\bapprox\b/.test(b)), false);
     assert.match(view, /nav privée \/ multi-device/);
     assert.match(view, /cc:vs:\* only/);
+    assert.match(view, /Europe\/Paris/);
+    assert.match(view, /pas moods seuls/);
     assert.match(view, /0 tastesText-only/);
   });
 });
