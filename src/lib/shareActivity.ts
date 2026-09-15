@@ -212,6 +212,20 @@ export function emptyActivityInbox(): ActivityListPayload {
   return { lastSeenAt: null, unreadCount: 0, items: [] };
 }
 
+/**
+ * Wire list: keep unreadCount / deltas / latest. Drop `events[]`
+ * (inbox copy uses latest + deltas; sand uses /item).
+ */
+export function slimActivityListForWire(
+  payload: ActivityListPayload,
+): ActivityListPayload {
+  return {
+    lastSeenAt: payload.lastSeenAt,
+    unreadCount: payload.unreadCount,
+    items: payload.items.map((item) => ({ ...item, events: [] })),
+  };
+}
+
 function asRecord(raw: unknown): Record<string, unknown> | null {
   return raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : null;
 }

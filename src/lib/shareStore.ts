@@ -193,6 +193,26 @@ const memoryHits = new Map<string, number[]>();
 const memoryOrphans: string[] = [];
 const memorySharerIndex = new Map<string, string[]>();
 const memoryActivitySeen = new Map<string, string>();
+const INBOX_CACHE_TTL_MS = 15_000;
+const activityInboxCache = new Map<
+  string,
+  { at: number; payload: ActivityListPayload }
+>();
+
+function activityInboxCacheKey(email: string, limit: number): string {
+  return `${email.trim().toLowerCase()}|${limit}`;
+}
+
+function invalidateActivityInboxCache(email?: string): void {
+  if (!email) {
+    activityInboxCache.clear();
+    return;
+  }
+  const prefix = `${email.trim().toLowerCase()}|`;
+  for (const key of activityInboxCache.keys()) {
+    if (key.startsWith(prefix)) activityInboxCache.delete(key);
+  }
+}
 
 export function resetShareStoreForTests(): void {
   memoryTokens.clear();
@@ -203,6 +223,7 @@ export function resetShareStoreForTests(): void {
   memoryOrphans.length = 0;
   memorySharerIndex.clear();
   memoryActivitySeen.clear();
+  activityInboxCache.clear();
   kvPipelineOverride = null;
 }
 
@@ -726,22 +747,105 @@ async function readEventRsvpsNeon(opts: {
   }
 }
 
-export async function listTokenRsvps(token: string): Promise<ShareRsvpRecord[]> {
-  if (!isShareToken(token)) return [];
-  const mem = memoryRsvps.get(token);
-  if (mem) return mem.map((r) => ({ ...r }));
-  const rows = await kvPipeline([['GET', rsvpTokKey(token)]]);
-  if (rows) {
-    const raw = pipelineString(rows[0]);
-    if (raw) {
-      try {
-        return parseRsvpList(JSON.parse(raw));
-      } catch {
-        /* fall through */
-      }
+async function readTokenRsvpsNeonMany(
+  tokens: readonly string[],
+): Promise<Map<string, ShareRsvpRecord[]>> {
+  const out = new Map<string, ShareRsvpRecord[]>();
+  if (tokens.length === 0) return out;
+  try {
+    const pg = await ensureShareRsvpsTable();
+    if (!pg) return out;
+    const result = await pg.query(
+      `SELECT token, email_hash, item_key, work_id, kind, first_name, updated_at
+       FROM share_rsvps WHERE token = ANY($1)`,
+      [tokens],
+    );
+    for (const token of tokens) out.set(token, []);
+    for (const row of result.rows) {
+      const rec = parseRsvpRecord({
+        token: row.token,
+        emailHash: row.email_hash,
+        itemKey: row.item_key,
+        workId: row.work_id,
+        kind: row.kind,
+        firstName: row.first_name,
+        ts:
+          row.updated_at instanceof Date
+            ? row.updated_at.toISOString()
+            : row.updated_at,
+      });
+      if (!rec) continue;
+      const list = out.get(rec.token) ?? [];
+      list.push(rec);
+      out.set(rec.token, list);
+    }
+    return out;
+  } catch {
+    return out;
+  }
+}
+
+export async function listTokenRsvpsMany(
+  tokens: readonly string[],
+): Promise<Map<string, ShareRsvpRecord[]>> {
+  const out = new Map<string, ShareRsvpRecord[]>();
+  const missing: string[] = [];
+  const seen = new Set<string>();
+  for (const token of tokens) {
+    if (!token || seen.has(token)) continue;
+    seen.add(token);
+    if (!isShareToken(token)) {
+      out.set(token, []);
+      continue;
+    }
+    const mem = memoryRsvps.get(token);
+    if (mem) {
+      out.set(
+        token,
+        mem.map((r) => ({ ...r })),
+      );
+    } else {
+      missing.push(token);
     }
   }
-  return (await readTokenRsvpsNeon(token)) ?? [];
+  if (missing.length === 0) return out;
+
+  const kvRows = await kvPipeline(
+    missing.map((token) => ['GET', rsvpTokKey(token)]),
+  );
+  const stillMissing: string[] = [];
+  if (kvRows) {
+    for (let i = 0; i < missing.length; i++) {
+      const token = missing[i];
+      const raw = pipelineString(kvRows[i]);
+      if (raw) {
+        try {
+          out.set(token, parseRsvpList(JSON.parse(raw)));
+          continue;
+        } catch {
+          /* fall through */
+        }
+      }
+      stillMissing.push(token);
+    }
+  } else {
+    stillMissing.push(...missing);
+  }
+
+  if (stillMissing.length === 1) {
+    out.set(stillMissing[0], (await readTokenRsvpsNeon(stillMissing[0])) ?? []);
+  } else if (stillMissing.length > 1) {
+    const neon = await readTokenRsvpsNeonMany(stillMissing);
+    for (const token of stillMissing) {
+      out.set(token, neon.get(token) ?? []);
+    }
+  }
+  return out;
+}
+
+export async function listTokenRsvps(token: string): Promise<ShareRsvpRecord[]> {
+  const map = await listTokenRsvpsMany([token]);
+  return map.get(token) ?? [];
 }
 
 async function writeTokenRsvps(
@@ -752,6 +856,7 @@ async function writeTokenRsvps(
   memoryRsvps.set(token, rsvps.map((r) => ({ ...r })));
   await kvPipeline([['SET', rsvpTokKey(token), JSON.stringify(rsvps)]]);
   await writeTokenRsvpsNeon(token, rsvps);
+  invalidateActivityInboxCache();
 }
 
 export async function toggleShareRsvp(opts: {
@@ -946,9 +1051,26 @@ export async function listShareTokensBySharerEmail(
   if (byToken.size === 0) {
     const rows = await kvPipeline([['SMEMBERS', sharerIndexKey(hash)]]);
     const members = rows ? pipelineStrings(rows[0]) : [];
-    for (const tok of members.slice(0, SHARE_SHARER_INDEX_CAP)) {
-      const rec = await readShareToken(tok);
-      if (rec?.sharerEmail === normalized) byToken.set(rec.token, rec);
+    const slice = members.slice(0, SHARE_SHARER_INDEX_CAP);
+    if (slice.length > 0) {
+      const tokRows = await kvPipeline(slice.map((tok) => ['GET', tokKey(tok)]));
+      if (tokRows) {
+        for (let i = 0; i < slice.length; i++) {
+          const raw = pipelineString(tokRows[i]);
+          if (!raw) continue;
+          try {
+            const rec = parseTokenRecord(JSON.parse(raw));
+            if (rec?.sharerEmail === normalized) byToken.set(rec.token, rec);
+          } catch {
+            /* skip bad row */
+          }
+        }
+      } else {
+        for (const tok of slice) {
+          const rec = await readShareToken(tok);
+          if (rec?.sharerEmail === normalized) byToken.set(rec.token, rec);
+        }
+      }
     }
   }
 
@@ -1053,6 +1175,7 @@ async function writeActivitySeenState(
   const hash = emailHash(email.trim().toLowerCase());
   const payload = JSON.stringify(state);
   const key = activitySeenKey(hash);
+  invalidateActivityInboxCache(email);
   const kvOk = await kvSetString(key, payload);
   const neonOk = await writeActivitySeenNeon(hash, payload);
   const hasBackend = Boolean(kvConfig() || kvPipelineOverride || postgresUrl());
@@ -1076,13 +1199,26 @@ export async function writeActivityLastSeen(
   return ts;
 }
 
-async function activityEventDateIsoForItemKey(itemKey: string): Promise<string> {
+let activityDatesMod: typeof import('@/lib/shareActivityDates') | null = null;
+
+async function loadActivityDates(): Promise<
+  typeof import('@/lib/shareActivityDates') | null
+> {
+  if (activityDatesMod) return activityDatesMod;
   try {
-    const { activityEventDateIso } = await import('@/lib/shareActivityDates');
-    return activityEventDateIso(itemKey);
+    activityDatesMod = await import('@/lib/shareActivityDates');
+    return activityDatesMod;
   } catch {
-    return '';
+    return null;
   }
+}
+
+async function warmShareActivityTables(): Promise<void> {
+  await Promise.all([
+    ensureShareTokensTable(),
+    ensureShareRsvpsTable(),
+    ensureActivitySeenTable(),
+  ]);
 }
 
 export async function markSharerActivitySeen(opts: {
@@ -1099,6 +1235,9 @@ export async function markSharerActivitySeen(opts: {
       ? { ...prev, tokens: { ...prev.tokens, [opts.token]: now } }
       : { global: now, tokens: {} };
   const persisted = await writeActivitySeenState(opts.email, next);
+  if (opts.scope === 'all') {
+    return { ok: persisted, unreadCount: 0 };
+  }
   const inbox = await sharerActivityInbox({
     email: opts.email,
     now: opts.now,
@@ -1113,38 +1252,57 @@ export async function sharerActivityInbox(opts: {
   now?: Date;
   eventDateIsoForItemKey?: (itemKey: string) => string;
 }): Promise<ActivityListPayload> {
-  const listed = await listShareTokensBySharerEmail(opts.email);
+  const limit = opts.limit ?? 30;
+  const cacheKey = activityInboxCacheKey(opts.email, limit);
+  const cached = activityInboxCache.get(cacheKey);
+  if (
+    cached &&
+    !opts.eventDateIsoForItemKey &&
+    Date.now() - cached.at < INBOX_CACHE_TTL_MS
+  ) {
+    return cached.payload;
+  }
+
+  await warmShareActivityTables();
+  const [listed, seen] = await Promise.all([
+    listShareTokensBySharerEmail(opts.email),
+    readActivitySeenState(opts.email),
+  ]);
   const todayIso = parisParts(opts.now).iso;
-  const resolveDate = opts.eventDateIsoForItemKey;
-  const dated = await Promise.all(
-    listed.map(async (t) => ({
-      token: t,
-      dateIso: resolveDate
-        ? resolveDate(t.itemKey)
-        : await activityEventDateIsoForItemKey(t.itemKey),
-    })),
+  const dates = opts.eventDateIsoForItemKey
+    ? null
+    : await loadActivityDates();
+  const dateByKey = new Map<string, string>();
+  const resolveDate = (itemKey: string): string => {
+    const hit = dateByKey.get(itemKey);
+    if (hit !== undefined) return hit;
+    const iso = opts.eventDateIsoForItemKey
+      ? opts.eventDateIsoForItemKey(itemKey)
+      : dates
+        ? dates.activityEventDateIso(itemKey)
+        : '';
+    dateByKey.set(itemKey, iso);
+    return iso;
+  };
+  const tokens = listed.filter((t) =>
+    isNotBeforeToday(resolveDate(t.itemKey), todayIso),
   );
-  const tokens = dated
-    .filter((row) => isNotBeforeToday(row.dateIso, todayIso))
-    .map((row) => row.token);
-  const rsvpsByToken = new Map<string, ShareRsvpRecord[]>();
-  await Promise.all(
-    tokens.map(async (t) => {
-      rsvpsByToken.set(t.token, await listTokenRsvps(t.token));
-    }),
-  );
-  const seen = await readActivitySeenState(opts.email);
+  const rsvpsByToken = await listTokenRsvpsMany(tokens.map((t) => t.token));
   const items = buildActivityListItems({
     tokens,
     rsvpsByToken,
     lastSeenForToken: (token) => lastSeenForToken(seen, token),
-    limit: opts.limit,
+    limit,
   });
-  return {
+  const payload: ActivityListPayload = {
     lastSeenAt: seen.global,
     unreadCount: inboxUnreadCount(items),
     items,
   };
+  if (!opts.eventDateIsoForItemKey) {
+    activityInboxCache.set(cacheKey, { at: Date.now(), payload });
+  }
+  return payload;
 }
 
 export async function sharerActivityItem(opts: {

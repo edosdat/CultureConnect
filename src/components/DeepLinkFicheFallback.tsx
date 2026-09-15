@@ -8,18 +8,22 @@ import { formatDateFr } from '@/lib/labels';
 import { seanceTimeLabel } from '@/lib/eventTimes';
 import type { DayItem } from '@/lib/types';
 import HomeTop3BootFallback from './HomeTop3BootFallback';
+import type { OpenFicheSeed } from './openFicheEvents';
 
 /** Streaming share: fiche + photo first; catalogue hydrates behind. */
 export default function DeepLinkFicheFallback({
   item,
+  seed,
   showCatalogueShell = true,
 }: {
   item: DayItem | null;
+  /** Inbox meta already hydrated — paint title/image before catalogue item. */
+  seed?: OpenFicheSeed | null;
   /** Home already painted — skip the catalogue boot shell (cloche → fiche). */
   showCatalogueShell?: boolean;
 }) {
-  const title = item ? itemTitle(item) : '';
-  const photo = item ? itemImageUrl(item) : '';
+  const title = item ? itemTitle(item) : seed?.title || '';
+  const photo = item ? itemImageUrl(item) : seed?.image || '';
   const catKey = item ? catKeyOfItem(item) : null;
   const catLabel = item ? catLabelOfItem(item) : '';
   const venue = item ? itemVenue(item) : '';
@@ -28,7 +32,9 @@ export default function DeepLinkFicheFallback({
         .filter(Boolean)
         .join(' · ')
     : '';
-  const meta = [venue, when].filter(Boolean).join(' · ');
+  const meta = item
+    ? [venue, when].filter(Boolean).join(' · ')
+    : seed?.where || '';
 
   return (
     <>

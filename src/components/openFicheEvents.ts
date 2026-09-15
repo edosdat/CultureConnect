@@ -2,7 +2,14 @@
 
 export const OPEN_FICHE_EVENT = 'cc-open-fiche';
 
-export type OpenFicheDetail = {
+/** Title / image already hydrated in the inbox sheet (`GET /api/agenda?id=`). */
+export type OpenFicheSeed = {
+  title?: string;
+  image?: string;
+  where?: string;
+};
+
+export type OpenFicheDetail = OpenFicheSeed & {
   itemKey: string;
   token: string;
   href: string;

@@ -21,6 +21,7 @@ import {
   parseActivityItemPayload,
   parseActivityListPayload,
   parseActivitySeenPayload,
+  slimActivityListForWire,
   unreadBadgeLabel,
   type ActivityListItem,
 } from './shareActivity';
@@ -197,6 +198,34 @@ describe('B3b activity copy', () => {
       activityFicheHref('p:P1847', 'k7f2m9aa'),
       '/?e=p%3AP1847&t=k7f2m9aa',
     );
+  });
+
+  it('wire list drops events[] but keeps unreadCount / deltas / latest', () => {
+    const unreadItem: ActivityListItem = {
+      itemKey: 'p:P1',
+      token: 'abcd1234',
+      seanceKey: null,
+      createdAt: '2026-09-14T10:00:00.000Z',
+      envie: 1,
+      going: 1,
+      unread: true,
+      deltaGoing: 1,
+      deltaEnvie: 0,
+      latest: { firstName: 'Ludo', kind: 'going', ts: '2026-09-15T12:00:00.000Z' },
+      events: [ev('Ludo', 'going', '2026-09-15T12:00:00.000Z')],
+    };
+    const slim = slimActivityListForWire({
+      lastSeenAt: null,
+      unreadCount: 1,
+      items: [unreadItem],
+    });
+    assert.equal(slim.unreadCount, 1);
+    assert.equal(slim.items[0]?.deltaGoing, 1);
+    assert.equal(slim.items[0]?.latest?.firstName, 'Ludo');
+    assert.deepEqual(slim.items[0]?.events, []);
+    const parsed = parseActivityListPayload(slim);
+    assert.equal(parsed.unreadCount, 1);
+    assert.equal(inboxDeltaCopy(parsed.items[0]!), 'Ludo y va');
   });
 
   it('relative + short date', () => {
@@ -616,6 +645,10 @@ describe('B3b activity source contract', () => {
     assert.match(store, /isNotBeforeToday/);
     assert.match(store, /activityEventDateIso/);
     assert.match(store, /tokens: \{\}/);
+    assert.match(store, /listTokenRsvpsMany/);
+    assert.match(store, /warmShareActivityTables/);
+    assert.match(store, /queryAgendaItemDateIso|activityEventDateIso/);
+    assert.match(store, /opts\.scope === 'all'/);
   });
 });
 
@@ -640,6 +673,8 @@ describe('TIP cloche → fiche — navigate first, seen async', () => {
     );
     assert.match(events, /cc-open-fiche/);
     assert.match(events, /export function requestOpenFiche/);
+    assert.match(events, /title\?: string/);
+    assert.match(events, /image\?: string/);
 
     const app = await readFile(
       new URL('../components/CultureConnectApp.tsx', import.meta.url),
@@ -655,5 +690,80 @@ describe('TIP cloche → fiche — navigate first, seen async', () => {
     );
     assert.match(visit, /OPEN_FICHE_EVENT/);
     assert.match(visit, /setToken/);
+  });
+});
+
+describe('P1 cloche inbox cold path + meta paint', () => {
+  it('activity dates skip queryAgendaDetail; store batches RSVPs', async () => {
+    const dates = await readFile(
+      new URL('./shareActivityDates.ts', import.meta.url),
+      'utf8',
+    );
+    assert.match(dates, /queryAgendaItemDateIso/);
+    assert.equal(dates.includes('queryAgendaDetail'), false);
+
+    const query = await readFile(
+      new URL('./agendaQuery.ts', import.meta.url),
+      'utf8',
+    );
+    assert.match(query, /export function queryAgendaItemDateIso/);
+    const dateFn = query.slice(query.indexOf('export function queryAgendaItemDateIso'));
+    assert.match(dateFn, /findItemByKey/);
+    assert.equal(dateFn.slice(0, 400).includes('relatedSeancesFromProgramme'), false);
+
+    const store = await readFile(new URL('./shareStore.ts', import.meta.url), 'utf8');
+    assert.match(store, /listTokenRsvpsMany/);
+    assert.match(store, /token = ANY/);
+    assert.match(store, /warmShareActivityTables/);
+    assert.match(store, /activityInboxCache/);
+    const inboxFn = store.slice(store.indexOf('export async function sharerActivityInbox'));
+    assert.match(inboxFn, /listTokenRsvpsMany/);
+    assert.match(inboxFn, /dateByKey/);
+    assert.equal(inboxFn.includes('queryAgendaDetail'), false);
+
+    const route = await readFile(
+      new URL('../app/api/share/activity/route.ts', import.meta.url),
+      'utf8',
+    );
+    assert.match(route, /slimActivityListForWire/);
+    assert.match(route, /sessionSharerEmail/);
+  });
+
+  it('sheet paints hydrated meta; fiche seed + prefetch do not block open', async () => {
+    const inbox = await readFile(
+      new URL('../components/ActivityInbox.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(inbox, /prefetchAgendaItem/);
+    assert.match(inbox, /onPointerEnter/);
+    assert.match(inbox, /onPointerDown/);
+    assert.match(inbox, /title: info\?\.title/);
+    assert.match(inbox, /image: info\?\.image/);
+    assert.equal(inbox.includes('await markActivitySeen({ scope: \'all\''), false);
+    assert.match(inbox, /void markActivitySeen\(\{ scope: 'all'/);
+    assert.equal(inbox.includes('window.location.assign'), false);
+
+    const fallback = await readFile(
+      new URL('../components/DeepLinkFicheFallback.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(fallback, /seed\?: OpenFicheSeed/);
+    assert.match(fallback, /seed\?\.title/);
+    assert.match(fallback, /seed\?\.image/);
+
+    const app = await readFile(
+      new URL('../components/CultureConnectApp.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(app, /peekPrefetchedAgendaItem/);
+    assert.match(app, /setFicheSeed/);
+    assert.match(app, /seed=\{ficheSeed\}/);
+
+    const prefetch = await readFile(
+      new URL('./agendaItemPrefetch.ts', import.meta.url),
+      'utf8',
+    );
+    assert.match(prefetch, /\/api\/agenda\?id=/);
+    assert.match(prefetch, /export function peekPrefetchedAgendaItem/);
   });
 });

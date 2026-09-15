@@ -107,7 +107,12 @@ import {
 } from '@/lib/parseSearchChips';
 import { normalizeDeepLinkId } from '@/lib/deepLink';
 import DeepLinkFicheFallback from './DeepLinkFicheFallback';
-import { OPEN_FICHE_EVENT, type OpenFicheDetail } from './openFicheEvents';
+import {
+  OPEN_FICHE_EVENT,
+  type OpenFicheDetail,
+  type OpenFicheSeed,
+} from './openFicheEvents';
+import { peekPrefetchedAgendaItem } from '@/lib/agendaItemPrefetch';
 import {
   buildAgendaParams,
   listFetchShouldSkipBoot,
@@ -361,6 +366,7 @@ export default function CultureConnectApp({
   const [selectedItemKey, setSelectedItemKey] = useState<string | null>(
     deepLinkBoot.selectedItemKey,
   );
+  const [ficheSeed, setFicheSeed] = useState<OpenFicheSeed | null>(null);
   const [cineFocusKey, setCineFocusKey] = useState<string | null>(
     deepLinkBoot.cineFocusKey,
   );
@@ -623,14 +629,34 @@ export default function CultureConnectApp({
   }, [initialOpenKey, shareVisitItemKey]);
 
   // Cloche → fiche: open from already-painted home state (no cold reload).
+  // Prefer inbox meta / prefetched agenda?id= so we never re-wait cold activity.
   useEffect(() => {
     function openFromKey(itemKey: string) {
       const key = normalizeDeepLinkId(itemKey);
       if (key) setSelectedItemKey(deepLinkBootState(key).selectedItemKey);
     }
     function onOpenFiche(e: Event) {
-      const itemKey = (e as CustomEvent<OpenFicheDetail>).detail?.itemKey;
-      if (itemKey) openFromKey(itemKey);
+      const detail = (e as CustomEvent<OpenFicheDetail>).detail;
+      const itemKey = detail?.itemKey;
+      if (!itemKey) return;
+      const key = normalizeDeepLinkId(itemKey);
+      const peeked = key ? peekPrefetchedAgendaItem(key) : null;
+      if (peeked) {
+        setDetailItem(peeked);
+        setFicheSeed(null);
+      } else {
+        setDetailItem(null);
+        if (detail.title || detail.image || detail.where) {
+          setFicheSeed({
+            title: detail.title,
+            image: detail.image,
+            where: detail.where,
+          });
+        } else {
+          setFicheSeed(null);
+        }
+      }
+      openFromKey(itemKey);
     }
     window.addEventListener(OPEN_FICHE_EVENT, onOpenFiche);
     return () => window.removeEventListener(OPEN_FICHE_EVENT, onOpenFiche);
@@ -1822,7 +1848,7 @@ export default function CultureConnectApp({
             nouveautesItems,
             vivantItems,
             leftoverRows.map((r) => r.item),
-          );
+          ) ?? peekPrefetchedAgendaItem(selectedItemKey);
 
   useEffect(() => {
     if (!selectedItemKey) {
@@ -1831,16 +1857,17 @@ export default function CultureConnectApp({
       setAussiCeSoirItems([]);
       return;
     }
-    const slim = findDayItemByKey(
-      selectedItemKey,
-      top3Cards,
-      pourToiFilled,
-      pourToiItems,
-      listItems,
-      nouveautesItems,
-      vivantItems,
-      leftoverRows.map((r) => r.item),
-    );
+    const slim =
+      findDayItemByKey(
+        selectedItemKey,
+        top3Cards,
+        pourToiFilled,
+        pourToiItems,
+        listItems,
+        nouveautesItems,
+        vivantItems,
+        leftoverRows.map((r) => r.item),
+      ) ?? peekPrefetchedAgendaItem(selectedItemKey);
     if (slim) {
       setDetailItem(slim);
       // Track immediately from the slim card already on screen so a
@@ -2716,7 +2743,10 @@ export default function CultureConnectApp({
       {selectedItem ? (
         <EventDetail
           item={selectedItem}
-          onClose={() => setSelectedItemKey(null)}
+          onClose={() => {
+            setSelectedItemKey(null);
+            setFicheSeed(null);
+          }}
           onSelectVenue={handleSelectVenue}
           relatedItems={relatedFilmItems}
           aussiCeSoirItems={aussiCeSoirItems}
@@ -2730,7 +2760,11 @@ export default function CultureConnectApp({
           origin={gpsOrigin}
         />
       ) : selectedItemKey ? (
-        <DeepLinkFicheFallback item={null} showCatalogueShell={false} />
+        <DeepLinkFicheFallback
+          item={null}
+          seed={ficheSeed}
+          showCatalogueShell={false}
+        />
       ) : null}
     </div>
   );

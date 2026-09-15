@@ -12,7 +12,6 @@ import {
   ACTIVITY_SHEET_TITLE,
   inboxDeltaCopy,
   activityFicheHref,
-  formatActivityDateShort,
   formatActivityRelative,
   itemIsUnread,
   unreadBadgeLabel,
@@ -22,15 +21,14 @@ import {
   fetchActivityInbox,
   markActivitySeen,
 } from '@/lib/shareActivityClient';
-import { itemImageUrl, itemTitle } from '@/lib/displayHome';
-import { formatLieuAffiche } from '@/lib/labels';
-import type { DayItem } from '@/lib/types';
+import {
+  agendaItemMeta,
+  peekPrefetchedAgendaItem,
+  prefetchAgendaItem,
+  type AgendaItemMeta,
+} from '@/lib/agendaItemPrefetch';
 
-type Meta = {
-  title: string;
-  where: string;
-  image: string;
-};
+type Meta = AgendaItemMeta;
 
 const THUMB_FALLBACKS = [
   'from-culture-terracotta to-[#f0a890]',
@@ -54,16 +52,6 @@ function BellIcon({ muted }: { muted: boolean }) {
       <path d="M9.5 17a2.5 2.5 0 0 0 5 0" />
     </svg>
   );
-}
-
-function hydrateMeta(item: DayItem): Meta {
-  const lieu = formatLieuAffiche(item.lieu);
-  const date = formatActivityDateShort(item.dayIso);
-  return {
-    title: itemTitle(item),
-    where: [lieu, date].filter(Boolean).join(' · '),
-    image: itemImageUrl(item),
-  };
 }
 
 export default function ActivityInbox() {
@@ -98,22 +86,13 @@ export default function ActivityInbox() {
     const keys = [...new Set(items.map((it) => it.itemKey))];
     if (keys.length === 0) return;
     let cancelled = false;
-    void Promise.all(
-      keys.map((key) =>
-        fetch(`/api/agenda?id=${encodeURIComponent(key)}`)
-          .then((res) => (res.ok ? res.json() : null))
-          .then((data: { item?: DayItem } | null) => {
-            if (!data?.item) return;
-            return [key, hydrateMeta(data.item)] as const;
-          })
-          .catch(() => null),
-      ),
-    ).then((rows) => {
+    void Promise.all(keys.map((key) => prefetchAgendaItem(key))).then((rows) => {
       if (cancelled) return;
       const next: Record<string, Meta> = {};
-      for (const row of rows) {
-        if (row) next[row[0]] = row[1];
-      }
+      keys.forEach((key, i) => {
+        const day = rows[i];
+        if (day) next[key] = agendaItemMeta(day);
+      });
       setMeta((prev) => ({ ...prev, ...next }));
     });
     return () => {
@@ -142,18 +121,27 @@ export default function ActivityInbox() {
     ? `${unreadCount > 9 ? 'Plus de 9' : unreadCount} notifications non lues`
     : 'Notifications';
 
-  async function openSheet() {
+  function prefetchRow(itemKey: string) {
+    void prefetchAgendaItem(itemKey).then((day) => {
+      if (!day) return;
+      setMeta((prev) => ({ ...prev, [itemKey]: agendaItemMeta(day) }));
+    });
+  }
+
+  function openSheet() {
     setPressedToken(null);
     setRowFlags(Object.fromEntries(items.map((it) => [it.token, it.unread])));
     setOpen(true);
-    await markActivitySeen({ scope: 'all' });
-    const parsed = await fetchActivityInbox(30);
-    setItems(parsed.items);
-    setUnreadCount(parsed.unreadCount);
+    // Sheet paints from items + meta already hydrated. Seen / refresh async.
+    void markActivitySeen({ scope: 'all' }).then((seen) => {
+      if (seen.unreadCount >= 0) setUnreadCount(seen.unreadCount);
+    });
   }
 
   function openFiche(item: ActivityListItem) {
     const href = activityFicheHref(item.itemKey, item.token);
+    const peeked = peekPrefetchedAgendaItem(item.itemKey);
+    const info = peeked ? agendaItemMeta(peeked) : meta[item.itemKey];
     setPressedToken(item.token);
     setRowFlags((prev) => ({ ...prev, [item.token]: false }));
     setUnreadCount((n) => Math.max(0, n - (item.unread ? 1 : 0)));
@@ -165,7 +153,14 @@ export default function ActivityInbox() {
     } else {
       router.push(href);
     }
-    requestOpenFiche({ itemKey: item.itemKey, token: item.token, href });
+    requestOpenFiche({
+      itemKey: item.itemKey,
+      token: item.token,
+      href,
+      title: info?.title,
+      image: info?.image,
+      where: info?.where,
+    });
     void markActivitySeen({ scope: 'token', token: item.token }).then((seen) => {
       if (seen.unreadCount >= 0) setUnreadCount(seen.unreadCount);
     });
@@ -228,13 +223,16 @@ export default function ActivityInbox() {
                     const info = meta[item.itemKey];
                     const delta = inboxDeltaCopy(item);
                     const when = formatActivityRelative(
-                      item.events[0]?.ts || item.createdAt,
+                      item.latest?.ts || item.createdAt,
                     );
                     return (
                       <button
                         key={`${item.token}-${item.itemKey}`}
                         type="button"
                         onClick={() => openFiche(item)}
+                        onPointerEnter={() => prefetchRow(item.itemKey)}
+                        onFocus={() => prefetchRow(item.itemKey)}
+                        onPointerDown={() => prefetchRow(item.itemKey)}
                         className={
                           'flex w-full items-start gap-2.5 border-b border-culture-line px-3.5 py-2.5 text-left active:bg-culture-sand/70 ' +
                           (pressedToken === item.token
