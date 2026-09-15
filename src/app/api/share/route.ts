@@ -110,6 +110,9 @@ export async function POST(req: Request) {
       seanceKey,
       sharerEmail,
       origin: requestOrigin(req),
+      firstName: firstNameFromDisplayName(
+        typeof session?.user?.name === 'string' ? session.user.name : '',
+      ),
     });
     if (!created) return jsonError('Création impossible', 500);
 

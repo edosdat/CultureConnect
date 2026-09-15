@@ -1,5 +1,6 @@
 /**
- * B3 token store + B3b RSVP. KV keys: `share:tok:<token>`,
+ * B3 token store + B3b RSVP. Connected `createShareToken` seeds sharer `envie`.
+ * KV keys: `share:tok:<token>`,
  * `share:visits:<token>` (cap 500), `share:visitors:<token>`,
  * `share:rsvp:<token>`, `share:rsvp:work:<workId>`,
  * `share:activity:seen:<emailHash>` (+ Neon `share_activity_seen`).
@@ -27,6 +28,7 @@ import {
   applyRsvpToggle,
   assertRsvpRgpd,
   buildTokenSocial,
+  firstNameFromDisplayName,
   isRsvpKind,
   motherStatsFromRsvps,
   parseRsvpRecord,
@@ -469,6 +471,7 @@ export async function createShareToken(opts: {
   seanceKey?: string | null;
   sharerEmail: string | null;
   origin: string;
+  firstName?: string | null;
 }): Promise<{ token: string; url: string; seanceKey?: string } | null> {
   const seanceKey = normalizeSeanceKey(opts.seanceKey);
   const itemKey = shareCreateItemKey(opts.itemKey, seanceKey);
@@ -494,6 +497,14 @@ export async function createShareToken(opts: {
   await writeShareToken(record);
   if (record.sharerEmail) {
     await indexSharerToken(record.sharerEmail, record.token);
+    // Connected share = auto-Envie on this token. Guest (null email) skips.
+    await seedSharerEnvie({
+      token: record.token,
+      itemKey,
+      workId: itemKey,
+      email: record.sharerEmail,
+      firstName: opts.firstName,
+    });
   }
   const url = deepLinkUrl(opts.origin, itemKey, token);
   return seanceKey ? { token, url, seanceKey } : { token, url };
@@ -859,37 +870,32 @@ async function writeTokenRsvps(
   invalidateActivityInboxCache();
 }
 
-export async function toggleShareRsvp(opts: {
+async function persistShareRsvp(opts: {
   token: string;
   itemKey: string;
   workId: string;
   emailHash: string;
   firstName: string;
-  kind: RsvpKind;
+  kind: RsvpKind | null;
 }): Promise<{
   kind: RsvpKind | null;
   rsvps: ShareRsvpRecord[];
 }> {
-  if (!isShareToken(opts.token) || !isRsvpKind(opts.kind)) {
-    return { kind: null, rsvps: [] };
-  }
   const tokenRec = await readShareToken(opts.token);
   if (!tokenRec) return { kind: null, rsvps: [] };
   const itemKey = tokenRec.itemKey || opts.itemKey;
   const workId = opts.workId || itemKey;
   const current = await listTokenRsvps(opts.token);
-  const existing = current.find((r) => r.emailHash === opts.emailHash) ?? null;
-  const nextKind = applyRsvpToggle(existing?.kind ?? null, opts.kind);
   const rest = current.filter((r) => r.emailHash !== opts.emailHash);
   let next = rest;
-  if (nextKind) {
+  if (opts.kind) {
     const record: ShareRsvpRecord = {
       token: opts.token,
       itemKey,
       workId,
       emailHash: opts.emailHash,
       firstName: opts.firstName,
-      kind: nextKind,
+      kind: opts.kind,
       ts: new Date().toISOString(),
     };
     assertRsvpRgpd(record);
@@ -911,7 +917,86 @@ export async function toggleShareRsvp(opts: {
       record: written,
     });
   }
-  return { kind: nextKind, rsvps: next };
+  return { kind: opts.kind, rsvps: next };
+}
+
+export async function toggleShareRsvp(opts: {
+  token: string;
+  itemKey: string;
+  workId: string;
+  emailHash: string;
+  firstName: string;
+  kind: RsvpKind;
+}): Promise<{
+  kind: RsvpKind | null;
+  rsvps: ShareRsvpRecord[];
+}> {
+  if (!isShareToken(opts.token) || !isRsvpKind(opts.kind)) {
+    return { kind: null, rsvps: [] };
+  }
+  const tokenRec = await readShareToken(opts.token);
+  if (!tokenRec) return { kind: null, rsvps: [] };
+  const current = await listTokenRsvps(opts.token);
+  const existing = current.find((r) => r.emailHash === opts.emailHash) ?? null;
+  const nextKind = applyRsvpToggle(existing?.kind ?? null, opts.kind);
+  return persistShareRsvp({
+    token: opts.token,
+    itemKey: tokenRec.itemKey || opts.itemKey,
+    workId: opts.workId || tokenRec.itemKey || opts.itemKey,
+    emailHash: opts.emailHash,
+    firstName: opts.firstName,
+    kind: nextKind,
+  });
+}
+
+/** Set kind without toggle-off. Same token+emailHash stays one row. */
+export async function upsertShareRsvp(opts: {
+  token: string;
+  itemKey: string;
+  workId: string;
+  emailHash: string;
+  firstName: string;
+  kind: RsvpKind;
+}): Promise<{
+  kind: RsvpKind | null;
+  rsvps: ShareRsvpRecord[];
+}> {
+  if (!isShareToken(opts.token) || !isRsvpKind(opts.kind)) {
+    return { kind: null, rsvps: [] };
+  }
+  return persistShareRsvp(opts);
+}
+
+/**
+ * Connected share seed: one `envie` for the sharer on this token.
+ * Idempotent — existing row (envie or going) is left as-is.
+ */
+export async function seedSharerEnvie(opts: {
+  token: string;
+  itemKey: string;
+  workId?: string;
+  email: string;
+  firstName?: string | null;
+}): Promise<{
+  kind: RsvpKind | null;
+  rsvps: ShareRsvpRecord[];
+}> {
+  const email = (opts.email || '').trim().toLowerCase();
+  if (!email.includes('@') || !isShareToken(opts.token)) {
+    return { kind: null, rsvps: [] };
+  }
+  const hash = emailHash(email);
+  const current = await listTokenRsvps(opts.token);
+  const existing = current.find((r) => r.emailHash === hash) ?? null;
+  if (existing) return { kind: existing.kind, rsvps: current };
+  return upsertShareRsvp({
+    token: opts.token,
+    itemKey: opts.itemKey,
+    workId: opts.workId || opts.itemKey,
+    emailHash: hash,
+    firstName: firstNameFromDisplayName(opts.firstName),
+    kind: 'envie',
+  });
 }
 
 /**
@@ -1292,6 +1377,7 @@ export async function sharerActivityInbox(opts: {
     tokens,
     rsvpsByToken,
     lastSeenForToken: (token) => lastSeenForToken(seen, token),
+    ignoreEmailHash: emailHash(opts.email),
     limit,
   });
   const payload: ActivityListPayload = {

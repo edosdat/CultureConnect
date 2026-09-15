@@ -27,6 +27,7 @@ import {
   memoryVisitCount,
   recordShareVisit,
   resetShareStoreForTests,
+  seedSharerEnvie,
   tokenSocialPayload,
   toggleShareRsvp,
   eventRsvpStats,
@@ -130,7 +131,10 @@ describe('B3b cercle Option A — this token only', () => {
     };
     await recordShareVisit({ token: created.token, visit });
     assert.equal(memoryVisitCount(created.token), 1);
-    assert.equal(memoryRsvpCount(created.token), 0);
+    assert.equal(memoryRsvpCount(created.token), 1);
+    const sharerRsvp = (await listTokenRsvps(created.token))[0];
+    assert.equal(sharerRsvp?.kind, 'envie');
+    assert.equal(sharerRsvp?.emailHash, emailHash('sharer@example.com'));
     assert.equal(viewerInCircle(await listTokenRsvps(created.token), visit.emailHash), false);
     const social = await tokenSocialPayload({
       token: created.token,
@@ -367,18 +371,89 @@ describe('B3b mother counts + no vid↔name', () => {
   });
 });
 
+describe('connected share auto-Envie', () => {
+  beforeEach(() => {
+    resetShareStoreForTests();
+  });
+
+  it('Alice share seeds one envie RSVP; guest share seeds none; re-seed upserts', async () => {
+    const alice = await createShareToken({
+      itemKey: 'p:P1847',
+      sharerEmail: 'alice@example.com',
+      firstName: 'Alice Martin',
+      origin: 'https://app.example',
+    });
+    assert.ok(alice);
+    const rsvps = await listTokenRsvps(alice.token);
+    assert.equal(rsvps.length, 1);
+    assert.equal(rsvps[0]?.kind, 'envie');
+    assert.equal(rsvps[0]?.emailHash, emailHash('alice@example.com'));
+    assert.equal(rsvps[0]?.firstName, 'Alice');
+    assert.equal(rsvps[0]?.token, alice.token);
+    assert.equal('vid' in (rsvps[0] || {}), false);
+
+    const again = await seedSharerEnvie({
+      token: alice.token,
+      itemKey: 'p:P1847',
+      email: 'alice@example.com',
+      firstName: 'Alice Martin',
+    });
+    assert.equal(again.kind, 'envie');
+    assert.equal(again.rsvps.length, 1);
+    assert.equal((await listTokenRsvps(alice.token)).length, 1);
+
+    const social = await tokenSocialPayload({
+      token: alice.token,
+      viewerEmailHash: emailHash('alice@example.com'),
+    });
+    assert.equal(social?.inCircle, true);
+    if (!social?.inCircle) throw new Error('expected circle');
+    assert.deepEqual(social.envieNames, ['Alice']);
+    assert.equal(social.mine, 'envie');
+
+    const stats = await eventRsvpStats({ itemKey: 'p:P1847', workId: 'p:P1847' });
+    assert.equal(stats.envie, 1);
+    assert.equal(stats.going, 0);
+
+    const guest = await createShareToken({
+      itemKey: 'p:P1847',
+      sharerEmail: null,
+      firstName: 'Ignored Guest',
+      origin: 'https://app.example',
+    });
+    assert.ok(guest);
+    assert.equal(memoryRsvpCount(guest.token), 0);
+    assert.equal((await listTokenRsvps(guest.token)).length, 0);
+  });
+});
+
 describe('B3b source contract', () => {
   it('API + UI lock wording and isolate RSVP from Matching A', async () => {
     const route = await readFile(
       new URL('../app/api/share/route.ts', import.meta.url),
       'utf8',
     );
+    const createdHandler = route.slice(
+      route.indexOf("incoming.kind === 'created'"),
+      route.indexOf("incoming.kind === 'visit'"),
+    );
+    assert.match(createdHandler, /createShareToken/);
+    assert.match(createdHandler, /firstNameFromDisplayName/);
+    assert.equal(createdHandler.includes('toggleShareRsvp'), false);
     const rsvpHandler = route.slice(route.lastIndexOf('isRsvpKind(incoming.kind)'));
     assert.match(route, /isRsvpKind\(incoming\.kind\)/);
     assert.match(route, /RSVP_LOGIN_ERROR/);
     assert.match(route, /status: 401/);
     assert.equal(rsvpHandler.includes('ingestAccountItemSignal'), false);
     assert.equal(rsvpHandler.includes('commitGuestSignals'), false);
+    assert.equal(rsvpHandler.includes('seedSharerEnvie'), false);
+
+    const store = await readFile(new URL('./shareStore.ts', import.meta.url), 'utf8');
+    assert.match(store, /seedSharerEnvie/);
+    assert.match(store, /upsertShareRsvp/);
+    const createFn = store.slice(store.indexOf('export async function createShareToken'));
+    assert.match(createFn, /seedSharerEnvie/);
+    assert.equal(store.includes('ingestAccountItemSignal'), false);
 
     const social = await readFile(
       new URL('../app/api/share/[token]/social/route.ts', import.meta.url),
