@@ -389,7 +389,7 @@ describe('UX admin — labels FR + glossaire + sections', () => {
     assert.match(view, /kpi="15"/);
     const goutsIdx = view.indexOf('SECTION_COPY.goutsComptes');
     const tagsIdx = view.indexOf('SECTION_COPY.tagsCatalogue');
-    const tablesIdx = view.indexOf('AdminDataTables');
+    const tablesIdx = view.indexOf('<AdminDataTables');
     const kpi14 = view.indexOf('kpi="14"');
     const kpi15 = view.indexOf('kpi="15"');
     const kpi12 = view.indexOf('kpi="12"');

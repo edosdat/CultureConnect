@@ -255,6 +255,8 @@ export default function AdminAnalyticsView({
           <Card kpi="17" value={fmt(snap.gouts.matchable)} />
           <Card kpi="18" value={`${fmt(snap.export18.rows)} profils`}>
             <p className="mt-3">
+              {/* CSV attachment — not in-app navigation */}
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
               <a
                 href="/admin/analytics/export"
                 className="inline-block rounded-full bg-culture-terracotta px-3 py-1.5 text-sm font-semibold text-white hover:bg-culture-clay"
