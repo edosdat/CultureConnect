@@ -1,8 +1,15 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { describe, it } from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 describe('cine fiche web split + compact action row', () => {
+  /**
+   * Live ref FAIL (`briefs/v1-beta/mocks/fiche-cine-live-ref.png`):
+   * desktop full-bleed stack + full-width Réserver.
+   * Target: mock `fiche-cine-web-split-1280` — 1/4|3/4 + compact Réserver.
+   */
   it('web ≥900 is 1/4 | 3/4; mobile stays stacked', async () => {
     const frame = await readFile(
       new URL('../components/CineFicheFrame.tsx', import.meta.url),
@@ -70,5 +77,19 @@ describe('cine fiche web split + compact action row', () => {
     assert.match(share, /share-icon/);
     assert.match(share, /M18 16\.08/);
     assert.equal(/>Partager</.test(share), false);
+  });
+
+  it('keeps live-ref before vs web-split mock after', async () => {
+    const mocks = fileURLToPath(new URL('../../briefs/v1-beta/mocks/', import.meta.url));
+    const brief = await readFile(
+      new URL('../../briefs/v1-beta/fiche-cine-web-split.md', import.meta.url),
+      'utf8',
+    );
+    assert.equal(existsSync(`${mocks}fiche-cine-live-ref.png`), true);
+    assert.equal(existsSync(`${mocks}fiche-cine-web-split-1280.html`), true);
+    assert.match(brief, /fiche-cine-live-ref\.png/);
+    assert.match(brief, /full-bleed/i);
+    assert.match(brief, /Réserver full-width = FAIL/);
+    assert.match(brief, /1\/4 image/);
   });
 });

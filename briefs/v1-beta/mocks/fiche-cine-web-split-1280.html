@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=1280"/>
+<title>Fiche ciné web split · 1280</title>
+<style>
+  :root { --cream:#F7F0E8; --ink:#1a1a1a; --terra:#E85D3B; --muted:#6b6560; --line:#e8e0d6; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.4 system-ui,sans-serif; background:#bdb6ad; color:var(--ink); padding:20px; }
+  .lab { font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:#555; margin:0 0 10px; }
+  .desk { width:1280px; max-width:100%; background:var(--cream); border-radius:14px; box-shadow:0 12px 32px rgba(0,0,0,.18); overflow:hidden; margin:0 auto 24px; }
+  header { display:flex; align-items:center; gap:12px; padding:12px 20px; background:#fff; border-bottom:1px solid var(--line); }
+  .logo { font-weight:700; color:var(--terra); margin-right:auto; }
+  .fiche { display:grid; grid-template-columns:1fr 3fr; gap:0; min-height:420px; }
+  .vis { background:linear-gradient(160deg,#E85D3B,#2a1810 70%); min-height:420px; }
+  .body { padding:24px 28px; background:#fffcf8; }
+  .tag { display:inline-block; font-size:10px; font-weight:700; background:var(--terra); color:#fff; padding:3px 8px; border-radius:999px; }
+  .title { font-family:Georgia,serif; font-size:28px; font-weight:700; margin:10px 0 6px; }
+  .meta { font-size:13px; color:var(--muted); margin:0 0 14px; }
+  .desc { font-size:14px; line-height:1.55; margin:0 0 10px; max-width:52ch; }
+  .cast { font-size:13px; color:var(--muted); margin:0 0 18px; }
+  .cast strong { color:var(--ink); }
+  .row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  .sel { border:1px solid var(--line); border-radius:8px; padding:9px 12px; font-size:12px; background:#fff; min-width:140px; }
+  .btn { border:none; border-radius:8px; padding:10px 16px; font-weight:700; font-size:13px; background:var(--terra); color:#fff; white-space:nowrap; }
+  .icon { width:40px; height:40px; border-radius:8px; border:1.5px solid var(--ink); background:#fff; display:grid; place-items:center; }
+  .icon.soft { border-color:var(--line); color:var(--muted); font-weight:700; }
+  .icon svg { width:18px; height:18px; }
+  .note { font-size:12px; color:var(--muted); margin-top:14px; }
+  .fail { margin-top:8px; font-size:12px; color:#a33; text-decoration:line-through; }
+  /* FAIL ref strip */
+  .bad { width:1280px; max-width:100%; margin:0 auto; background:#fff5f3; border:1px dashed #c44; border-radius:12px; padding:16px; }
+  .bad .hero { height:280px; background:linear-gradient(160deg,#E85D3B,#2a1810); border-radius:8px; margin-bottom:12px; }
+  .bad .full { width:100%; padding:14px; background:var(--terra); color:#fff; font-weight:700; border:none; border-radius:8px; text-align:center; }
+</style>
+</head>
+<body>
+  <p class="lab">Cible web 1280 — ~1/4 image | 3/4 texte · 1 ligne action</p>
+  <div class="desk">
+    <header>
+      <div class="logo">CultureConnect</div>
+      <span>Agenda</span><span>Artistes</span>
+    </header>
+    <div class="fiche">
+      <div class="vis" aria-label="affiche"></div>
+      <div class="body">
+        <span class="tag">CINÉMA</span>
+        <h1 class="title">L’Odyssée</h1>
+        <p class="meta">Documentaire · Pathé Wilson · 1 y va</p>
+        <p class="desc">Un plongeur mythique, des images immersives — place pour une vraie DESCRIPTION sur desktop sans scroller la moitié de l’affiche.</p>
+        <p class="cast"><strong>Avec :</strong> Jacques-Yves Cousteau · archival</p>
+        <div class="row">
+          <span class="sel">Pathé Wilson · 0,3 km</span>
+          <span class="sel">15/09 · 20:30 VOSTFR</span>
+          <button class="btn" type="button">Réserver</button>
+          <button class="icon" type="button" aria-label="Partager" title="Partager cette séance">
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
+          </button>
+          <button class="icon soft" type="button" aria-label="Plus">⋯</button>
+        </div>
+        <p class="note">Share près séance · Réserver compact · Agenda/favori → ⋯</p>
+        <p class="fail">Réserver full-width · hero full-bleed</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bad">
+    <p class="lab" style="color:#a33">FAIL — live ref (fiche-cine-live-ref.png) : hero full-bleed + Réserver full-width</p>
+    <div class="hero"></div>
+    <button class="full" type="button">Réserver</button>
+  </div>
+</body>
+</html>

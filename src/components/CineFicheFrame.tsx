@@ -15,7 +15,7 @@ type Props = {
 
 /**
  * Cine fiche chrome: stack on ~380, ~1/4 image | ~3/4 text from 900px.
- * Never a full-bleed hero that pushes description under the fold on web.
+ * Live-ref FAIL: full-bleed landscape hero that pushes DESCRIPTION under the fold.
  */
 export default function CineFicheFrame({
   item,

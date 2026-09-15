@@ -16,7 +16,7 @@ type Props = {
   showReserve?: boolean;
 };
 
-/** Prop A: one row — [Réserver compact] [3-node share] [⋯]. Never full-width Réserver. */
+/** Prop A: [Réserver compact] [3-node share] [⋯]. Live-ref full-width Réserver = FAIL. */
 export default function EventCtaRow({
   item,
   seanceKey = null,
