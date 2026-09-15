@@ -105,7 +105,7 @@ import {
   searchSubmitAppliesChips,
   type SearchChipParse,
 } from '@/lib/parseSearchChips';
-import { normalizeDeepLinkId } from '@/lib/deepLink';
+import { clearDeepLinkUrlParams, normalizeDeepLinkId } from '@/lib/deepLink';
 import DeepLinkFicheFallback from './DeepLinkFicheFallback';
 import {
   OPEN_FICHE_EVENT,
@@ -623,8 +623,12 @@ export default function CultureConnectApp({
     const fromQuery = normalizeDeepLinkId(
       params.get('e') || params.get('id') || '',
     );
+    // `?t=`-only: open once visit/store returns itemKey. After Fermer
+    // strips `t`, a late visit must not reopen the fiche.
+    const tokenInUrl = Boolean(params.get('t'));
     const key =
-      fromQuery || normalizeDeepLinkId(shareVisitItemKey || '');
+      fromQuery ||
+      (tokenInUrl ? normalizeDeepLinkId(shareVisitItemKey || '') : null);
     if (key) setSelectedItemKey(deepLinkBootState(key).selectedItemKey);
   }, [initialOpenKey, shareVisitItemKey]);
 
@@ -2746,6 +2750,7 @@ export default function CultureConnectApp({
           onClose={() => {
             setSelectedItemKey(null);
             setFicheSeed(null);
+            clearDeepLinkUrlParams();
           }}
           onSelectVenue={handleSelectVenue}
           relatedItems={relatedFilmItems}

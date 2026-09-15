@@ -1,6 +1,10 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeDeepLinkId } from './deepLink';
+import {
+  clearDeepLinkUrlParams,
+  hrefWithoutDeepLinkParams,
+  normalizeDeepLinkId,
+} from './deepLink';
 
 describe('normalizeDeepLinkId', () => {
   it('accepts classic P/E bare ids', () => {
@@ -72,5 +76,70 @@ describe('normalizeDeepLinkId', () => {
   it('trims whitespace around a valid id', () => {
     assert.equal(normalizeDeepLinkId('  PRIOP0022  '), 'p:PRIOP0022');
     assert.equal(normalizeDeepLinkId('  p:T90P2111  '), 'p:T90P2111');
+  });
+});
+
+describe('hrefWithoutDeepLinkParams / clearDeepLinkUrlParams', () => {
+  it('strips e, t, and id while keeping other query params and hash', () => {
+    assert.equal(
+      hrefWithoutDeepLinkParams({
+        pathname: '/',
+        search: '?e=p%3AP1847&t=k7f2m9aa',
+      }),
+      '/',
+    );
+    assert.equal(
+      hrefWithoutDeepLinkParams({
+        pathname: '/',
+        search: '?id=p:P1847&e=p%3AP1847&t=abcd1234&foo=1',
+        hash: '#cine',
+      }),
+      '/?foo=1#cine',
+    );
+    assert.equal(
+      hrefWithoutDeepLinkParams({
+        pathname: '/artistes',
+        search: '?e=p%3AP1847',
+      }),
+      '/artistes',
+    );
+    assert.equal(
+      hrefWithoutDeepLinkParams({ pathname: '/', search: '?scope=soir' }),
+      '/?scope=soir',
+    );
+    assert.equal(
+      hrefWithoutDeepLinkParams({ pathname: '/', search: '' }),
+      '/',
+    );
+  });
+
+  it('replaceState writes the stripped path and no-ops when already clean', () => {
+    const calls: string[] = [];
+    const location = {
+      pathname: '/',
+      search: '?e=p%3AP1847&t=abcd1234&foo=bar',
+      hash: '',
+    };
+    const history = {
+      state: { keep: true },
+      replaceState(_state: unknown, _title: string, url: string) {
+        calls.push(url);
+      },
+    };
+    const prev = (globalThis as { window?: unknown }).window;
+    (globalThis as { window: unknown }).window = { location, history };
+    try {
+      clearDeepLinkUrlParams();
+      assert.deepEqual(calls, ['/?foo=bar']);
+      location.search = '?foo=bar';
+      clearDeepLinkUrlParams();
+      assert.deepEqual(calls, ['/?foo=bar']);
+    } finally {
+      if (prev === undefined) {
+        delete (globalThis as { window?: unknown }).window;
+      } else {
+        (globalThis as { window: unknown }).window = prev;
+      }
+    }
   });
 });
