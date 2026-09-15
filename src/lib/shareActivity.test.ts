@@ -405,7 +405,7 @@ describe('B3b activity store', () => {
     await markSharerActivitySeen({
       email: 'alice@example.com',
       scope: 'all',
-      now: new Date('2026-09-15T18:00:00.000Z'),
+      now: new Date('2099-12-31T00:00:00.000Z'),
       ...upcomingDate,
     });
     const after = await sharerActivityInbox({
@@ -413,7 +413,7 @@ describe('B3b activity store', () => {
       ...upcomingDate,
     });
     assert.equal(after.unreadCount, 0);
-    assert.equal(after.lastSeenAt, '2026-09-15T18:00:00.000Z');
+    assert.equal(after.lastSeenAt, '2099-12-31T00:00:00.000Z');
   });
 
   it('drops past and dateless tokens from inbox and unreadCount', async () => {
@@ -524,6 +524,237 @@ describe('B3b activity store', () => {
     assert.equal(afterBob.items[0]?.deltaEnvie, 1);
     assert.equal(afterBob.items[0]?.latest?.firstName, 'Bob');
     assert.equal(afterBob.items[0]?.envie, 2);
+  });
+
+  it('recipient Envie sees Alice auto-Envie in cloche; self excluded', async () => {
+    const created = await createShareToken({
+      itemKey: 'p:P1847',
+      sharerEmail: 'alice@example.com',
+      firstName: 'Alice Martin',
+      origin: 'https://cc.test',
+    });
+    assert.ok(created);
+    await toggleShareRsvp({
+      token: created.token,
+      itemKey: 'p:P1847',
+      workId: 'p:P1847',
+      emailHash: emailHash('eloi@example.com'),
+      firstName: 'Eloi',
+      kind: 'envie',
+    });
+
+    const eloi = await sharerActivityInbox({
+      email: 'eloi@example.com',
+      ...upcomingDate,
+    });
+    assert.equal(eloi.items.length, 1);
+    assert.equal(eloi.items[0]?.token, created.token);
+    assert.equal(eloi.items[0]?.itemKey, 'p:P1847');
+    assert.ok((eloi.items[0]?.envie ?? 0) >= 2);
+    assert.equal(eloi.items[0]?.going, 0);
+    assert.equal(eloi.unreadCount, 1);
+    assert.equal(eloi.items[0]?.unread, true);
+    assert.equal(eloi.items[0]?.deltaEnvie, 1);
+    assert.equal(eloi.items[0]?.deltaGoing, 0);
+    assert.equal(eloi.items[0]?.latest?.firstName, 'Alice');
+    assert.equal(eloi.items[0]?.latest?.kind, 'envie');
+    assert.equal(
+      eloi.items[0]?.events.some((e) => e.firstName === 'Eloi'),
+      false,
+    );
+
+    const alice = await sharerActivityInbox({
+      email: 'alice@example.com',
+      ...upcomingDate,
+    });
+    assert.equal(alice.unreadCount, 1);
+    assert.equal(alice.items[0]?.latest?.firstName, 'Eloi');
+    assert.equal(alice.items[0]?.latest?.kind, 'envie');
+    assert.equal(
+      alice.items[0]?.events.some((e) => e.firstName === 'Alice'),
+      false,
+    );
+  });
+
+  it('recipient J’y vais stays going; sees others’ going + envie, not self', async () => {
+    const created = await createShareToken({
+      itemKey: 'p:P1847',
+      sharerEmail: 'alice@example.com',
+      firstName: 'Alice Martin',
+      origin: 'https://cc.test',
+    });
+    assert.ok(created);
+    await toggleShareRsvp({
+      token: created.token,
+      itemKey: 'p:P1847',
+      workId: 'p:P1847',
+      emailHash: emailHash('eloi@example.com'),
+      firstName: 'Eloi',
+      kind: 'going',
+    });
+    await toggleShareRsvp({
+      token: created.token,
+      itemKey: 'p:P1847',
+      workId: 'p:P1847',
+      emailHash: emailHash('bob@example.com'),
+      firstName: 'Bob',
+      kind: 'envie',
+    });
+    await toggleShareRsvp({
+      token: created.token,
+      itemKey: 'p:P1847',
+      workId: 'p:P1847',
+      emailHash: emailHash('camille@example.com'),
+      firstName: 'Camille',
+      kind: 'going',
+    });
+
+    const eloi = await sharerActivityInbox({
+      email: 'eloi@example.com',
+      ...upcomingDate,
+    });
+    assert.equal(eloi.items.length, 1);
+    assert.equal(eloi.items[0]?.going, 2);
+    assert.equal(eloi.items[0]?.envie, 2);
+    assert.equal(
+      eloi.items[0]?.events.some((e) => e.firstName === 'Eloi'),
+      false,
+    );
+    assert.equal(
+      eloi.items[0]?.events.find((e) => e.firstName === 'Camille')?.kind,
+      'going',
+    );
+    assert.equal(
+      eloi.items[0]?.events.find((e) => e.firstName === 'Bob')?.kind,
+      'envie',
+    );
+    assert.equal(
+      eloi.items[0]?.events.find((e) => e.firstName === 'Alice')?.kind,
+      'envie',
+    );
+    assert.ok((eloi.items[0]?.deltaGoing ?? 0) >= 1);
+    assert.ok((eloi.items[0]?.deltaEnvie ?? 0) >= 1);
+    assert.equal(eloi.items[0]?.going, eloi.items[0]?.envie);
+  });
+
+  it('visit-only recipient is not in inbox; RSVP-off drops the row', async () => {
+    const created = await createShareToken({
+      itemKey: 'p:P1847',
+      sharerEmail: 'alice@example.com',
+      firstName: 'Alice Martin',
+      origin: 'https://cc.test',
+    });
+    assert.ok(created);
+    await recordShareVisit({
+      token: created.token,
+      visit: {
+        ts: '2026-09-15T09:00:00.000Z',
+        token: created.token,
+        emailHash: emailHash('eloi@example.com'),
+      },
+    });
+    const visitOnly = await sharerActivityInbox({
+      email: 'eloi@example.com',
+      ...upcomingDate,
+    });
+    assert.equal(visitOnly.items.length, 0);
+    assert.equal(visitOnly.unreadCount, 0);
+
+    await toggleShareRsvp({
+      token: created.token,
+      itemKey: 'p:P1847',
+      workId: 'p:P1847',
+      emailHash: emailHash('eloi@example.com'),
+      firstName: 'Eloi',
+      kind: 'envie',
+    });
+    const afterRsvp = await sharerActivityInbox({
+      email: 'eloi@example.com',
+      ...upcomingDate,
+    });
+    assert.equal(afterRsvp.items.length, 1);
+
+    await toggleShareRsvp({
+      token: created.token,
+      itemKey: 'p:P1847',
+      workId: 'p:P1847',
+      emailHash: emailHash('eloi@example.com'),
+      firstName: 'Eloi',
+      kind: 'envie',
+    });
+    const afterOff = await sharerActivityInbox({
+      email: 'eloi@example.com',
+      ...upcomingDate,
+    });
+    assert.equal(afterOff.items.length, 0);
+    assert.equal(afterOff.unreadCount, 0);
+  });
+
+  it('recipient own upcoming RSVP on guest share appears; unread 0 if alone', async () => {
+    const created = await createShareToken({
+      itemKey: 'p:P1847',
+      sharerEmail: null,
+      origin: 'https://cc.test',
+    });
+    assert.ok(created);
+    await toggleShareRsvp({
+      token: created.token,
+      itemKey: 'p:P1847',
+      workId: 'p:P1847',
+      emailHash: emailHash('eloi@example.com'),
+      firstName: 'Eloi',
+      kind: 'going',
+    });
+    const eloi = await sharerActivityInbox({
+      email: 'eloi@example.com',
+      ...upcomingDate,
+    });
+    assert.equal(eloi.items.length, 1);
+    assert.equal(eloi.items[0]?.going, 1);
+    assert.equal(eloi.items[0]?.envie, 0);
+    assert.equal(eloi.unreadCount, 0);
+    assert.equal(eloi.items[0]?.unread, false);
+    assert.equal(eloi.items[0]?.latest, null);
+    assert.equal(eloi.items[0]?.deltaGoing, 0);
+    assert.equal(eloi.items[0]?.deltaEnvie, 0);
+  });
+
+  it('recipient past / dateless tokens drop from inbox like sharer', async () => {
+    const past = await createShareToken({
+      itemKey: 'p:P1847',
+      sharerEmail: 'alice@example.com',
+      origin: 'https://cc.test',
+    });
+    const today = await createShareToken({
+      itemKey: 'p:P2099',
+      sharerEmail: 'alice@example.com',
+      origin: 'https://cc.test',
+    });
+    assert.ok(past && today);
+    await toggleShareRsvp({
+      token: past.token,
+      itemKey: 'p:P1847',
+      workId: 'p:P1847',
+      emailHash: emailHash('eloi@example.com'),
+      firstName: 'Eloi',
+      kind: 'envie',
+    });
+    await toggleShareRsvp({
+      token: today.token,
+      itemKey: 'p:P2099',
+      workId: 'p:P2099',
+      emailHash: emailHash('eloi@example.com'),
+      firstName: 'Eloi',
+      kind: 'going',
+    });
+    const inbox = await sharerActivityInbox({
+      email: 'eloi@example.com',
+      now: new Date('2026-09-15T12:00:00.000Z'),
+      eventDateIsoForItemKey: (key) =>
+        key === 'p:P1847' ? '2026-09-10' : key === 'p:P2099' ? '2026-09-15' : '',
+    });
+    assert.equal(inbox.items.length, 1);
+    assert.equal(inbox.items[0]?.itemKey, 'p:P2099');
   });
 
   it('does not invent RSVP rows when the sharer has no tokens', async () => {
@@ -774,10 +1005,14 @@ describe('P1 cloche inbox cold path + meta paint', () => {
     assert.match(store, /warmShareActivityTables/);
     assert.match(store, /activityInboxCache/);
     const inboxFn = store.slice(store.indexOf('export async function sharerActivityInbox'));
+    assert.match(inboxFn, /listShareTokensForActivityInbox/);
     assert.match(inboxFn, /listTokenRsvpsMany/);
     assert.match(inboxFn, /dateByKey/);
     assert.match(inboxFn, /ignoreEmailHash/);
     assert.equal(inboxFn.includes('queryAgendaDetail'), false);
+    assert.match(store, /listShareTokensByRsvpEmail/);
+    assert.match(store, /share:rsvp:user:/);
+    assert.match(store, /share_rsvps_email_idx/);
 
     const route = await readFile(
       new URL('../app/api/share/activity/route.ts', import.meta.url),
