@@ -69,7 +69,6 @@ describe('declutter cartes/fiche LOCK', () => {
     assert.match(share, /M18 16\.08/);
     assert.match(share, /h-10 w-10/);
     assert.equal(/>Partager</.test(share), false);
-    assert.equal(/Partager<\/.test(share), false);
     assert.match(cta, /Réserver/);
     assert.match(cta, /flex-1/);
     assert.match(cta, /<ShareButton/);
