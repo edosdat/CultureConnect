@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import {
   ADMIN_TABLE_PAGINATE_FROM,
   ADMIN_TASTES_PAGE_SIZE,
+  adminCsvFilename,
   capJoinedList,
   displayEmailHash,
   truncateTokenUi,
@@ -30,10 +31,38 @@ function shortTs(iso: string): string {
   return iso.slice(0, 16).replace('T', ' ');
 }
 
-function CsvLink({ href, label }: { href: string; label: string }) {
+function parisCalendarDay(fromServer?: string): string {
+  if (fromServer && /^\d{4}-\d{2}-\d{2}$/.test(fromServer)) return fromServer;
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Paris',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
+function csvStoreFromHref(href: string): string {
+  const last = href.replace(/\/$/, '').split('/').pop() || 'tastes';
+  return last === 'export' ? 'tastes' : last;
+}
+
+function CsvLink({
+  href,
+  label,
+  download,
+  day,
+}: {
+  href: string;
+  label: string;
+  download?: string;
+  day?: string;
+}) {
+  const suggested =
+    download ?? adminCsvFilename(csvStoreFromHref(href), parisCalendarDay(day));
   return (
     <a
       href={href}
+      download={suggested}
       className="inline-block rounded-full bg-culture-terracotta px-3 py-1.5 text-sm font-semibold text-white hover:bg-culture-clay"
     >
       {label}
@@ -187,6 +216,9 @@ export default function AdminDataTables({
 }) {
   const days7 = useMemo(() => new Set(windowDays7), [windowDays7]);
   const days30 = useMemo(() => new Set(tables.windowDays30), [tables.windowDays30]);
+  const parisDay =
+    windowDays7[windowDays7.length - 1] ||
+    tables.windowDays30[tables.windowDays30.length - 1];
 
   const [tasteFilter, setTasteFilter] = useState<TasteFilter>('tous');
   const [tasteHash, setTasteHash] = useState('');
@@ -363,6 +395,7 @@ export default function AdminDataTables({
           <CsvLink
             href="/admin/analytics/export/tastes"
             label="Télécharger CSV comptes"
+            day={parisDay}
           />
         </div>
         <p className="mt-2 text-xs text-culture-muted">
@@ -537,6 +570,7 @@ export default function AdminDataTables({
           <CsvLink
             href="/admin/analytics/export/tokens"
             label="Télécharger CSV liens"
+            day={parisDay}
           />
         </div>
         <p className="mt-2 text-xs text-culture-muted">
@@ -688,6 +722,7 @@ export default function AdminDataTables({
           <CsvLink
             href="/admin/analytics/export/rsvps"
             label="Télécharger CSV réponses"
+            day={parisDay}
           />
         </div>
         <p className="mt-2 text-xs text-culture-muted">
@@ -832,6 +867,7 @@ export default function AdminDataTables({
           <CsvLink
             href="/admin/analytics/export/visits"
             label="Télécharger CSV lectures"
+            day={parisDay}
           />
         </div>
         <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">

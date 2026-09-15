@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { AdminAnalyticsSnapshot } from '@/lib/adminAnalyticsLoad';
 import AdminDataTables from '@/components/AdminDataTables';
+import { adminCsvFilename } from '@/lib/adminAnalytics';
 import {
   KPI_COPY,
   SECTION_COPY,
@@ -106,6 +107,16 @@ export default function AdminAnalyticsView({
   const from = snap.windowDays[0];
   const to = snap.windowDays[snap.windowDays.length - 1];
   const mixTotal = snap.mix.total;
+  const tastesCsvName = adminCsvFilename(
+    'tastes',
+    to ||
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Paris',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(new Date()),
+  );
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -259,6 +270,7 @@ export default function AdminAnalyticsView({
               {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
               <a
                 href="/admin/analytics/export"
+                download={tastesCsvName}
                 className="inline-block rounded-full bg-culture-terracotta px-3 py-1.5 text-sm font-semibold text-white hover:bg-culture-clay"
               >
                 Télécharger CSV interne

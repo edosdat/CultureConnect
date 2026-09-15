@@ -321,6 +321,11 @@ export function adminCsvFilename(store: string, day: string): string {
   return `cc-${store}-${day}.csv`;
 }
 
+/** RFC 5987 so browsers keep `cc-<store>-YYYY-MM-DD.csv` instead of a UUID path segment. */
+export function adminCsvContentDisposition(filename: string): string {
+  return `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
+}
+
 export function csvEscape(value: string | number): string {
   const s = String(value);
   if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
