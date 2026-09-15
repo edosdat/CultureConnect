@@ -12,6 +12,7 @@ import {
   motherCountersLabel,
   motherStatsFromRsvps,
   parseRsvpRecord,
+  visibleMotherStats,
   RSVP_LOGIN_ERROR,
   rsvpsForEventStats,
   viewerInCircle,
@@ -51,6 +52,21 @@ describe('B3b RSVP helpers', () => {
     assert.equal(motherCountersLabel(1, 0), '1 envie');
     assert.equal(motherCountersLabel(0, 1), '1 y va');
     assert.equal(motherCountersLabel(0, 0), '');
+    assert.deepEqual(visibleMotherStats({ envie: 0, going: 1 }), {
+      envie: 0,
+      going: 1,
+    });
+    assert.equal(visibleMotherStats({ envie: 0, going: 0 }), null);
+    assert.equal(visibleMotherStats({ envie: 1, going: 0 })?.envie, 1);
+    assert.equal(visibleMotherStats(null), null);
+    assert.equal(visibleMotherStats(undefined), null);
+    assert.equal(visibleMotherStats({}), null);
+    assert.equal(visibleMotherStats({ going: 1 }), null);
+    // Stale-card path: a later 0/0 must omit, not keep the previous 1.
+    let shown = visibleMotherStats({ envie: 0, going: 1 });
+    shown = visibleMotherStats({ envie: 0, going: 0 });
+    assert.equal(shown, null);
+    assert.equal(motherCountersLabel(shown?.envie ?? 0, shown?.going ?? 0), '');
     assert.equal(circleNamesCopy(['Marie'], ['Léa']), 'Marie y va · Léa a envie');
     assert.equal(
       circleNamesCopy(['Marie', 'Paul'], ['Léa', 'Tom']),
@@ -391,6 +407,9 @@ describe('B3b source contract', () => {
     assert.match(ui, /circleEnvieLine/);
     assert.match(ui, /share-rsvp-daughter/);
     assert.match(ui, /share-rsvp-mother/);
+    assert.match(ui, /visibleMotherStats/);
+    assert.match(ui, /setStats\(null\)/);
+    assert.match(ui, /key=\{item\.key\}/);
     assert.equal(ui.includes('rounded-2xl bg-culture-sand'), false);
     assert.equal(/intéress/i.test(ui), false);
 
@@ -406,6 +425,7 @@ describe('B3b source contract', () => {
     assert.ok(firstSocial > 0 && cine > 0 && firstSocial < cine);
     assert.ok(seancesHeading > 0 && firstSocial < seancesHeading);
     assert.ok(lastSocial > 0 && lastSocial < lastFavorite);
+    assert.match(detail, /key=\{item\.key\}/);
     assert.match(detail, /cineMeta/);
     assert.match(detail, /seanceWhenShort/);
 
@@ -417,6 +437,26 @@ describe('B3b source contract', () => {
     const carouselPicker = carousel.indexOf('<CineSeancePicker');
     assert.ok(carouselSocial > 0 && carouselPicker > 0 && carouselSocial < carouselPicker);
     assert.match(carousel, /token=\{null\}/);
+    assert.match(carousel, /key=\{active\.key\}/);
+    assert.match(carousel, /data-carousel-hero/);
+    // Home pack heroes are the only agenda/rail chrome that render the
+    // anonymous mother counter. List/rail SeanceCards do not.
+    const seanceCard = await readFile(
+      new URL('../components/SeanceCard.tsx', import.meta.url),
+      'utf8',
+    );
+    const live = await readFile(
+      new URL('../components/LiveCarousel.tsx', import.meta.url),
+      'utf8',
+    );
+    const grid = await readFile(
+      new URL('../components/SeanceGrid.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.equal(seanceCard.includes('ShareSocial'), false);
+    assert.equal(seanceCard.includes('share-rsvp-mother'), false);
+    assert.equal(live.includes('ShareSocial'), false);
+    assert.equal(grid.includes('ShareSocial'), false);
 
     const conf = await readFile(
       new URL('../app/confidentialite/page.tsx', import.meta.url),

@@ -9,6 +9,7 @@ import {
   DAUGHTER_NOTICE,
   motherCountersLabel,
   RSVP_LOGIN_ERROR,
+  visibleMotherStats,
   type RsvpKind,
   type TokenSocialPayload,
 } from '@/lib/shareRsvp';
@@ -34,7 +35,7 @@ export default function ShareSocial({ item, token }: Props) {
   if (token) {
     return <DaughterRsvp item={item} token={token} />;
   }
-  return <MotherStatsBlock itemKey={item.key} />;
+  return <MotherStatsBlock key={item.key} itemKey={item.key} />;
 }
 
 function MotherStatsBlock({ itemKey }: { itemKey: string }) {
@@ -42,17 +43,17 @@ function MotherStatsBlock({ itemKey }: { itemKey: string }) {
 
   useEffect(() => {
     let cancelled = false;
+    setStats(null);
     void fetch(`/api/share/event/${encodeURIComponent(itemKey)}/stats`, {
       credentials: 'same-origin',
     })
       .then((res) => (res.ok ? res.json() : null))
-      .then((data: MotherStats | null) => {
-        if (!cancelled && data && (data.envie >= 1 || data.going >= 1)) {
-          setStats({ envie: data.envie, going: data.going });
-        }
+      .then((data: unknown) => {
+        if (cancelled) return;
+        setStats(visibleMotherStats(data as MotherStats | null));
       })
       .catch(() => {
-        /* fiche stays usable */
+        if (!cancelled) setStats(null);
       });
     return () => {
       cancelled = true;

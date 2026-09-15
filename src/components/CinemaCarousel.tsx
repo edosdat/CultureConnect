@@ -1010,7 +1010,7 @@ export default function CinemaCarousel({
         />
         <div className="flex min-w-0 flex-col gap-2 p-3 md:p-4">
           {titleBlock}
-          <ShareSocial item={active} token={null} />
+          <ShareSocial key={active.key} item={active} token={null} />
           {pack === 'cine' && seances.length > 0 ? (
             <div ref={seancesRef} id={seancesDomId}>
               <CineSeancePicker
