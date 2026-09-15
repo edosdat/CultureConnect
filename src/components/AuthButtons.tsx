@@ -65,7 +65,7 @@ function AvatarFace({
     );
   }
   return (
-    <span className="flex h-full w-full items-center justify-center rounded-full bg-culture-terracotta/15 text-xs font-semibold text-culture-terracotta">
+    <span className="flex h-full w-full items-center justify-center rounded-full bg-culture-ink text-xs font-bold text-white">
       {initial}
     </span>
   );
@@ -163,7 +163,7 @@ export default function AuthButtons() {
     const initial = name.slice(0, 1).toUpperCase();
     return (
       <div
-        className="relative z-[80] flex shrink-0 items-center gap-1.5 overflow-visible"
+        className="relative z-[80] flex shrink-0 items-center gap-2 overflow-visible"
         ref={menuRef}
       >
         <ActivityInbox />
@@ -174,9 +174,9 @@ export default function AuthButtons() {
           aria-expanded={menuOpen}
           aria-label="Menu compte"
           data-account-control="signed-in"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full sm:h-auto sm:w-auto sm:gap-1.5"
+          className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full sm:h-auto sm:w-auto sm:gap-1.5"
         >
-          <span className="flex h-9 w-9 shrink-0 overflow-hidden rounded-full border border-culture-line bg-white sm:h-7 sm:w-7">
+          <span className="flex h-[34px] w-[34px] shrink-0 overflow-hidden rounded-full sm:h-7 sm:w-7">
             <AvatarFace image={image} initial={initial} />
           </span>
           <span className="hidden max-w-[7rem] truncate text-sm text-culture-ink sm:inline">
@@ -186,7 +186,7 @@ export default function AuthButtons() {
         {menuOpen ? (
           <div
             role="menu"
-            className="absolute right-0 top-full z-[90] mt-1 min-w-[14rem] overflow-hidden rounded-xl border-[1.5px] border-culture-line bg-culture-cream py-1 shadow-lg"
+            className="absolute right-0 top-full z-[90] mt-1 min-w-[10rem] overflow-hidden rounded-[10px] border border-culture-line bg-white py-1.5 shadow-lg"
           >
             <button
               type="button"
@@ -194,7 +194,7 @@ export default function AuthButtons() {
               data-account-control="mes-gouts-menu"
               onPointerDown={holdMenu}
               onClick={openSheetFromClick}
-              className="block w-full px-3 py-2 text-left text-sm font-medium text-culture-ink hover:bg-white"
+              className="block w-full bg-culture-cream px-3 py-2 text-left text-[13px] font-semibold text-culture-ink hover:bg-culture-sand"
             >
               Mes goûts
             </button>
@@ -207,7 +207,7 @@ export default function AuthButtons() {
               onClick={() => {
                 void signOut({ callbackUrl: '/' });
               }}
-              className="block w-full px-3 py-2 text-left text-sm font-medium text-culture-ink hover:bg-white"
+              className="block w-full px-3 py-2 text-left text-[13px] text-culture-ink hover:bg-culture-cream"
             >
               Déconnexion
             </button>

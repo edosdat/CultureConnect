@@ -137,6 +137,40 @@ body {
   animation: cc-genre-skel 1.15s ease-in-out infinite;
 }
 
+/* S1 loading / social — mock s1-header-loading-380 (shimmer + blur text) */
+@keyframes cc-s1-sh {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.cc-s1-skel {
+  height: 10px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  background: linear-gradient(90deg, #e8e0d6 25%, #f5f0ea 50%, #e8e0d6 75%);
+  background-size: 200% 100%;
+  animation: cc-s1-sh 1.2s linear infinite;
+  filter: blur(0.3px);
+}
+.cc-s1-skbtn {
+  flex: 1;
+  height: 36px;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(90deg, #e8e0d6 25%, #f5f0ea 50%, #e8e0d6 75%);
+  background-size: 200% 100%;
+  animation: cc-s1-sh 1.2s linear infinite;
+}
+.cc-s1-ph {
+  height: 72px;
+  opacity: 0.85;
+}
+.cc-s1-ph-cine {
+  background: linear-gradient(135deg, #f0c4b4, #e8e0d6);
+}
+.cc-s1-ph-theatre {
+  background: linear-gradient(135deg, #b8d4d5, #e8e0d6);
+}
+
 /* QUAND + QUOI: wrap on <md (two stacked groups). Desktop stays one overflow-x row. */
 .cc-axes-row {
   display: flex;

@@ -290,7 +290,7 @@ export default function ActivityInbox() {
         onClick={() => void openSheet()}
         aria-label={aria}
         data-testid="share-activity-bell"
-        className="relative grid h-11 w-11 shrink-0 place-items-center rounded-full border border-culture-line bg-white"
+        className="relative grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full border border-culture-line bg-white"
       >
         <BellIcon muted={!badge} />
         {badge ? (

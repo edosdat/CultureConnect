@@ -27,13 +27,10 @@ function SocialSkeleton() {
     <div
       data-testid="share-social-pending"
       aria-busy="true"
-      className="mt-2 space-y-2"
+      className="soc mt-2 flex gap-2"
     >
-      <div className="flex gap-2">
-        <div className="h-10 flex-1 animate-pulse rounded-full bg-culture-sand/80 blur-[0.5px]" />
-        <div className="h-10 flex-1 animate-pulse rounded-full bg-culture-sand/70 blur-[0.5px]" />
-      </div>
-      <div className="h-3 w-2/3 animate-pulse rounded bg-culture-sand/60 blur-[0.5px]" />
+      <div className="cc-s1-skbtn" aria-label="Chargement Envie" />
+      <div className="cc-s1-skbtn" aria-label="Chargement J’y vais" />
     </div>
   );
 }

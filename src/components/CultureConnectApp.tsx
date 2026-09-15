@@ -2466,11 +2466,7 @@ export default function CultureConnectApp({
             />
           </HomeSection>
           ) : (
-            <PackRailSkeleton
-              id="cine"
-              title="Ciné"
-              accentVar={PACK_CAT_CSS_VAR.cine}
-            />
+            <PackRailSkeleton id="cine" title="Cinéma" showMore={false} />
           )
         ) : null}
 
@@ -2526,11 +2522,7 @@ export default function CultureConnectApp({
                 />
               </HomeSection>
               ) : (
-                <PackRailSkeleton
-                  id="theatre"
-                  title="Théâtre & spectacle vivant"
-                  accentVar={PACK_CAT_CSS_VAR.theatre}
-                />
+                <PackRailSkeleton id="theatre" title="Théâtre" />
               )
             ) : null}
 

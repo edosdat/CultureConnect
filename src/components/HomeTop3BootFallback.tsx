@@ -1,4 +1,3 @@
-import { PACK_CAT_CSS_VAR } from '@/lib/categoryColor';
 import {
   HOME_SECTION_TITLE_ACCENT_VAR,
   HOME_SECTION_TITLE_CLASS,
@@ -40,16 +39,8 @@ export default function HomeTop3BootFallback() {
           <Top3GuestCta />
           <Top3Skeleton />
         </section>
-        <PackRailSkeleton
-          id="cine"
-          title="Ciné"
-          accentVar={PACK_CAT_CSS_VAR.cine}
-        />
-        <PackRailSkeleton
-          id="theatre"
-          title="Théâtre & spectacle vivant"
-          accentVar={PACK_CAT_CSS_VAR.theatre}
-        />
+        <PackRailSkeleton id="cine" title="Cinéma" showMore={false} />
+        <PackRailSkeleton id="theatre" title="Théâtre" />
       </HomeBootChrome>
     </main>
   );

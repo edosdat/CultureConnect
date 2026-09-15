@@ -11,9 +11,12 @@ describe('S1 header 380 — avatar + cloche, Mes goûts in menu', () => {
     assert.equal(auth.includes('data-account-control="mes-gouts"'), false);
     assert.equal(auth.includes('data-account-control="mes-gouts-pending"'), false);
     assert.match(auth, /data-account-control="mes-gouts-menu"/);
+    assert.match(auth, /bg-culture-cream/);
+    assert.match(auth, /bg-culture-ink/);
     assert.match(auth, /<ActivityInbox \/>/);
     assert.match(auth, /aria-label="Menu compte"/);
     assert.match(auth, /data-account-control="avatar-pending"/);
+    assert.match(auth, /h-\[34px\]/);
 
     const nav = await readFile(
       new URL('../components/SiteNav.tsx', import.meta.url),
@@ -21,6 +24,13 @@ describe('S1 header 380 — avatar + cloche, Mes goûts in menu', () => {
     );
     assert.match(nav, /href: '\/artistes', label: 'Artistes'/);
     assert.match(nav, /<AuthButtons \/>/);
+    assert.match(nav, /bg-white/);
+
+    const inbox = await readFile(
+      new URL('../components/ActivityInbox.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(inbox, /h-\[34px\]/);
   });
 });
 
@@ -47,7 +57,19 @@ describe('S1 home loading — cine + theatre shells, never silent more', () => {
     );
     assert.match(boot, /id="cine"/);
     assert.match(boot, /id="theatre"/);
+    assert.match(boot, /title="Cinéma"/);
+    assert.match(boot, /title="Théâtre"/);
     assert.match(boot, /PackRailSkeleton/);
+
+    const shell = await readFile(
+      new URL('../components/PackRailSkeleton.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(shell, /grid-cols-2/);
+    assert.match(shell, /cc-s1-ph-cine/);
+    assert.match(shell, /cc-s1-ph-theatre/);
+    assert.match(shell, /cc-s1-skel/);
+    assert.match(shell, /HOME_PACK_MORE_ELLIPSIS/);
 
     const app = await readFile(
       new URL('../components/CultureConnectApp.tsx', import.meta.url),
@@ -87,14 +109,16 @@ describe('S1 deep-link share — fiche + photo first, social skeleton', () => {
       'utf8',
     );
     assert.match(fallback, /data-deeplink-fiche-boot/);
-    assert.match(fallback, /cine-hero-poster/);
+    assert.match(fallback, /className="hero/);
     assert.match(fallback, /share-social-pending/);
+    assert.match(fallback, /cc-s1-skbtn/);
 
     const social = await readFile(
       new URL('../components/ShareSocial.tsx', import.meta.url),
       'utf8',
     );
     assert.match(social, /share-social-pending/);
+    assert.match(social, /cc-s1-skbtn/);
     assert.match(social, /if \(!settled\) return <SocialSkeleton/);
     assert.equal(/Matching A/i.test(social), false);
 

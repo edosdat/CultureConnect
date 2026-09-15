@@ -1,4 +1,11 @@
-import { HOME_PACK_MORE_ELLIPSIS, itemImageUrl, itemTitle } from '@/lib/displayHome';
+import {
+  catCssVarOfKey,
+  catKeyOfItem,
+  catLabelOfItem,
+} from '@/lib/categoryColor';
+import { itemImageUrl, itemTitle, itemVenue } from '@/lib/displayHome';
+import { formatDateFr } from '@/lib/labels';
+import { seanceTimeLabel } from '@/lib/eventTimes';
 import type { DayItem } from '@/lib/types';
 import HomeTop3BootFallback from './HomeTop3BootFallback';
 
@@ -10,6 +17,15 @@ export default function DeepLinkFicheFallback({
 }) {
   const title = item ? itemTitle(item) : '';
   const photo = item ? itemImageUrl(item) : '';
+  const catKey = item ? catKeyOfItem(item) : null;
+  const catLabel = item ? catLabelOfItem(item) : '';
+  const venue = item ? itemVenue(item) : '';
+  const when = item
+    ? [formatDateFr(item.dayIso || ''), seanceTimeLabel(item)]
+        .filter(Boolean)
+        .join(' · ')
+    : '';
+  const meta = [venue, when].filter(Boolean).join(' · ');
 
   return (
     <>
@@ -21,39 +37,46 @@ export default function DeepLinkFicheFallback({
         aria-labelledby="event-detail-title"
         data-deeplink-fiche-boot=""
       >
-        <div className="max-h-[92vh] w-full max-w-2xl min-w-0 overflow-y-auto overflow-x-hidden rounded-t-3xl border border-culture-sand bg-culture-cream shadow-xl sm:rounded-3xl">
-          <div className="sticky top-0 z-10 flex items-start justify-end border-b border-culture-sand bg-culture-cream/95 px-5 py-3">
-            <span className="rounded-full border border-culture-sand bg-white px-3 py-1 text-sm text-culture-ink">
-              Fermer
-            </span>
-          </div>
+        <div className="fiche mx-2 mb-2 max-h-[92vh] w-full max-w-2xl min-w-0 overflow-y-auto overflow-x-hidden rounded-xl border border-culture-line bg-white shadow-xl sm:mx-0 sm:mb-0 sm:rounded-3xl">
           {photo ? (
-            <div className="cine-hero-frame cine-hero-frame--blur">
+            <div className="hero relative h-40 overflow-hidden bg-culture-sand">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img className="cine-hero-blur" src={photo} alt="" />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img className="cine-hero-poster" src={photo} alt="" />
+              <img
+                className="absolute inset-0 h-full w-full object-cover"
+                src={photo}
+                alt=""
+              />
             </div>
           ) : (
-            <div className="cine-hero-frame animate-pulse bg-culture-sand/80" />
+            <div className="hero h-40 animate-pulse bg-culture-sand/80" />
           )}
-          <div className="min-w-0 break-words px-5 pt-3 pb-5">
+          <div className="fp min-w-0 break-words px-3 py-3 sm:px-5">
+            {catLabel ? (
+              <span
+                className="inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
+                style={{
+                  backgroundColor: `var(${catCssVarOfKey(catKey ?? 'theatre')})`,
+                }}
+              >
+                {catLabel}
+              </span>
+            ) : null}
             <h2
               id="event-detail-title"
-              className="mt-2 font-display text-base leading-snug text-culture-ink break-words md:text-2xl"
+              className="ft mt-1.5 font-display text-lg font-bold leading-snug text-culture-ink break-words"
             >
-              {title || HOME_PACK_MORE_ELLIPSIS}
+              {title || '…'}
             </h2>
+            {meta ? (
+              <p className="fm mt-1 text-xs text-culture-muted">{meta}</p>
+            ) : null}
             <div
               data-testid="share-social-pending"
               aria-busy="true"
-              className="mt-3 space-y-2"
+              className="soc mt-2.5 flex gap-2"
             >
-              <div className="flex gap-2">
-                <div className="h-10 flex-1 animate-pulse rounded-full bg-culture-sand/80 blur-[0.5px]" />
-                <div className="h-10 flex-1 animate-pulse rounded-full bg-culture-sand/70 blur-[0.5px]" />
-              </div>
-              <div className="h-3 w-2/3 animate-pulse rounded bg-culture-sand/60 blur-[0.5px]" />
+              <div className="cc-s1-skbtn" aria-label="Chargement Envie" />
+              <div className="cc-s1-skbtn" aria-label="Chargement J’y vais" />
             </div>
           </div>
         </div>
