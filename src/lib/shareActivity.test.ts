@@ -284,6 +284,7 @@ describe('B3b activity source contract', () => {
     );
     assert.match(auth, /<ActivityInbox \/>/);
     assert.equal(auth.split('<ActivityInbox').length - 1, 1);
+    assert.match(auth, /<GuestTeaserBell \/>/);
     const guestUi = auth.slice(auth.indexOf('data-account-control="login"'));
     assert.equal(guestUi.includes('ActivityInbox'), false);
 

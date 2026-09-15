@@ -23,7 +23,6 @@ import { isCinemaDayItem } from '@/lib/nouveautesCine';
 import EventImage from './EventImage';
 import VisualFallback from './VisualFallback';
 import CategoryBadge from './CategoryBadge';
-import FavoriteButton from './FavoriteButton';
 import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 import FilmVersionBadge from './FilmVersionBadge';
 import PressBadge from './PressBadge';
@@ -257,18 +256,6 @@ export default function SeanceCard({
             {formatDateFr(seanceDateIso(item) || item.dayIso)}
           </span>
         )}
-        {resolved !== 'compact' ? (
-          <span
-            className="ml-auto"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
-            <FavoriteButton
-              item={item}
-              className={resolved === 'rail' ? '!h-6 !w-6' : 'h-9 w-9'}
-            />
-          </span>
-        ) : null}
       </div>
       <h3
         className={

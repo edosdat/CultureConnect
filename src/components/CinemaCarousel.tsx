@@ -33,11 +33,6 @@ import {
   type CarouselHeroRow,
   type HeroPin,
 } from '@/lib/carouselSelect';
-import {
-  calendarPayloadFromDayItem,
-  downloadIcs,
-  googleCalendarUrl,
-} from '@/lib/calendar';
 import { formatDateFr, formatLieuAffiche } from '@/lib/labels';
 import { seanceTimeLabel } from '@/lib/eventTimes';
 import {
@@ -49,7 +44,6 @@ import { seanceDateIso } from '@/lib/timeScope';
 import {
   HOME_PACK_MORE_ELLIPSIS,
   HOME_PACK_MORE_LABEL,
-  isLikelyMobile,
   itemPitch,
   rowDisplayTitle,
   seanceWhen,
@@ -59,7 +53,6 @@ import { itemKmLabel, minKmLabel, type GeoPos } from '@/lib/nearMe';
 import { cineDistanceOrigin, defaultCineSeance } from '@/lib/cineSeances';
 import { isCinemaDayItem } from '@/lib/nouveautesCine';
 import { pickFilmVivantComplements } from '@/lib/filmVivantComplements';
-import { rawUrls, reservePickOf } from '@/lib/reserve';
 import EventImage from './EventImage';
 import VisualFallback from './VisualFallback';
 import CategoryBadge from './CategoryBadge';
@@ -67,10 +60,8 @@ import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 import FilmVersionBadge from './FilmVersionBadge';
 import PressBadge from './PressBadge';
 import FilmPoster from './FilmPoster';
-import FavoriteButton from './FavoriteButton';
-import ShareButton from './ShareButton';
 import ShareSocial from './ShareSocial';
-import { useSignals } from './SignalsProvider';
+import EventCtaRow from './EventCtaRow';
 import VivantComplementLinks from './VivantComplementLinks';
 import PressCitation from './PressCitation';
 import CineSeancePicker from './CineSeancePicker';
@@ -156,14 +147,6 @@ function posterUrl(item: DayItem): string {
     );
   }
   return (item.evenement.image_url || '').trim();
-}
-
-function webcalHref(itemKey: string): string {
-  if (typeof window === 'undefined') return '';
-  const host = window.location.host;
-  const path = `/api/calendar/${encodeURIComponent(itemKey)}`;
-  if (window.location.protocol === 'https:') return `webcal://${host}${path}`;
-  return `${window.location.origin}${path}`;
 }
 
 function FilmThumb({
@@ -299,67 +282,6 @@ function toHeroRow(row: DenseRow): CarouselHeroRow {
   };
 }
 
-function sourceUrlOf(item: DayItem): string {
-  const { page } = rawUrls(item);
-  const reserve = reservePickOf(item).url;
-  if (!page || page === reserve) return '';
-  return page;
-}
-
-function SeanceReserveLink({
-  item,
-  onReserve,
-  tagSource,
-  compact = false,
-  wide = false,
-}: {
-  item: DayItem;
-  onReserve?: (item: DayItem) => void;
-  tagSource?: DayItem | null;
-  compact?: boolean;
-  wide?: boolean;
-}) {
-  const { trackItem } = useSignals();
-  const pick = reservePickOf(item);
-  const wideCls = wide
-    ? 'flex w-full items-center justify-center'
-    : '';
-  if (pick.soldOut) {
-    return (
-      <span
-        aria-disabled="true"
-        className={
-          'pointer-events-none shrink-0 cursor-default rounded-full border border-culture-line bg-culture-cream px-2.5 py-1 text-xs font-medium text-culture-muted ' +
-          (compact ? '' : 'inline-flex min-h-10 items-center px-4 py-2 text-sm ') +
-          wideCls
-        }
-      >
-        Sold out
-      </span>
-    );
-  }
-  if (!pick.url) return null;
-  return (
-    <a
-      href={pick.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={() => {
-        trackItem(item, 'outbound_click', tagSource);
-        onReserve?.(item);
-      }}
-      className={
-        compact
-          ? 'shrink-0 rounded-full bg-culture-terracotta px-2.5 py-1 text-xs font-semibold text-white hover:bg-culture-clay'
-          : 'inline-flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-full bg-culture-terracotta px-3 py-2 text-sm font-semibold text-white hover:bg-culture-clay sm:px-4 ' +
-            wideCls
-      }
-    >
-      Réserver
-    </a>
-  );
-}
-
 export default function CinemaCarousel({
   rows: incomingRows,
   pack = 'cine',
@@ -434,7 +356,6 @@ export default function CinemaCarousel({
   const [related, setRelated] = useState<DayItem[]>([]);
   const [aussi, setAussi] = useState<DayItem[]>([]);
   const [detailItem, setDetailItem] = useState<DayItem | null>(null);
-  const [mobileCal, setMobileCal] = useState(false);
   const moreLock = useRef(0);
   const moreApi = useRef({ hasMore, onNeedMore });
   moreApi.current = { hasMore, onNeedMore };
@@ -570,10 +491,6 @@ export default function CinemaCarousel({
   }
   const hero = heroFromRows ?? (genreFilterOn ? rows[0] : pinnedRow.current) ?? rows[0];
   const heroIndex = resolvedIndex >= 0 ? resolvedIndex : 0;
-
-  useEffect(() => {
-    setMobileCal(isLikelyMobile());
-  }, []);
 
   const stripTouchCleanup = useRef<(() => void) | null>(null);
   const bindStrip = useCallback((el: HTMLDivElement | null) => {
@@ -909,7 +826,6 @@ export default function CinemaCarousel({
       ? itemKmLabel(active, kmOrigin)
       : minKmLabel(seances.length ? seances : [active], origin) ??
         itemKmLabel(active, origin);
-  const cal = calendarPayloadFromDayItem(active);
   const complements =
     pack === 'cine'
       ? pickFilmVivantComplements(aussi, active, { userGps: origin })
@@ -981,7 +897,6 @@ export default function CinemaCarousel({
           {pack === 'cine' ? <FilmVersionBadge item={active} /> : null}
           <TheatreUrgenceBadge item={item} />
         </span>
-        <FavoriteButton item={item} />
       </div>
       <h3 className="min-w-0 break-words font-display text-base leading-snug text-culture-ink md:text-2xl">
         {rowDisplayTitle(hero)}
@@ -1019,6 +934,8 @@ export default function CinemaCarousel({
                 origin={origin}
                 onPick={setPickedKey}
                 onReserve={onReserve}
+                onAgenda={onAgenda}
+                onIcs={onIcs}
                 tagSource={item}
               />
             </div>
@@ -1040,16 +957,6 @@ export default function CinemaCarousel({
               items={complements}
               onSelect={onSelectLive}
             />
-          ) : null}
-          {pack !== 'cine' ? (
-            <div className="md:hidden">
-              <SeanceReserveLink
-                item={active}
-                onReserve={onReserve}
-                tagSource={item}
-                wide
-              />
-            </div>
           ) : null}
           {pack !== 'cine' ? (
             <VivantComplementLinks
@@ -1084,14 +991,6 @@ export default function CinemaCarousel({
                         >
                           {seanceLine(rel)}
                         </button>
-                        <span className="hidden md:inline">
-                          <SeanceReserveLink
-                            item={rel}
-                            onReserve={onReserve}
-                            tagSource={item}
-                            compact
-                          />
-                        </span>
                       </li>
                     ))}
                   </ul>
@@ -1115,69 +1014,22 @@ export default function CinemaCarousel({
                         </option>
                       ))}
                     </select>
-                    <span className="hidden md:inline">
-                      <SeanceReserveLink
-                        item={active}
-                        onReserve={onReserve}
-                        tagSource={item}
-                      />
-                    </span>
                   </div>
                 </div>
               )
             ) : null}
           </div>
           ) : null}
-          <div className="flex flex-wrap items-center gap-2">
-            {cal ? (
-              <>
-                <a
-                  href={googleCalendarUrl(cal)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => {
-                    onAgenda?.(active);
-                  }}
-                  className="inline-flex min-h-10 items-center rounded-full border border-culture-line bg-white px-3 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
-                >
-                  Google Agenda
-                </a>
-                {mobileCal ? (
-                  <a
-                    href={webcalHref(active.key)}
-                    onClick={() => {
-                      onIcs?.(active);
-                    }}
-                    className="inline-flex min-h-10 items-center rounded-full border border-culture-line bg-white px-3 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
-                  >
-                    S’abonner au calendrier
-                  </a>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onIcs?.(active);
-                      downloadIcs(cal);
-                    }}
-                    className="inline-flex min-h-10 items-center rounded-full border border-culture-line bg-white px-3 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
-                  >
-                    Télécharger (.ics)
-                  </button>
-                )}
-              </>
-            ) : null}
-            <ShareButton item={active} seanceKey={active.key} />
-            {pack !== 'cine' && sourceUrlOf(active) ? (
-              <a
-                href={sourceUrlOf(active)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-10 items-center rounded-full border border-culture-line bg-white px-3 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
-              >
-                Voir la source
-              </a>
-            ) : null}
-          </div>
+          {pack !== 'cine' || seances.length === 0 ? (
+            <EventCtaRow
+              item={active}
+              seanceKey={active.key}
+              onReserve={onReserve}
+              onAgenda={onAgenda}
+              onIcs={onIcs}
+              tagSource={item}
+            />
+          ) : null}
         </div>
       </div>
       {thumbs}

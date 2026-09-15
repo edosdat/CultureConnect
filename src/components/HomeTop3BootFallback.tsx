@@ -6,6 +6,7 @@ import {
   TOP3_SECTION_CLASS,
 } from '@/lib/displayHome';
 import HomeBootChrome from './HomeBootChrome';
+import HomeAccroche from './HomeAccroche';
 import Top3GuestCta from './Top3GuestCta';
 import Top3Skeleton from './Top3Skeleton';
 
@@ -18,7 +19,7 @@ import Top3Skeleton from './Top3Skeleton';
 export default function HomeTop3BootFallback() {
   return (
     <main className="mx-auto max-w-7xl min-w-0 overflow-x-hidden px-4 pb-16 pt-3 sm:px-6 sm:pt-6">
-      <h1 className="sr-only">Agenda CultureConnect</h1>
+      <HomeAccroche />
       <HomeBootChrome>
         <section
           className={TOP3_SECTION_CLASS}

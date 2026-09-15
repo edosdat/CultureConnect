@@ -7,6 +7,7 @@ import { requestOpenTastes } from './tastesUiEvents';
 import { useSignals } from './SignalsProvider';
 import MailIdeasCheckbox from './MailIdeasCheckbox';
 import ActivityInbox from './ActivityInbox';
+import GuestTeaserBell from './GuestTeaserBell';
 
 const AUTH_HINT_KEY = 'cc_auth_hint';
 
@@ -277,17 +278,17 @@ export default function AuthButtons() {
         </span>
       ) : null}
       <div className="flex shrink-0 items-center gap-2">
+        <GuestTeaserBell />
         <MailIdeasCheckbox className="hidden max-w-[10.5rem] items-start gap-1.5 text-left text-[10px] leading-snug text-culture-ink sm:flex" />
         <button
           type="button"
-          title="Connecte-toi pour tes suggestions"
-          aria-label="Connecte-toi pour tes suggestions"
+          title="Connecte-toi"
+          aria-label="Connecte-toi"
           data-account-control="login"
           onClick={() => signIn('google', { callbackUrl: '/' })}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-culture-terracotta text-white shadow-sm transition hover:bg-culture-clay sm:h-auto sm:w-auto sm:px-4 sm:py-1.5 sm:text-sm sm:font-semibold"
+          className="shrink-0 rounded-full bg-culture-terracotta px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-culture-clay sm:px-4 sm:py-1.5 sm:text-sm"
         >
-          <PersonIcon className="h-4 w-4 sm:hidden" />
-          <span className="hidden sm:inline">Connecte-toi pour tes suggestions</span>
+          Connecte-toi
         </button>
       </div>
     </div>

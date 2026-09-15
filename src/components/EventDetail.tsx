@@ -2,11 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import type { DayItem } from '@/lib/types';
-import {
-  calendarPayloadFromDayItem,
-  downloadIcs,
-  googleCalendarUrl,
-} from '@/lib/calendar';
 import { filterItemsByCommune, normalizeCommune } from '@/lib/commune';
 import {
   cineDistanceOrigin,
@@ -17,17 +12,16 @@ import {
   shareVisitPickerFilter,
 } from '@/lib/cineSeances';
 import { filterSeancesForActiveFilters } from '@/lib/displayFilter';
-import { isLikelyMobile, itemImageUrl, seanceWhenShort } from '@/lib/displayHome';
+import { itemImageUrl, seanceWhenShort } from '@/lib/displayHome';
 import { pickFilmVivantComplements } from '@/lib/filmVivantComplements';
 import SeanceCard from './SeanceCard';
 import CategoryBadge from './CategoryBadge';
 import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 import FilmVersionBadge from './FilmVersionBadge';
 import FilmPoster from './FilmPoster';
-import ShareButton from './ShareButton';
 import ShareSocial from './ShareSocial';
 import SharerActivitySand from './SharerActivitySand';
-import FavoriteButton from './FavoriteButton';
+import EventCtaRow from './EventCtaRow';
 import {
   formatDateRange,
   formatItemPrix,
@@ -43,11 +37,7 @@ import {
   parisParts,
   seanceDateIso,
 } from '@/lib/timeScope';
-import {
-  rawUrls,
-  reservePickForVenueGroup,
-  reservePickOf,
-} from '@/lib/reserve';
+import { reservePickForVenueGroup } from '@/lib/reserve';
 import { isCinemaDayItem } from '@/lib/nouveautesCine';
 import { fichePressCitation } from '@/lib/pressCitation';
 import { itemKmLabel, type GeoPos } from '@/lib/nearMe';
@@ -299,29 +289,6 @@ function AussiCeSoirSection({
   );
 }
 
-function webcalHref(itemKey: string): string {
-  if (typeof window === 'undefined') return '';
-  const host = window.location.host;
-  const path = `/api/calendar/${encodeURIComponent(itemKey)}`;
-  if (window.location.protocol === 'https:') return `webcal://${host}${path}`;
-  return `${window.location.origin}${path}`;
-}
-
-function reserveUrlOf(item: DayItem): string {
-  return reservePickOf(item).url;
-}
-
-function reserveSoldOut(item: DayItem): boolean {
-  return reservePickOf(item).soldOut;
-}
-
-function sourceUrlOf(item: DayItem): string {
-  const { page } = rawUrls(item);
-  const reserve = reserveUrlOf(item);
-  if (!page || page === reserve) return '';
-  return page;
-}
-
 function FichePressBlock({ item }: { item: DayItem }) {
   return <PressCitation citation={fichePressCitation(item)} />;
 }
@@ -353,7 +320,6 @@ export default function EventDetail({
 }: Props) {
   useEscapeClose(Boolean(item), onClose);
   const [engaged, setEngaged] = useState(false);
-  const [mobileCal, setMobileCal] = useState(false);
   const {
     seanceKey: sharedSeanceKey,
     token: shareToken,
@@ -368,17 +334,12 @@ export default function EventDetail({
     setActiveSeance(null);
   }, [item?.key]);
 
-  useEffect(() => {
-    setMobileCal(isLikelyMobile());
-  }, []);
-
   function markEngaged() {
     setEngaged(true);
   }
 
   if (!item) return null;
 
-  const cal = calendarPayloadFromDayItem(item);
   const openKey = item.key;
   const cinemaFiche = isCinemaDayItem(item);
   const crossSellItems =
@@ -518,6 +479,14 @@ export default function EventDetail({
                         markEngaged();
                         onReserve?.();
                       }}
+                      onAgenda={() => {
+                        markEngaged();
+                        onAgenda?.();
+                      }}
+                      onIcs={() => {
+                        markEngaged();
+                        onIcs?.();
+                      }}
                     />
                   </div>
                 ) : null}
@@ -635,6 +604,31 @@ export default function EventDetail({
                   selectedCommune={selectedCommune}
                   selectedLieuId={selectedLieuId}
                 />
+                <div className="mt-3">
+                  <EventCtaRow
+                    item={
+                      activeSeance &&
+                      seancesForList.some((s) => s.key === activeSeance.key)
+                        ? activeSeance
+                        : item
+                    }
+                    seanceKey={
+                      activeSeance &&
+                      seancesForList.some((s) => s.key === activeSeance.key)
+                        ? activeSeance.key
+                        : null
+                    }
+                    showReserve={false}
+                    onAgenda={() => {
+                      markEngaged();
+                      onAgenda?.();
+                    }}
+                    onIcs={() => {
+                      markEngaged();
+                      onIcs?.();
+                    }}
+                  />
+                </div>
               </section>
             ) : null}
 
@@ -709,84 +703,23 @@ export default function EventDetail({
 
             <FichePressBlock item={item} />
 
-            <div className="flex flex-wrap items-center gap-2">
-              {!hasFilmSeances && (
-                <ReserveControl
-                  url={reserveUrlOf(item)}
-                  soldOut={reserveSoldOut(item)}
-                  item={item}
-                  onReserve={() => {
-                    markEngaged();
-                    onReserve?.();
-                  }}
-                />
-              )}
-              {cal && (
-                <>
-                  <a
-                    href={googleCalendarUrl(cal)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => {
-                      markEngaged();
-                      onAgenda?.();
-                    }}
-                    className="inline-flex min-h-10 items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
-                  >
-                    Google Agenda
-                  </a>
-                  {mobileCal ? (
-                    <a
-                      href={webcalHref(item.key)}
-                      onClick={() => {
-                        markEngaged();
-                        onIcs?.();
-                      }}
-                      className="inline-flex min-h-10 items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
-                    >
-                      S’abonner au calendrier
-                    </a>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        markEngaged();
-                        onIcs?.();
-                        downloadIcs(cal);
-                      }}
-                      className="inline-flex min-h-10 items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
-                    >
-                      Télécharger (.ics)
-                    </button>
-                  )}
-                </>
-              )}
-              <ShareButton
-                item={
-                  activeSeance &&
-                  seancesForList.some((s) => s.key === activeSeance.key)
-                    ? activeSeance
-                    : item
-                }
-                seanceKey={
-                  activeSeance &&
-                  seancesForList.some((s) => s.key === activeSeance.key)
-                    ? activeSeance.key
-                    : null
-                }
+            {!hasFilmSeances ? (
+              <EventCtaRow
+                item={item}
+                onReserve={() => {
+                  markEngaged();
+                  onReserve?.();
+                }}
+                onAgenda={() => {
+                  markEngaged();
+                  onAgenda?.();
+                }}
+                onIcs={() => {
+                  markEngaged();
+                  onIcs?.();
+                }}
               />
-              <FavoriteButton item={item} />
-              {sourceUrlOf(item) && (
-                <a
-                  href={sourceUrlOf(item)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex min-h-10 items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
-                >
-                  Voir la source
-                </a>
-              )}
-            </div>
+            ) : null}
 
             {showCrossSell ? (
               <AussiCeSoirSection
@@ -957,70 +890,22 @@ export default function EventDetail({
 
           <FichePressBlock item={item} />
 
-          <div className="flex flex-wrap items-center gap-2">
-            <ReserveControl
-              url={reserveUrlOf(item)}
-              soldOut={reserveSoldOut(item)}
-              item={item}
-              tagSource={item}
-              onReserve={() => {
-                markEngaged();
-                onReserve?.();
-              }}
-            />
-            {cal && (
-              <>
-                <a
-                  href={googleCalendarUrl(cal)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => {
-                    markEngaged();
-                    onAgenda?.();
-                  }}
-                  className="inline-flex min-h-10 items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
-                >
-                  Google Agenda
-                </a>
-                {mobileCal ? (
-                  <a
-                    href={webcalHref(item.key)}
-                    onClick={() => {
-                      markEngaged();
-                      onIcs?.();
-                    }}
-                    className="inline-flex min-h-10 items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
-                  >
-                    S’abonner au calendrier
-                  </a>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      markEngaged();
-                      onIcs?.();
-                      downloadIcs(cal);
-                    }}
-                    className="inline-flex min-h-10 items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
-                  >
-                    Télécharger (.ics)
-                  </button>
-                )}
-              </>
-            )}
-            <ShareButton item={item} />
-            <FavoriteButton item={item} />
-            {sourceUrlOf(item) && (
-              <a
-                href={sourceUrlOf(item)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-10 items-center rounded-full border border-culture-sand bg-white px-4 py-2 text-sm font-medium text-culture-ink hover:bg-culture-sand"
-              >
-                Voir la source
-              </a>
-            )}
-          </div>
+          <EventCtaRow
+            item={item}
+            tagSource={item}
+            onReserve={() => {
+              markEngaged();
+              onReserve?.();
+            }}
+            onAgenda={() => {
+              markEngaged();
+              onAgenda?.();
+            }}
+            onIcs={() => {
+              markEngaged();
+              onIcs?.();
+            }}
+          />
 
           {showCrossSell ? (
             <AussiCeSoirSection

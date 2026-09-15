@@ -421,10 +421,11 @@ describe('B3b source contract', () => {
     const cine = detail.indexOf('<CineFilmSeances');
     const seancesHeading = detail.indexOf('Séances');
     const lastSocial = detail.lastIndexOf('<ShareSocial');
-    const lastFavorite = detail.lastIndexOf('<FavoriteButton');
+    const lastCta = detail.lastIndexOf('<EventCtaRow');
     assert.ok(firstSocial > 0 && cine > 0 && firstSocial < cine);
     assert.ok(seancesHeading > 0 && firstSocial < seancesHeading);
-    assert.ok(lastSocial > 0 && lastSocial < lastFavorite);
+    assert.ok(lastSocial > 0 && lastCta > 0 && lastSocial < lastCta);
+    assert.equal(detail.includes('<FavoriteButton'), false);
     assert.match(detail, /key=\{item\.key\}/);
     assert.match(detail, /cineMeta/);
     assert.match(detail, /seanceWhenShort/);
