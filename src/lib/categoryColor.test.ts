@@ -127,6 +127,38 @@ describe('S8.1 palette LOCK', () => {
   });
 });
 
+describe('S8b pack section contour', () => {
+  it('frames HomeSection (title + rail), not chips or isolated cards', () => {
+    const section = fs.readFileSync(
+      path.join(process.cwd(), 'src/components/HomeSection.tsx'),
+      'utf-8',
+    );
+    assert.match(section, /data-cat-section=\{frameStyle \? accentVar/);
+    assert.match(section, /homeSectionFrameClass\(accentVar\)/);
+    assert.match(section, /homeSectionFrameStyle\(accentVar\)/);
+    const app = fs.readFileSync(
+      path.join(process.cwd(), 'src/components/CultureConnectApp.tsx'),
+      'utf-8',
+    );
+    assert.match(app, /accentVar=\{PACK_CAT_CSS_VAR\.cine\}/);
+    assert.match(app, /accentVar=\{PACK_CAT_CSS_VAR\.theatre\}/);
+    assert.match(app, /accentVar=\{PACK_CAT_CSS_VAR\.musique\}/);
+    assert.match(app, /accentVar=\{PACK_CAT_CSS_VAR\.enfants\}/);
+    assert.match(app, /accentVar=\{PACK_CAT_CSS_VAR\.expo\}/);
+    const carousel = fs.readFileSync(
+      path.join(process.cwd(), 'src/components/CinemaCarousel.tsx'),
+      'utf-8',
+    );
+    assert.equal(carousel.includes('data-cat-section'), false);
+    assert.equal(CAT_HEX.cine, '#E85D3B');
+    assert.equal(CAT_HEX.musique, '#6B3FA0');
+    assert.equal(CAT_HEX.theatre, '#0D7377');
+    assert.equal(CAT_HEX.festival, '#BE185D');
+    assert.equal(CAT_HEX.expo, '#334155');
+    assert.equal(CAT_HEX.enfants, '#CA8A04');
+  });
+});
+
 describe('S8.3 resolved form (post-B4)', () => {
   it('paints film_id as cine even when raw form/categorie is festival', () => {
     const row = item({
