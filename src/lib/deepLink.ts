@@ -47,3 +47,37 @@ export function resolveShareDeepLinkKey(opts: {
     normalizeDeepLinkId(opts.tokenSeanceKey || '')
   );
 }
+
+/** Query keys that open a fiche on boot / client nav (`?e=` / `?t=` / `?id=`). */
+export const DEEP_LINK_QUERY_KEYS = ['e', 't', 'id'] as const;
+
+/**
+ * Same pathname + hash, minus `e` / `t` / `id`. Other query params stay.
+ * Used by Fermer so a reload does not re-read B1 deep-link params.
+ */
+export function hrefWithoutDeepLinkParams(input: {
+  pathname: string;
+  search: string;
+  hash?: string;
+}): string {
+  const raw = input.search.startsWith('?') ? input.search.slice(1) : input.search;
+  const params = new URLSearchParams(raw);
+  for (const key of DEEP_LINK_QUERY_KEYS) {
+    params.delete(key);
+  }
+  const qs = params.toString();
+  return `${input.pathname}${qs ? `?${qs}` : ''}${input.hash || ''}`;
+}
+
+/**
+ * Drop deep-link keys from the current URL without remounting home
+ * (`history.replaceState`, same contract as #131 `pushState` on open).
+ */
+export function clearDeepLinkUrlParams(): void {
+  if (typeof window === 'undefined' || !window.history?.replaceState) return;
+  const { pathname, search, hash } = window.location;
+  const current = `${pathname}${search}${hash}`;
+  const next = hrefWithoutDeepLinkParams({ pathname, search, hash });
+  if (next === current) return;
+  window.history.replaceState(window.history.state, '', next);
+}

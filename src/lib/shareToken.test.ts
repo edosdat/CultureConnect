@@ -269,7 +269,8 @@ describe('B3 URL + open_shared + no B3b', () => {
       'utf8',
     );
     assert.match(app, /shareVisitItemKey/);
-    assert.match(app, /fromQuery \|\| normalizeDeepLinkId\(shareVisitItemKey/);
+    assert.match(app, /tokenInUrl \? normalizeDeepLinkId\(shareVisitItemKey/);
+    assert.match(app, /fromQuery \|\|/);
     const visitSrc = await readFile(
       new URL('../components/ShareVisitProvider.tsx', import.meta.url),
       'utf8',

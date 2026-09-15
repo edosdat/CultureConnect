@@ -825,3 +825,33 @@ describe('P1 cloche inbox cold path + meta paint', () => {
     assert.match(prefetch, /export function peekPrefetchedAgendaItem/);
   });
 });
+
+describe('P0 Fermer fiche clears deep-link URL', () => {
+  it('onClose strips e/t/id via replaceState; cloche open still pushState', async () => {
+    const app = await readFile(
+      new URL('../components/CultureConnectApp.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(app, /clearDeepLinkUrlParams/);
+    const closeFn = app.slice(app.indexOf('onClose={() => {'));
+    assert.match(closeFn, /setSelectedItemKey\(null\)/);
+    assert.match(closeFn, /clearDeepLinkUrlParams\(\)/);
+    assert.match(app, /tokenInUrl \? normalizeDeepLinkId\(shareVisitItemKey/);
+
+    const helper = await readFile(
+      new URL('./deepLink.ts', import.meta.url),
+      'utf8',
+    );
+    assert.match(helper, /history\.replaceState/);
+    assert.match(helper, /DEEP_LINK_QUERY_KEYS = \['e', 't', 'id'\]/);
+
+    const inbox = await readFile(
+      new URL('../components/ActivityInbox.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(inbox, /history\.pushState/);
+    assert.match(inbox, /router\.push\(href\)/);
+    assert.equal(inbox.includes('clearDeepLinkUrlParams'), false);
+    assert.equal(inbox.includes('window.location.assign'), false);
+  });
+});
