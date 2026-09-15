@@ -15,6 +15,10 @@ import {
   sharePrefill,
 } from '@/lib/displayHome';
 import { formatDateFr } from '@/lib/labels';
+import {
+  publicAppOrigin,
+  sharePreviewOgImage,
+} from '@/lib/sharePreviewImage';
 
 /** Dynamic: do not ISR the embedded programme (stale after Paris midnight). */
 export const dynamic = 'force-dynamic';
@@ -42,9 +46,27 @@ export async function generateMetadata({
       },
     };
   }
+  const origin = publicAppOrigin();
   const detail = queryAgendaDetail(key);
   if (!detail) {
-    return { title: DEFAULT_TITLE, description: DEFAULT_DESC };
+    const ogImage = sharePreviewOgImage({ origin, itemKey: key });
+    return {
+      title: DEFAULT_TITLE,
+      description: DEFAULT_DESC,
+      openGraph: {
+        title: DEFAULT_TITLE,
+        description: DEFAULT_DESC,
+        locale: 'fr_FR',
+        type: 'website',
+        images: [ogImage],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: DEFAULT_TITLE,
+        description: DEFAULT_DESC,
+        images: [ogImage.url],
+      },
+    };
   }
   const item = detail.item;
   const title = itemTitle(item);
@@ -54,8 +76,12 @@ export async function generateMetadata({
     itemPitch(item) ||
     sharePrefill(item, '').text ||
     [title, date, venue].filter(Boolean).join(' — ');
-  const photo = itemImageUrl(item);
-  const ogImage = photo || `/api/og?e=${encodeURIComponent(key)}`;
+  const ogImage = sharePreviewOgImage({
+    origin,
+    itemKey: key,
+    candidates: [itemImageUrl(item)],
+    alt: title,
+  });
   const pageTitle = `${title} — CultureConnect`;
   return {
     title: pageTitle,
@@ -65,13 +91,13 @@ export async function generateMetadata({
       description: desc.slice(0, 200),
       locale: 'fr_FR',
       type: 'article',
-      images: [{ url: ogImage, alt: title }],
+      images: [ogImage],
     },
     twitter: {
       card: 'summary_large_image',
       title: pageTitle,
       description: desc.slice(0, 200),
-      images: [ogImage],
+      images: [ogImage.url],
     },
   };
 }

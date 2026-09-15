@@ -4,6 +4,7 @@ import SiteNav from '@/components/SiteNav';
 import Providers from '@/components/Providers';
 import SiteFooter from '@/components/SiteFooter';
 import { isGoogleAuthConfigured } from '@/auth';
+import { publicAppOrigin } from '@/lib/sharePreviewImage';
 import './globals.css';
 
 const sans = DM_Sans({
@@ -22,10 +23,7 @@ const display = Fraunces({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXTAUTH_URL ||
-      'https://culture-connect-2q8c-three.vercel.app',
-  ),
+  metadataBase: new URL(publicAppOrigin()),
   title: 'CultureConnect — Agenda culturel Toulouse',
   description:
     'Calendrier des évènements culturels autour de Toulouse : expositions, concerts, théâtre, festivals et plus.',
