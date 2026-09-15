@@ -1,7 +1,8 @@
 /**
  * S8 category colors — LOCK palette in globals.css (`--cat-*`).
  * Paint from slotFormOfItem / resolvedFormOfItem (post-B4), never raw form alone.
- * Accent only: chip / badge / H2 / fallback wash. Do not paint whole cards.
+ * Accent: chip / badge / H2 / S8b section contour / fallback wash.
+ * Do not paint whole cards. Hex LOCK — do not change.
  */
 
 import {

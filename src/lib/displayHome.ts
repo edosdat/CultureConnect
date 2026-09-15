@@ -351,6 +351,38 @@ export function homeSectionAccentStyle(
 }
 
 /**
+ * S8b — 2px solid cat contour around the whole pack block (H2 + rail).
+ * Radius 14 aligns with card corners (12–16). Interior stays cream.
+ */
+export const HOME_SECTION_FRAME_CLASS =
+  'rounded-[14px] border-2 border-solid bg-culture-cream p-2.5';
+
+/** Soft halo — 18% cat color, not a second hard ring. */
+export const HOME_SECTION_HALO_PCT = 18;
+
+const PACK_CAT_ACCENT_RE =
+  /^--cat-(cine|musique|theatre|festival|expo|enfants)$/;
+
+/** Pack rails pass `--cat-*`. Leftover « Aussi » keeps default terracotta (no frame). */
+export function isPackCatAccentVar(accentVar: string): boolean {
+  return PACK_CAT_ACCENT_RE.test(accentVar);
+}
+
+export function homeSectionFrameClass(accentVar: string): string {
+  return isPackCatAccentVar(accentVar) ? HOME_SECTION_FRAME_CLASS : '';
+}
+
+export function homeSectionFrameStyle(
+  accentVar: string,
+): { borderColor: string; boxShadow: string } | undefined {
+  if (!isPackCatAccentVar(accentVar)) return undefined;
+  return {
+    borderColor: `var(${accentVar})`,
+    boxShadow: `0 0 0 3px color-mix(in srgb, var(${accentVar}) ${HOME_SECTION_HALO_PCT}%, transparent)`,
+  };
+}
+
+/**
  * Stack between QUAND/QUOI, city row, list-wait, and Top 3.
  * Tight on mobile so the first screen has no empty hole.
  */

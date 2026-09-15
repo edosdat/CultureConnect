@@ -10,9 +10,14 @@ import {
   HOME_PACK_MORE_CAT,
   HOME_PACK_MORE_ELLIPSIS,
   HOME_PACK_MORE_LABEL,
+  HOME_SECTION_FRAME_CLASS,
+  HOME_SECTION_HALO_PCT,
   HOME_SECTION_TITLE_ACCENT_VAR,
   HOME_SECTION_TITLE_CLASS,
   HOME_SECTION_TITLE_RULE_CLASS,
+  homeSectionFrameClass,
+  homeSectionFrameStyle,
+  isPackCatAccentVar,
   fillEmptyCineFromPool,
   findDayItemByKey,
   enfantsRows,
@@ -1422,6 +1427,32 @@ describe('Top 3 mobile carousel (<md)', () => {
     assert.equal(HOME_SECTION_TITLE_CLASS.includes('w-full'), false);
     assert.equal(HOME_SECTION_TITLE_CLASS.includes('leading-tight'), false);
     assert.ok(TOP3_SECTION_CLASS.includes('px-2'));
+  });
+
+  it('S8b frames the whole pack section (title + rail) in cat color', () => {
+    assert.ok(HOME_SECTION_FRAME_CLASS.includes('border-2'));
+    assert.ok(HOME_SECTION_FRAME_CLASS.includes('border-solid'));
+    assert.ok(HOME_SECTION_FRAME_CLASS.includes('bg-culture-cream'));
+    assert.match(HOME_SECTION_FRAME_CLASS, /rounded-\[1[2-6]px\]/);
+    assert.equal(HOME_SECTION_HALO_PCT, 18);
+    assert.equal(isPackCatAccentVar('--cat-cine'), true);
+    assert.equal(isPackCatAccentVar('--cat-musique'), true);
+    assert.equal(isPackCatAccentVar('--cat-theatre'), true);
+    assert.equal(isPackCatAccentVar('--cat-festival'), true);
+    assert.equal(isPackCatAccentVar('--cat-expo'), true);
+    assert.equal(isPackCatAccentVar('--cat-enfants'), true);
+    assert.equal(isPackCatAccentVar(HOME_SECTION_TITLE_ACCENT_VAR), false);
+    assert.equal(homeSectionFrameClass('--cat-cine'), HOME_SECTION_FRAME_CLASS);
+    assert.equal(homeSectionFrameClass(HOME_SECTION_TITLE_ACCENT_VAR), '');
+    const cine = homeSectionFrameStyle('--cat-cine');
+    assert.ok(cine);
+    assert.equal(cine.borderColor, 'var(--cat-cine)');
+    assert.equal(
+      cine.boxShadow,
+      '0 0 0 3px color-mix(in srgb, var(--cat-cine) 18%, transparent)',
+    );
+    const leftover = homeSectionFrameStyle(HOME_SECTION_TITLE_ACCENT_VAR);
+    assert.equal(leftover, undefined);
   });
 
   it('maps scroll position to a 1-based 1/3 label', () => {
