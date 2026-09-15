@@ -462,11 +462,7 @@ function resultsDir(): string {
 
 function datedOutPath(generatedAt: Date): string {
   const iso = generatedAt.toISOString().slice(0, 10);
-  const dir = resultsDir();
-  const base = path.join(dir, `${iso}.json`);
-  if (!fs.existsSync(base)) return base;
-  const stamp = generatedAt.toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  return path.join(dir, `${stamp}.json`);
+  return path.join(resultsDir(), `${iso}.json`);
 }
 
 function coverageOf(
@@ -595,7 +591,7 @@ function printTable(result: BenchJson): void {
   console.log(`CultureConnect — banc d'essai reco          ${date}`);
   console.log('');
   console.log(
-    `fenêtres (Paris, now=${result.meta.fixedNow}):`,
+    `fenêtres (Paris, now=${result.scenarios[0]?.startIso ?? '?'} 00:00 · ${result.meta.fixedNow}):`,
   );
   for (const s of result.scenarios) {
     const st = result.stock[s.id];
@@ -605,14 +601,14 @@ function printTable(result: BenchJson): void {
   }
   console.log('');
   console.log(
-    `${pad('profil', 32)} ${pad('vivant%', 8, 'right')} ${pad('divers', 7, 'right')} ${pad('calib', 7, 'right')} ${pad('repli', 7, 'right')}`,
+    `${pad('profil', 40)} ${pad('vivant%', 8, 'right')} ${pad('divers', 7, 'right')} ${pad('calib', 7, 'right')} ${pad('repli', 7, 'right')}`,
   );
-  console.log('-'.repeat(64));
+  console.log('-'.repeat(72));
   for (const row of result.byProfile) {
     const flags =
       (row.diversity != null && row.diversity < THRESHOLD.diversity) ||
       (row.fallbackRate != null && row.fallbackRate > THRESHOLD.fallback);
-    const line = `${pad(row.label, 32)} ${pad(fmtPct(row.vivantShare, 0), 8, 'right')} ${pad(fmtNum(row.diversity, 2), 7, 'right')} ${pad(fmtNum(row.calibration, 2), 7, 'right')} ${pad(fmtPct(row.fallbackRate, 0), 7, 'right')}${warnMark(flags)}`;
+    const line = `${pad(row.label, 40)} ${pad(fmtPct(row.vivantShare, 0), 8, 'right')} ${pad(fmtNum(row.diversity, 2), 7, 'right')} ${pad(fmtNum(row.calibration, 2), 7, 'right')} ${pad(fmtPct(row.fallbackRate, 0), 7, 'right')}${warnMark(flags)}`;
     console.log(line);
   }
   console.log('');
@@ -668,7 +664,7 @@ function printTop3(result: BenchJson, profiles: BenchProfile[]): void {
         continue;
       }
       run.list.forEach((row, i) => {
-        const slot = row.slot ?? row.form || '?';
+        const slot = row.slot ?? row.form ?? '?';
         const moods = row.moods.length ? row.moods.join('|') : '—';
         const why = [row.reasonSource, row.reasonPhrase].filter(Boolean).join(' · ');
         console.log(
@@ -698,9 +694,9 @@ function printCompare(current: BenchJson, previous: BenchJson, file: string): vo
   console.log(`=== Δ vs ${file}  (${previous.meta.generatedAt.slice(0, 10)}) ===`);
   const prevBy = new Map(previous.byProfile.map((r) => [r.profileId, r]));
   console.log(
-    `${pad('profil', 32)} ${pad('Δvivant', 9, 'right')} ${pad('Δdivers', 8, 'right')} ${pad('Δcalib', 8, 'right')} ${pad('Δrepli', 8, 'right')}`,
+    `${pad('profil', 40)} ${pad('Δvivant', 9, 'right')} ${pad('Δdivers', 8, 'right')} ${pad('Δcalib', 8, 'right')} ${pad('Δrepli', 8, 'right')}`,
   );
-  console.log('-'.repeat(68));
+  console.log('-'.repeat(76));
   for (const row of current.byProfile) {
     const prev = prevBy.get(row.profileId);
     const dV =
@@ -720,7 +716,7 @@ function printCompare(current: BenchJson, previous: BenchJson, file: string): vo
         ? row.fallbackRate - prev.fallbackRate
         : null;
     console.log(
-      `${pad(row.label, 32)} ${pad(fmtDelta(dV, 1, true), 9, 'right')} ${pad(fmtDelta(dD, 2), 8, 'right')} ${pad(fmtDelta(dC, 2), 8, 'right')} ${pad(fmtDelta(dF, 1, true), 8, 'right')}`,
+      `${pad(row.label, 40)} ${pad(fmtDelta(dV, 1, true), 9, 'right')} ${pad(fmtDelta(dD, 2), 8, 'right')} ${pad(fmtDelta(dC, 2), 8, 'right')} ${pad(fmtDelta(dF, 1, true), 8, 'right')}`,
     );
   }
   const cCov = current.global.coverage.ratio;

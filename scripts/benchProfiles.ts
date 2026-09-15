@@ -133,7 +133,7 @@ export const BENCH_PROFILES: BenchProfile[] = [
   },
   {
     id: 'mix-poetique-contemplatif-tendre',
-    label: 'poetique 40 / contemplatif 40 / tendre 20',
+    label: 'poetique / contemplatif / tendre',
     group: 'mixed',
     notes: 'Three closed moods, including poetique (in biblio).',
     state: stateFromWeights({

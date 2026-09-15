@@ -1,0 +1,4739 @@
+{
+  "meta": {
+    "generatedAt": "2026-09-15T15:37:40.162Z",
+    "engine": "recommendForProfile",
+    "fixedNow": "2026-09-20T22:00:00.000Z",
+    "windows": {
+      "monday": {
+        "startIso": "2026-09-21",
+        "endIso": "2026-09-21",
+        "definition": "Single Paris day 2026-09-21 (lundi) — thin vivant stock."
+      },
+      "friday": {
+        "startIso": "2026-09-25",
+        "endIso": "2026-09-25",
+        "definition": "Single Paris day 2026-09-25 (vendredi) — richer vivant stock."
+      },
+      "week": {
+        "startIso": "2026-09-21",
+        "endIso": "2026-09-27",
+        "definition": "Next 7 days inclusive from pinned Paris now: 2026-09-21 → 2026-09-27."
+      },
+      "month": {
+        "startIso": "2026-09-21",
+        "endIso": "2026-10-20",
+        "definition": "Next 30 days inclusive from pinned Paris now: 2026-09-21 → 2026-10-20."
+      }
+    },
+    "moodVocab": {
+      "poetique": "in TASTE_MOODS (16 closed goûts) — no alias needed",
+      "dansant": "in TASTE_MOODS (16 closed goûts) — no alias needed",
+      "sortie": "phrase/catalogue slug, not a goût; kept on mix-intense-sortie-festif but not scored"
+    },
+    "thresholds": {
+      "coverage": 0.15,
+      "diversity": 0.3,
+      "fallback": 0.5
+    },
+    "catalogue": {
+      "evenements": 6173,
+      "programme": 12623,
+      "maxIso": "2027-07-24"
+    },
+    "vivantRule": "slotFormOfItem ∈ {theatre, concert} (festival/enfants follow that resolver; raw form is ignored)"
+  },
+  "profiles": [
+    {
+      "id": "mono-rigolo",
+      "label": "rigolo 100",
+      "group": "mono",
+      "notes": "Mono-ambiance rigolo 100 % (TASTE_MOODS)."
+    },
+    {
+      "id": "mono-intimiste",
+      "label": "intimiste 100",
+      "group": "mono",
+      "notes": "Mono-ambiance intimiste 100 % (TASTE_MOODS)."
+    },
+    {
+      "id": "mono-intense",
+      "label": "intense 100",
+      "group": "mono",
+      "notes": "Mono-ambiance intense 100 % (TASTE_MOODS)."
+    },
+    {
+      "id": "mono-festif",
+      "label": "festif 100",
+      "group": "mono",
+      "notes": "Mono-ambiance festif 100 % (TASTE_MOODS)."
+    },
+    {
+      "id": "mono-poetique",
+      "label": "poetique 100",
+      "group": "mono",
+      "notes": "poetique is in TASTE_MOODS / live biblio — no alias."
+    },
+    {
+      "id": "mono-cerveau",
+      "label": "cerveau 100",
+      "group": "mono",
+      "notes": "Mono-ambiance cerveau 100 % (TASTE_MOODS)."
+    },
+    {
+      "id": "mono-dansant",
+      "label": "dansant 100",
+      "group": "mono",
+      "notes": "dansant is in TASTE_MOODS / live biblio — no alias."
+    },
+    {
+      "id": "mix-rigolo-tendre",
+      "label": "rigolo 70 / tendre 30",
+      "group": "mixed",
+      "notes": "Two-mood mix from the brief."
+    },
+    {
+      "id": "mix-intense-sortie-festif",
+      "label": "intense 50 / sortie 30 / festif 20",
+      "group": "mixed",
+      "notes": "sortie is a phrase/catalogue slug, not a goût — Matching A does not score it. Scorable mix is intense + festif."
+    },
+    {
+      "id": "mix-poetique-contemplatif-tendre",
+      "label": "poetique / contemplatif / tendre",
+      "group": "mixed",
+      "notes": "Three closed moods, including poetique (in biblio)."
+    },
+    {
+      "id": "mix-festif-dansant",
+      "label": "festif 50 / dansant 50",
+      "group": "mixed",
+      "notes": "Party / dance floor mix. dansant is a closed goût."
+    },
+    {
+      "id": "mix-leger-absurde",
+      "label": "leger 60 / absurde 40",
+      "group": "mixed",
+      "notes": "Light + absurde mix."
+    },
+    {
+      "id": "genre-theatre-humour",
+      "label": "théâtre · rigolo + standup",
+      "group": "genres",
+      "notes": "Theatre/humour cloisonnement: mood rigolo + genre standup."
+    },
+    {
+      "id": "genre-cine-thriller",
+      "label": "ciné · intense + thriller",
+      "group": "genres",
+      "notes": "Cinema thriller: mood intense + genre thriller."
+    },
+    {
+      "id": "genre-concert-electro",
+      "label": "concert · dansant + electro",
+      "group": "genres",
+      "notes": "Music cloisonnement: mood dansant + genre electro."
+    },
+    {
+      "id": "genre-cine-comedie",
+      "label": "ciné · rigolo + comedie",
+      "group": "genres",
+      "notes": "Cinema comedy: mood rigolo + genre comedie."
+    },
+    {
+      "id": "genre-only-comedie",
+      "label": "genre comedie (sans mood)",
+      "group": "genres",
+      "notes": "Genre-only profile — no moods. Tests form cloisonnement without ambiance."
+    },
+    {
+      "id": "empty",
+      "label": "profil vide",
+      "group": "edge",
+      "notes": "Guest / empty state — engine must fall back (never [])."
+    },
+    {
+      "id": "single-signal-rigolo",
+      "label": "un seul signal",
+      "group": "edge",
+      "notes": "A single open_card signal with mood rigolo (weight 2)."
+    },
+    {
+      "id": "out-of-stock-moods",
+      "label": "cerveau / angoissant / brutal",
+      "group": "edge",
+      "notes": "NO_BRIDGE_MOODS mix — often thin vivant stock; expect cine overlap and/or fallback."
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "monday",
+      "label": "lundi",
+      "startIso": "2026-09-21",
+      "endIso": "2026-09-21",
+      "now": "2026-09-20T22:00:00.000Z",
+      "definition": "Single Paris day 2026-09-21 (lundi) — thin vivant stock."
+    },
+    {
+      "id": "friday",
+      "label": "vendredi",
+      "startIso": "2026-09-25",
+      "endIso": "2026-09-25",
+      "now": "2026-09-24T22:00:00.000Z",
+      "definition": "Single Paris day 2026-09-25 (vendredi) — richer vivant stock."
+    },
+    {
+      "id": "week",
+      "label": "semaine",
+      "startIso": "2026-09-21",
+      "endIso": "2026-09-27",
+      "now": "2026-09-20T22:00:00.000Z",
+      "definition": "Next 7 days inclusive from pinned Paris now: 2026-09-21 → 2026-09-27."
+    },
+    {
+      "id": "month",
+      "label": "mois",
+      "startIso": "2026-09-21",
+      "endIso": "2026-10-20",
+      "now": "2026-09-20T22:00:00.000Z",
+      "definition": "Next 30 days inclusive from pinned Paris now: 2026-09-21 → 2026-10-20."
+    }
+  ],
+  "stock": {
+    "monday": {
+      "items": 148,
+      "works": 116,
+      "vivantWorks": 27,
+      "cineWorks": 78
+    },
+    "friday": {
+      "items": 156,
+      "works": 127,
+      "vivantWorks": 65,
+      "cineWorks": 51
+    },
+    "week": {
+      "items": 790,
+      "works": 341,
+      "vivantWorks": 139,
+      "cineWorks": 180
+    },
+    "month": {
+      "items": 1578,
+      "works": 726,
+      "vivantWorks": 400,
+      "cineWorks": 271
+    }
+  },
+  "runs": [
+    {
+      "profileId": "mono-rigolo",
+      "scenarioId": "monday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.4797799427400597,
+      "calibration": 1.2729656758128876,
+      "fallbackRate": 0,
+      "elapsedMs": 25.31984299999999,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "e:TMP0013:2026-09-21",
+          "workId": "e:TMP0013",
+          "title": "Les Clotildes : La bonne surprise !",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "p:BARP0073",
+          "workId": "e:BAR0073",
+          "title": "Quiz de culture générale et blind test tous les lundis à 21h",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo",
+            "cerveau"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-intimiste",
+      "scenarioId": "monday",
+      "vivantShare": 0,
+      "diversity": null,
+      "calibration": 2.302585092994046,
+      "fallbackRate": 0,
+      "elapsedMs": 14.683627999999999,
+      "list": [
+        {
+          "key": "e:E006:2026-09-21",
+          "workId": "t:rentree cinematheque (fritz lang, animation…)",
+          "title": "Rentrée Cinémathèque (Fritz Lang, animation…)",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense",
+            "leger",
+            "epique",
+            "rigolo",
+            "sombre",
+            "tendre",
+            "intimiste",
+            "cerveau",
+            "brutal",
+            "festif",
+            "dansant"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "intimiste",
+          "reasonPhrase": "parce que tu aimes l’intimiste"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-intense",
+      "scenarioId": "monday",
+      "vivantShare": 0.5,
+      "diversity": 0.29289321881345254,
+      "calibration": 0.40047756659712536,
+      "fallbackRate": 0,
+      "elapsedMs": 14.300208000000111,
+      "list": [
+        {
+          "key": "p:PTMP_L128_163_09211000",
+          "workId": "f:F0050",
+          "title": "The Last Viking",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        },
+        {
+          "key": "e:E650:2026-09-21",
+          "workId": "e:E650",
+          "title": "Les faux british",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-festif",
+      "scenarioId": "monday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.43096440627115085,
+      "calibration": 1.18090753139494,
+      "fallbackRate": 0,
+      "elapsedMs": 13.771316999999954,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "festif",
+          "reasonPhrase": "parce que tu aimes l’ambiance festive"
+        },
+        {
+          "key": "p:P9362",
+          "workId": "e:TMP0476",
+          "title": "1 évènement 11",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "festif"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "festif",
+          "reasonPhrase": "parce que tu aimes l’ambiance festive"
+        },
+        {
+          "key": "p:BARP0025",
+          "workId": "e:BAR0025",
+          "title": "Open Mic Night",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "festif"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "festif",
+          "reasonPhrase": "parce que tu aimes l’ambiance festive"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-poetique",
+      "scenarioId": "monday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": null,
+      "calibration": 4.605170185988092,
+      "fallbackRate": 1,
+      "elapsedMs": 30.28763600000002,
+      "list": [
+        {
+          "key": "p:PTMP_L145_203_09211545",
+          "workId": "f:F0005",
+          "title": "Fjord",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [],
+          "dayIso": "2026-09-21",
+          "reasonSource": "popularite",
+          "reasonPhrase": "repli popularité"
+        },
+        {
+          "key": "e:E9122:2026-09-21",
+          "workId": "e:E9122",
+          "title": "ATELIER DE LECTURE À VOIX HAUTE",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [],
+          "dayIso": "2026-09-21",
+          "reasonSource": "popularite",
+          "reasonPhrase": "repli popularité"
+        },
+        {
+          "key": "p:BARP0025",
+          "workId": "e:BAR0025",
+          "title": "Open Mic Night",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "festif"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "popularite",
+          "reasonPhrase": "repli popularité"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-cerveau",
+      "scenarioId": "monday",
+      "vivantShare": 0.5,
+      "diversity": 0.5000000000000001,
+      "calibration": 1.570217199280819,
+      "fallbackRate": 0,
+      "elapsedMs": 13.350582999999915,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "cerveau",
+          "reasonPhrase": "parce que tu aimes le cerveau"
+        },
+        {
+          "key": "p:BARP0073",
+          "workId": "e:BAR0073",
+          "title": "Quiz de culture générale et blind test tous les lundis à 21h",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo",
+            "cerveau"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "cerveau",
+          "reasonPhrase": "parce que tu aimes le cerveau"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-dansant",
+      "scenarioId": "monday",
+      "vivantShare": 0,
+      "diversity": null,
+      "calibration": 2.302585092994046,
+      "fallbackRate": 0,
+      "elapsedMs": 13.20571700000005,
+      "list": [
+        {
+          "key": "e:E006:2026-09-21",
+          "workId": "t:rentree cinematheque (fritz lang, animation…)",
+          "title": "Rentrée Cinémathèque (Fritz Lang, animation…)",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense",
+            "leger",
+            "epique",
+            "rigolo",
+            "sombre",
+            "tendre",
+            "intimiste",
+            "cerveau",
+            "brutal",
+            "festif",
+            "dansant"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "dansant",
+          "reasonPhrase": "parce que tu as envie de danser"
+        }
+      ]
+    },
+    {
+      "profileId": "mix-rigolo-tendre",
+      "scenarioId": "monday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.5000000000000001,
+      "calibration": 0.8821911979128617,
+      "fallbackRate": 0,
+      "elapsedMs": 12.874960999999985,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "e:E651:2026-09-21",
+          "workId": "e:E651",
+          "title": "Psy, sex and fun",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo",
+            "tendre"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "tendre",
+          "reasonPhrase": "parce que tu aimes le tendre"
+        },
+        {
+          "key": "p:BARP0073",
+          "workId": "e:BAR0073",
+          "title": "Quiz de culture générale et blind test tous les lundis à 21h",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo",
+            "cerveau"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        }
+      ]
+    },
+    {
+      "profileId": "mix-intense-sortie-festif",
+      "scenarioId": "monday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.7154822031355755,
+      "calibration": 1.08423258305172,
+      "fallbackRate": 0,
+      "elapsedMs": 13.030033000000003,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        },
+        {
+          "key": "e:E650:2026-09-21",
+          "workId": "e:E650",
+          "title": "Les faux british",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        },
+        {
+          "key": "p:BARP0025",
+          "workId": "e:BAR0025",
+          "title": "Open Mic Night",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "festif"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "festif",
+          "reasonPhrase": "parce que tu aimes l’ambiance festive"
+        }
+      ]
+    },
+    {
+      "profileId": "mix-poetique-contemplatif-tendre",
+      "scenarioId": "monday",
+      "vivantShare": 0.5,
+      "diversity": 0.5000000000000001,
+      "calibration": 3.684136148790474,
+      "fallbackRate": 0,
+      "elapsedMs": 19.651356000000078,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "tendre",
+          "reasonPhrase": "parce que tu aimes le tendre"
+        },
+        {
+          "key": "e:E651:2026-09-21",
+          "workId": "e:E651",
+          "title": "Psy, sex and fun",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo",
+            "tendre"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "tendre",
+          "reasonPhrase": "parce que tu aimes le tendre"
+        }
+      ]
+    },
+    {
+      "profileId": "mix-festif-dansant",
+      "scenarioId": "monday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.46565910361482427,
+      "calibration": 1.2899260811818456,
+      "fallbackRate": 0,
+      "elapsedMs": 12.487579000000096,
+      "list": [
+        {
+          "key": "e:E006:2026-09-21",
+          "workId": "t:rentree cinematheque (fritz lang, animation…)",
+          "title": "Rentrée Cinémathèque (Fritz Lang, animation…)",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense",
+            "leger",
+            "epique",
+            "rigolo",
+            "sombre",
+            "tendre",
+            "intimiste",
+            "cerveau",
+            "brutal",
+            "festif",
+            "dansant"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "dansant",
+          "reasonPhrase": "parce que tu as envie de danser"
+        },
+        {
+          "key": "p:P9362",
+          "workId": "e:TMP0476",
+          "title": "1 évènement 11",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "festif"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "festif",
+          "reasonPhrase": "parce que tu aimes l’ambiance festive"
+        },
+        {
+          "key": "p:BARP0025",
+          "workId": "e:BAR0025",
+          "title": "Open Mic Night",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "festif"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "festif",
+          "reasonPhrase": "parce que tu aimes l’ambiance festive"
+        }
+      ]
+    },
+    {
+      "profileId": "mix-leger-absurde",
+      "scenarioId": "monday",
+      "vivantShare": 0.5,
+      "diversity": 0.75,
+      "calibration": 1.588475806586512,
+      "fallbackRate": 0,
+      "elapsedMs": 12.643313000000035,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "leger",
+          "reasonPhrase": "parce que tu aimes le léger"
+        },
+        {
+          "key": "e:E653:2026-09-21",
+          "workId": "e:E653",
+          "title": "Vacances de rêve",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo",
+            "absurde"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "absurde",
+          "reasonPhrase": "parce que tu aimes l’absurde"
+        }
+      ]
+    },
+    {
+      "profileId": "genre-theatre-humour",
+      "scenarioId": "monday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.4797799427400597,
+      "calibration": 1.2729656758128876,
+      "fallbackRate": 0,
+      "elapsedMs": 12.438485000000128,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "e:TMP0013:2026-09-21",
+          "workId": "e:TMP0013",
+          "title": "Les Clotildes : La bonne surprise !",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonGenre": "standup",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "p:BARP0073",
+          "workId": "e:BAR0073",
+          "title": "Quiz de culture générale et blind test tous les lundis à 21h",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo",
+            "cerveau"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        }
+      ]
+    },
+    {
+      "profileId": "genre-cine-thriller",
+      "scenarioId": "monday",
+      "vivantShare": 0.5,
+      "diversity": 0.29289321881345254,
+      "calibration": 0.40047756659712536,
+      "fallbackRate": 0,
+      "elapsedMs": 13.045305999999982,
+      "list": [
+        {
+          "key": "p:PTMP_L128_163_09211000",
+          "workId": "f:F0050",
+          "title": "The Last Viking",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonGenre": "thriller",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        },
+        {
+          "key": "e:E098:2026-09-21",
+          "workId": "e:E098",
+          "title": "Jeudi 17 septembre 2026 - 20H30 Jeudi 12 novembre 2026 - 20H30",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonGenre": "thriller",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        }
+      ]
+    },
+    {
+      "profileId": "genre-concert-electro",
+      "scenarioId": "monday",
+      "vivantShare": 0,
+      "diversity": null,
+      "calibration": 2.302585092994046,
+      "fallbackRate": 0,
+      "elapsedMs": 21.49471699999981,
+      "list": [
+        {
+          "key": "e:E006:2026-09-21",
+          "workId": "t:rentree cinematheque (fritz lang, animation…)",
+          "title": "Rentrée Cinémathèque (Fritz Lang, animation…)",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense",
+            "leger",
+            "epique",
+            "rigolo",
+            "sombre",
+            "tendre",
+            "intimiste",
+            "cerveau",
+            "brutal",
+            "festif",
+            "dansant"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "dansant",
+          "reasonPhrase": "parce que tu as envie de danser"
+        }
+      ]
+    },
+    {
+      "profileId": "genre-cine-comedie",
+      "scenarioId": "monday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.4797799427400597,
+      "calibration": 1.2729656758128876,
+      "fallbackRate": 0,
+      "elapsedMs": 12.429773999999952,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonGenre": "comedie",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "e:TMP0013:2026-09-21",
+          "workId": "e:TMP0013",
+          "title": "Les Clotildes : La bonne surprise !",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonGenre": "comedie",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "p:BARP0073",
+          "workId": "e:BAR0073",
+          "title": "Quiz de culture générale et blind test tous les lundis à 21h",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo",
+            "cerveau"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        }
+      ]
+    },
+    {
+      "profileId": "genre-only-comedie",
+      "scenarioId": "monday",
+      "vivantShare": 0.5,
+      "diversity": 1,
+      "calibration": null,
+      "fallbackRate": 0,
+      "elapsedMs": 12.514345000000048,
+      "list": [
+        {
+          "key": "p:PTMP_L128_163_09211000",
+          "workId": "f:F0050",
+          "title": "The Last Viking",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonGenre": "comedie",
+          "reasonPhrase": "parce que tu aimes comedie"
+        },
+        {
+          "key": "e:TMP0013:2026-09-21",
+          "workId": "e:TMP0013",
+          "title": "Les Clotildes : La bonne surprise !",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonGenre": "comedie",
+          "reasonPhrase": "parce que tu aimes comedie"
+        }
+      ]
+    },
+    {
+      "profileId": "empty",
+      "scenarioId": "monday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": null,
+      "calibration": null,
+      "fallbackRate": 1,
+      "elapsedMs": 11.406244000000015,
+      "list": [
+        {
+          "key": "p:PTMP_L145_203_09211545",
+          "workId": "f:F0005",
+          "title": "Fjord",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [],
+          "dayIso": "2026-09-21",
+          "reasonSource": "popularite",
+          "reasonPhrase": "repli popularité"
+        },
+        {
+          "key": "e:E9122:2026-09-21",
+          "workId": "e:E9122",
+          "title": "ATELIER DE LECTURE À VOIX HAUTE",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [],
+          "dayIso": "2026-09-21",
+          "reasonSource": "popularite",
+          "reasonPhrase": "repli popularité"
+        },
+        {
+          "key": "p:BARP0025",
+          "workId": "e:BAR0025",
+          "title": "Open Mic Night",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "festif"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "popularite",
+          "reasonPhrase": "repli popularité"
+        }
+      ]
+    },
+    {
+      "profileId": "single-signal-rigolo",
+      "scenarioId": "monday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.4797799427400597,
+      "calibration": 1.2729656758128876,
+      "fallbackRate": 0,
+      "elapsedMs": 12.07858299999998,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "e:TMP0013:2026-09-21",
+          "workId": "e:TMP0013",
+          "title": "Les Clotildes : La bonne surprise !",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "p:BARP0073",
+          "workId": "e:BAR0073",
+          "title": "Quiz de culture générale et blind test tous les lundis à 21h",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo",
+            "cerveau"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        }
+      ]
+    },
+    {
+      "profileId": "out-of-stock-moods",
+      "scenarioId": "monday",
+      "vivantShare": 0.5,
+      "diversity": 0.5285954792089684,
+      "calibration": 1.0133213047013656,
+      "fallbackRate": 0,
+      "elapsedMs": 20.081705000000056,
+      "list": [
+        {
+          "key": "p:P1107",
+          "workId": "f:F0037",
+          "title": "Histoires de la nuit",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense",
+            "rigolo",
+            "cerveau",
+            "festif",
+            "epique",
+            "angoissant",
+            "brutal",
+            "tendre",
+            "critique"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "angoissant",
+          "reasonPhrase": "parce que tu aimes l’ambiance angoissante"
+        },
+        {
+          "key": "p:BARP0073",
+          "workId": "e:BAR0073",
+          "title": "Quiz de culture générale et blind test tous les lundis à 21h",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo",
+            "cerveau"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "cerveau",
+          "reasonPhrase": "parce que tu aimes le cerveau"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-rigolo",
+      "scenarioId": "friday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0,
+      "calibration": 0,
+      "fallbackRate": 0,
+      "elapsedMs": 12.397600000000011,
+      "list": [
+        {
+          "key": "p:P9322",
+          "workId": "f:F0092",
+          "title": "Fini de rire ! L’humour p...",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "e:TMP0013:2026-09-25",
+          "workId": "e:TMP0013",
+          "title": "Les Clotildes : La bonne surprise !",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "p:TMPP1563",
+          "workId": "e:TMP0647",
+          "title": "Cinéma : De la comédie française",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-intimiste",
+      "scenarioId": "friday",
+      "vivantShare": 0.5,
+      "diversity": 0.5917517095361371,
+      "calibration": 0.9014021193804043,
+      "fallbackRate": 0,
+      "elapsedMs": 12.364583000000039,
+      "list": [
+        {
+          "key": "p:PTMP_L126_382_09251345",
+          "workId": "f:F0061",
+          "title": "Garance",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intimiste",
+            "festif",
+            "angoissant"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "intimiste",
+          "reasonPhrase": "parce que tu aimes l’intimiste"
+        },
+        {
+          "key": "p:P1613",
+          "workId": "e:E444",
+          "title": "Zinée",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "tendre",
+            "intimiste"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "intimiste",
+          "reasonPhrase": "parce que tu aimes l’intimiste"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-intense",
+      "scenarioId": "friday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.2996821228987003,
+      "calibration": 0.6831968497067772,
+      "fallbackRate": 0,
+      "elapsedMs": 12.313090999999986,
+      "list": [
+        {
+          "key": "p:PTMP_L139_337_09251030",
+          "workId": "f:F0034",
+          "title": "Avengers : Endgame Extended",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        },
+        {
+          "key": "p:P1382",
+          "workId": "e:E310",
+          "title": "Qui som? — Baro d’evel",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "festif",
+            "intense"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        },
+        {
+          "key": "p:P1542",
+          "workId": "e:E033",
+          "title": "Light Asylum",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "intense",
+            "dansant",
+            "festif"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-festif",
+      "scenarioId": "friday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.2996821228987003,
+      "calibration": 0.6831968497067772,
+      "fallbackRate": 0,
+      "elapsedMs": 12.34831700000018,
+      "list": [
+        {
+          "key": "p:PTMP_L125_408_09251340",
+          "workId": "f:F0014",
+          "title": "L’Inconnue",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "festif"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "festif",
+          "reasonPhrase": "parce que tu aimes l’ambiance festive"
+        },
+        {
+          "key": "p:P1382",
+          "workId": "e:E310",
+          "title": "Qui som? — Baro d’evel",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "festif",
+            "intense"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "festif",
+          "reasonPhrase": "parce que tu aimes l’ambiance festive"
+        },
+        {
+          "key": "p:P1542",
+          "workId": "e:E033",
+          "title": "Light Asylum",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "intense",
+            "dansant",
+            "festif"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "festif",
+          "reasonPhrase": "parce que tu aimes l’ambiance festive"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-poetique",
+      "scenarioId": "friday",
+      "vivantShare": 0.5,
+      "diversity": 1,
+      "calibration": 0.6831968497067772,
+      "fallbackRate": 0.5,
+      "elapsedMs": 12.32693200000017,
+      "list": [
+        {
+          "key": "p:PTMP_L139_337_09251030",
+          "workId": "f:F0034",
+          "title": "Avengers : Endgame Extended",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "nouveaute",
+          "reasonPhrase": "repli nouveauté"
+        },
+        {
+          "key": "p:P1375",
+          "workId": "e:E300",
+          "title": "Rusalka — Antonín Dvořák",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "poetique"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "poetique",
+          "reasonPhrase": "parce que tu aimes le poétique"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-cerveau",
+      "scenarioId": "friday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": null,
+      "calibration": 4.605170185988092,
+      "fallbackRate": 1,
+      "elapsedMs": 21.57148899999993,
+      "list": [
+        {
+          "key": "p:PTMP_L139_337_09251030",
+          "workId": "f:F0034",
+          "title": "Avengers : Endgame Extended",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "nouveaute",
+          "reasonPhrase": "repli nouveauté"
+        },
+        {
+          "key": "e:E9122:2026-09-25",
+          "workId": "e:E9122",
+          "title": "ATELIER DE LECTURE À VOIX HAUTE",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [],
+          "dayIso": "2026-09-25",
+          "reasonSource": "popularite",
+          "reasonPhrase": "repli popularité"
+        },
+        {
+          "key": "p:P9383",
+          "workId": "e:TMP0644",
+          "title": "Après-midi récréative des aîné·es",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [],
+          "dayIso": "2026-09-25",
+          "reasonSource": "popularite",
+          "reasonPhrase": "repli popularité"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-dansant",
+      "scenarioId": "friday",
+      "vivantShare": 0.5,
+      "diversity": 0.42264973081037416,
+      "calibration": 1.3567355588783463,
+      "fallbackRate": 0.5,
+      "elapsedMs": 12.634508000000096,
+      "list": [
+        {
+          "key": "p:PTMP_L139_337_09251030",
+          "workId": "f:F0034",
+          "title": "Avengers : Endgame Extended",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "nouveaute",
+          "reasonPhrase": "repli nouveauté"
+        },
+        {
+          "key": "p:P1542",
+          "workId": "e:E033",
+          "title": "Light Asylum",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "intense",
+            "dansant",
+            "festif"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "dansant",
+          "reasonPhrase": "parce que tu as envie de danser"
+        }
+      ]
+    },
+    {
+      "profileId": "mix-rigolo-tendre",
+      "scenarioId": "friday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.19526214587563503,
+      "calibration": 0.0062688784899110825,
+      "fallbackRate": 0,
+      "elapsedMs": 12.410791000000017,
+      "list": [
+        {
+          "key": "p:P9322",
+          "workId": "f:F0092",
+          "title": "Fini de rire ! L’humour p...",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "p:P1867",
+          "workId": "e:E651",
+          "title": "Psy, sex and fun",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo",
+            "tendre"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "tendre",
+          "reasonPhrase": "parce que tu aimes le tendre"
+        },
+        {
+          "key": "p:TMPP1563",
+          "workId": "e:TMP0647",
+          "title": "Cinéma : De la comédie française",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        }
+      ]
+    },
+    {
+      "profileId": "mix-intense-sortie-festif",
+      "scenarioId": "friday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.12233561271484945,
+      "calibration": 0.24523614165018742,
+      "fallbackRate": 0,
+      "elapsedMs": 12.165704999999889,
+      "list": [
+        {
+          "key": "p:PTMP_L126_390_09251400",
+          "workId": "f:F0037",
+          "title": "Histoires De La Nuit",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "festif",
+            "intense"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        },
+        {
+          "key": "p:P1382",
+          "workId": "e:E310",
+          "title": "Qui som? — Baro d’evel",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "festif",
+            "intense"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        },
+        {
+          "key": "p:P1542",
+          "workId": "e:E033",
+          "title": "Light Asylum",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "intense",
+            "dansant",
+            "festif"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        }
+      ]
+    },
+    {
+      "profileId": "mix-poetique-contemplatif-tendre",
+      "scenarioId": "friday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.7642977396044842,
+      "calibration": 0.2732787398827109,
+      "fallbackRate": 0,
+      "elapsedMs": 12.131892999999991,
+      "list": [
+        {
+          "key": "p:PTMP_L125_410_09251850",
+          "workId": "f:F0038",
+          "title": "Rose",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "contemplatif"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "contemplatif",
+          "reasonPhrase": "parce que tu aimes l’ambiance contemplative"
+        },
+        {
+          "key": "p:P0121",
+          "workId": "e:E152",
+          "title": "Amir et les miroirs",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "poetique",
+            "contemplatif"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "contemplatif",
+          "reasonPhrase": "parce que tu aimes l’ambiance contemplative"
+        },
+        {
+          "key": "p:P1613",
+          "workId": "e:E444",
+          "title": "Zinée",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "tendre",
+            "intimiste"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "tendre",
+          "reasonPhrase": "parce que tu aimes le tendre"
+        }
+      ]
+    },
+    {
+      "profileId": "mix-festif-dansant",
+      "scenarioId": "friday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.2996821228987003,
+      "calibration": 0.539404830685965,
+      "fallbackRate": 0,
+      "elapsedMs": 25.622468000000026,
+      "list": [
+        {
+          "key": "p:PTMP_L125_408_09251340",
+          "workId": "f:F0014",
+          "title": "L’Inconnue",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "festif"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "festif",
+          "reasonPhrase": "parce que tu aimes l’ambiance festive"
+        },
+        {
+          "key": "p:P1382",
+          "workId": "e:E310",
+          "title": "Qui som? — Baro d’evel",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "festif",
+            "intense"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "festif",
+          "reasonPhrase": "parce que tu aimes l’ambiance festive"
+        },
+        {
+          "key": "p:P1542",
+          "workId": "e:E033",
+          "title": "Light Asylum",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "intense",
+            "dansant",
+            "festif"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "dansant",
+          "reasonPhrase": "parce que tu as envie de danser"
+        }
+      ]
+    },
+    {
+      "profileId": "mix-leger-absurde",
+      "scenarioId": "friday",
+      "vivantShare": 0.5,
+      "diversity": 0.29289321881345254,
+      "calibration": 2.8352315332453677,
+      "fallbackRate": 0,
+      "elapsedMs": 12.54165399999988,
+      "list": [
+        {
+          "key": "p:PTMP_L125_398_09251540",
+          "workId": "f:F0032",
+          "title": "Decorado",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "absurde",
+            "critique",
+            "sombre",
+            "angoissant"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "absurde",
+          "reasonPhrase": "parce que tu aimes l’absurde"
+        },
+        {
+          "key": "p:TMPP0487",
+          "workId": "e:TMP0139",
+          "title": "COMPLET – TENTATIVE D’ÉPUISEMENT #1",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "absurde",
+            "critique"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "absurde",
+          "reasonPhrase": "parce que tu aimes l’absurde"
+        }
+      ]
+    },
+    {
+      "profileId": "genre-theatre-humour",
+      "scenarioId": "friday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.19526214587563503,
+      "calibration": 0.2843542823591063,
+      "fallbackRate": 0,
+      "elapsedMs": 12.214706999999862,
+      "list": [
+        {
+          "key": "p:PTMP_L126_386_09251900",
+          "workId": "f:F0063",
+          "title": "Fini de rire ! L'humour politique au garde-à-vous ?",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "critique"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonGenre": "standup",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "e:TMP0013:2026-09-25",
+          "workId": "e:TMP0013",
+          "title": "Les Clotildes : La bonne surprise !",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonGenre": "standup",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "p:TMPP1563",
+          "workId": "e:TMP0647",
+          "title": "Cinéma : De la comédie française",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        }
+      ]
+    },
+    {
+      "profileId": "genre-cine-thriller",
+      "scenarioId": "friday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.4250850428694704,
+      "calibration": 0.8340526336371831,
+      "fallbackRate": 0,
+      "elapsedMs": 12.612846999999874,
+      "list": [
+        {
+          "key": "p:PTMP_L126_390_09251400",
+          "workId": "f:F0037",
+          "title": "Histoires De La Nuit",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "festif",
+            "intense"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonGenre": "thriller",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        },
+        {
+          "key": "e:E098:2026-09-25",
+          "workId": "e:E098",
+          "title": "Jeudi 17 septembre 2026 - 20H30 Jeudi 12 novembre 2026 - 20H30",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo",
+            "intense"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonGenre": "thriller",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        },
+        {
+          "key": "p:P1542",
+          "workId": "e:E033",
+          "title": "Light Asylum",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "intense",
+            "dansant",
+            "festif"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonGenre": "thriller",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        }
+      ]
+    },
+    {
+      "profileId": "genre-concert-electro",
+      "scenarioId": "friday",
+      "vivantShare": 0.5,
+      "diversity": 0.42264973081037416,
+      "calibration": 1.3567355588783463,
+      "fallbackRate": 0.5,
+      "elapsedMs": 12.3913399999999,
+      "list": [
+        {
+          "key": "p:PTMP_L139_337_09251030",
+          "workId": "f:F0034",
+          "title": "Avengers : Endgame Extended",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "nouveaute",
+          "reasonPhrase": "repli nouveauté"
+        },
+        {
+          "key": "p:P1542",
+          "workId": "e:E033",
+          "title": "Light Asylum",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "intense",
+            "dansant",
+            "festif"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "dansant",
+          "reasonGenre": "electro",
+          "reasonPhrase": "parce que tu as envie de danser"
+        }
+      ]
+    },
+    {
+      "profileId": "genre-cine-comedie",
+      "scenarioId": "friday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.19526214587563503,
+      "calibration": 0.2843542823591063,
+      "fallbackRate": 0,
+      "elapsedMs": 12.47769100000005,
+      "list": [
+        {
+          "key": "p:PTMP_L128_136_09252000",
+          "workId": "f:F0525",
+          "title": "À bicyclette !",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "epique"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonGenre": "comedie",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "e:TMP0013:2026-09-25",
+          "workId": "e:TMP0013",
+          "title": "Les Clotildes : La bonne surprise !",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonGenre": "comedie",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "p:TMPP1563",
+          "workId": "e:TMP0647",
+          "title": "Cinéma : De la comédie française",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        }
+      ]
+    },
+    {
+      "profileId": "genre-only-comedie",
+      "scenarioId": "friday",
+      "vivantShare": 0.5,
+      "diversity": null,
+      "calibration": null,
+      "fallbackRate": 0,
+      "elapsedMs": 21.60055699999998,
+      "list": [
+        {
+          "key": "p:PTMP_L125_396_09251205",
+          "workId": "f:F0013",
+          "title": "De la Comédie-Française",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonGenre": "comedie",
+          "reasonPhrase": "parce que tu aimes comedie"
+        },
+        {
+          "key": "e:TMP0013:2026-09-25",
+          "workId": "e:TMP0013",
+          "title": "Les Clotildes : La bonne surprise !",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonGenre": "comedie",
+          "reasonPhrase": "parce que tu aimes comedie"
+        }
+      ]
+    },
+    {
+      "profileId": "empty",
+      "scenarioId": "friday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": null,
+      "calibration": null,
+      "fallbackRate": 1,
+      "elapsedMs": 11.668155999999954,
+      "list": [
+        {
+          "key": "p:PTMP_L139_337_09251030",
+          "workId": "f:F0034",
+          "title": "Avengers : Endgame Extended",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "nouveaute",
+          "reasonPhrase": "repli nouveauté"
+        },
+        {
+          "key": "e:E9122:2026-09-25",
+          "workId": "e:E9122",
+          "title": "ATELIER DE LECTURE À VOIX HAUTE",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [],
+          "dayIso": "2026-09-25",
+          "reasonSource": "popularite",
+          "reasonPhrase": "repli popularité"
+        },
+        {
+          "key": "p:P9383",
+          "workId": "e:TMP0644",
+          "title": "Après-midi récréative des aîné·es",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [],
+          "dayIso": "2026-09-25",
+          "reasonSource": "popularite",
+          "reasonPhrase": "repli popularité"
+        }
+      ]
+    },
+    {
+      "profileId": "single-signal-rigolo",
+      "scenarioId": "friday",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0,
+      "calibration": 0,
+      "fallbackRate": 0,
+      "elapsedMs": 12.637876000000006,
+      "list": [
+        {
+          "key": "p:P9322",
+          "workId": "f:F0092",
+          "title": "Fini de rire ! L’humour p...",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "e:TMP0013:2026-09-25",
+          "workId": "e:TMP0013",
+          "title": "Les Clotildes : La bonne surprise !",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "p:TMPP1563",
+          "workId": "e:TMP0647",
+          "title": "Cinéma : De la comédie française",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        }
+      ]
+    },
+    {
+      "profileId": "out-of-stock-moods",
+      "scenarioId": "friday",
+      "vivantShare": 0.5,
+      "diversity": 0.29289321881345254,
+      "calibration": 2.985721375532766,
+      "fallbackRate": 0,
+      "elapsedMs": 12.388486999999941,
+      "list": [
+        {
+          "key": "p:PTMP_L147_194_09252040",
+          "workId": "f:F0190",
+          "title": "Buena Vista Social Club",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "brutal",
+            "festif"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "brutal",
+          "reasonPhrase": "parce que tu aimes le brutal"
+        },
+        {
+          "key": "p:P1623",
+          "workId": "e:E451",
+          "title": "Hexagone MMA",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "brutal"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "brutal",
+          "reasonPhrase": "parce que tu aimes le brutal"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-rigolo",
+      "scenarioId": "week",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.4797799427400597,
+      "calibration": 1.2729656758128876,
+      "fallbackRate": 0,
+      "elapsedMs": 74.87142999999992,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "e:TMP0013:2026-09-21",
+          "workId": "e:TMP0013",
+          "title": "Les Clotildes : La bonne surprise !",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "p:BARP0073",
+          "workId": "e:BAR0073",
+          "title": "Quiz de culture générale et blind test tous les lundis à 21h",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo",
+            "cerveau"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-intimiste",
+      "scenarioId": "week",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.5927270526266928,
+      "calibration": 1.5044346034241158,
+      "fallbackRate": 0,
+      "elapsedMs": 58.60846399999991,
+      "list": [
+        {
+          "key": "p:P0179",
+          "workId": "f:F0317",
+          "title": "Chasse à l’homme",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense",
+            "cerveau",
+            "brutal",
+            "leger",
+            "epique",
+            "rigolo",
+            "sombre",
+            "tendre",
+            "intimiste",
+            "festif",
+            "dansant"
+          ],
+          "dayIso": "2026-09-22",
+          "reasonSource": "profile",
+          "reasonMood": "intimiste",
+          "reasonPhrase": "parce que tu aimes l’intimiste"
+        },
+        {
+          "key": "p:P1842",
+          "workId": "e:E640",
+          "title": "Patchwork",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "intimiste",
+            "poetique"
+          ],
+          "dayIso": "2026-09-23",
+          "reasonSource": "profile",
+          "reasonMood": "intimiste",
+          "reasonPhrase": "parce que tu aimes l’intimiste"
+        },
+        {
+          "key": "p:BARP0010",
+          "workId": "e:BAR0010",
+          "title": "Livia Giaffreda : Piel + Jam chants et musique du monde",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "intimiste"
+          ],
+          "dayIso": "2026-09-23",
+          "reasonSource": "profile",
+          "reasonMood": "intimiste",
+          "reasonPhrase": "parce que tu aimes l’intimiste"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-intense",
+      "scenarioId": "week",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.3619288125423017,
+      "calibration": 0.5041810810473222,
+      "fallbackRate": 0,
+      "elapsedMs": 45.86546199999998,
+      "list": [
+        {
+          "key": "p:PTMP_L128_163_09211000",
+          "workId": "f:F0050",
+          "title": "The Last Viking",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        },
+        {
+          "key": "e:E098:2026-09-21",
+          "workId": "e:E098",
+          "title": "Jeudi 17 septembre 2026 - 20H30 Jeudi 12 novembre 2026 - 20H30",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        },
+        {
+          "key": "p:P1706",
+          "workId": "e:E515",
+          "title": "Concert et Pyrotechnie — Les commandos Percu Rythme Feu",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "intense",
+            "festif"
+          ],
+          "dayIso": "2026-09-24",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-festif",
+      "scenarioId": "week",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.43096440627115085,
+      "calibration": 1.18090753139494,
+      "fallbackRate": 0,
+      "elapsedMs": 46.14480400000002,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "festif",
+          "reasonPhrase": "parce que tu aimes l’ambiance festive"
+        },
+        {
+          "key": "p:P9362",
+          "workId": "e:TMP0476",
+          "title": "1 évènement 11",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "festif"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "festif",
+          "reasonPhrase": "parce que tu aimes l’ambiance festive"
+        },
+        {
+          "key": "p:BARP0025",
+          "workId": "e:BAR0025",
+          "title": "Open Mic Night",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "festif"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "festif",
+          "reasonPhrase": "parce que tu aimes l’ambiance festive"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-poetique",
+      "scenarioId": "week",
+      "vivantShare": 0.5,
+      "diversity": 1,
+      "calibration": 0.6831968497067772,
+      "fallbackRate": 0.5,
+      "elapsedMs": 44.65252899999996,
+      "list": [
+        {
+          "key": "p:PTMP_L139_331_09231030",
+          "workId": "f:F0034",
+          "title": "Avengers : Endgame Extended",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense"
+          ],
+          "dayIso": "2026-09-23",
+          "reasonSource": "nouveaute",
+          "reasonPhrase": "repli nouveauté"
+        },
+        {
+          "key": "p:P1374",
+          "workId": "e:E300",
+          "title": "Rusalka — Antonín Dvořák",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "poetique"
+          ],
+          "dayIso": "2026-09-22",
+          "reasonSource": "profile",
+          "reasonMood": "poetique",
+          "reasonPhrase": "parce que tu aimes le poétique"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-cerveau",
+      "scenarioId": "week",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.4797799427400597,
+      "calibration": 1.2729656758128876,
+      "fallbackRate": 0,
+      "elapsedMs": 43.97837900000013,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "cerveau",
+          "reasonPhrase": "parce que tu aimes le cerveau"
+        },
+        {
+          "key": "p:T90P1572",
+          "workId": "e:T900620",
+          "title": "OpenLabs et Démos du Fablab – Impression 3D",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "cerveau"
+          ],
+          "dayIso": "2026-09-24",
+          "reasonSource": "profile",
+          "reasonMood": "cerveau",
+          "reasonPhrase": "parce que tu aimes le cerveau"
+        },
+        {
+          "key": "p:BARP0073",
+          "workId": "e:BAR0073",
+          "title": "Quiz de culture générale et blind test tous les lundis à 21h",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo",
+            "cerveau"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "cerveau",
+          "reasonPhrase": "parce que tu aimes le cerveau"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-dansant",
+      "scenarioId": "week",
+      "vivantShare": 0.5,
+      "diversity": 0.6518446880886043,
+      "calibration": 1.8876412409313374,
+      "fallbackRate": 0,
+      "elapsedMs": 43.40569800000003,
+      "list": [
+        {
+          "key": "p:P0179",
+          "workId": "f:F0317",
+          "title": "Chasse à l’homme",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense",
+            "cerveau",
+            "brutal",
+            "leger",
+            "epique",
+            "rigolo",
+            "sombre",
+            "tendre",
+            "intimiste",
+            "festif",
+            "dansant"
+          ],
+          "dayIso": "2026-09-22",
+          "reasonSource": "profile",
+          "reasonMood": "dansant",
+          "reasonPhrase": "parce que tu as envie de danser"
+        },
+        {
+          "key": "p:BARP0093",
+          "workId": "e:BAR0093",
+          "title": "Mortal Lipsync",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "festif",
+            "absurde",
+            "dansant"
+          ],
+          "dayIso": "2026-09-24",
+          "reasonSource": "profile",
+          "reasonMood": "dansant",
+          "reasonPhrase": "parce que tu as envie de danser"
+        }
+      ]
+    },
+    {
+      "profileId": "mix-rigolo-tendre",
+      "scenarioId": "week",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.5000000000000001,
+      "calibration": 0.8821911979128617,
+      "fallbackRate": 0,
+      "elapsedMs": 44.02421999999979,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "p:P9187",
+          "workId": "e:E661",
+          "title": "Gabrielle Giraud, Au naturel",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo",
+            "tendre"
+          ],
+          "dayIso": "2026-09-24",
+          "reasonSource": "profile",
+          "reasonMood": "tendre",
+          "reasonPhrase": "parce que tu aimes le tendre"
+        },
+        {
+          "key": "p:BARP0073",
+          "workId": "e:BAR0073",
+          "title": "Quiz de culture générale et blind test tous les lundis à 21h",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo",
+            "cerveau"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        }
+      ]
+    },
+    {
+      "profileId": "mix-intense-sortie-festif",
+      "scenarioId": "week",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.3333333333333335,
+      "calibration": 0.7744732681293724,
+      "fallbackRate": 0,
+      "elapsedMs": 43.209526000000096,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        },
+        {
+          "key": "p:P1380",
+          "workId": "e:E310",
+          "title": "Qui som? — Baro d’evel",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "festif",
+            "intense"
+          ],
+          "dayIso": "2026-09-23",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        },
+        {
+          "key": "p:P1706",
+          "workId": "e:E515",
+          "title": "Concert et Pyrotechnie — Les commandos Percu Rythme Feu",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "intense",
+            "festif"
+          ],
+          "dayIso": "2026-09-24",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        }
+      ]
+    },
+    {
+      "profileId": "mix-poetique-contemplatif-tendre",
+      "scenarioId": "week",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.8075499102701248,
+      "calibration": 0.4528204653527325,
+      "fallbackRate": 0,
+      "elapsedMs": 44.044538999999986,
+      "list": [
+        {
+          "key": "p:PTMP_L125_393_09241650",
+          "workId": "f:F0038",
+          "title": "Rose",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "contemplatif"
+          ],
+          "dayIso": "2026-09-24",
+          "reasonSource": "profile",
+          "reasonMood": "contemplatif",
+          "reasonPhrase": "parce que tu aimes l’ambiance contemplative"
+        },
+        {
+          "key": "p:P0120",
+          "workId": "e:E152",
+          "title": "Amir et les miroirs",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "poetique",
+            "intimiste",
+            "contemplatif"
+          ],
+          "dayIso": "2026-09-24",
+          "reasonSource": "profile",
+          "reasonMood": "contemplatif",
+          "reasonPhrase": "parce que tu aimes l’ambiance contemplative"
+        },
+        {
+          "key": "p:BARP0050",
+          "workId": "e:BAR0050",
+          "title": "Lukaraoké",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "tendre",
+            "festif"
+          ],
+          "dayIso": "2026-09-23",
+          "reasonSource": "profile",
+          "reasonMood": "tendre",
+          "reasonPhrase": "parce que tu aimes le tendre"
+        }
+      ]
+    },
+    {
+      "profileId": "mix-festif-dansant",
+      "scenarioId": "week",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.5909943581070717,
+      "calibration": 1.0980146459872355,
+      "fallbackRate": 0,
+      "elapsedMs": 43.86717300000009,
+      "list": [
+        {
+          "key": "p:P0179",
+          "workId": "f:F0317",
+          "title": "Chasse à l’homme",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense",
+            "cerveau",
+            "brutal",
+            "leger",
+            "epique",
+            "rigolo",
+            "sombre",
+            "tendre",
+            "intimiste",
+            "festif",
+            "dansant"
+          ],
+          "dayIso": "2026-09-22",
+          "reasonSource": "profile",
+          "reasonMood": "dansant",
+          "reasonPhrase": "parce que tu as envie de danser"
+        },
+        {
+          "key": "p:P9362",
+          "workId": "e:TMP0476",
+          "title": "1 évènement 11",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "festif"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "festif",
+          "reasonPhrase": "parce que tu aimes l’ambiance festive"
+        },
+        {
+          "key": "p:BARP0093",
+          "workId": "e:BAR0093",
+          "title": "Mortal Lipsync",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "festif",
+            "absurde",
+            "dansant"
+          ],
+          "dayIso": "2026-09-24",
+          "reasonSource": "profile",
+          "reasonMood": "dansant",
+          "reasonPhrase": "parce que tu as envie de danser"
+        }
+      ]
+    },
+    {
+      "profileId": "mix-leger-absurde",
+      "scenarioId": "week",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.7642977396044842,
+      "calibration": 1.104400702929364,
+      "fallbackRate": 0,
+      "elapsedMs": 43.76845899999989,
+      "list": [
+        {
+          "key": "p:PTMP_L125_384_09241720",
+          "workId": "f:F0032",
+          "title": "Decorado",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "absurde",
+            "critique",
+            "sombre",
+            "angoissant"
+          ],
+          "dayIso": "2026-09-24",
+          "reasonSource": "profile",
+          "reasonMood": "absurde",
+          "reasonPhrase": "parce que tu aimes l’absurde"
+        },
+        {
+          "key": "p:TMPP0485",
+          "workId": "e:TMP0139",
+          "title": "COMPLET – TENTATIVE D’ÉPUISEMENT #1",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "absurde",
+            "critique"
+          ],
+          "dayIso": "2026-09-23",
+          "reasonSource": "profile",
+          "reasonMood": "absurde",
+          "reasonPhrase": "parce que tu aimes l’absurde"
+        },
+        {
+          "key": "p:PRIOP0017",
+          "workId": "e:PRIO0017",
+          "title": "La Scène Ouverte du Bijou",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "festif",
+            "leger"
+          ],
+          "dayIso": "2026-09-26",
+          "reasonSource": "profile",
+          "reasonMood": "leger",
+          "reasonPhrase": "parce que tu aimes le léger"
+        }
+      ]
+    },
+    {
+      "profileId": "genre-theatre-humour",
+      "scenarioId": "week",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.3619288125423017,
+      "calibration": 0.5041810810473222,
+      "fallbackRate": 0,
+      "elapsedMs": 43.443925000000036,
+      "list": [
+        {
+          "key": "e:ETMP_L126_1000048319_0923:2026-09-23",
+          "workId": "t:fini de rire ! l'humour politique au garde-a-vous ?",
+          "title": "Fini de rire ! L'humour politique au garde-à-vous ?",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "critique"
+          ],
+          "dayIso": "2026-09-23",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonGenre": "standup",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "e:TMP0013:2026-09-21",
+          "workId": "e:TMP0013",
+          "title": "Les Clotildes : La bonne surprise !",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonGenre": "standup",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "p:BARP0073",
+          "workId": "e:BAR0073",
+          "title": "Quiz de culture générale et blind test tous les lundis à 21h",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo",
+            "cerveau"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        }
+      ]
+    },
+    {
+      "profileId": "genre-cine-thriller",
+      "scenarioId": "week",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.43576488638665456,
+      "calibration": 0.6831968497067772,
+      "fallbackRate": 0,
+      "elapsedMs": 46.27137700000003,
+      "list": [
+        {
+          "key": "p:PTMP_L128_163_09211000",
+          "workId": "f:F0050",
+          "title": "The Last Viking",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonGenre": "thriller",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        },
+        {
+          "key": "e:E098:2026-09-21",
+          "workId": "e:E098",
+          "title": "Jeudi 17 septembre 2026 - 20H30 Jeudi 12 novembre 2026 - 20H30",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonGenre": "thriller",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        },
+        {
+          "key": "p:P1542",
+          "workId": "e:E033",
+          "title": "Light Asylum",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "intense",
+            "dansant",
+            "festif"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonGenre": "thriller",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        }
+      ]
+    },
+    {
+      "profileId": "genre-concert-electro",
+      "scenarioId": "week",
+      "vivantShare": 0.5,
+      "diversity": 0.6518446880886043,
+      "calibration": 1.8876412409313374,
+      "fallbackRate": 0,
+      "elapsedMs": 47.94490700000006,
+      "list": [
+        {
+          "key": "p:P0179",
+          "workId": "f:F0317",
+          "title": "Chasse à l’homme",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense",
+            "cerveau",
+            "brutal",
+            "leger",
+            "epique",
+            "rigolo",
+            "sombre",
+            "tendre",
+            "intimiste",
+            "festif",
+            "dansant"
+          ],
+          "dayIso": "2026-09-22",
+          "reasonSource": "profile",
+          "reasonMood": "dansant",
+          "reasonPhrase": "parce que tu as envie de danser"
+        },
+        {
+          "key": "p:BARP0093",
+          "workId": "e:BAR0093",
+          "title": "Mortal Lipsync",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "festif",
+            "absurde",
+            "dansant"
+          ],
+          "dayIso": "2026-09-24",
+          "reasonSource": "profile",
+          "reasonMood": "dansant",
+          "reasonGenre": "electro",
+          "reasonPhrase": "parce que tu as envie de danser"
+        }
+      ]
+    },
+    {
+      "profileId": "genre-cine-comedie",
+      "scenarioId": "week",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.4797799427400597,
+      "calibration": 1.2729656758128876,
+      "fallbackRate": 0,
+      "elapsedMs": 48.59677399999964,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonGenre": "comedie",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "e:TMP0013:2026-09-21",
+          "workId": "e:TMP0013",
+          "title": "Les Clotildes : La bonne surprise !",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonGenre": "comedie",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "p:BARP0073",
+          "workId": "e:BAR0073",
+          "title": "Quiz de culture générale et blind test tous les lundis à 21h",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo",
+            "cerveau"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        }
+      ]
+    },
+    {
+      "profileId": "genre-only-comedie",
+      "scenarioId": "week",
+      "vivantShare": 0.5,
+      "diversity": 1,
+      "calibration": null,
+      "fallbackRate": 0,
+      "elapsedMs": 47.33095100000037,
+      "list": [
+        {
+          "key": "p:PTMP_L128_163_09211000",
+          "workId": "f:F0050",
+          "title": "The Last Viking",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonGenre": "comedie",
+          "reasonPhrase": "parce que tu aimes comedie"
+        },
+        {
+          "key": "e:TMP0013:2026-09-21",
+          "workId": "e:TMP0013",
+          "title": "Les Clotildes : La bonne surprise !",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonGenre": "comedie",
+          "reasonPhrase": "parce que tu aimes comedie"
+        }
+      ]
+    },
+    {
+      "profileId": "empty",
+      "scenarioId": "week",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 1,
+      "calibration": null,
+      "fallbackRate": 1,
+      "elapsedMs": 36.80491400000028,
+      "list": [
+        {
+          "key": "p:PTMP_L139_331_09231030",
+          "workId": "f:F0034",
+          "title": "Avengers : Endgame Extended",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense"
+          ],
+          "dayIso": "2026-09-23",
+          "reasonSource": "nouveaute",
+          "reasonPhrase": "repli nouveauté"
+        },
+        {
+          "key": "e:E9122:2026-09-21",
+          "workId": "e:E9122",
+          "title": "ATELIER DE LECTURE À VOIX HAUTE",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [],
+          "dayIso": "2026-09-21",
+          "reasonSource": "popularite",
+          "reasonPhrase": "repli popularité"
+        },
+        {
+          "key": "p:BARP0025",
+          "workId": "e:BAR0025",
+          "title": "Open Mic Night",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "festif"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "popularite",
+          "reasonPhrase": "repli popularité"
+        }
+      ]
+    },
+    {
+      "profileId": "single-signal-rigolo",
+      "scenarioId": "week",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.4797799427400597,
+      "calibration": 1.2729656758128876,
+      "fallbackRate": 0,
+      "elapsedMs": 49.34642299999996,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "e:TMP0013:2026-09-21",
+          "workId": "e:TMP0013",
+          "title": "Les Clotildes : La bonne surprise !",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "p:BARP0073",
+          "workId": "e:BAR0073",
+          "title": "Quiz de culture générale et blind test tous les lundis à 21h",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo",
+            "cerveau"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        }
+      ]
+    },
+    {
+      "profileId": "out-of-stock-moods",
+      "scenarioId": "week",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.4960517882296959,
+      "calibration": 0.9387682822553671,
+      "fallbackRate": 0,
+      "elapsedMs": 52.269268999999895,
+      "list": [
+        {
+          "key": "p:P1107",
+          "workId": "f:F0037",
+          "title": "Histoires de la nuit",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense",
+            "rigolo",
+            "cerveau",
+            "festif",
+            "epique",
+            "angoissant",
+            "brutal",
+            "tendre",
+            "critique"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "brutal",
+          "reasonPhrase": "parce que tu aimes le brutal"
+        },
+        {
+          "key": "p:T90P1572",
+          "workId": "e:T900620",
+          "title": "OpenLabs et Démos du Fablab – Impression 3D",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "cerveau"
+          ],
+          "dayIso": "2026-09-24",
+          "reasonSource": "profile",
+          "reasonMood": "cerveau",
+          "reasonPhrase": "parce que tu aimes le cerveau"
+        },
+        {
+          "key": "p:BARP0073",
+          "workId": "e:BAR0073",
+          "title": "Quiz de culture générale et blind test tous les lundis à 21h",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo",
+            "cerveau"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "cerveau",
+          "reasonPhrase": "parce que tu aimes le cerveau"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-rigolo",
+      "scenarioId": "month",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.4797799427400597,
+      "calibration": 1.2729656758128876,
+      "fallbackRate": 0,
+      "elapsedMs": 91.74418999999989,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "e:TMP0013:2026-09-21",
+          "workId": "e:TMP0013",
+          "title": "Les Clotildes : La bonne surprise !",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "p:BARP0073",
+          "workId": "e:BAR0073",
+          "title": "Quiz de culture générale et blind test tous les lundis à 21h",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo",
+            "cerveau"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-intimiste",
+      "scenarioId": "month",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.5927270526266928,
+      "calibration": 1.5044346034241158,
+      "fallbackRate": 0,
+      "elapsedMs": 92.77774999999974,
+      "list": [
+        {
+          "key": "p:P0179",
+          "workId": "f:F0317",
+          "title": "Chasse à l’homme",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense",
+            "cerveau",
+            "brutal",
+            "leger",
+            "epique",
+            "rigolo",
+            "sombre",
+            "tendre",
+            "intimiste",
+            "festif",
+            "dansant"
+          ],
+          "dayIso": "2026-09-22",
+          "reasonSource": "profile",
+          "reasonMood": "intimiste",
+          "reasonPhrase": "parce que tu aimes l’intimiste"
+        },
+        {
+          "key": "p:P1842",
+          "workId": "e:E640",
+          "title": "Patchwork",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "intimiste",
+            "poetique"
+          ],
+          "dayIso": "2026-09-23",
+          "reasonSource": "profile",
+          "reasonMood": "intimiste",
+          "reasonPhrase": "parce que tu aimes l’intimiste"
+        },
+        {
+          "key": "p:BARP0010",
+          "workId": "e:BAR0010",
+          "title": "Livia Giaffreda : Piel + Jam chants et musique du monde",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "intimiste"
+          ],
+          "dayIso": "2026-09-23",
+          "reasonSource": "profile",
+          "reasonMood": "intimiste",
+          "reasonPhrase": "parce que tu aimes l’intimiste"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-intense",
+      "scenarioId": "month",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.3619288125423017,
+      "calibration": 0.5041810810473222,
+      "fallbackRate": 0,
+      "elapsedMs": 81.51749299999983,
+      "list": [
+        {
+          "key": "p:PTMP_L128_163_09211000",
+          "workId": "f:F0050",
+          "title": "The Last Viking",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        },
+        {
+          "key": "e:E098:2026-09-21",
+          "workId": "e:E098",
+          "title": "Jeudi 17 septembre 2026 - 20H30 Jeudi 12 novembre 2026 - 20H30",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        },
+        {
+          "key": "p:P1706",
+          "workId": "e:E515",
+          "title": "Concert et Pyrotechnie — Les commandos Percu Rythme Feu",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "intense",
+            "festif"
+          ],
+          "dayIso": "2026-09-24",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-festif",
+      "scenarioId": "month",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.43096440627115085,
+      "calibration": 1.18090753139494,
+      "fallbackRate": 0,
+      "elapsedMs": 80.63695499999994,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "festif",
+          "reasonPhrase": "parce que tu aimes l’ambiance festive"
+        },
+        {
+          "key": "p:P9362",
+          "workId": "e:TMP0476",
+          "title": "1 évènement 11",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "festif"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "festif",
+          "reasonPhrase": "parce que tu aimes l’ambiance festive"
+        },
+        {
+          "key": "p:BARP0025",
+          "workId": "e:BAR0025",
+          "title": "Open Mic Night",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "festif"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "festif",
+          "reasonPhrase": "parce que tu aimes l’ambiance festive"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-poetique",
+      "scenarioId": "month",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.19526214587563503,
+      "calibration": 0.2843542823591063,
+      "fallbackRate": 0,
+      "elapsedMs": 74.74684399999978,
+      "list": [
+        {
+          "key": "e:ETMP_L128_1000022263_1004:2026-10-04",
+          "workId": "t:histoires de la bonne vallee",
+          "title": "Histoires de la bonne vallée",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "poetique"
+          ],
+          "dayIso": "2026-10-04",
+          "reasonSource": "profile",
+          "reasonMood": "poetique",
+          "reasonPhrase": "parce que tu aimes le poétique"
+        },
+        {
+          "key": "p:P1374",
+          "workId": "e:E300",
+          "title": "Rusalka — Antonín Dvořák",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "poetique"
+          ],
+          "dayIso": "2026-09-22",
+          "reasonSource": "profile",
+          "reasonMood": "poetique",
+          "reasonPhrase": "parce que tu aimes le poétique"
+        },
+        {
+          "key": "p:P1545",
+          "workId": "e:E402",
+          "title": "Xandria",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "intense",
+            "poetique"
+          ],
+          "dayIso": "2026-09-28",
+          "reasonSource": "profile",
+          "reasonMood": "poetique",
+          "reasonPhrase": "parce que tu aimes le poétique"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-cerveau",
+      "scenarioId": "month",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.4797799427400597,
+      "calibration": 1.2729656758128876,
+      "fallbackRate": 0,
+      "elapsedMs": 90.25899600000002,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "cerveau",
+          "reasonPhrase": "parce que tu aimes le cerveau"
+        },
+        {
+          "key": "p:T90P1572",
+          "workId": "e:T900620",
+          "title": "OpenLabs et Démos du Fablab – Impression 3D",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "cerveau"
+          ],
+          "dayIso": "2026-09-24",
+          "reasonSource": "profile",
+          "reasonMood": "cerveau",
+          "reasonPhrase": "parce que tu aimes le cerveau"
+        },
+        {
+          "key": "p:BARP0073",
+          "workId": "e:BAR0073",
+          "title": "Quiz de culture générale et blind test tous les lundis à 21h",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo",
+            "cerveau"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "cerveau",
+          "reasonPhrase": "parce que tu aimes le cerveau"
+        }
+      ]
+    },
+    {
+      "profileId": "mono-dansant",
+      "scenarioId": "month",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.6057316549711735,
+      "calibration": 1.6315557176877193,
+      "fallbackRate": 0,
+      "elapsedMs": 81.83210300000019,
+      "list": [
+        {
+          "key": "p:P0179",
+          "workId": "f:F0317",
+          "title": "Chasse à l’homme",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense",
+            "cerveau",
+            "brutal",
+            "leger",
+            "epique",
+            "rigolo",
+            "sombre",
+            "tendre",
+            "intimiste",
+            "festif",
+            "dansant"
+          ],
+          "dayIso": "2026-09-22",
+          "reasonSource": "profile",
+          "reasonMood": "dansant",
+          "reasonPhrase": "parce que tu as envie de danser"
+        },
+        {
+          "key": "p:P9104",
+          "workId": "e:E647",
+          "title": "Les Clotildes : La bonne surprise !",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo",
+            "dansant"
+          ],
+          "dayIso": "2026-10-03",
+          "reasonSource": "profile",
+          "reasonMood": "dansant",
+          "reasonPhrase": "parce que tu as envie de danser"
+        },
+        {
+          "key": "p:BARP0093",
+          "workId": "e:BAR0093",
+          "title": "Mortal Lipsync",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "festif",
+            "absurde",
+            "dansant"
+          ],
+          "dayIso": "2026-09-24",
+          "reasonSource": "profile",
+          "reasonMood": "dansant",
+          "reasonPhrase": "parce que tu as envie de danser"
+        }
+      ]
+    },
+    {
+      "profileId": "mix-rigolo-tendre",
+      "scenarioId": "month",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.4250850428694705,
+      "calibration": 0.8404835541379778,
+      "fallbackRate": 0,
+      "elapsedMs": 81.6469689999999,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "p:P9187",
+          "workId": "e:E661",
+          "title": "Gabrielle Giraud, Au naturel",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo",
+            "tendre"
+          ],
+          "dayIso": "2026-09-24",
+          "reasonSource": "profile",
+          "reasonMood": "tendre",
+          "reasonPhrase": "parce que tu aimes le tendre"
+        },
+        {
+          "key": "p:P1927",
+          "workId": "e:E680",
+          "title": "LOUIS CATTELAT",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "tendre",
+            "rigolo",
+            "intimiste"
+          ],
+          "dayIso": "2026-09-30",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        }
+      ]
+    },
+    {
+      "profileId": "mix-intense-sortie-festif",
+      "scenarioId": "month",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.3333333333333335,
+      "calibration": 0.7744732681293724,
+      "fallbackRate": 0,
+      "elapsedMs": 74.6284639999999,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        },
+        {
+          "key": "p:P1380",
+          "workId": "e:E310",
+          "title": "Qui som? — Baro d’evel",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "festif",
+            "intense"
+          ],
+          "dayIso": "2026-09-23",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        },
+        {
+          "key": "p:P1706",
+          "workId": "e:E515",
+          "title": "Concert et Pyrotechnie — Les commandos Percu Rythme Feu",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "intense",
+            "festif"
+          ],
+          "dayIso": "2026-09-24",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        }
+      ]
+    },
+    {
+      "profileId": "mix-poetique-contemplatif-tendre",
+      "scenarioId": "month",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.3928775983180272,
+      "calibration": 0.44387744969176696,
+      "fallbackRate": 0,
+      "elapsedMs": 86.67871400000013,
+      "list": [
+        {
+          "key": "e:ETMP_L128_1000022263_1004:2026-10-04",
+          "workId": "t:histoires de la bonne vallee",
+          "title": "Histoires de la bonne vallée",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "poetique"
+          ],
+          "dayIso": "2026-10-04",
+          "reasonSource": "profile",
+          "reasonMood": "poetique",
+          "reasonPhrase": "parce que tu aimes le poétique"
+        },
+        {
+          "key": "p:P0120",
+          "workId": "e:E152",
+          "title": "Amir et les miroirs",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "poetique",
+            "intimiste",
+            "contemplatif"
+          ],
+          "dayIso": "2026-09-24",
+          "reasonSource": "profile",
+          "reasonMood": "contemplatif",
+          "reasonPhrase": "parce que tu aimes l’ambiance contemplative"
+        },
+        {
+          "key": "p:PHG0031",
+          "workId": "e:EHG020",
+          "title": "CORNÉLIUS",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "tendre",
+            "intimiste",
+            "poetique"
+          ],
+          "dayIso": "2026-10-08",
+          "reasonSource": "profile",
+          "reasonMood": "poetique",
+          "reasonPhrase": "parce que tu aimes le poétique"
+        }
+      ]
+    },
+    {
+      "profileId": "mix-festif-dansant",
+      "scenarioId": "month",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.46964889148321926,
+      "calibration": 0.9642999510605157,
+      "fallbackRate": 0,
+      "elapsedMs": 83.06475599999976,
+      "list": [
+        {
+          "key": "p:P0179",
+          "workId": "f:F0317",
+          "title": "Chasse à l’homme",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense",
+            "cerveau",
+            "brutal",
+            "leger",
+            "epique",
+            "rigolo",
+            "sombre",
+            "tendre",
+            "intimiste",
+            "festif",
+            "dansant"
+          ],
+          "dayIso": "2026-09-22",
+          "reasonSource": "profile",
+          "reasonMood": "dansant",
+          "reasonPhrase": "parce que tu as envie de danser"
+        },
+        {
+          "key": "p:P1733",
+          "workId": "e:E532",
+          "title": "La Danse au Grand Jour",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "festif",
+            "dansant"
+          ],
+          "dayIso": "2026-10-03",
+          "reasonSource": "profile",
+          "reasonMood": "dansant",
+          "reasonPhrase": "parce que tu as envie de danser"
+        },
+        {
+          "key": "p:BARP0093",
+          "workId": "e:BAR0093",
+          "title": "Mortal Lipsync",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "festif",
+            "absurde",
+            "dansant"
+          ],
+          "dayIso": "2026-09-24",
+          "reasonSource": "profile",
+          "reasonMood": "dansant",
+          "reasonPhrase": "parce que tu as envie de danser"
+        }
+      ]
+    },
+    {
+      "profileId": "mix-leger-absurde",
+      "scenarioId": "month",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.9037749551350623,
+      "calibration": 1.104400702929364,
+      "fallbackRate": 0,
+      "elapsedMs": 80.60505400000011,
+      "list": [
+        {
+          "key": "p:PTMP_L125_384_09241720",
+          "workId": "f:F0032",
+          "title": "Decorado",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "absurde",
+            "critique",
+            "sombre",
+            "angoissant"
+          ],
+          "dayIso": "2026-09-24",
+          "reasonSource": "profile",
+          "reasonMood": "absurde",
+          "reasonPhrase": "parce que tu aimes l’absurde"
+        },
+        {
+          "key": "p:TMPP1567",
+          "workId": "e:E9117",
+          "title": "Cantada",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "leger"
+          ],
+          "dayIso": "2026-10-02",
+          "reasonSource": "profile",
+          "reasonMood": "leger",
+          "reasonPhrase": "parce que tu aimes le léger"
+        },
+        {
+          "key": "p:BARP0093",
+          "workId": "e:BAR0093",
+          "title": "Mortal Lipsync",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "festif",
+            "absurde",
+            "dansant"
+          ],
+          "dayIso": "2026-09-24",
+          "reasonSource": "profile",
+          "reasonMood": "absurde",
+          "reasonPhrase": "parce que tu aimes l’absurde"
+        }
+      ]
+    },
+    {
+      "profileId": "genre-theatre-humour",
+      "scenarioId": "month",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.3619288125423017,
+      "calibration": 0.5041810810473222,
+      "fallbackRate": 0,
+      "elapsedMs": 74.69805599999972,
+      "list": [
+        {
+          "key": "e:ETMP_L126_1000048319_0923:2026-09-23",
+          "workId": "t:fini de rire ! l'humour politique au garde-a-vous ?",
+          "title": "Fini de rire ! L'humour politique au garde-à-vous ?",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "critique"
+          ],
+          "dayIso": "2026-09-23",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonGenre": "standup",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "e:TMP0013:2026-09-21",
+          "workId": "e:TMP0013",
+          "title": "Les Clotildes : La bonne surprise !",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonGenre": "standup",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "p:BARP0073",
+          "workId": "e:BAR0073",
+          "title": "Quiz de culture générale et blind test tous les lundis à 21h",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo",
+            "cerveau"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        }
+      ]
+    },
+    {
+      "profileId": "genre-cine-thriller",
+      "scenarioId": "month",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.43576488638665456,
+      "calibration": 0.6831968497067772,
+      "fallbackRate": 0,
+      "elapsedMs": 85.11698200000001,
+      "list": [
+        {
+          "key": "p:PTMP_L128_163_09211000",
+          "workId": "f:F0050",
+          "title": "The Last Viking",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonGenre": "thriller",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        },
+        {
+          "key": "e:E098:2026-09-21",
+          "workId": "e:E098",
+          "title": "Jeudi 17 septembre 2026 - 20H30 Jeudi 12 novembre 2026 - 20H30",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonGenre": "thriller",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        },
+        {
+          "key": "p:P1542",
+          "workId": "e:E033",
+          "title": "Light Asylum",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "intense",
+            "dansant",
+            "festif"
+          ],
+          "dayIso": "2026-09-25",
+          "reasonSource": "profile",
+          "reasonMood": "intense",
+          "reasonGenre": "thriller",
+          "reasonPhrase": "parce que tu aimes l’intense"
+        }
+      ]
+    },
+    {
+      "profileId": "genre-concert-electro",
+      "scenarioId": "month",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.5909943581070717,
+      "calibration": 1.570217199280819,
+      "fallbackRate": 0,
+      "elapsedMs": 80.58101399999987,
+      "list": [
+        {
+          "key": "p:P0179",
+          "workId": "f:F0317",
+          "title": "Chasse à l’homme",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense",
+            "cerveau",
+            "brutal",
+            "leger",
+            "epique",
+            "rigolo",
+            "sombre",
+            "tendre",
+            "intimiste",
+            "festif",
+            "dansant"
+          ],
+          "dayIso": "2026-09-22",
+          "reasonSource": "profile",
+          "reasonMood": "dansant",
+          "reasonPhrase": "parce que tu as envie de danser"
+        },
+        {
+          "key": "p:T90P3125",
+          "workId": "e:TMP0674",
+          "title": "Bourrasque",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "dansant"
+          ],
+          "dayIso": "2026-10-10",
+          "reasonSource": "profile",
+          "reasonMood": "dansant",
+          "reasonGenre": "electro",
+          "reasonPhrase": "parce que tu as envie de danser"
+        },
+        {
+          "key": "p:BARP0093",
+          "workId": "e:BAR0093",
+          "title": "Mortal Lipsync",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "festif",
+            "absurde",
+            "dansant"
+          ],
+          "dayIso": "2026-09-24",
+          "reasonSource": "profile",
+          "reasonMood": "dansant",
+          "reasonGenre": "electro",
+          "reasonPhrase": "parce que tu as envie de danser"
+        }
+      ]
+    },
+    {
+      "profileId": "genre-cine-comedie",
+      "scenarioId": "month",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.43096440627115085,
+      "calibration": 1.18090753139494,
+      "fallbackRate": 0,
+      "elapsedMs": 86.11482100000012,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonGenre": "comedie",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "e:TMP0013:2026-09-21",
+          "workId": "e:TMP0013",
+          "title": "Les Clotildes : La bonne surprise !",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonGenre": "comedie",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "p:P1631",
+          "workId": "e:E459",
+          "title": "Pierre-Emmanuel Barré",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-10-02",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonGenre": "comedie",
+          "reasonPhrase": "parce que tu aimes rire"
+        }
+      ]
+    },
+    {
+      "profileId": "genre-only-comedie",
+      "scenarioId": "month",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.6666666666666666,
+      "calibration": null,
+      "fallbackRate": 0,
+      "elapsedMs": 81.53661199999988,
+      "list": [
+        {
+          "key": "p:PTMP_L128_163_09211000",
+          "workId": "f:F0050",
+          "title": "The Last Viking",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonGenre": "comedie",
+          "reasonPhrase": "parce que tu aimes comedie"
+        },
+        {
+          "key": "e:TMP0013:2026-09-21",
+          "workId": "e:TMP0013",
+          "title": "Les Clotildes : La bonne surprise !",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonGenre": "comedie",
+          "reasonPhrase": "parce que tu aimes comedie"
+        },
+        {
+          "key": "p:P1631",
+          "workId": "e:E459",
+          "title": "Pierre-Emmanuel Barré",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-10-02",
+          "reasonSource": "profile",
+          "reasonGenre": "comedie",
+          "reasonPhrase": "parce que tu aimes comedie"
+        }
+      ]
+    },
+    {
+      "profileId": "empty",
+      "scenarioId": "month",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 1,
+      "calibration": null,
+      "fallbackRate": 1,
+      "elapsedMs": 64.77760799999942,
+      "list": [
+        {
+          "key": "p:PTMP_L139_331_09231030",
+          "workId": "f:F0034",
+          "title": "Avengers : Endgame Extended",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense"
+          ],
+          "dayIso": "2026-09-23",
+          "reasonSource": "nouveaute",
+          "reasonPhrase": "repli nouveauté"
+        },
+        {
+          "key": "e:E9122:2026-09-21",
+          "workId": "e:E9122",
+          "title": "ATELIER DE LECTURE À VOIX HAUTE",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [],
+          "dayIso": "2026-09-21",
+          "reasonSource": "popularite",
+          "reasonPhrase": "repli popularité"
+        },
+        {
+          "key": "p:BARP0025",
+          "workId": "e:BAR0025",
+          "title": "Open Mic Night",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "festif"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "popularite",
+          "reasonPhrase": "repli popularité"
+        }
+      ]
+    },
+    {
+      "profileId": "single-signal-rigolo",
+      "scenarioId": "month",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.4797799427400597,
+      "calibration": 1.2729656758128876,
+      "fallbackRate": 0,
+      "elapsedMs": 84.1236170000002,
+      "list": [
+        {
+          "key": "p:P1094",
+          "workId": "f:F0043",
+          "title": "Des Fleurs pour Tokyo",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "rigolo",
+            "cerveau",
+            "epique",
+            "tendre",
+            "festif",
+            "critique",
+            "leger",
+            "intense"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "e:TMP0013:2026-09-21",
+          "workId": "e:TMP0013",
+          "title": "Les Clotildes : La bonne surprise !",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        },
+        {
+          "key": "p:BARP0073",
+          "workId": "e:BAR0073",
+          "title": "Quiz de culture générale et blind test tous les lundis à 21h",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo",
+            "cerveau"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "rigolo",
+          "reasonPhrase": "parce que tu aimes rire"
+        }
+      ]
+    },
+    {
+      "profileId": "out-of-stock-moods",
+      "scenarioId": "month",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.5143323065184933,
+      "calibration": 1.0450867784974291,
+      "fallbackRate": 0,
+      "elapsedMs": 87.35504700000001,
+      "list": [
+        {
+          "key": "p:P1107",
+          "workId": "f:F0037",
+          "title": "Histoires de la nuit",
+          "slot": "cine",
+          "form": "cine",
+          "moods": [
+            "intense",
+            "rigolo",
+            "cerveau",
+            "festif",
+            "epique",
+            "angoissant",
+            "brutal",
+            "tendre",
+            "critique"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "cerveau",
+          "reasonPhrase": "parce que tu aimes le cerveau"
+        },
+        {
+          "key": "p:PHG0024",
+          "workId": "e:EHG016",
+          "title": "Dracula",
+          "slot": "theatre",
+          "form": "theatre",
+          "moods": [
+            "rigolo",
+            "festif",
+            "angoissant"
+          ],
+          "dayIso": "2026-10-16",
+          "reasonSource": "profile",
+          "reasonMood": "angoissant",
+          "reasonPhrase": "parce que tu aimes l’ambiance angoissante"
+        },
+        {
+          "key": "p:BARP0073",
+          "workId": "e:BAR0073",
+          "title": "Quiz de culture générale et blind test tous les lundis à 21h",
+          "slot": "concert",
+          "form": "concert",
+          "moods": [
+            "rigolo",
+            "cerveau"
+          ],
+          "dayIso": "2026-09-21",
+          "reasonSource": "profile",
+          "reasonMood": "cerveau",
+          "reasonPhrase": "parce que tu aimes le cerveau"
+        }
+      ]
+    }
+  ],
+  "byProfile": [
+    {
+      "profileId": "mono-rigolo",
+      "label": "rigolo 100",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.35983495705504476,
+      "calibration": 0.9547242568596657,
+      "fallbackRate": 0,
+      "meanElapsedMs": 51.08326574999995
+    },
+    {
+      "profileId": "mono-intimiste",
+      "label": "intimiste 100",
+      "vivantShare": 0.45833333333333326,
+      "diversity": 0.5924019382631742,
+      "calibration": 1.5532141048056705,
+      "fallbackRate": 0,
+      "meanElapsedMs": 44.60860624999992
+    },
+    {
+      "profileId": "mono-intense",
+      "label": "intense 100",
+      "vivantShare": 0.6249999999999999,
+      "diversity": 0.32910824169918906,
+      "calibration": 0.5230091445996368,
+      "fallbackRate": 0,
+      "meanElapsedMs": 38.49906349999998
+    },
+    {
+      "profileId": "mono-festif",
+      "label": "festif 100",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.3981438354280382,
+      "calibration": 1.0564798609728991,
+      "fallbackRate": 0,
+      "meanElapsedMs": 38.225348250000025
+    },
+    {
+      "profileId": "mono-poetique",
+      "label": "poetique 100",
+      "vivantShare": 0.5833333333333333,
+      "diversity": 0.7317540486252118,
+      "calibration": 1.5639795419401883,
+      "fallbackRate": 0.5,
+      "meanElapsedMs": 40.50348524999998
+    },
+    {
+      "profileId": "mono-cerveau",
+      "label": "cerveau 100",
+      "vivantShare": 0.6249999999999999,
+      "diversity": 0.4865199618267065,
+      "calibration": 2.1803296842236715,
+      "fallbackRate": 0.25,
+      "meanElapsedMs": 42.28986175
+    },
+    {
+      "profileId": "mono-dansant",
+      "label": "dansant 100",
+      "vivantShare": 0.41666666666666663,
+      "diversity": 0.5600753579567174,
+      "calibration": 1.7946294026228622,
+      "fallbackRate": 0.125,
+      "meanElapsedMs": 37.76950650000009
+    },
+    {
+      "profileId": "mix-rigolo-tendre",
+      "label": "rigolo 70 / tendre 30",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.40508679718627644,
+      "calibration": 0.6527837071134031,
+      "fallbackRate": 0,
+      "meanElapsedMs": 37.73923524999992
+    },
+    {
+      "profileId": "mix-intense-sortie-festif",
+      "label": "intense 50 / sortie 30 / festif 20",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.376121120629273,
+      "calibration": 0.7196038152401631,
+      "fallbackRate": 0,
+      "meanElapsedMs": 35.75843199999997
+    },
+    {
+      "profileId": "mix-poetique-contemplatif-tendre",
+      "label": "poetique / contemplatif / tendre",
+      "vivantShare": 0.6249999999999999,
+      "diversity": 0.6161813120481591,
+      "calibration": 1.213528200929421,
+      "fallbackRate": 0,
+      "meanElapsedMs": 40.626625500000046
+    },
+    {
+      "profileId": "mix-festif-dansant",
+      "label": "festif 50 / dansant 50",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.4564961190259539,
+      "calibration": 0.9729113772288905,
+      "fallbackRate": 0,
+      "meanElapsedMs": 41.260493999999994
+    },
+    {
+      "profileId": "mix-leger-absurde",
+      "label": "leger 60 / absurde 40",
+      "vivantShare": 0.5833333333333333,
+      "diversity": 0.6777414783882498,
+      "calibration": 1.6581271864226523,
+      "fallbackRate": 0,
+      "meanElapsedMs": 37.38961999999998
+    },
+    {
+      "profileId": "genre-theatre-humour",
+      "label": "théâtre · rigolo + standup",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.3497249284250745,
+      "calibration": 0.6414205300666596,
+      "fallbackRate": 0,
+      "meanElapsedMs": 35.69879324999994
+    },
+    {
+      "profileId": "genre-cine-thriller",
+      "label": "ciné · intense + thriller",
+      "vivantShare": 0.6249999999999999,
+      "diversity": 0.397377008614058,
+      "calibration": 0.6502309749119657,
+      "fallbackRate": 0,
+      "meanElapsedMs": 39.26162799999997
+    },
+    {
+      "profileId": "genre-concert-electro",
+      "label": "concert · dansant + electro",
+      "vivantShare": 0.41666666666666663,
+      "diversity": 0.5551629256686833,
+      "calibration": 1.779294773021137,
+      "fallbackRate": 0.125,
+      "meanElapsedMs": 40.60299449999991
+    },
+    {
+      "profileId": "genre-cine-comedie",
+      "label": "ciné · rigolo + comedie",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.3964466094067263,
+      "calibration": 1.0027982913449554,
+      "fallbackRate": 0,
+      "meanElapsedMs": 39.90476499999994
+    },
+    {
+      "profileId": "genre-only-comedie",
+      "label": "genre comedie (sans mood)",
+      "vivantShare": 0.5416666666666666,
+      "diversity": 0.8888888888888888,
+      "calibration": null,
+      "fallbackRate": 0,
+      "meanElapsedMs": 40.74561625000007
+    },
+    {
+      "profileId": "empty",
+      "label": "profil vide",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 1,
+      "calibration": null,
+      "fallbackRate": 1,
+      "meanElapsedMs": 31.164230499999917
+    },
+    {
+      "profileId": "single-signal-rigolo",
+      "label": "un seul signal",
+      "vivantShare": 0.6666666666666666,
+      "diversity": 0.35983495705504476,
+      "calibration": 0.9547242568596657,
+      "fallbackRate": 0,
+      "meanElapsedMs": 39.546624750000035
+    },
+    {
+      "profileId": "out-of-stock-moods",
+      "label": "cerveau / angoissant / brutal",
+      "vivantShare": 0.5833333333333333,
+      "diversity": 0.45796819819265255,
+      "calibration": 1.495724435246732,
+      "fallbackRate": 0,
+      "meanElapsedMs": 43.023626999999976
+    }
+  ],
+  "global": {
+    "coverage": {
+      "recommended": 35,
+      "feasible": 400,
+      "ratio": 0.0875
+    },
+    "vivantShare": 0.6041666666666662,
+    "fallbackRate": 0.1,
+    "meanElapsedMs": 39.78509116249998
+  }
+}
