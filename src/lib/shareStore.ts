@@ -35,6 +35,14 @@ import {
   type ShareRsvpRecord,
   type TokenSocialPayload,
 } from '@/lib/shareRsvp';
+import {
+  SHARE_SHARER_INDEX_CAP,
+  buildActivityItemPayload,
+  buildActivityListItems,
+  omitEmptyNameFields,
+  type ActivityItemPayload,
+  type ActivityListItem,
+} from '@/lib/shareActivity';
 
 export type ShareTokenRecord = {
   token: string;
@@ -117,6 +125,27 @@ function pipelineString(entry: unknown): string | null {
   return null;
 }
 
+function pipelineStrings(entry: unknown): string[] {
+  if (Array.isArray(entry)) {
+    return entry.filter((v): v is string => typeof v === 'string');
+  }
+  if (entry && typeof entry === 'object' && 'result' in entry) {
+    const r = (entry as { result?: unknown }).result;
+    if (Array.isArray(r)) {
+      return r.filter((v): v is string => typeof v === 'string');
+    }
+  }
+  return [];
+}
+
+function sharerIndexKey(hash: string): string {
+  return `share:sharer:${hash}`;
+}
+
+function activitySeenKey(hash: string): string {
+  return `share:activity:seen:${hash}`;
+}
+
 function hourBucket(now = Date.now()): string {
   return String(Math.floor(now / RATE_WINDOW_MS));
 }
@@ -127,6 +156,8 @@ const memoryVisitors = new Map<string, Set<string>>();
 const memoryRsvps = new Map<string, ShareRsvpRecord[]>();
 const memoryHits = new Map<string, number[]>();
 const memoryOrphans: string[] = [];
+const memorySharerIndex = new Map<string, string[]>();
+const memoryActivitySeen = new Map<string, string>();
 
 export function resetShareStoreForTests(): void {
   memoryTokens.clear();
@@ -135,6 +166,8 @@ export function resetShareStoreForTests(): void {
   memoryRsvps.clear();
   memoryHits.clear();
   memoryOrphans.length = 0;
+  memorySharerIndex.clear();
+  memoryActivitySeen.clear();
 }
 
 export function shareOrphanLogsForTests(): readonly string[] {
@@ -217,6 +250,9 @@ async function ensureShareTokensTable(): Promise<VercelPool | null> {
           opens INTEGER NOT NULL DEFAULT 0
         )
       `);
+      await pg.query(
+        `CREATE INDEX IF NOT EXISTS share_tokens_sharer_idx ON share_tokens (sharer_email)`,
+      );
     })().catch((err: unknown) => {
       tableReady = null;
       throw err;
@@ -388,8 +424,21 @@ export async function createShareToken(opts: {
   };
   if (seanceKey) record.seanceKey = seanceKey;
   await writeShareToken(record);
+  if (record.sharerEmail) {
+    await indexSharerToken(record.sharerEmail, record.token);
+  }
   const url = deepLinkUrl(opts.origin, itemKey, token);
   return seanceKey ? { token, url, seanceKey } : { token, url };
+}
+
+async function indexSharerToken(email: string, token: string): Promise<void> {
+  const hash = emailHash(email);
+  const prev = memorySharerIndex.get(hash) ?? [];
+  memorySharerIndex.set(
+    hash,
+    [token, ...prev.filter((t) => t !== token)].slice(0, SHARE_SHARER_INDEX_CAP),
+  );
+  await kvPipeline([['SADD', sharerIndexKey(hash), token]]);
 }
 
 function visitorIdOf(visit: ShareVisitRecord): string {
@@ -754,4 +803,148 @@ export function memoryRsvpCount(token: string): number {
 
 export function memoryAllRsvps(): ShareRsvpRecord[] {
   return [...memoryRsvps.values()].flat().map((r) => ({ ...r }));
+}
+
+async function listShareTokensNeonByEmail(
+  email: string,
+): Promise<ShareTokenRecord[]> {
+  try {
+    const pg = await ensureShareTokensTable();
+    if (!pg) return [];
+    const result = await pg.query(
+      `SELECT token, item_key, seance_key, created_at, sharer_email, opens
+       FROM share_tokens
+       WHERE sharer_email = $1
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [email, SHARE_SHARER_INDEX_CAP],
+    );
+    return result.rows
+      .map((row: {
+        token?: string;
+        item_key?: string;
+        seance_key?: string | null;
+        created_at?: Date | string;
+        sharer_email?: string | null;
+        opens?: number;
+      }) => {
+        const createdAt =
+          row.created_at instanceof Date
+            ? row.created_at.toISOString()
+            : typeof row.created_at === 'string'
+              ? row.created_at
+              : new Date().toISOString();
+        return parseTokenRecord({
+          token: row.token,
+          itemKey: row.item_key,
+          seanceKey: row.seance_key,
+          createdAt,
+          sharerEmail: row.sharer_email,
+          opens: row.opens,
+        });
+      })
+      .filter((r: ShareTokenRecord | null): r is ShareTokenRecord => Boolean(r));
+  } catch {
+    return [];
+  }
+}
+
+export async function listShareTokensBySharerEmail(
+  email: string,
+): Promise<ShareTokenRecord[]> {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized.includes('@')) return [];
+  const hash = emailHash(normalized);
+  const byToken = new Map<string, ShareTokenRecord>();
+
+  for (const rec of memoryTokens.values()) {
+    if (rec.sharerEmail === normalized) byToken.set(rec.token, { ...rec });
+  }
+  for (const tok of memorySharerIndex.get(hash) ?? []) {
+    const rec = memoryTokens.get(tok);
+    if (rec?.sharerEmail === normalized) byToken.set(rec.token, { ...rec });
+  }
+
+  for (const rec of await listShareTokensNeonByEmail(normalized)) {
+    byToken.set(rec.token, rec);
+  }
+
+  if (byToken.size === 0) {
+    const rows = await kvPipeline([['SMEMBERS', sharerIndexKey(hash)]]);
+    const members = rows ? pipelineStrings(rows[0]) : [];
+    for (const tok of members.slice(0, SHARE_SHARER_INDEX_CAP)) {
+      const rec = await readShareToken(tok);
+      if (rec?.sharerEmail === normalized) byToken.set(rec.token, rec);
+    }
+  }
+
+  return [...byToken.values()]
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    .slice(0, SHARE_SHARER_INDEX_CAP);
+}
+
+export async function readActivityLastSeen(email: string): Promise<string | null> {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized.includes('@')) return null;
+  const hash = emailHash(normalized);
+  const mem = memoryActivitySeen.get(hash);
+  if (mem) return mem;
+  const rows = await kvPipeline([['GET', activitySeenKey(hash)]]);
+  const raw = rows ? pipelineString(rows[0]) : null;
+  if (raw && !Number.isNaN(Date.parse(raw))) {
+    memoryActivitySeen.set(hash, raw);
+    return raw;
+  }
+  return null;
+}
+
+export async function writeActivityLastSeen(
+  email: string,
+  ts = new Date().toISOString(),
+): Promise<string> {
+  const normalized = email.trim().toLowerCase();
+  const hash = emailHash(normalized);
+  memoryActivitySeen.set(hash, ts);
+  await kvPipeline([['SET', activitySeenKey(hash), ts]]);
+  return ts;
+}
+
+export async function sharerActivityInbox(opts: {
+  email: string;
+  limit?: number;
+  groupKeyOf?: (itemKey: string) => string;
+}): Promise<{ items: ActivityListItem[]; lastSeen: string | null }> {
+  const tokens = await listShareTokensBySharerEmail(opts.email);
+  const rsvpsByToken = new Map<string, ShareRsvpRecord[]>();
+  await Promise.all(
+    tokens.map(async (t) => {
+      rsvpsByToken.set(t.token, await listTokenRsvps(t.token));
+    }),
+  );
+  const items = buildActivityListItems({
+    tokens,
+    rsvpsByToken,
+    groupKeyOf: opts.groupKeyOf,
+    limit: opts.limit,
+  });
+  const lastSeen = await readActivityLastSeen(opts.email);
+  return { items, lastSeen };
+}
+
+export async function sharerActivityItem(opts: {
+  email: string;
+  itemKey: string;
+  matchesToken: (token: ShareTokenRecord) => boolean;
+}): Promise<ActivityItemPayload> {
+  const tokens = (await listShareTokensBySharerEmail(opts.email)).filter(
+    opts.matchesToken,
+  );
+  if (tokens.length === 0) {
+    return { itemKey: opts.itemKey };
+  }
+  const rsvps: ShareRsvpRecord[] = [];
+  for (const t of tokens) {
+    rsvps.push(...(await listTokenRsvps(t.token)));
+  }
+  return omitEmptyNameFields(buildActivityItemPayload(opts.itemKey, rsvps));
 }
