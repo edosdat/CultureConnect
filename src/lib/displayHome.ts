@@ -158,7 +158,7 @@ export const SEARCH_PLACEHOLDER =
 
 /** S2 LOCK Eloi — typographic apostrophe, always visible (even teaser sheet). */
 export const HOME_ACCROCHE_H1 = 'L’agenda culturel de Toulouse.';
-export const HOME_ACCROCHE_H2 = 'Partagez une sortie — voyez qui vient.';
+export const HOME_ACCROCHE_H2 = 'Trouvez une sortie, partagez, voyez qui vient.';
 
 /**
  * Extra existing chips for the 3 example taps.
