@@ -3,6 +3,7 @@
  * KV keys: `share:tok:<token>`,
  * `share:visits:<token>` (cap 500), `share:visitors:<token>`,
  * `share:rsvp:<token>`, `share:rsvp:work:<workId>`,
+ * `share:rsvp:user:<emailHash>` (tokens the account RSVP'd — cloche recipient),
  * `share:activity:seen:<emailHash>` (+ Neon `share_activity_seen`).
  * Memory fallback for tests / local — not enough for seen on Vercel.
  * RGPD: never persist cc_vid next to email / emailHash / firstName.
@@ -176,6 +177,10 @@ function sharerIndexKey(hash: string): string {
   return `share:sharer:${hash}`;
 }
 
+function rsvpUserIndexKey(hash: string): string {
+  return `share:rsvp:user:${hash}`;
+}
+
 function activitySeenKey(hash: string): string {
   return `share:activity:seen:${hash}`;
 }
@@ -194,6 +199,7 @@ const memoryRsvps = new Map<string, ShareRsvpRecord[]>();
 const memoryHits = new Map<string, number[]>();
 const memoryOrphans: string[] = [];
 const memorySharerIndex = new Map<string, string[]>();
+const memoryRsvpIndex = new Map<string, string[]>();
 const memoryActivitySeen = new Map<string, string>();
 const INBOX_CACHE_TTL_MS = 15_000;
 const activityInboxCache = new Map<
@@ -224,6 +230,7 @@ export function resetShareStoreForTests(): void {
   memoryHits.clear();
   memoryOrphans.length = 0;
   memorySharerIndex.clear();
+  memoryRsvpIndex.clear();
   memoryActivitySeen.clear();
   activityInboxCache.clear();
   kvPipelineOverride = null;
@@ -520,6 +527,26 @@ async function indexSharerToken(email: string, token: string): Promise<void> {
   await kvPipeline([['SADD', sharerIndexKey(hash), token]]);
 }
 
+async function indexRsvpUserToken(hash: string, token: string): Promise<void> {
+  if (!hash || !isShareToken(token)) return;
+  const prev = memoryRsvpIndex.get(hash) ?? [];
+  memoryRsvpIndex.set(
+    hash,
+    [token, ...prev.filter((t) => t !== token)].slice(0, SHARE_SHARER_INDEX_CAP),
+  );
+  await kvPipeline([['SADD', rsvpUserIndexKey(hash), token]]);
+}
+
+async function unindexRsvpUserToken(hash: string, token: string): Promise<void> {
+  if (!hash || !token) return;
+  const prev = memoryRsvpIndex.get(hash) ?? [];
+  memoryRsvpIndex.set(
+    hash,
+    prev.filter((t) => t !== token),
+  );
+  await kvPipeline([['SREM', rsvpUserIndexKey(hash), token]]);
+}
+
 function visitorIdOf(visit: ShareVisitRecord): string {
   return 'vid' in visit ? visit.vid : visit.emailHash;
 }
@@ -636,6 +663,9 @@ async function ensureShareRsvpsTable(): Promise<VercelPool | null> {
       );
       await pg.query(
         `CREATE INDEX IF NOT EXISTS share_rsvps_item_idx ON share_rsvps (item_key)`,
+      );
+      await pg.query(
+        `CREATE INDEX IF NOT EXISTS share_rsvps_email_idx ON share_rsvps (email_hash)`,
       );
     })().catch((err: unknown) => {
       rsvpTableReady = null;
@@ -902,6 +932,8 @@ async function persistShareRsvp(opts: {
     next = [...rest, record];
   }
   await writeTokenRsvps(opts.token, next);
+  if (opts.kind) await indexRsvpUserToken(opts.emailHash, opts.token);
+  else await unindexRsvpUserToken(opts.emailHash, opts.token);
   const written = next.find((r) => r.emailHash === opts.emailHash) ?? null;
   await upsertWorkIndex({
     workId,
@@ -1268,6 +1300,150 @@ export async function listShareTokensBySharerEmail(
     .slice(0, SHARE_SHARER_INDEX_CAP);
 }
 
+async function listRsvpTokenIdsNeonByEmailHash(
+  hash: string,
+): Promise<string[]> {
+  try {
+    const pg = await ensureShareRsvpsTable();
+    if (!pg) return [];
+    const result = await pg.query(
+      `SELECT token FROM share_rsvps
+       WHERE email_hash = $1
+       ORDER BY updated_at DESC
+       LIMIT $2`,
+      [hash, SHARE_SHARER_INDEX_CAP],
+    );
+    return result.rows
+      .map((row: { token?: string }) => row.token)
+      .filter((tok): tok is string => typeof tok === 'string' && isShareToken(tok));
+  } catch {
+    return [];
+  }
+}
+
+async function listShareTokensNeonByTokens(
+  tokens: readonly string[],
+): Promise<ShareTokenRecord[]> {
+  if (tokens.length === 0) return [];
+  try {
+    const pg = await ensureShareTokensTable();
+    if (!pg) return [];
+    const result = await pg.query(
+      `SELECT token, item_key, seance_key, created_at, sharer_email, opens
+       FROM share_tokens WHERE token = ANY($1)`,
+      [tokens],
+    );
+    return result.rows
+      .map((row: {
+        token?: string;
+        item_key?: string;
+        seance_key?: string | null;
+        created_at?: Date | string;
+        sharer_email?: string | null;
+        opens?: number;
+      }) => {
+        const createdAt =
+          row.created_at instanceof Date
+            ? row.created_at.toISOString()
+            : typeof row.created_at === 'string'
+              ? row.created_at
+              : new Date().toISOString();
+        return parseTokenRecord({
+          token: row.token,
+          itemKey: row.item_key,
+          seanceKey: row.seance_key,
+          createdAt,
+          sharerEmail: row.sharer_email,
+          opens: row.opens,
+        });
+      })
+      .filter((r: ShareTokenRecord | null): r is ShareTokenRecord => Boolean(r));
+  } catch {
+    return [];
+  }
+}
+
+async function resolveShareTokens(
+  tokens: readonly string[],
+): Promise<ShareTokenRecord[]> {
+  const byToken = new Map<string, ShareTokenRecord>();
+  const missing: string[] = [];
+  for (const token of tokens) {
+    if (!isShareToken(token) || byToken.has(token)) continue;
+    const mem = memoryTokens.get(token);
+    if (mem) byToken.set(token, { ...mem });
+    else missing.push(token);
+  }
+  if (missing.length > 0) {
+    const kvRows = await kvPipeline(missing.map((tok) => ['GET', tokKey(tok)]));
+    const still: string[] = [];
+    if (kvRows) {
+      for (let i = 0; i < missing.length; i++) {
+        const raw = pipelineString(kvRows[i]);
+        if (raw) {
+          try {
+            const rec = parseTokenRecord(JSON.parse(raw));
+            if (rec) {
+              byToken.set(rec.token, rec);
+              continue;
+            }
+          } catch {
+            /* fall through */
+          }
+        }
+        still.push(missing[i]);
+      }
+    } else {
+      still.push(...missing);
+    }
+    for (const rec of await listShareTokensNeonByTokens(still)) {
+      byToken.set(rec.token, rec);
+    }
+  }
+  return [...byToken.values()]
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    .slice(0, SHARE_SHARER_INDEX_CAP);
+}
+
+/** Tokens this account RSVP'd Envie / J’y vais on (recipient cloche). */
+export async function listShareTokensByRsvpEmail(
+  email: string,
+): Promise<ShareTokenRecord[]> {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized.includes('@')) return [];
+  const hash = emailHash(normalized);
+  const tokenIds = new Set<string>();
+
+  for (const [token, rows] of memoryRsvps) {
+    if (rows.some((r) => r.emailHash === hash)) tokenIds.add(token);
+  }
+  for (const tok of memoryRsvpIndex.get(hash) ?? []) tokenIds.add(tok);
+  for (const tok of await listRsvpTokenIdsNeonByEmailHash(hash)) tokenIds.add(tok);
+
+  const kvRows = await kvPipeline([['SMEMBERS', rsvpUserIndexKey(hash)]]);
+  for (const tok of kvRows ? pipelineStrings(kvRows[0]) : []) {
+    if (isShareToken(tok)) tokenIds.add(tok);
+  }
+
+  return resolveShareTokens([...tokenIds]);
+}
+
+/** Sharer-created tokens ∪ RSVP'd tokens. 1 token = 1 inbox row. */
+export async function listShareTokensForActivityInbox(
+  email: string,
+): Promise<ShareTokenRecord[]> {
+  const [sharer, rsvp] = await Promise.all([
+    listShareTokensBySharerEmail(email),
+    listShareTokensByRsvpEmail(email),
+  ]);
+  const byToken = new Map<string, ShareTokenRecord>();
+  for (const rec of rsvp) byToken.set(rec.token, rec);
+  for (const rec of sharer) byToken.set(rec.token, rec);
+  return [...byToken.values()]
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    .slice(0, SHARE_SHARER_INDEX_CAP);
+}
+
 async function ensureActivitySeenTable(): Promise<VercelPool | null> {
   const pg = getPool();
   if (!pg) return null;
@@ -1454,7 +1630,7 @@ export async function sharerActivityInbox(opts: {
 
   await warmShareActivityTables();
   const [listed, seen] = await Promise.all([
-    listShareTokensBySharerEmail(opts.email),
+    listShareTokensForActivityInbox(opts.email),
     readActivitySeenState(opts.email),
   ]);
   const todayIso = parisParts(opts.now).iso;

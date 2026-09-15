@@ -1,6 +1,7 @@
 /**
  * Preview of GET /api/share/activity.
- * actorId = session email. 1 row = 1 token. 0 invented RSVPs, 0 Matching A.
+ * actorId = session email. 1 row = 1 token the viewer created or RSVP'd
+ * (envie/going). 0 invented RSVPs, 0 Matching A. Self excluded from deltas.
  */
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
