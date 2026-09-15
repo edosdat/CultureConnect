@@ -13,10 +13,21 @@
  * Usage:
  *   npm run bench
  *   npm run bench -- --compare bench-results/2026-09-15.json
+ *   npm run bench -- --out bench-results/2026-09-15-eloi25.json
+ *
+ * Default archive is `bench-results/2026-09-15-eloi25.json` so the first
+ * 20-profile baseline (`2026-09-15.json`) is never overwritten.
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { BENCH_PROFILES, type BenchProfile } from './benchProfiles';
+import {
+  BENCH_PROFILES,
+  ELOI_PROFILES_META,
+  MOOD_STOCK_REFERENCE,
+  type BenchProfile,
+  type MoodFormCounts,
+  type MoodStockReference,
+} from './benchProfiles';
 import { loadBenchCatalogue } from './loadCatalogue';
 import { itemsForDateRange, itemsForDay } from '../src/lib/events';
 import { nouveauFilmIds } from '../src/lib/nouveautesCine';
@@ -112,6 +123,8 @@ type BenchJson = {
       dansant: string;
       sortie: string;
     };
+    profilesSource: string;
+    moodStockReference: MoodStockReference;
     thresholds: typeof THRESHOLD;
     catalogue: {
       evenements: number;
@@ -125,6 +138,7 @@ type BenchJson = {
     label: string;
     group: string;
     notes: string;
+    signalCount?: number;
   }>;
   scenarios: Scenario[];
   stock: Record<
@@ -135,6 +149,7 @@ type BenchJson = {
   byProfile: Array<{
     profileId: string;
     label: string;
+    notes: string;
     vivantShare: number | null;
     diversity: number | null;
     calibration: number | null;
@@ -445,24 +460,43 @@ function warnMark(flag: boolean): string {
   return flag ? ' ⚠' : '';
 }
 
-function parseArgs(argv: string[]): { compare: string | null } {
-  const i = argv.indexOf('--compare');
-  if (i < 0) return { compare: null };
-  const file = argv[i + 1];
-  if (!file || file.startsWith('--')) {
-    console.error('Usage: npm run bench -- --compare <file.json>');
-    return { compare: null };
+function parseArgs(argv: string[]): { compare: string | null; out: string | null } {
+  let compare: string | null = null;
+  let out: string | null = null;
+  for (let i = 0; i < argv.length; i++) {
+    const flag = argv[i];
+    const value = argv[i + 1];
+    if (flag === '--compare') {
+      if (!value || value.startsWith('--')) {
+        console.error('Usage: npm run bench -- --compare <file.json>');
+      } else {
+        compare = value;
+        i += 1;
+      }
+    } else if (flag === '--out') {
+      if (!value || value.startsWith('--')) {
+        console.error('Usage: npm run bench -- --out <file.json>');
+      } else {
+        out = value;
+        i += 1;
+      }
+    }
   }
-  return { compare: file };
+  return { compare, out };
 }
 
 function resultsDir(): string {
   return path.join(process.cwd(), 'bench-results');
 }
 
-function datedOutPath(generatedAt: Date): string {
-  const iso = generatedAt.toISOString().slice(0, 10);
-  return path.join(resultsDir(), `${iso}.json`);
+/** First Eloi-25 archive. Do not overwrite `2026-09-15.json` (20-profile baseline). */
+const DEFAULT_ARCHIVE = '2026-09-15-eloi25.json';
+
+function datedOutPath(explicit: string | null): string {
+  if (explicit) {
+    return path.isAbsolute(explicit) ? explicit : path.join(process.cwd(), explicit);
+  }
+  return path.join(resultsDir(), DEFAULT_ARCHIVE);
 }
 
 function coverageOf(
@@ -533,6 +567,7 @@ function runBench(): BenchJson {
     return {
       profileId: profile.id,
       label: profile.label,
+      notes: profile.notes,
       vivantShare: mean(mine.map((r) => r.vivantShare)),
       diversity: mean(mine.map((r) => r.diversity)),
       calibration: mean(mine.map((r) => r.calibration)),
@@ -556,8 +591,10 @@ function runBench(): BenchJson {
         poetique: 'in TASTE_MOODS (16 closed goûts) — no alias needed',
         dansant: 'in TASTE_MOODS (16 closed goûts) — no alias needed',
         sortie:
-          'phrase/catalogue slug, not a goût; kept on mix-intense-sortie-festif but not scored',
+          'phrase/catalogue slug, not a goût; kept on C2 (Sorties festives) but not scored',
       },
+      profilesSource: ELOI_PROFILES_META.source,
+      moodStockReference: MOOD_STOCK_REFERENCE,
       thresholds: THRESHOLD,
       catalogue: {
         evenements: catalogue.evenements.length,
@@ -572,6 +609,7 @@ function runBench(): BenchJson {
       label: p.label,
       group: p.group,
       notes: p.notes,
+      ...(typeof p.signalCount === 'number' ? { signalCount: p.signalCount } : {}),
     })),
     scenarios,
     stock,
@@ -586,10 +624,38 @@ function runBench(): BenchJson {
   };
 }
 
+const MOOD_STOCK_FORMS = ['cine', 'theatre', 'concert', 'festival', 'enfants'] as const;
+
+function printMoodStock(ref: MoodStockReference): void {
+  console.log('stock moods (items FUTURS, par forme) — référence Eloi :');
+  if (typeof ref.comment === 'string' && ref.comment) {
+    console.log(`  ${ref.comment}`);
+  }
+  for (const [mood, counts] of Object.entries(ref)) {
+    if (mood === 'comment' || !counts || typeof counts !== 'object') continue;
+    const row = counts as MoodFormCounts;
+    const parts = MOOD_STOCK_FORMS.map(
+      (form) => `${form} ${String(row[form] ?? 0).padStart(3)}`,
+    );
+    console.log(`  ${pad(mood, 14)} ${parts.join('  ')}`);
+  }
+  console.log('');
+}
+
+function profileTableLabel(row: { profileId: string; label: string; notes?: string }): string {
+  const shortNote = (row.notes ?? '').split(/[.!]/)[0]?.trim() || row.label;
+  return `${row.profileId}  ${shortNote}`;
+}
+
 function printTable(result: BenchJson): void {
   const date = result.meta.generatedAt.slice(0, 10);
   console.log(`CultureConnect — banc d'essai reco          ${date}`);
+  console.log(`profils : Eloi 25 (A/B/C/D) — ${ELOI_PROFILES_META.source}`);
+  if (ELOI_PROFILES_META.note) {
+    console.log(ELOI_PROFILES_META.note);
+  }
   console.log('');
+  printMoodStock(result.meta.moodStockReference);
   console.log(
     `fenêtres (Paris, now=${result.scenarios[0]?.startIso ?? '?'} 00:00 · ${result.meta.fixedNow}):`,
   );
@@ -601,14 +667,14 @@ function printTable(result: BenchJson): void {
   }
   console.log('');
   console.log(
-    `${pad('profil', 40)} ${pad('vivant%', 8, 'right')} ${pad('divers', 7, 'right')} ${pad('calib', 7, 'right')} ${pad('repli', 7, 'right')}`,
+    `${pad('profil', 56)} ${pad('vivant%', 8, 'right')} ${pad('divers', 7, 'right')} ${pad('calib', 7, 'right')} ${pad('repli', 7, 'right')}`,
   );
-  console.log('-'.repeat(72));
+  console.log('-'.repeat(88));
   for (const row of result.byProfile) {
     const flags =
       (row.diversity != null && row.diversity < THRESHOLD.diversity) ||
       (row.fallbackRate != null && row.fallbackRate > THRESHOLD.fallback);
-    const line = `${pad(row.label, 40)} ${pad(fmtPct(row.vivantShare, 0), 8, 'right')} ${pad(fmtNum(row.diversity, 2), 7, 'right')} ${pad(fmtNum(row.calibration, 2), 7, 'right')} ${pad(fmtPct(row.fallbackRate, 0), 7, 'right')}${warnMark(flags)}`;
+    const line = `${pad(profileTableLabel(row), 56)} ${pad(fmtPct(row.vivantShare, 0), 8, 'right')} ${pad(fmtNum(row.diversity, 2), 7, 'right')} ${pad(fmtNum(row.calibration, 2), 7, 'right')} ${pad(fmtPct(row.fallbackRate, 0), 7, 'right')}${warnMark(flags)}`;
     console.log(line);
   }
   console.log('');
@@ -645,7 +711,7 @@ function printTop3(result: BenchJson, profiles: BenchProfile[]): void {
   );
   for (const profile of profiles) {
     console.log('');
-    console.log(`— ${profile.label}  [${profile.id}]`);
+    console.log(`— ${profile.id}  ${profile.label}`);
     if (profile.notes) console.log(`  ${profile.notes}`);
     for (const sid of dumpIds) {
       const run = result.runs.find(
@@ -694,9 +760,9 @@ function printCompare(current: BenchJson, previous: BenchJson, file: string): vo
   console.log(`=== Δ vs ${file}  (${previous.meta.generatedAt.slice(0, 10)}) ===`);
   const prevBy = new Map(previous.byProfile.map((r) => [r.profileId, r]));
   console.log(
-    `${pad('profil', 40)} ${pad('Δvivant', 9, 'right')} ${pad('Δdivers', 8, 'right')} ${pad('Δcalib', 8, 'right')} ${pad('Δrepli', 8, 'right')}`,
+    `${pad('profil', 56)} ${pad('Δvivant', 9, 'right')} ${pad('Δdivers', 8, 'right')} ${pad('Δcalib', 8, 'right')} ${pad('Δrepli', 8, 'right')}`,
   );
-  console.log('-'.repeat(76));
+  console.log('-'.repeat(92));
   for (const row of current.byProfile) {
     const prev = prevBy.get(row.profileId);
     const dV =
@@ -716,7 +782,7 @@ function printCompare(current: BenchJson, previous: BenchJson, file: string): vo
         ? row.fallbackRate - prev.fallbackRate
         : null;
     console.log(
-      `${pad(row.label, 40)} ${pad(fmtDelta(dV, 1, true), 9, 'right')} ${pad(fmtDelta(dD, 2), 8, 'right')} ${pad(fmtDelta(dC, 2), 8, 'right')} ${pad(fmtDelta(dF, 1, true), 8, 'right')}`,
+      `${pad(profileTableLabel(row), 56)} ${pad(fmtDelta(dV, 1, true), 9, 'right')} ${pad(fmtDelta(dD, 2), 8, 'right')} ${pad(fmtDelta(dC, 2), 8, 'right')} ${pad(fmtDelta(dF, 1, true), 8, 'right')}`,
     );
   }
   const cCov = current.global.coverage.ratio;
@@ -737,7 +803,7 @@ function printCompare(current: BenchJson, previous: BenchJson, file: string): vo
 }
 
 function main(): void {
-  const { compare } = parseArgs(process.argv.slice(2));
+  const { compare, out } = parseArgs(process.argv.slice(2));
   const result = runBench();
 
   printTable(result);
@@ -749,7 +815,7 @@ function main(): void {
   }
 
   fs.mkdirSync(resultsDir(), { recursive: true });
-  const outPath = datedOutPath(new Date());
+  const outPath = datedOutPath(out);
   fs.writeFileSync(outPath, `${JSON.stringify(result, null, 2)}\n`, 'utf-8');
   console.log('');
   console.log(`JSON archivé : ${path.relative(process.cwd(), outPath)}`);
