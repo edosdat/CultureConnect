@@ -7,9 +7,8 @@ import {
   ACTIVITY_EMPTY,
   ACTIVITY_SHEET_SUB,
   ACTIVITY_SHEET_TITLE,
-  activityDeltaCopy,
+  inboxDeltaCopy,
   activityFicheHref,
-  countUnreadEvents,
   formatActivityDateShort,
   formatActivityRelative,
   itemIsUnread,
@@ -69,27 +68,24 @@ export default function ActivityInbox() {
   const signedIn = status === 'authenticated';
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<ActivityListItem[]>([]);
-  const [lastSeen, setLastSeen] = useState<string | null>(null);
-  const [rowSeen, setRowSeen] = useState<string | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [rowFlags, setRowFlags] = useState<Record<string, boolean>>({});
   const [meta, setMeta] = useState<Record<string, Meta>>({});
 
   const loadInbox = useCallback(async () => {
     if (!signedIn) {
       setItems([]);
+      setUnreadCount(0);
       return;
     }
     const parsed = await fetchActivityInbox(30);
     setItems(parsed.items);
-    setLastSeen(parsed.lastSeen ?? null);
+    setUnreadCount(parsed.unreadCount);
   }, [signedIn]);
 
   useEffect(() => {
     void loadInbox();
   }, [loadInbox]);
-
-  useEffect(() => {
-    if (!open) setRowSeen(lastSeen);
-  }, [open, lastSeen]);
 
   useEffect(() => {
     const keys = [...new Set(items.map((it) => it.itemKey))];
@@ -134,23 +130,23 @@ export default function ActivityInbox() {
 
   if (!signedIn) return null;
 
-  const unread = countUnreadEvents(items, lastSeen);
-  const badge = unreadBadgeLabel(unread);
+  const badge = unreadBadgeLabel(unreadCount);
   const aria = badge
-    ? `${unread > 9 ? 'Plus de 9' : unread} notifications non lues`
+    ? `${unreadCount > 9 ? 'Plus de 9' : unreadCount} notifications non lues`
     : 'Notifications';
 
   async function openSheet() {
-    setRowSeen(lastSeen);
+    setRowFlags(Object.fromEntries(items.map((it) => [it.token, it.unread])));
     setOpen(true);
-    const seen = await markActivitySeen();
-    setLastSeen(seen);
-    void loadInbox();
+    const seen = await markActivitySeen({ scope: 'all' });
+    if (seen.unreadCount >= 0) setUnreadCount(seen.unreadCount);
+    else setUnreadCount(0);
   }
 
   async function openFiche(item: ActivityListItem) {
-    const seen = await markActivitySeen();
-    setLastSeen(seen);
+    const seen = await markActivitySeen({ scope: 'token', token: item.token });
+    if (seen.unreadCount >= 0) setUnreadCount(seen.unreadCount);
+    else setUnreadCount((n) => Math.max(0, n - (item.unread ? 1 : 0)));
     setOpen(false);
     window.location.assign(activityFicheHref(item.itemKey, item.token));
   }
@@ -208,9 +204,9 @@ export default function ActivityInbox() {
                   </div>
                 ) : (
                   items.map((item, i) => {
-                    const unreadRow = itemIsUnread(item, rowSeen);
+                    const unreadRow = rowFlags[item.token] ?? itemIsUnread(item);
                     const info = meta[item.itemKey];
-                    const delta = activityDeltaCopy(item.events);
+                    const delta = inboxDeltaCopy(item);
                     const when = formatActivityRelative(
                       item.events[0]?.ts || item.createdAt,
                     );

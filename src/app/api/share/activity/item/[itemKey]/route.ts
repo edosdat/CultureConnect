@@ -42,5 +42,10 @@ export async function GET(
       token.itemKey === itemKey ||
       (workIdForItemKey(token.itemKey) || token.itemKey) === workId,
   });
-  return NextResponse.json(payload);
+  const body: { itemKey: string; goingNames?: string[]; envieNames?: string[] } = {
+    itemKey: payload.itemKey || itemKey,
+  };
+  if (payload.goingNames?.length) body.goingNames = payload.goingNames;
+  if (payload.envieNames?.length) body.envieNames = payload.envieNames;
+  return NextResponse.json(body);
 }

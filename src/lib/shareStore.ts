@@ -39,9 +39,14 @@ import {
   SHARE_SHARER_INDEX_CAP,
   buildActivityItemPayload,
   buildActivityListItems,
+  inboxUnreadCount,
+  lastSeenForToken,
   omitEmptyNameFields,
+  parseActivitySeenState,
   type ActivityItemPayload,
-  type ActivityListItem,
+  type ActivityListPayload,
+  type ActivitySeenPayload,
+  type ActivitySeenState,
 } from '@/lib/shareActivity';
 
 export type ShareTokenRecord = {
@@ -883,37 +888,71 @@ export async function listShareTokensBySharerEmail(
     .slice(0, SHARE_SHARER_INDEX_CAP);
 }
 
-export async function readActivityLastSeen(email: string): Promise<string | null> {
+async function readActivitySeenState(email: string): Promise<ActivitySeenState> {
   const normalized = email.trim().toLowerCase();
-  if (!normalized.includes('@')) return null;
+  if (!normalized.includes('@')) return { global: null, tokens: {} };
   const hash = emailHash(normalized);
   const mem = memoryActivitySeen.get(hash);
-  if (mem) return mem;
+  if (mem) return parseActivitySeenState(mem);
   const rows = await kvPipeline([['GET', activitySeenKey(hash)]]);
   const raw = rows ? pipelineString(rows[0]) : null;
-  if (raw && !Number.isNaN(Date.parse(raw))) {
+  if (raw) {
     memoryActivitySeen.set(hash, raw);
-    return raw;
+    try {
+      return parseActivitySeenState(raw.startsWith('{') ? JSON.parse(raw) : raw);
+    } catch {
+      return parseActivitySeenState(raw);
+    }
   }
-  return null;
+  return { global: null, tokens: {} };
+}
+
+async function writeActivitySeenState(
+  email: string,
+  state: ActivitySeenState,
+): Promise<void> {
+  const hash = emailHash(email.trim().toLowerCase());
+  const payload = JSON.stringify(state);
+  memoryActivitySeen.set(hash, payload);
+  await kvPipeline([['SET', activitySeenKey(hash), payload]]);
+}
+
+export async function readActivityLastSeen(email: string): Promise<string | null> {
+  return (await readActivitySeenState(email)).global;
 }
 
 export async function writeActivityLastSeen(
   email: string,
   ts = new Date().toISOString(),
 ): Promise<string> {
-  const normalized = email.trim().toLowerCase();
-  const hash = emailHash(normalized);
-  memoryActivitySeen.set(hash, ts);
-  await kvPipeline([['SET', activitySeenKey(hash), ts]]);
+  const prev = await readActivitySeenState(email);
+  await writeActivitySeenState(email, { ...prev, global: ts });
   return ts;
+}
+
+export async function markSharerActivitySeen(opts: {
+  email: string;
+  scope: 'all' | 'token';
+  token?: string;
+}): Promise<ActivitySeenPayload> {
+  const now = new Date().toISOString();
+  const prev = await readActivitySeenState(opts.email);
+  if (opts.scope === 'token' && opts.token) {
+    await writeActivitySeenState(opts.email, {
+      ...prev,
+      tokens: { ...prev.tokens, [opts.token]: now },
+    });
+  } else {
+    await writeActivitySeenState(opts.email, { global: now, tokens: prev.tokens });
+  }
+  const inbox = await sharerActivityInbox({ email: opts.email });
+  return { ok: true, unreadCount: inbox.unreadCount };
 }
 
 export async function sharerActivityInbox(opts: {
   email: string;
   limit?: number;
-  groupKeyOf?: (itemKey: string) => string;
-}): Promise<{ items: ActivityListItem[]; lastSeen: string | null }> {
+}): Promise<ActivityListPayload> {
   const tokens = await listShareTokensBySharerEmail(opts.email);
   const rsvpsByToken = new Map<string, ShareRsvpRecord[]>();
   await Promise.all(
@@ -921,14 +960,18 @@ export async function sharerActivityInbox(opts: {
       rsvpsByToken.set(t.token, await listTokenRsvps(t.token));
     }),
   );
+  const seen = await readActivitySeenState(opts.email);
   const items = buildActivityListItems({
     tokens,
     rsvpsByToken,
-    groupKeyOf: opts.groupKeyOf,
+    lastSeenForToken: (token) => lastSeenForToken(seen, token),
     limit: opts.limit,
   });
-  const lastSeen = await readActivityLastSeen(opts.email);
-  return { items, lastSeen };
+  return {
+    lastSeenAt: seen.global,
+    unreadCount: inboxUnreadCount(items),
+    items,
+  };
 }
 
 export async function sharerActivityItem(opts: {

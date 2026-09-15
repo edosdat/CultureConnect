@@ -10,18 +10,22 @@ import {
   activitySandLines,
   buildActivityItemPayload,
   buildActivityListItems,
-  countUnreadEvents,
   formatActivityDateShort,
   formatActivityRelative,
   hasSharerSand,
+  inboxDeltaCopy,
+  inboxUnreadCount,
   itemIsUnread,
   parseActivityItemPayload,
   parseActivityListPayload,
+  parseActivitySeenPayload,
   unreadBadgeLabel,
+  type ActivityListItem,
 } from './shareActivity';
 import {
   fetchActivityInbox,
   fetchActivityItem,
+  markActivitySeen,
 } from './shareActivityClient';
 import {
   createShareToken,
@@ -87,29 +91,44 @@ describe('B3b activity copy', () => {
     assert.equal(ACTIVITY_NOTICE, 'Depuis ton lien.');
   });
 
-  it('badge caps at 9+ and unread ignores lastSeen opens', () => {
+  it('badge uses unreadCount of items; latest + deltas for copy', () => {
     assert.equal(unreadBadgeLabel(0), null);
     assert.equal(unreadBadgeLabel(2), '2');
     assert.equal(unreadBadgeLabel(9), '9');
     assert.equal(unreadBadgeLabel(10), '9+');
-    const items = [
-      {
-        itemKey: 'p:P1',
-        token: 'abcd1234',
-        seanceKey: null,
-        createdAt: '2026-09-14T10:00:00.000Z',
-        envie: 1,
-        going: 1,
-        events: [
-          ev('Ludo', 'going', '2026-09-15T12:00:00.000Z'),
-          ev('Camille', 'envie', '2026-09-14T09:00:00.000Z'),
-        ],
-      },
-    ];
-    assert.equal(countUnreadEvents(items, '2026-09-15T11:00:00.000Z'), 1);
-    assert.equal(countUnreadEvents(items, null), 2);
-    assert.equal(itemIsUnread(items[0]!, '2026-09-15T11:00:00.000Z'), true);
-    assert.equal(itemIsUnread(items[0]!, '2026-09-15T13:00:00.000Z'), false);
+    const unreadItem: ActivityListItem = {
+      itemKey: 'p:P1',
+      token: 'abcd1234',
+      seanceKey: null,
+      createdAt: '2026-09-14T10:00:00.000Z',
+      envie: 1,
+      going: 1,
+      unread: true,
+      deltaGoing: 1,
+      deltaEnvie: 1,
+      latest: { firstName: 'Ludo', kind: 'going', ts: '2026-09-15T12:00:00.000Z' },
+      events: [
+        ev('Ludo', 'going', '2026-09-15T12:00:00.000Z'),
+        ev('Camille', 'envie', '2026-09-14T09:00:00.000Z'),
+      ],
+    };
+    const readItem = { ...unreadItem, unread: false, token: 'zzzzzzzz' };
+    assert.equal(inboxUnreadCount([unreadItem, readItem]), 1);
+    assert.equal(itemIsUnread(unreadItem), true);
+    assert.equal(itemIsUnread(readItem), false);
+    assert.equal(inboxDeltaCopy(unreadItem), 'Ludo y va · +1 envie');
+    const parsed = parseActivityListPayload({
+      lastSeenAt: null,
+      unreadCount: 2,
+      items: [unreadItem],
+    });
+    assert.equal(parsed.unreadCount, 2);
+    assert.equal(parsed.lastSeenAt, null);
+    assert.equal(parsed.items[0]?.deltaGoing, 1);
+    assert.deepEqual(parseActivitySeenPayload({ ok: true, unreadCount: 0 }), {
+      ok: true,
+      unreadCount: 0,
+    });
   });
 
   it('canonical fiche href is /?e=&t=', () => {
@@ -133,8 +152,11 @@ describe('B3b activity copy', () => {
     try {
       const inbox = await fetchActivityInbox();
       assert.deepEqual(inbox.items, []);
-      assert.equal(inbox.lastSeen, undefined);
+      assert.equal(inbox.lastSeenAt, null);
+      assert.equal(inbox.unreadCount, 0);
       assert.equal(await fetchActivityItem('p:P1847'), null);
+      const seen = await markActivitySeen({ scope: 'all' });
+      assert.equal(seen.unreadCount, 0);
     } finally {
       globalThis.fetch = prev;
     }
@@ -149,11 +171,14 @@ describe('B3b activity copy', () => {
       }),
       null,
     );
-    const list = parseActivityListPayload({ items: [] });
+    const list = parseActivityListPayload({ lastSeenAt: null, unreadCount: 0, items: [] });
     assert.deepEqual(list.items, []);
-    const item = parseActivityItemPayload({ itemKey: 'p:P1' });
-    assert.deepEqual(item, { itemKey: 'p:P1' });
+    assert.equal(list.unreadCount, 0);
+    const item = parseActivityItemPayload({ goingNames: [], envieNames: [] });
+    assert.deepEqual(item, {});
     assert.equal(hasSharerSand(item), false);
+    const named = parseActivityItemPayload({ goingNames: ['Ludo'] });
+    assert.deepEqual(named?.goingNames, ['Ludo']);
   });
 });
 
@@ -191,16 +216,22 @@ describe('B3b activity store', () => {
     assert.equal('goingNames' in carol, false);
     const inbox = await sharerActivityInbox({ email: 'alice@example.com' });
     assert.equal(inbox.items.length, 1);
-    assert.equal(inbox.items[0]?.events[0]?.firstName, 'Bob');
+    assert.equal(inbox.unreadCount, 1);
+    assert.equal(inbox.items[0]?.unread, true);
+    assert.equal(inbox.items[0]?.deltaGoing, 1);
+    assert.equal(inbox.items[0]?.latest?.firstName, 'Bob');
     assert.equal(inbox.items[0]?.events[0]?.kind, 'going');
     await writeActivityLastSeen('alice@example.com', '2026-09-20T00:00:00.000Z');
     const after = await sharerActivityInbox({ email: 'alice@example.com' });
-    assert.equal(after.lastSeen, '2026-09-20T00:00:00.000Z');
+    assert.equal(after.lastSeenAt, '2026-09-20T00:00:00.000Z');
+    assert.equal(after.unreadCount, 0);
+    assert.equal(after.items[0]?.unread, false);
   });
 
   it('does not invent RSVP rows when the sharer has no tokens', async () => {
     const empty = await sharerActivityInbox({ email: 'nobody@example.com' });
     assert.deepEqual(empty.items, []);
+    assert.equal(empty.unreadCount, 0);
     const built = buildActivityListItems({ tokens: [], rsvpsByToken: new Map() });
     assert.deepEqual(built, []);
     const payload = buildActivityItemPayload('p:P1', []);
@@ -218,6 +249,8 @@ describe('B3b activity source contract', () => {
     assert.match(inbox, /Mes partages/);
     assert.match(inbox, /fetchActivityInbox/);
     assert.match(inbox, /markActivitySeen/);
+    assert.match(inbox, /scope: 'all'/);
+    assert.match(inbox, /scope: 'token'/);
     assert.match(inbox, /activityFicheHref/);
     assert.match(inbox, /ACTIVITY_EMPTY/);
     assert.match(inbox, /\{ACTIVITY_EMPTY\}/);
@@ -239,7 +272,10 @@ describe('B3b activity source contract', () => {
     assert.match(client, /\/api\/share\/activity/);
     assert.match(client, /\/api\/share\/activity\/item/);
     assert.match(client, /status === 404/);
-    assert.match(client, /emptyInbox/);
+    assert.match(client, /emptyActivityInbox/);
+    assert.match(client, /lastSeenAt/);
+    assert.match(client, /unreadCount/);
+    assert.match(client, /scope/);
     assert.equal(client.includes('ingestAccountItemSignal'), false);
 
     const auth = await readFile(

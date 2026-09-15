@@ -1,29 +1,29 @@
 /**
- * Site fetchers for the Connexion activity contract.
- * Live endpoints are not required — 401/404/network → empty, never fake RSVPs.
+ * Site fetchers for the Connexion B3b.7 activity contract.
+ * Live store is not required — 401/404/network → empty, never fake RSVPs.
  *
- *   GET /api/share/activity/item/<itemKey>  → goingNames / envieNames (my tokens)
- *   GET /api/share/activity                 → inbox items + events
- *   POST /api/share/activity/seen           → optional lastSeen (404 OK)
+ *   GET  /api/share/activity/item/<itemKey>  → { goingNames, envieNames }
+ *   GET  /api/share/activity                 → { lastSeenAt, unreadCount, items }
+ *   POST /api/share/activity/seen            → { scope: "all"|"token", token? }
+ *                                         ← { ok, unreadCount }
  *
- * actorId = session email. 0 Matching A.
+ * actorId = session email. Unread = RSVP only. 0 Matching A.
  */
 import {
+  emptyActivityInbox,
   parseActivityItemPayload,
   parseActivityListPayload,
-  resolveLastSeen,
+  parseActivitySeenPayload,
   writeClientLastSeen,
   type ActivityItemPayload,
   type ActivityListPayload,
+  type ActivitySeenBody,
+  type ActivitySeenPayload,
 } from '@/lib/shareActivity';
 
 export const ACTIVITY_INBOX_PATH = '/api/share/activity';
 export const ACTIVITY_ITEM_PATH = '/api/share/activity/item';
 export const ACTIVITY_SEEN_PATH = '/api/share/activity/seen';
-
-function emptyInbox(): ActivityListPayload {
-  return { items: [] };
-}
 
 async function readJson(res: Response): Promise<unknown> {
   try {
@@ -42,15 +42,11 @@ export async function fetchActivityInbox(
       credentials: 'same-origin',
     });
     if (res.status === 401 || res.status === 404 || !res.ok) {
-      return emptyInbox();
+      return emptyActivityInbox();
     }
-    const parsed = parseActivityListPayload(await readJson(res));
-    return {
-      items: parsed.items,
-      lastSeen: resolveLastSeen(parsed.lastSeen ?? null) ?? undefined,
-    };
+    return parseActivityListPayload(await readJson(res));
   } catch {
-    return emptyInbox();
+    return emptyActivityInbox();
   }
 }
 
@@ -71,25 +67,30 @@ export async function fetchActivityItem(
   }
 }
 
-/** Marks lu. 404 → client lastSeen only. */
-export async function markActivitySeen(): Promise<string> {
-  const now = new Date().toISOString();
-  writeClientLastSeen(now);
+/**
+ * Marks lu. 404 → optimistic unreadCount (all → 0, token → leave to caller).
+ */
+export async function markActivitySeen(
+  body: ActivitySeenBody,
+): Promise<ActivitySeenPayload> {
+  writeClientLastSeen(new Date().toISOString());
   try {
     const res = await fetch(ACTIVITY_SEEN_PATH, {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: '{}',
+      body: JSON.stringify(body),
     });
-    if (!res.ok) return now;
-    const data = (await readJson(res)) as { lastSeen?: unknown };
-    if (typeof data?.lastSeen === 'string' && !Number.isNaN(Date.parse(data.lastSeen))) {
-      writeClientLastSeen(data.lastSeen);
-      return data.lastSeen;
+    if (res.status === 401 || res.status === 404 || !res.ok) {
+      return { ok: true, unreadCount: body.scope === 'all' ? 0 : -1 };
     }
+    return (
+      parseActivitySeenPayload(await readJson(res)) ?? {
+        ok: true,
+        unreadCount: body.scope === 'all' ? 0 : -1,
+      }
+    );
   } catch {
-    /* client lastSeen still written */
+    return { ok: true, unreadCount: body.scope === 'all' ? 0 : -1 };
   }
-  return now;
 }

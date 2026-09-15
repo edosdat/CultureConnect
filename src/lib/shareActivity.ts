@@ -28,28 +28,53 @@ export type ActivityEvent = {
   firstName: string;
   kind: RsvpKind;
   ts: string;
-  token: string;
+  token?: string;
+};
+
+export type ActivityLatest = {
+  firstName: string;
+  kind: RsvpKind;
+  ts: string;
 };
 
 export type ActivityListItem = {
-  itemKey: string;
   token: string;
+  itemKey: string;
   seanceKey: string | null;
   createdAt: string;
   envie: number;
   going: number;
+  unread: boolean;
+  deltaGoing: number;
+  deltaEnvie: number;
+  latest: ActivityLatest | null;
   events: ActivityEvent[];
 };
 
 export type ActivityListPayload = {
+  lastSeenAt: string | null;
+  unreadCount: number;
   items: ActivityListItem[];
-  lastSeen?: string;
 };
 
 export type ActivityItemPayload = {
-  itemKey: string;
+  itemKey?: string;
   goingNames?: string[];
   envieNames?: string[];
+};
+
+export type ActivitySeenBody =
+  | { scope: 'all' }
+  | { scope: 'token'; token: string };
+
+export type ActivitySeenPayload = {
+  ok: boolean;
+  unreadCount: number;
+};
+
+export type ActivitySeenState = {
+  global: string | null;
+  tokens: Record<string, string>;
 };
 
 function isNamed(name: string): boolean {
@@ -66,7 +91,7 @@ function uniqueNames(events: readonly ActivityEvent[], kind: RsvpKind): string[]
     const name = ev.firstName.trim();
     const key = isNamed(name)
       ? name.toLowerCase()
-      : `anon:${ev.token}:${ev.ts}`;
+      : `anon:${ev.token || ev.ts}`;
     if (!name || seen.has(key)) continue;
     seen.add(key);
     out.push(name);
@@ -112,6 +137,40 @@ export function activityDeltaCopy(events: readonly ActivityEvent[]): string {
     .join(' · ');
 }
 
+function plusGoing(n: number): string {
+  if (n <= 0) return '';
+  return n === 1 ? '+1 y va' : 'Une personne de plus y va';
+}
+
+function plusEnvie(n: number): string {
+  if (n <= 0) return '';
+  return n === 1 ? '+1 envie' : `+${n} envie`;
+}
+
+/**
+ * Contract copy: `latest` prénom if present, then leftover
+ * `deltaGoing` / `deltaEnvie` as +1. Going before envie.
+ */
+export function inboxDeltaCopy(item: ActivityListItem): string {
+  const latest = item.latest;
+  const namedGoing =
+    latest?.kind === 'going' && isNamed(latest.firstName)
+      ? `${latest.firstName} y va`
+      : '';
+  const namedEnvie =
+    latest?.kind === 'envie' && isNamed(latest.firstName)
+      ? `${latest.firstName} a envie`
+      : '';
+  const extraGoing = Math.max(0, (item.deltaGoing || 0) - (namedGoing ? 1 : 0));
+  const extraEnvie = Math.max(0, (item.deltaEnvie || 0) - (namedEnvie ? 1 : 0));
+  const going = namedGoing || plusGoing(item.deltaGoing || 0);
+  const envie = namedEnvie || plusEnvie(item.deltaEnvie || 0);
+  const parts = [going, namedGoing ? plusGoing(extraGoing) : '', envie, namedEnvie ? plusEnvie(extraEnvie) : ''];
+  const copy = parts.filter(Boolean).join(' · ');
+  if (copy) return copy;
+  return activityDeltaCopy(item.events);
+}
+
 export function activitySandLines(payload: ActivityItemPayload): {
   going: string;
   envie: string;
@@ -140,29 +199,57 @@ export function eventIsUnread(ts: string, lastSeen: string | null | undefined): 
   return ev > seen;
 }
 
-export function countUnreadEvents(
-  items: readonly ActivityListItem[],
-  lastSeen: string | null | undefined,
-): number {
-  let n = 0;
-  for (const item of items) {
-    for (const ev of item.events) {
-      if (ev.kind !== 'envie' && ev.kind !== 'going') continue;
-      if (eventIsUnread(ev.ts, lastSeen)) n += 1;
-    }
-  }
-  return n;
+export function inboxUnreadCount(items: readonly ActivityListItem[]): number {
+  return items.filter((item) => item.unread).length;
 }
 
-export function itemIsUnread(
-  item: ActivityListItem,
-  lastSeen: string | null | undefined,
-): boolean {
-  return item.events.some(
-    (ev) =>
-      (ev.kind === 'envie' || ev.kind === 'going') &&
-      eventIsUnread(ev.ts, lastSeen),
-  );
+export function itemIsUnread(item: ActivityListItem): boolean {
+  return item.unread === true;
+}
+
+export function emptyActivityInbox(): ActivityListPayload {
+  return { lastSeenAt: null, unreadCount: 0, items: [] };
+}
+
+function asRecord(raw: unknown): Record<string, unknown> | null {
+  return raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : null;
+}
+
+export function lastSeenForToken(
+  state: ActivitySeenState,
+  token: string,
+): string | null {
+  return state.tokens[token] || state.global;
+}
+
+export function parseActivitySeenState(raw: unknown): ActivitySeenState {
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('{')) {
+      try {
+        return parseActivitySeenState(JSON.parse(trimmed));
+      } catch {
+        return { global: null, tokens: {} };
+      }
+    }
+    if (!Number.isNaN(Date.parse(trimmed))) {
+      return { global: trimmed, tokens: {} };
+    }
+    return { global: null, tokens: {} };
+  }
+  const o = asRecord(raw);
+  if (!o) return { global: null, tokens: {} };
+  const global =
+    typeof o.global === 'string' && !Number.isNaN(Date.parse(o.global))
+      ? o.global
+      : null;
+  const tokens: Record<string, string> = {};
+  if (o.tokens && typeof o.tokens === 'object') {
+    for (const [k, v] of Object.entries(o.tokens as Record<string, unknown>)) {
+      if (typeof v === 'string' && !Number.isNaN(Date.parse(v))) tokens[k] = v;
+    }
+  }
+  return { global, tokens };
 }
 
 export function activityFicheHref(itemKey: string, token: string): string {
@@ -219,24 +306,26 @@ export function resolveLastSeen(server?: string | null): string | null {
   return server || local;
 }
 
-function asRecord(raw: unknown): Record<string, unknown> | null {
-  return raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : null;
-}
-
 export function parseActivityEvent(raw: unknown): ActivityEvent | null {
   const o = asRecord(raw);
   if (!o) return null;
   if (o.kind !== 'envie' && o.kind !== 'going') return null;
   if (typeof o.firstName !== 'string' || !o.firstName.trim()) return null;
-  if (typeof o.token !== 'string' || !o.token.trim()) return null;
   if (typeof o.email === 'string' || typeof o.emailHash === 'string') return null;
   if (typeof o.vid === 'string' || typeof o.cc_vid === 'string') return null;
-  return {
+  const ev: ActivityEvent = {
     firstName: o.firstName.trim(),
     kind: o.kind,
     ts: typeof o.ts === 'string' ? o.ts : new Date().toISOString(),
-    token: o.token.trim(),
   };
+  if (typeof o.token === 'string' && o.token.trim()) ev.token = o.token.trim();
+  return ev;
+}
+
+export function parseActivityLatest(raw: unknown): ActivityLatest | null {
+  const ev = parseActivityEvent(raw);
+  if (!ev) return null;
+  return { firstName: ev.firstName, kind: ev.kind, ts: ev.ts };
 }
 
 export function parseActivityListItem(raw: unknown): ActivityListItem | null {
@@ -246,13 +335,30 @@ export function parseActivityListItem(raw: unknown): ActivityListItem | null {
   const events = Array.isArray(o.events)
     ? o.events.map(parseActivityEvent).filter((e): e is ActivityEvent => Boolean(e))
     : [];
+  const latest = parseActivityLatest(o.latest) || (events[0]
+    ? { firstName: events[0].firstName, kind: events[0].kind, ts: events[0].ts }
+    : null);
+  const deltaGoing =
+    typeof o.deltaGoing === 'number' && Number.isFinite(o.deltaGoing)
+      ? o.deltaGoing
+      : 0;
+  const deltaEnvie =
+    typeof o.deltaEnvie === 'number' && Number.isFinite(o.deltaEnvie)
+      ? o.deltaEnvie
+      : 0;
+  const unread =
+    typeof o.unread === 'boolean' ? o.unread : deltaGoing + deltaEnvie > 0;
   return {
-    itemKey: o.itemKey,
     token: o.token,
+    itemKey: o.itemKey,
     seanceKey: typeof o.seanceKey === 'string' ? o.seanceKey : null,
     createdAt: typeof o.createdAt === 'string' ? o.createdAt : '',
     envie: typeof o.envie === 'number' && Number.isFinite(o.envie) ? o.envie : 0,
     going: typeof o.going === 'number' && Number.isFinite(o.going) ? o.going : 0,
+    unread,
+    deltaGoing,
+    deltaEnvie,
+    latest,
     events,
   };
 }
@@ -262,27 +368,45 @@ export function parseActivityListPayload(raw: unknown): ActivityListPayload {
   const items = Array.isArray(o?.items)
     ? o.items.map(parseActivityListItem).filter((i): i is ActivityListItem => Boolean(i))
     : [];
-  const lastSeen =
-    typeof o?.lastSeen === 'string' && !Number.isNaN(Date.parse(o.lastSeen))
-      ? o.lastSeen
-      : undefined;
-  return lastSeen ? { items, lastSeen } : { items };
+  const lastSeenAtRaw = o?.lastSeenAt ?? o?.lastSeen;
+  const lastSeenAt =
+    typeof lastSeenAtRaw === 'string' && !Number.isNaN(Date.parse(lastSeenAtRaw))
+      ? lastSeenAtRaw
+      : null;
+  const unreadCount =
+    typeof o?.unreadCount === 'number' && Number.isFinite(o.unreadCount)
+      ? Math.max(0, Math.floor(o.unreadCount))
+      : inboxUnreadCount(items);
+  return { lastSeenAt, unreadCount, items };
 }
 
 export function parseActivityItemPayload(raw: unknown): ActivityItemPayload | null {
   const o = asRecord(raw);
-  if (!o || typeof o.itemKey !== 'string' || !o.itemKey.trim()) return null;
+  if (!o) return null;
   if (typeof o.email === 'string' || typeof o.emailHash === 'string') return null;
+  if (!('goingNames' in o) && !('envieNames' in o) && !('itemKey' in o)) return null;
   const goingNames = Array.isArray(o.goingNames)
     ? o.goingNames.filter((n): n is string => typeof n === 'string' && Boolean(n.trim()))
     : undefined;
   const envieNames = Array.isArray(o.envieNames)
     ? o.envieNames.filter((n): n is string => typeof n === 'string' && Boolean(n.trim()))
     : undefined;
-  const payload: ActivityItemPayload = { itemKey: o.itemKey };
+  const payload: ActivityItemPayload = {};
+  if (typeof o.itemKey === 'string' && o.itemKey.trim()) payload.itemKey = o.itemKey;
   if (goingNames && goingNames.length) payload.goingNames = goingNames;
   if (envieNames && envieNames.length) payload.envieNames = envieNames;
   return payload;
+}
+
+export function parseActivitySeenPayload(raw: unknown): ActivitySeenPayload | null {
+  const o = asRecord(raw);
+  if (!o) return null;
+  const unreadCount =
+    typeof o.unreadCount === 'number' && Number.isFinite(o.unreadCount)
+      ? Math.max(0, Math.floor(o.unreadCount))
+      : null;
+  if (unreadCount == null) return null;
+  return { ok: o.ok !== false, unreadCount };
 }
 
 function rsvpToEvent(r: ShareRsvpRecord): ActivityEvent {
@@ -346,50 +470,43 @@ export function buildActivityItemPayload(
   return payload;
 }
 
+/** 1 token = 1 inbox row (MVP). Unread / deltas from lastSeen of that token. */
 export function buildActivityListItems(opts: {
   tokens: readonly ActivityTokenRef[];
   rsvpsByToken: ReadonlyMap<string, readonly ShareRsvpRecord[]>;
-  groupKeyOf?: (itemKey: string) => string;
+  lastSeenForToken?: (token: string) => string | null;
   limit?: number;
 }): ActivityListItem[] {
-  const groups = new Map<
-    string,
-    { tokens: ActivityTokenRef[]; rsvps: ShareRsvpRecord[] }
-  >();
-  for (const token of opts.tokens) {
-    const groupKey = (opts.groupKeyOf?.(token.itemKey) || token.itemKey).trim();
-    if (!groupKey) continue;
-    const bucket = groups.get(groupKey) ?? { tokens: [], rsvps: [] };
-    bucket.tokens.push(token);
-    bucket.rsvps.push(...(opts.rsvpsByToken.get(token.token) ?? []));
-    groups.set(groupKey, bucket);
-  }
-
   const items: ActivityListItem[] = [];
-  for (const [groupKey, bucket] of groups) {
-    const events = activityEventsFromRsvps(bucket.rsvps);
-    const counts = motherStatsFromRsvps(bucket.rsvps);
-    const latestEvent = events[0];
-    const latestToken =
-      bucket.tokens.find((t) => t.token === latestEvent?.token) ??
-      [...bucket.tokens].sort(
-        (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt),
-      )[0];
-    if (!latestToken) continue;
+  for (const token of opts.tokens) {
+    const rsvps = opts.rsvpsByToken.get(token.token) ?? [];
+    const events = activityEventsFromRsvps(rsvps).slice(0, 10);
+    const counts = motherStatsFromRsvps(rsvps);
+    const seen = opts.lastSeenForToken?.(token.token) ?? null;
+    const unreadEvents = events.filter((e) => eventIsUnread(e.ts, seen));
+    const deltaGoing = unreadEvents.filter((e) => e.kind === 'going').length;
+    const deltaEnvie = unreadEvents.filter((e) => e.kind === 'envie').length;
+    const head = events[0];
     items.push({
-      itemKey: latestToken.itemKey || groupKey,
-      token: latestToken.token,
-      seanceKey: latestToken.seanceKey ?? null,
-      createdAt: latestToken.createdAt,
+      token: token.token,
+      itemKey: token.itemKey,
+      seanceKey: token.seanceKey ?? null,
+      createdAt: token.createdAt,
       envie: counts.envie,
       going: counts.going,
+      unread: unreadEvents.length > 0,
+      deltaGoing,
+      deltaEnvie,
+      latest: head
+        ? { firstName: head.firstName, kind: head.kind, ts: head.ts }
+        : null,
       events,
     });
   }
 
   items.sort((a, b) => {
-    const aTs = Date.parse(a.events[0]?.ts || a.createdAt || '') || 0;
-    const bTs = Date.parse(b.events[0]?.ts || b.createdAt || '') || 0;
+    const aTs = Date.parse(a.latest?.ts || a.createdAt || '') || 0;
+    const bTs = Date.parse(b.latest?.ts || b.createdAt || '') || 0;
     if (bTs !== aTs) return bTs - aTs;
     return (Date.parse(b.createdAt || '') || 0) - (Date.parse(a.createdAt || '') || 0);
   });
@@ -398,7 +515,8 @@ export function buildActivityListItems(opts: {
 }
 
 export function omitEmptyNameFields(payload: ActivityItemPayload): ActivityItemPayload {
-  const next: ActivityItemPayload = { itemKey: payload.itemKey };
+  const next: ActivityItemPayload = {};
+  if (payload.itemKey) next.itemKey = payload.itemKey;
   if (payload.goingNames?.length) next.goingNames = payload.goingNames;
   if (payload.envieNames?.length) next.envieNames = payload.envieNames;
   return next;
