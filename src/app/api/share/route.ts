@@ -20,6 +20,7 @@ import {
   logShareOrphan,
   readShareToken,
   recordShareVisit,
+  seedSharerEnvie,
   toggleShareRsvp,
 } from '@/lib/shareStore';
 import {
@@ -105,13 +106,25 @@ export async function POST(req: Request) {
     if (await isShareCreateRateLimited({ ip, email: sharerEmail })) {
       return jsonError('Too many requests', 429);
     }
+    const firstName = firstNameFromDisplayName(
+      typeof session?.user?.name === 'string' ? session.user.name : '',
+    );
     const created = await createShareToken({
       itemKey,
       seanceKey,
       sharerEmail,
       origin: requestOrigin(req),
+      firstName,
     });
     if (!created) return jsonError('Création impossible', 500);
+    if (sharerEmail) {
+      await seedSharerEnvie({
+        token: created.token,
+        itemKey,
+        email: sharerEmail,
+        firstName,
+      });
+    }
 
     if (session?.user) {
       const tasteState = await ingestAccountItemSignal({

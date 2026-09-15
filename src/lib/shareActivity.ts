@@ -517,12 +517,17 @@ export function buildActivityListItems(opts: {
   tokens: readonly ActivityTokenRef[];
   rsvpsByToken: ReadonlyMap<string, readonly ShareRsvpRecord[]>;
   lastSeenForToken?: (token: string) => string | null;
+  /** Sharer self-RSVP is never unread / latest / delta. Counts still include it. */
+  ignoreEmailHash?: string | null;
   limit?: number;
 }): ActivityListItem[] {
   const items: ActivityListItem[] = [];
   for (const token of opts.tokens) {
     const rsvps = opts.rsvpsByToken.get(token.token) ?? [];
-    const events = activityEventsFromRsvps(rsvps).slice(0, 10);
+    const others = opts.ignoreEmailHash
+      ? rsvps.filter((r) => r.emailHash !== opts.ignoreEmailHash)
+      : rsvps;
+    const events = activityEventsFromRsvps(others).slice(0, 10);
     const counts = motherStatsFromRsvps(rsvps);
     const seen = opts.lastSeenForToken?.(token.token) ?? null;
     const unreadEvents = events.filter((e) => eventIsUnread(e.ts, seen));

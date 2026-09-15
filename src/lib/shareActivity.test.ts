@@ -33,8 +33,10 @@ import {
 } from './shareActivityClient';
 import {
   createShareToken,
+  emailHash,
   forgetActivitySeenMemoryForTests,
   guestActivityTeaserCount,
+  listTokenRsvps,
   markSharerActivitySeen,
   recordShareVisit,
   resetShareStoreForTests,
@@ -470,6 +472,60 @@ describe('B3b activity store', () => {
     assert.equal(inbox.unreadCount, 1);
   });
 
+  it('AE5 Alice create only → inbox unreadCount 0 (self excluded)', async () => {
+    const created = await createShareToken({
+      itemKey: 'p:P1847',
+      sharerEmail: 'alice@example.com',
+      firstName: 'Alice Martin',
+      origin: 'https://cc.test',
+    });
+    assert.ok(created);
+    const seeded = await listTokenRsvps(created.token);
+    assert.equal(seeded.length, 1);
+    assert.equal(seeded[0]?.kind, 'envie');
+    assert.equal(seeded[0]?.emailHash, emailHash('alice@example.com'));
+
+    const afterShare = await sharerActivityInbox({
+      email: 'alice@example.com',
+      ...upcomingDate,
+    });
+    assert.equal(afterShare.items.length, 1);
+    assert.equal(afterShare.items[0]?.token, created.token);
+    assert.equal(afterShare.items[0]?.envie, 1);
+    assert.equal(afterShare.unreadCount, 0);
+    assert.equal(afterShare.items[0]?.unread, false);
+    assert.equal(afterShare.items[0]?.deltaEnvie, 0);
+    assert.equal(afterShare.items[0]?.deltaGoing, 0);
+    assert.equal(afterShare.items[0]?.latest, null);
+  });
+
+  it('AE6 Alice create then Bob envie → unread + delta + Bob', async () => {
+    const created = await createShareToken({
+      itemKey: 'p:P1847',
+      sharerEmail: 'alice@example.com',
+      firstName: 'Alice Martin',
+      origin: 'https://cc.test',
+    });
+    assert.ok(created);
+    await toggleShareRsvp({
+      token: created.token,
+      itemKey: 'p:P1847',
+      workId: 'p:P1847',
+      emailHash: emailHash('bob@example.com'),
+      firstName: 'Bob',
+      kind: 'envie',
+    });
+    const afterBob = await sharerActivityInbox({
+      email: 'alice@example.com',
+      ...upcomingDate,
+    });
+    assert.ok(afterBob.unreadCount >= 1);
+    assert.equal(afterBob.items[0]?.unread, true);
+    assert.equal(afterBob.items[0]?.deltaEnvie, 1);
+    assert.equal(afterBob.items[0]?.latest?.firstName, 'Bob');
+    assert.equal(afterBob.items[0]?.envie, 2);
+  });
+
   it('does not invent RSVP rows when the sharer has no tokens', async () => {
     const empty = await sharerActivityInbox({
       email: 'nobody@example.com',
@@ -638,6 +694,7 @@ describe('B3b activity source contract', () => {
     );
     assert.equal(seenLib.includes('state.tokens[token] || state.global'), false);
     assert.match(seenLib, /tokenMs >= globalMs/);
+    assert.match(seenLib, /ignoreEmailHash/);
 
     const store = await readFile(new URL('./shareStore.ts', import.meta.url), 'utf8');
     assert.match(store, /share_activity_seen/);
@@ -719,6 +776,7 @@ describe('P1 cloche inbox cold path + meta paint', () => {
     const inboxFn = store.slice(store.indexOf('export async function sharerActivityInbox'));
     assert.match(inboxFn, /listTokenRsvpsMany/);
     assert.match(inboxFn, /dateByKey/);
+    assert.match(inboxFn, /ignoreEmailHash/);
     assert.equal(inboxFn.includes('queryAgendaDetail'), false);
 
     const route = await readFile(
