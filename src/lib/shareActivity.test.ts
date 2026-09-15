@@ -405,7 +405,7 @@ describe('B3b activity store', () => {
     await markSharerActivitySeen({
       email: 'alice@example.com',
       scope: 'all',
-      now: new Date('2026-09-15T18:00:00.000Z'),
+      now: new Date('2099-12-31T00:00:00.000Z'),
       ...upcomingDate,
     });
     const after = await sharerActivityInbox({
@@ -413,7 +413,7 @@ describe('B3b activity store', () => {
       ...upcomingDate,
     });
     assert.equal(after.unreadCount, 0);
-    assert.equal(after.lastSeenAt, '2026-09-15T18:00:00.000Z');
+    assert.equal(after.lastSeenAt, '2099-12-31T00:00:00.000Z');
   });
 
   it('drops past and dateless tokens from inbox and unreadCount', async () => {
