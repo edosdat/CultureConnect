@@ -9,7 +9,6 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import dynamic from 'next/dynamic';
 import { SessionProvider } from 'next-auth/react';
 import SignalsProvider from './SignalsProvider';
 import ShareVisitProvider from './ShareVisitProvider';
@@ -20,10 +19,6 @@ import {
   requestCloseTastes,
   requestOpenTastes,
 } from './tastesUiEvents';
-
-const FirstLoginModal = dynamic(() => import('./FirstLoginModal'), {
-  ssr: false,
-});
 
 export {
   CLOSE_TASTES_EVENT,
@@ -93,7 +88,6 @@ export default function Providers({ children, googleAuthEnabled }: Props) {
           <FavoritesProvider>
             <TastesUiContext.Provider value={value}>
               {children}
-              <FirstLoginModal />
             </TastesUiContext.Provider>
           </FavoritesProvider>
         </ShareVisitProvider>

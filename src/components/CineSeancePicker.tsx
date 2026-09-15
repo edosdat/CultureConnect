@@ -3,9 +3,8 @@
 import { useEffect, useState } from 'react';
 import type { DayItem } from '@/lib/types';
 import type { GeoPos } from '@/lib/nearMe';
-import { reservePickOf } from '@/lib/reserve';
-import { useSignals } from './SignalsProvider';
 import { useShareVisit } from './ShareVisitProvider';
+import EventCtaRow from './EventCtaRow';
 import {
   cinemaOptionLabel,
   cineDistanceOrigin,
@@ -18,50 +17,14 @@ import {
   seancesAtCinema,
 } from '@/lib/cineSeances';
 
-function SeanceReserveLink({
-  item,
-  onReserve,
-  tagSource,
-}: {
-  item: DayItem;
-  onReserve?: (item: DayItem) => void;
-  tagSource?: DayItem | null;
-}) {
-  const { trackItem } = useSignals();
-  const pick = reservePickOf(item);
-  if (pick.soldOut) {
-    return (
-      <span
-        aria-disabled="true"
-        className="pointer-events-none inline-flex h-11 shrink-0 cursor-default items-center whitespace-nowrap rounded-full border border-culture-line bg-culture-cream px-3 text-sm font-medium text-culture-muted"
-      >
-        Sold out
-      </span>
-    );
-  }
-  if (!pick.url) return null;
-  return (
-    <a
-      href={pick.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={() => {
-        trackItem(item, 'outbound_click', tagSource);
-        onReserve?.(item);
-      }}
-      className="inline-flex h-11 shrink-0 items-center whitespace-nowrap rounded-full bg-culture-terracotta px-3 text-sm font-semibold text-white hover:bg-culture-clay sm:px-4"
-    >
-      Réserver
-    </a>
-  );
-}
-
 type PickerProps = {
   seances: DayItem[];
   active: DayItem;
   origin: GeoPos | null;
   onPick: (key: string) => void;
   onReserve?: (item: DayItem) => void;
+  onAgenda?: (item: DayItem) => void;
+  onIcs?: (item: DayItem) => void;
   tagSource?: DayItem | null;
 };
 
@@ -72,6 +35,8 @@ export default function CineSeancePicker({
   origin,
   onPick,
   onReserve,
+  onAgenda,
+  onIcs,
   tagSource,
 }: PickerProps) {
   const kmOrigin = cineDistanceOrigin(origin);
@@ -95,28 +60,28 @@ export default function CineSeancePicker({
           <span className="truncate text-xs text-culture-muted">{meta}</span>
         ) : null}
       </div>
-      <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-        <select
-          value={cinemaValue}
-          onChange={(e) => {
-            const next = seancesAtCinema(seances, e.target.value)[0];
-            if (next) onPick(next.key);
-          }}
-          aria-label="Choisir un cinéma"
-          className="h-11 w-full min-w-0 rounded-lg border border-culture-line bg-culture-surface px-2.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta sm:flex-1 sm:basis-28"
-        >
-          {groups.map((g) => (
-            <option key={g.lieuId} value={g.lieuId}>
-              {cinemaOptionLabel(g)}
-            </option>
-          ))}
-        </select>
-        <div className="flex w-full min-w-0 items-center gap-2 sm:flex-1 sm:basis-36">
+      <div className="mt-1 flex flex-col gap-2">
+        <div className="grid w-full grid-cols-2 gap-2">
+          <select
+            value={cinemaValue}
+            onChange={(e) => {
+              const next = seancesAtCinema(seances, e.target.value)[0];
+              if (next) onPick(next.key);
+            }}
+            aria-label="Choisir un cinéma"
+            className="h-10 w-full min-w-0 rounded-lg border border-culture-line bg-culture-surface px-2.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
+          >
+            {groups.map((g) => (
+              <option key={g.lieuId} value={g.lieuId}>
+                {cinemaOptionLabel(g)}
+              </option>
+            ))}
+          </select>
           <select
             value={timeValue}
             onChange={(e) => onPick(e.target.value)}
             aria-label="Choisir un horaire"
-            className="h-11 min-w-0 flex-1 rounded-lg border border-culture-line bg-culture-surface px-2.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
+            className="h-10 w-full min-w-0 rounded-lg border border-culture-line bg-culture-surface px-2.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
           >
             {horaireRows.map((rel) => (
               <option
@@ -129,12 +94,15 @@ export default function CineSeancePicker({
               </option>
             ))}
           </select>
-          <SeanceReserveLink
-            item={active}
-            onReserve={onReserve}
-            tagSource={tagSource}
-          />
         </div>
+        <EventCtaRow
+          item={active}
+          seanceKey={active.key}
+          onReserve={onReserve}
+          onAgenda={onAgenda}
+          onIcs={onIcs}
+          tagSource={tagSource}
+        />
       </div>
     </div>
   );
@@ -145,6 +113,8 @@ export function CineFilmSeances({
   items,
   origin = null,
   onReserve,
+  onAgenda,
+  onIcs,
   onActiveChange,
   tagSource,
   initialSeanceKey = null,
@@ -152,6 +122,8 @@ export function CineFilmSeances({
   items: DayItem[];
   origin?: GeoPos | null;
   onReserve?: (item: DayItem) => void;
+  onAgenda?: (item: DayItem) => void;
+  onIcs?: (item: DayItem) => void;
   onActiveChange?: (item: DayItem) => void;
   tagSource?: DayItem | null;
   /** B3 shared token séance — same `DayItem.key` as the horaire `<select>`. */
@@ -178,6 +150,8 @@ export function CineFilmSeances({
       origin={origin}
       onPick={setPickedKey}
       onReserve={onReserve}
+      onAgenda={onAgenda}
+      onIcs={onIcs}
       tagSource={tagSource}
     />
   );

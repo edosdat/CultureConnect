@@ -25,10 +25,13 @@ import {
 import {
   fetchActivityInbox,
   fetchActivityItem,
+  fetchGuestTeaserCount,
   markActivitySeen,
 } from './shareActivityClient';
 import {
   createShareToken,
+  guestActivityTeaserCount,
+  recordShareVisit,
   resetShareStoreForTests,
   sharerActivityInbox,
   sharerActivityItem,
@@ -155,6 +158,7 @@ describe('B3b activity copy', () => {
       assert.equal(inbox.lastSeenAt, null);
       assert.equal(inbox.unreadCount, 0);
       assert.equal(await fetchActivityItem('p:P1847'), null);
+      assert.equal(await fetchGuestTeaserCount(['abcd1234']), 0);
       const seen = await markActivitySeen({ scope: 'all' });
       assert.equal(seen.unreadCount, 0);
     } finally {
@@ -237,6 +241,55 @@ describe('B3b activity store', () => {
     const payload = buildActivityItemPayload('p:P1', []);
     assert.deepEqual(payload, { itemKey: 'p:P1' });
   });
+
+  it('guest teaser count is unique emailHash, 0 names, ignores opens', async () => {
+    const created = await createShareToken({
+      itemKey: 'p:P1847',
+      sharerEmail: null,
+      origin: 'https://cc.test',
+    });
+    assert.ok(created);
+    assert.equal(await guestActivityTeaserCount([created.token]), 0);
+    await recordShareVisit({
+      token: created.token,
+      visit: { ts: '2026-09-15T09:00:00.000Z', token: created.token, vid: 'vid-open' },
+    });
+    assert.equal(await guestActivityTeaserCount([created.token]), 0);
+    await toggleShareRsvp({
+      token: created.token,
+      itemKey: 'p:P1847',
+      workId: 'p:P1847',
+      emailHash: 'bob-hash',
+      firstName: 'Bob',
+      kind: 'going',
+    });
+    assert.equal(await guestActivityTeaserCount([created.token]), 1);
+    await toggleShareRsvp({
+      token: created.token,
+      itemKey: 'p:P1847',
+      workId: 'p:P1847',
+      emailHash: 'cam-hash',
+      firstName: 'Camille',
+      kind: 'envie',
+    });
+    assert.equal(await guestActivityTeaserCount([created.token]), 2);
+    await toggleShareRsvp({
+      token: created.token,
+      itemKey: 'p:P1847',
+      workId: 'p:P1847',
+      emailHash: 'bob-hash',
+      firstName: 'Bob',
+      kind: 'envie',
+    });
+    assert.equal(await guestActivityTeaserCount([created.token]), 2);
+    assert.equal(
+      await guestActivityTeaserCount(
+        [created.token],
+        '2099-01-01T00:00:00.000Z',
+      ),
+      0,
+    );
+  });
 });
 
 describe('B3b activity source contract', () => {
@@ -271,6 +324,8 @@ describe('B3b activity source contract', () => {
     );
     assert.match(client, /\/api\/share\/activity/);
     assert.match(client, /\/api\/share\/activity\/item/);
+    assert.match(client, /\/api\/share\/activity\/teaser/);
+    assert.match(client, /fetchGuestTeaserCount/);
     assert.match(client, /status === 404/);
     assert.match(client, /emptyActivityInbox/);
     assert.match(client, /lastSeenAt/);
@@ -278,12 +333,24 @@ describe('B3b activity source contract', () => {
     assert.match(client, /scope/);
     assert.equal(client.includes('ingestAccountItemSignal'), false);
 
+    const teaserRoute = await readFile(
+      new URL('../app/api/share/activity/teaser/route.ts', import.meta.url),
+      'utf8',
+    );
+    assert.match(teaserRoute, /guestActivityTeaserCount/);
+    assert.match(teaserRoute, /\{ count \}/);
+    assert.match(teaserRoute, /TOKEN_CAP = 20/);
+    assert.equal(teaserRoute.includes('firstName'), false);
+    assert.equal(teaserRoute.includes('envieNames'), false);
+    assert.equal(teaserRoute.includes('goingNames'), false);
+
     const auth = await readFile(
       new URL('../components/AuthButtons.tsx', import.meta.url),
       'utf8',
     );
     assert.match(auth, /<ActivityInbox \/>/);
     assert.equal(auth.split('<ActivityInbox').length - 1, 1);
+    assert.match(auth, /<GuestTeaserBell \/>/);
     const guestUi = auth.slice(auth.indexOf('data-account-control="login"'));
     assert.equal(guestUi.includes('ActivityInbox'), false);
 

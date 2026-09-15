@@ -81,6 +81,7 @@ import SearchOmnibox from './SearchOmnibox';
 import ListWaitDots, { HomeListWaitSlot } from './ListWaitDots';
 import Top3GuestCta from './Top3GuestCta';
 import HomeSection from './HomeSection';
+import HomeAccroche from './HomeAccroche';
 
 const EventDetail = dynamic(() => import('./EventDetail'), { ssr: false });
 const MonthCalendar = dynamic(() => import('./MonthCalendar'), { ssr: false });
@@ -2092,7 +2093,7 @@ export default function CultureConnectApp({
 
   return (
     <div className="mx-auto max-w-7xl min-w-0 overflow-x-hidden px-4 pb-16 pt-3 sm:px-6 sm:pt-6">
-      <h1 className="sr-only">Agenda CultureConnect</h1>
+      <HomeAccroche />
 
       {/* Heights: keep HomeBootChrome + HomeListWaitSlot in sync (LAYOUT_JUMP). */}
       <div className="sticky top-0 z-20 -mx-4 mb-2 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-1.5 backdrop-blur sm:-mx-6 sm:px-6">

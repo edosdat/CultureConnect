@@ -28,6 +28,8 @@ import {
   resolveSearchSubmit,
   SEARCH_EXAMPLES,
   SEARCH_PLACEHOLDER,
+  HOME_ACCROCHE_H1,
+  HOME_ACCROCHE_H2,
   searchExampleIsVivant,
   searchExamplesVisible,
   shouldInvalidateProfileRecoCache,
@@ -1401,6 +1403,13 @@ describe('Top 3 mobile carousel (<md)', () => {
     assert.ok(TOP3_RAIL_IMAGE_CLASS.includes('object-cover'));
     assert.ok(TOP3_RAIL_IMAGE_CLASS.includes('object-top'));
     assert.equal(TOP3_RAIL_IMAGE_CLASS.includes('absolute'), false);
+  });
+
+  it('locks S2 home accroche (typographic apostrophe)', () => {
+    assert.equal(HOME_ACCROCHE_H1, 'L’agenda culturel de Toulouse.');
+    assert.equal(HOME_ACCROCHE_H2, 'Partagez une sortie — voyez qui vient.');
+    assert.equal(HOME_ACCROCHE_H1.includes("'"), false);
+    assert.equal(/Je cherche/.test(HOME_ACCROCHE_H1), false);
   });
 
   it('uses the same H2 type + scale as pack titles (Ciné)', () => {

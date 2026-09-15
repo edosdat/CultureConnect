@@ -767,6 +767,33 @@ export async function toggleShareRsvp(opts: {
   return { kind: nextKind, rsvps: next };
 }
 
+/**
+ * Guest teaser: unique emailHash with envie|going. No names, no kind split.
+ * Opens / visits do not count. Optional `since` keeps only RSVP ts > since.
+ */
+export async function guestActivityTeaserCount(
+  tokens: readonly string[],
+  since?: string | null,
+): Promise<number> {
+  const hashes = new Set<string>();
+  const seenTok = new Set<string>();
+  const sinceMs = since ? Date.parse(since) : Number.NaN;
+  for (const raw of tokens) {
+    if (!isShareToken(raw) || seenTok.has(raw)) continue;
+    seenTok.add(raw);
+    const rec = await readShareToken(raw);
+    if (!rec) continue;
+    const rsvps = await listTokenRsvps(raw);
+    for (const r of rsvps) {
+      if (r.kind !== 'envie' && r.kind !== 'going') continue;
+      if (!r.emailHash) continue;
+      if (Number.isFinite(sinceMs) && Date.parse(r.ts) <= sinceMs) continue;
+      hashes.add(r.emailHash);
+    }
+  }
+  return hashes.size;
+}
+
 export async function tokenSocialPayload(opts: {
   token: string;
   viewerEmailHash: string | null;

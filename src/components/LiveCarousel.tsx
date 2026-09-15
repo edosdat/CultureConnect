@@ -8,7 +8,6 @@ import { itemKmLabel, minKmLabel, type GeoPos } from '@/lib/nearMe';
 import EventImage from './EventImage';
 import VisualFallback from './VisualFallback';
 import CategoryBadge from './CategoryBadge';
-import FavoriteButton from './FavoriteButton';
 import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 import PressBadge from './PressBadge';
 
@@ -82,9 +81,6 @@ export default function LiveCarousel({
                     <p className="text-xs font-medium text-culture-terracotta">
                       {when}
                     </p>
-                    <span onClick={(e) => e.stopPropagation()}>
-                      <FavoriteButton item={item} className="h-9 w-9" />
-                    </span>
                   </div>
                   <h3 className="font-display text-xl leading-snug text-culture-ink line-clamp-2">
                     {itemTitle(item)}
