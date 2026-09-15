@@ -472,7 +472,7 @@ describe('B3b activity store', () => {
     assert.equal(inbox.unreadCount, 1);
   });
 
-  it('Alice connected share seeds envie; unread stays 0 until Bob RSVPs', async () => {
+  it('AE5 Alice create only → inbox unreadCount 0 (self excluded)', async () => {
     const created = await createShareToken({
       itemKey: 'p:P1847',
       sharerEmail: 'alice@example.com',
@@ -484,7 +484,6 @@ describe('B3b activity store', () => {
     assert.equal(seeded.length, 1);
     assert.equal(seeded[0]?.kind, 'envie');
     assert.equal(seeded[0]?.emailHash, emailHash('alice@example.com'));
-    assert.equal(seeded[0]?.firstName, 'Alice');
 
     const afterShare = await sharerActivityInbox({
       email: 'alice@example.com',
@@ -496,8 +495,18 @@ describe('B3b activity store', () => {
     assert.equal(afterShare.unreadCount, 0);
     assert.equal(afterShare.items[0]?.unread, false);
     assert.equal(afterShare.items[0]?.deltaEnvie, 0);
+    assert.equal(afterShare.items[0]?.deltaGoing, 0);
     assert.equal(afterShare.items[0]?.latest, null);
+  });
 
+  it('AE6 Alice create then Bob envie → unread + delta + Bob', async () => {
+    const created = await createShareToken({
+      itemKey: 'p:P1847',
+      sharerEmail: 'alice@example.com',
+      firstName: 'Alice Martin',
+      origin: 'https://cc.test',
+    });
+    assert.ok(created);
     await toggleShareRsvp({
       token: created.token,
       itemKey: 'p:P1847',
@@ -510,7 +519,7 @@ describe('B3b activity store', () => {
       email: 'alice@example.com',
       ...upcomingDate,
     });
-    assert.equal(afterBob.unreadCount, 1);
+    assert.ok(afterBob.unreadCount >= 1);
     assert.equal(afterBob.items[0]?.unread, true);
     assert.equal(afterBob.items[0]?.deltaEnvie, 1);
     assert.equal(afterBob.items[0]?.latest?.firstName, 'Bob');

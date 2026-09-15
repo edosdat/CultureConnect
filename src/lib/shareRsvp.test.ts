@@ -371,50 +371,36 @@ describe('B3b mother counts + no vid↔name', () => {
   });
 });
 
-describe('connected share auto-Envie', () => {
+describe('connected share auto-Envie — AE1–AE8', () => {
   beforeEach(() => {
     resetShareStoreForTests();
   });
 
-  it('Alice share seeds one envie RSVP; guest share seeds none; re-seed upserts', async () => {
-    const alice = await createShareToken({
+  async function aliceCreate(firstName = 'Alice Martin') {
+    return createShareToken({
       itemKey: 'p:P1847',
       sharerEmail: 'alice@example.com',
-      firstName: 'Alice Martin',
+      firstName,
       origin: 'https://app.example',
     });
+  }
+
+  it('AE1 Alice session → create seeds one envie RSVP', async () => {
+    const alice = await aliceCreate();
     assert.ok(alice);
     const rsvps = await listTokenRsvps(alice.token);
     assert.equal(rsvps.length, 1);
     assert.equal(rsvps[0]?.kind, 'envie');
     assert.equal(rsvps[0]?.emailHash, emailHash('alice@example.com'));
-    assert.equal(rsvps[0]?.firstName, 'Alice');
+    assert.equal(rsvps[0]?.firstName, firstNameFromDisplayName('Alice Martin'));
     assert.equal(rsvps[0]?.token, alice.token);
     assert.equal('vid' in (rsvps[0] || {}), false);
-
-    const again = await seedSharerEnvie({
-      token: alice.token,
-      itemKey: 'p:P1847',
-      email: 'alice@example.com',
-      firstName: 'Alice Martin',
-    });
-    assert.equal(again.kind, 'envie');
-    assert.equal(again.rsvps.length, 1);
-    assert.equal((await listTokenRsvps(alice.token)).length, 1);
-
-    const social = await tokenSocialPayload({
-      token: alice.token,
-      viewerEmailHash: emailHash('alice@example.com'),
-    });
-    assert.equal(social?.inCircle, true);
-    if (!social?.inCircle) throw new Error('expected circle');
-    assert.deepEqual(social.envieNames, ['Alice']);
-    assert.equal(social.mine, 'envie');
-
     const stats = await eventRsvpStats({ itemKey: 'p:P1847', workId: 'p:P1847' });
     assert.equal(stats.envie, 1);
     assert.equal(stats.going, 0);
+  });
 
+  it('AE2 guest create seeds 0 RSVP', async () => {
     const guest = await createShareToken({
       itemKey: 'p:P1847',
       sharerEmail: null,
@@ -424,6 +410,84 @@ describe('connected share auto-Envie', () => {
     assert.ok(guest);
     assert.equal(memoryRsvpCount(guest.token), 0);
     assert.equal((await listTokenRsvps(guest.token)).length, 0);
+  });
+
+  it('AE3 Alice create ×2 / re-seed does not duplicate', async () => {
+    const first = await aliceCreate();
+    const second = await aliceCreate();
+    assert.ok(first && second);
+    assert.notEqual(first.token, second.token);
+    assert.equal((await listTokenRsvps(first.token)).length, 1);
+    assert.equal((await listTokenRsvps(second.token)).length, 1);
+    const again = await seedSharerEnvie({
+      token: first.token,
+      itemKey: 'p:P1847',
+      email: 'alice@example.com',
+      firstName: 'Alice Martin',
+    });
+    assert.equal(again.kind, 'envie');
+    assert.equal(again.rsvps.length, 1);
+    assert.equal(
+      again.rsvps.filter((r) => r.emailHash === emailHash('alice@example.com')).length,
+      1,
+    );
+  });
+
+  it('AE4 already going then re-seed does not downgrade', async () => {
+    const alice = await aliceCreate();
+    assert.ok(alice);
+    const going = await toggleShareRsvp({
+      token: alice.token,
+      itemKey: 'p:P1847',
+      workId: 'p:P1847',
+      emailHash: emailHash('alice@example.com'),
+      firstName: 'Alice',
+      kind: 'going',
+    });
+    assert.equal(going.kind, 'going');
+    const seeded = await seedSharerEnvie({
+      token: alice.token,
+      itemKey: 'p:P1847',
+      email: 'alice@example.com',
+      firstName: 'Alice Martin',
+    });
+    assert.equal(seeded.kind, 'going');
+    const rsvps = await listTokenRsvps(alice.token);
+    assert.equal(rsvps.length, 1);
+    assert.equal(rsvps[0]?.kind, 'going');
+  });
+
+  it('AE7 connected create does not add a Matching A kind besides share', async () => {
+    const route = await readFile(
+      new URL('../app/api/share/route.ts', import.meta.url),
+      'utf8',
+    );
+    const createdHandler = route.slice(
+      route.indexOf("incoming.kind === 'created'"),
+      route.indexOf("incoming.kind === 'visit'"),
+    );
+    assert.match(createdHandler, /trackPayloadForItemKey\(itemKey, 'share'\)/);
+    assert.equal(createdHandler.includes('open_shared'), false);
+    assert.equal(createdHandler.includes("'envie'"), false);
+    assert.equal(createdHandler.includes("'going'"), false);
+    const store = await readFile(new URL('./shareStore.ts', import.meta.url), 'utf8');
+    const seedFn = store.slice(store.indexOf('export async function seedSharerEnvie'));
+    assert.equal(seedFn.includes('ingestAccountItemSignal'), false);
+    const ingest = await readFile(new URL('./shareIngest.ts', import.meta.url), 'utf8');
+    assert.equal(/envie|going/.test(ingest), false);
+  });
+
+  it('AE8 daughter social fetch has mine=envie after connected share', async () => {
+    const alice = await aliceCreate();
+    assert.ok(alice);
+    const social = await tokenSocialPayload({
+      token: alice.token,
+      viewerEmailHash: emailHash('alice@example.com'),
+    });
+    assert.equal(social?.inCircle, true);
+    if (!social?.inCircle) throw new Error('expected circle');
+    assert.equal(social.mine, 'envie');
+    assert.deepEqual(social.envieNames, ['Alice']);
   });
 });
 
@@ -439,7 +503,13 @@ describe('B3b source contract', () => {
     );
     assert.match(createdHandler, /createShareToken/);
     assert.match(createdHandler, /firstNameFromDisplayName/);
+    assert.match(createdHandler, /session\?\.user\?\.name/);
+    assert.match(createdHandler, /seedSharerEnvie/);
     assert.equal(createdHandler.includes('toggleShareRsvp'), false);
+    assert.match(createdHandler, /trackPayloadForItemKey\(itemKey, 'share'\)/);
+    assert.equal(createdHandler.includes("'envie'"), false);
+    assert.equal(createdHandler.includes("'going'"), false);
+    assert.match(createdHandler, /NextResponse\.json\(created\)/);
     const rsvpHandler = route.slice(route.lastIndexOf('isRsvpKind(incoming.kind)'));
     assert.match(route, /isRsvpKind\(incoming\.kind\)/);
     assert.match(route, /RSVP_LOGIN_ERROR/);
@@ -485,6 +555,8 @@ describe('B3b source contract', () => {
     assert.match(ui, /visibleMotherStats/);
     assert.match(ui, /setStats\(null\)/);
     assert.match(ui, /key=\{item\.key\}/);
+    assert.match(ui, /setMine\(data\.inCircle \? data\.mine : null\)/);
+    assert.match(ui, /aria-pressed=\{mine === 'envie'\}/);
     assert.equal(ui.includes('rounded-2xl bg-culture-sand'), false);
     assert.equal(/intéress/i.test(ui), false);
 

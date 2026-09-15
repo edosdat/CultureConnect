@@ -969,7 +969,7 @@ export async function upsertShareRsvp(opts: {
 
 /**
  * Connected share seed: one `envie` for the sharer on this token.
- * Idempotent — existing row (envie or going) is left as-is.
+ * Idempotent — already `envie` is a no-op; already `going` is not downgraded.
  */
 export async function seedSharerEnvie(opts: {
   token: string;
