@@ -425,6 +425,7 @@ describe('B3b source contract', () => {
     assert.ok(firstSocial > 0 && cine > 0 && firstSocial < cine);
     assert.ok(seancesHeading > 0 && firstSocial < seancesHeading);
     assert.ok(lastSocial > 0 && lastSocial < lastFavorite);
+    assert.match(detail, /key=\{item\.key\}/);
     assert.match(detail, /cineMeta/);
     assert.match(detail, /seanceWhenShort/);
 
@@ -437,6 +438,25 @@ describe('B3b source contract', () => {
     assert.ok(carouselSocial > 0 && carouselPicker > 0 && carouselSocial < carouselPicker);
     assert.match(carousel, /token=\{null\}/);
     assert.match(carousel, /key=\{active\.key\}/);
+    assert.match(carousel, /data-carousel-hero/);
+    // Home pack heroes are the only agenda/rail chrome that render the
+    // anonymous mother counter. List/rail SeanceCards do not.
+    const seanceCard = await readFile(
+      new URL('../components/SeanceCard.tsx', import.meta.url),
+      'utf8',
+    );
+    const live = await readFile(
+      new URL('../components/LiveCarousel.tsx', import.meta.url),
+      'utf8',
+    );
+    const grid = await readFile(
+      new URL('../components/SeanceGrid.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.equal(seanceCard.includes('ShareSocial'), false);
+    assert.equal(seanceCard.includes('share-rsvp-mother'), false);
+    assert.equal(live.includes('ShareSocial'), false);
+    assert.equal(grid.includes('ShareSocial'), false);
 
     const conf = await readFile(
       new URL('../app/confidentialite/page.tsx', import.meta.url),
