@@ -156,13 +156,14 @@ export function seanceWhenShort(item: DayItem, earliestHeure?: string): string {
 export const SEARCH_PLACEHOLDER =
   'Je veux écouter du jazz ce week-end au centre-ville';
 
-/** S2 LOCK Eloi/Manager — was the H2. Typographic apostrophe. */
+/** S2 H1 LOCK (mock s2-header-accroche-380). Typographic apostrophe, no period. */
 export const HOME_ACCROCHE_H1 = 'L’agenda culturel de Toulouse';
 /**
- * H2 social/small line — HOLD Design remock. Do not invent a new line.
- * Last shipped copy kept as placeholder until lock arrives.
+ * S2 H2 Manager default until Eloi locks a different line.
+ * Alts in mock (not shipped): « Trouvez, partagez… » / « Voyez avec qui… ».
  */
 export const HOME_ACCROCHE_H2 = 'Partagez une sortie — voyez qui vient.';
+/** True until Eloi locks H2; Manager default is still the painted line. */
 export const HOME_ACCROCHE_H2_HOLD = true;
 
 /**

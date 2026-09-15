@@ -1,6 +1,6 @@
 import { HOME_ACCROCHE_H1, HOME_ACCROCHE_H2 } from '@/lib/displayHome';
 
-/** S2 — H1 locked. H2 slot stays in flow; copy is HOLD until Design remock. */
+/** S2 — H1 locked; H2 Manager default (swap if Eloi locks). Visible under teaser. */
 export default function HomeAccroche() {
   return (
     <div data-testid="home-accroche" className="mb-3 px-0 pt-0.5">

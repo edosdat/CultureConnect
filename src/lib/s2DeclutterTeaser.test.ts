@@ -3,17 +3,22 @@ import { existsSync } from 'node:fs';
 import { readFile, readdir } from 'node:fs/promises';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { HOME_ACCROCHE_H1, HOME_ACCROCHE_H2_HOLD } from './displayHome';
+import {
+  HOME_ACCROCHE_H1,
+  HOME_ACCROCHE_H2,
+  HOME_ACCROCHE_H2_HOLD,
+} from './displayHome';
 
 const APOSTROPHE = '’';
 
 describe('S2 header accroche LOCK', () => {
   it('uses typographic apostrophe and locked H1/H2', () => {
     assert.equal(HOME_ACCROCHE_H1, 'L’agenda culturel de Toulouse');
+    assert.equal(HOME_ACCROCHE_H2, 'Partagez une sortie — voyez qui vient.');
     assert.ok(HOME_ACCROCHE_H1.includes(APOSTROPHE));
     assert.equal(HOME_ACCROCHE_H1.includes("'"), false);
-    assert.equal(/Je cherche/.test(HOME_ACCROCHE_H1), false);
-    assert.equal(/vous venez/.test(HOME_ACCROCHE_H1), false);
+    assert.equal(HOME_ACCROCHE_H2.includes("'"), false);
+    assert.equal(/Je cherche/.test(HOME_ACCROCHE_H1 + HOME_ACCROCHE_H2), false);
     assert.equal(HOME_ACCROCHE_H2_HOLD, true);
   });
 

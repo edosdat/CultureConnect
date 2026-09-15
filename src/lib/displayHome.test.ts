@@ -1408,6 +1408,7 @@ describe('Top 3 mobile carousel (<md)', () => {
 
   it('locks S2 home accroche (typographic apostrophe)', () => {
     assert.equal(HOME_ACCROCHE_H1, 'L’agenda culturel de Toulouse');
+    assert.equal(HOME_ACCROCHE_H2, 'Partagez une sortie — voyez qui vient.');
     assert.equal(HOME_ACCROCHE_H2_HOLD, true);
     assert.equal(HOME_ACCROCHE_H1.includes("'"), false);
     assert.equal(/Je cherche/.test(HOME_ACCROCHE_H1), false);
