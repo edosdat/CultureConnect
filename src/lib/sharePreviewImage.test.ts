@@ -6,6 +6,7 @@ import {
   fillEmptyCatalogueImageUrl,
   isOgGeneratorUrl,
   publicAppOrigin,
+  scheduleShareOgWarm,
   shareOgFallbackUrl,
   sharePreviewImageUrl,
   sharePreviewOgImage,
@@ -176,5 +177,16 @@ describe('shareOgFallbackUrl', () => {
     const url = shareOgFallbackUrl(ORIGIN, 'p:P1');
     assert.equal(url.startsWith('https://'), true);
     assert.match(url, /\/api\/og\?e=/);
+  });
+});
+
+describe('scheduleShareOgWarm', () => {
+  it('GETs the absolute /api/og URL and does not throw on fetch failure', () => {
+    const hits: string[] = [];
+    scheduleShareOgWarm(ORIGIN, 'p:P1866', (input) => {
+      hits.push(String(input));
+      return Promise.reject(new Error('network'));
+    });
+    assert.deepEqual(hits, [`${ORIGIN}/api/og?e=p%3AP1866`]);
   });
 });

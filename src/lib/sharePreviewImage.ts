@@ -95,6 +95,24 @@ export function shareOgFallbackUrl(origin: string, itemKey: string): string {
   return `${base}/api/og${q}`;
 }
 
+/**
+ * Warm `/api/og` at share-create so the first crawler hit is cached.
+ * Fire-and-forget — never blocks the share POST.
+ */
+export function scheduleShareOgWarm(
+  origin: string,
+  itemKey: string,
+  fetchImpl: typeof fetch = fetch,
+): void {
+  const url = shareOgFallbackUrl(origin, itemKey);
+  if (!/^https?:\/\//i.test(url)) return;
+  void fetchImpl(url, {
+    method: 'GET',
+    headers: { Accept: 'image/png' },
+    redirect: 'follow',
+  }).catch(() => {});
+}
+
 export function isOgGeneratorUrl(url: string): boolean {
   const value = (url || '').trim();
   if (!value) return false;

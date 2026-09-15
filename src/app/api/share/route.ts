@@ -39,6 +39,7 @@ import {
   shareCreateItemKey,
 } from '@/lib/shareToken';
 import { normalizeDeepLinkId } from '@/lib/deepLink';
+import { publicAppOrigin, scheduleShareOgWarm } from '@/lib/sharePreviewImage';
 
 function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
@@ -117,6 +118,7 @@ export async function POST(req: Request) {
       firstName,
     });
     if (!created) return jsonError('Création impossible', 500);
+    scheduleShareOgWarm(requestOrigin(req) || publicAppOrigin(), itemKey);
     if (sharerEmail) {
       await seedSharerEnvie({
         token: created.token,
