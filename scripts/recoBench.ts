@@ -14,17 +14,24 @@
  *   npm run bench
  *   npm run bench -- --compare bench-results/2026-09-15.json
  *   npm run bench -- --out bench-results/2026-09-15-eloi25.json
+ *   npm run bench -- --profiles path/to/real30.json
+ *   npm run bench -- --profiles scripts/fixtures/bench-profiles-2.json
  *
- * Default archive is `bench-results/2026-09-15-eloi25.json` so the first
- * 20-profile baseline (`2026-09-15.json`) is never overwritten.
+ * `--profiles <path>` loads external JSON (Eloi25 shape or a real30 export):
+ * array or `{ profiles: [...] }` with AccountTasteState + optional id/note/family.
+ * Omit the flag to keep the baked-in Eloi 25 file (`scripts/benchProfiles.eloi.json`).
+ *
+ * `--out <path>` is optional. Default is `bench-results/<date>-<HHMMSS>-<slug>.json`
+ * so committed baselines (`2026-09-15.json`, `2026-09-15-eloi25.json`) are not
+ * overwritten by a casual run.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-  BENCH_PROFILES,
   ELOI_PROFILES_META,
-  MOOD_STOCK_REFERENCE,
+  loadBenchProfileSet,
   type BenchProfile,
+  type BenchProfileSet,
   type MoodFormCounts,
   type MoodStockReference,
 } from './benchProfiles';
@@ -460,9 +467,14 @@ function warnMark(flag: boolean): string {
   return flag ? ' ⚠' : '';
 }
 
-function parseArgs(argv: string[]): { compare: string | null; out: string | null } {
+function parseArgs(argv: string[]): {
+  compare: string | null;
+  out: string | null;
+  profiles: string | null;
+} {
   let compare: string | null = null;
   let out: string | null = null;
+  let profiles: string | null = null;
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
     const value = argv[i + 1];
@@ -480,23 +492,41 @@ function parseArgs(argv: string[]): { compare: string | null; out: string | null
         out = value;
         i += 1;
       }
+    } else if (flag === '--profiles') {
+      if (!value || value.startsWith('--')) {
+        console.error('Usage: npm run bench -- --profiles path/to/real30.json');
+      } else {
+        profiles = value;
+        i += 1;
+      }
     }
   }
-  return { compare, out };
+  return { compare, out, profiles };
 }
 
 function resultsDir(): string {
   return path.join(process.cwd(), 'bench-results');
 }
 
-/** First Eloi-25 archive. Do not overwrite `2026-09-15.json` (20-profile baseline). */
-const DEFAULT_ARCHIVE = '2026-09-15-eloi25.json';
+function outSlug(profilesSource: string): string {
+  if (
+    profilesSource === ELOI_PROFILES_META.source ||
+    profilesSource.endsWith('benchProfiles.eloi.json')
+  ) {
+    return 'eloi25';
+  }
+  const stem = path.basename(profilesSource, path.extname(profilesSource));
+  return stem.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'profiles';
+}
 
-function datedOutPath(explicit: string | null): string {
+function datedOutPath(explicit: string | null, profilesSource: string): string {
   if (explicit) {
     return path.isAbsolute(explicit) ? explicit : path.join(process.cwd(), explicit);
   }
-  return path.join(resultsDir(), DEFAULT_ARCHIVE);
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10);
+  const hhmmss = now.toISOString().slice(11, 19).replace(/:/g, '');
+  return path.join(resultsDir(), `${date}-${hhmmss}-${outSlug(profilesSource)}.json`);
 }
 
 function coverageOf(
@@ -510,10 +540,11 @@ function coverageOf(
   };
 }
 
-function runBench(): BenchJson {
+function runBench(set: BenchProfileSet): BenchJson {
   const catalogue = loadBenchCatalogue();
   const scenarios = buildScenarios(FIXED_NOW);
   const nouveauIds = nouveauFilmIds(catalogue.programmeWithContext, FIXED_NOW);
+  const { profiles } = set;
 
   const windowItems = new Map<ScenarioId, DayItem[]>();
   const stock = {} as BenchJson['stock'];
@@ -534,7 +565,7 @@ function runBench(): BenchJson {
       if (isVivantSlot(item)) feasibleVivant.add(workKey(item));
     }
 
-    for (const profile of BENCH_PROFILES) {
+    for (const profile of profiles) {
       const t0 = performance.now();
       const scored = recommendForProfile(items, profile.state, TOP_N, {
         now: scenario.now,
@@ -562,7 +593,7 @@ function runBench(): BenchJson {
     }
   }
 
-  const byProfile = BENCH_PROFILES.map((profile) => {
+  const byProfile = profiles.map((profile) => {
     const mine = runs.filter((r) => r.profileId === profile.id);
     return {
       profileId: profile.id,
@@ -593,8 +624,8 @@ function runBench(): BenchJson {
         sortie:
           'phrase/catalogue slug, not a goût; kept on C2 (Sorties festives) but not scored',
       },
-      profilesSource: ELOI_PROFILES_META.source,
-      moodStockReference: MOOD_STOCK_REFERENCE,
+      profilesSource: set.source,
+      moodStockReference: set.moodStockReference,
       thresholds: THRESHOLD,
       catalogue: {
         evenements: catalogue.evenements.length,
@@ -604,7 +635,7 @@ function runBench(): BenchJson {
       vivantRule:
         'slotFormOfItem ∈ {theatre, concert} (festival/enfants follow that resolver; raw form is ignored)',
     },
-    profiles: BENCH_PROFILES.map((p) => ({
+    profiles: profiles.map((p) => ({
       id: p.id,
       label: p.label,
       group: p.group,
@@ -647,12 +678,12 @@ function profileTableLabel(row: { profileId: string; label: string; notes?: stri
   return `${row.profileId}  ${shortNote}`;
 }
 
-function printTable(result: BenchJson): void {
+function printTable(result: BenchJson, set: BenchProfileSet): void {
   const date = result.meta.generatedAt.slice(0, 10);
   console.log(`CultureConnect — banc d'essai reco          ${date}`);
-  console.log(`profils : Eloi 25 (A/B/C/D) — ${ELOI_PROFILES_META.source}`);
-  if (ELOI_PROFILES_META.note) {
-    console.log(ELOI_PROFILES_META.note);
+  console.log(`profils : ${set.headline} — ${set.source}`);
+  if (set.note) {
+    console.log(set.note);
   }
   console.log('');
   printMoodStock(result.meta.moodStockReference);
@@ -705,7 +736,7 @@ function printTable(result: BenchJson): void {
 function printTop3(result: BenchJson, profiles: BenchProfile[]): void {
   const dumpIds: ScenarioId[] = ['week', 'month'];
   console.log('');
-  console.log('=== Top 3 — semaine & mois (crash-test Eloi) ===');
+  console.log('=== Top 3 — semaine & mois (crash-test) ===');
   console.log(
     'semaine = 7 j. à partir du lundi Paris fixé · mois = 30 j. à partir du même now',
   );
@@ -803,11 +834,19 @@ function printCompare(current: BenchJson, previous: BenchJson, file: string): vo
 }
 
 function main(): void {
-  const { compare, out } = parseArgs(process.argv.slice(2));
-  const result = runBench();
+  const { compare, out, profiles: profilesPath } = parseArgs(process.argv.slice(2));
+  let set: BenchProfileSet;
+  try {
+    set = loadBenchProfileSet(profilesPath);
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : err);
+    process.exitCode = 1;
+    return;
+  }
+  const result = runBench(set);
 
-  printTable(result);
-  printTop3(result, BENCH_PROFILES);
+  printTable(result, set);
+  printTop3(result, set.profiles);
 
   if (compare) {
     const prev = loadCompare(compare);
@@ -815,7 +854,7 @@ function main(): void {
   }
 
   fs.mkdirSync(resultsDir(), { recursive: true });
-  const outPath = datedOutPath(out);
+  const outPath = datedOutPath(out, set.source);
   fs.writeFileSync(outPath, `${JSON.stringify(result, null, 2)}\n`, 'utf-8');
   console.log('');
   console.log(`JSON archivé : ${path.relative(process.cwd(), outPath)}`);
