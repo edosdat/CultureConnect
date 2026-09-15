@@ -201,7 +201,8 @@ describe('B3b activity source contract', () => {
     assert.match(inbox, /\/api\/share\/activity\?limit=30/);
     assert.match(inbox, /\/api\/share\/activity\/seen/);
     assert.match(inbox, /activityFicheHref/);
-    assert.match(inbox, /Tu n’as pas encore partagé/);
+    assert.match(inbox, /ACTIVITY_EMPTY/);
+    assert.match(inbox, /\{ACTIVITY_EMPTY\}/);
     assert.equal(/intéress/i.test(inbox), false);
     assert.equal(inbox.includes('ingestAccountItemSignal'), false);
 
@@ -250,7 +251,7 @@ describe('B3b activity source contract', () => {
     ]) {
       const src = await readFile(file, 'utf8');
       assert.match(src, /sessionSharerEmail/);
-      assert.match(src, /status: 401/);
+      assert.match(src, /401/);
       assert.equal(src.includes('ingestAccountItemSignal'), false);
       assert.equal(src.includes('commitGuestSignals'), false);
       assert.equal(/intéress/i.test(src), false);

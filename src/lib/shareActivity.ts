@@ -388,10 +388,10 @@ export function buildActivityListItems(opts: {
   }
 
   items.sort((a, b) => {
-    const aTs = Date.parse(a.events[0]?.ts || a.createdAt || 0);
-    const bTs = Date.parse(b.events[0]?.ts || b.createdAt || 0);
+    const aTs = Date.parse(a.events[0]?.ts || a.createdAt || '') || 0;
+    const bTs = Date.parse(b.events[0]?.ts || b.createdAt || '') || 0;
     if (bTs !== aTs) return bTs - aTs;
-    return Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0);
+    return (Date.parse(b.createdAt || '') || 0) - (Date.parse(a.createdAt || '') || 0);
   });
 
   return items.slice(0, opts.limit ?? 30);
