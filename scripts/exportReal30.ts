@@ -9,7 +9,8 @@
  *   npm run bench -- --profiles bench-results/real30/2026-09-15.json
  *
  * Reads Neon via `listAccountTastesForAdmin` (same store as KPI 18 / #140).
- * States as-is. Hash only. Writes gitignored `bench-results/real30/`.
+ * States as-is. Hash only. Writes gitignored `bench-results/real30/`
+ * (Paris YYYY-MM-DD). Never commit that JSON — generate locally only.
  * Exit 0 even when 0 eligible (⚠). Never writes `data/`.
  */
 import fs from 'node:fs';
@@ -17,6 +18,7 @@ import path from 'node:path';
 import { listAccountTastesForAdmin } from '../src/lib/accountTasteAdminList';
 import { ADMIN_TASTES_CAP } from '../src/lib/adminAnalytics';
 import { buildReal30Export } from '../src/lib/real30Export';
+import { parisParts } from '../src/lib/timeScope';
 
 function parseArgs(argv: string[]): { out: string | null } {
   let out: string | null = null;
@@ -36,7 +38,7 @@ function parseArgs(argv: string[]): { out: string | null } {
 }
 
 function defaultOutPath(): string {
-  const date = new Date().toISOString().slice(0, 10);
+  const date = parisParts().iso;
   return path.join(process.cwd(), 'bench-results', 'real30', `${date}.json`);
 }
 
