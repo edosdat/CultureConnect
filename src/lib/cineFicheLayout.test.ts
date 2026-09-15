@@ -10,7 +10,7 @@ describe('cine fiche web split + compact action row', () => {
    * desktop full-bleed stack + full-width Réserver.
    * Target: mock `fiche-cine-web-split-1280` — 1/4|3/4 + compact Réserver.
    */
-  it('web ≥900 is 1/4 | 3/4 (KEEP — do not change)', async () => {
+  it('web ≥900 is 1/4 | 3/4; mobile stays stacked', async () => {
     const frame = await readFile(
       new URL('../components/CineFicheFrame.tsx', import.meta.url),
       'utf8',
@@ -26,6 +26,7 @@ describe('cine fiche web split + compact action row', () => {
     const css = await readFile(new URL('../app/globals.css', import.meta.url), 'utf8');
 
     assert.match(frame, /data-testid="cine-fiche-split"/);
+    assert.match(frame, /flex flex-col/);
     assert.match(frame, /min-\[900px\]:grid-cols-\[1fr_3fr\]/);
     assert.equal(frame.includes('md:grid-cols'), false);
 
@@ -90,80 +91,5 @@ describe('cine fiche web split + compact action row', () => {
     assert.match(brief, /full-bleed/i);
     assert.match(brief, /Réserver full-width = FAIL/);
     assert.match(brief, /1\/4 image/);
-  });
-});
-
-describe('cine fiche mobile split essai (~380, ciné only)', () => {
-  /**
-   * Eloi GO 15/09 — override Design KEEP stack.
-   * QA LOCK: readable contain frame · max W+H · height ≤ useful text · ciné only.
-   */
-  it('mobile is ~32% constrained contain frame | ~68% text', async () => {
-    const frame = await readFile(
-      new URL('../components/CineFicheFrame.tsx', import.meta.url),
-      'utf8',
-    );
-    const carousel = await readFile(
-      new URL('../components/CinemaCarousel.tsx', import.meta.url),
-      'utf8',
-    );
-    const css = await readFile(new URL('../app/globals.css', import.meta.url), 'utf8');
-
-    assert.match(frame, /data-cine-mobile-split="1"/);
-    assert.match(frame, /grid-cols-\[minmax\(0,7\.5rem\)_minmax\(0,1fr\)\]/);
-    assert.equal(frame.includes('flex flex-col'), false);
-
-    assert.match(carousel, /grid-cols-\[minmax\(0,7\.5rem\)_minmax\(0,1fr\)\]/);
-    assert.match(carousel, /data-cine-mobile-split=\{pack === 'cine' \? '1'/);
-    assert.equal(carousel.includes('flex flex-col min-[900px]:grid'), false);
-
-    assert.match(css, /max-width: 899\.98px/);
-    assert.match(css, /max-width: 7\.5rem/);
-    assert.match(css, /max-height: 13rem/);
-    assert.match(css, /aspect-ratio: 2 \/ 3/);
-    assert.match(css, /object-fit: contain/);
-    assert.match(css, /object-position: center/);
-    assert.equal(/\n\s*height: 0;/.test(css), false);
-    assert.match(css, /PAS poster géant/);
-    assert.equal(/max-height: 10rem/.test(css), false);
-  });
-
-  it('théâtre / musique stay stacked — cine-fiche-split is ciné only', async () => {
-    const carousel = await readFile(
-      new URL('../components/CinemaCarousel.tsx', import.meta.url),
-      'utf8',
-    );
-    const detail = await readFile(
-      new URL('../components/EventDetail.tsx', import.meta.url),
-      'utf8',
-    );
-
-    assert.match(carousel, /pack === 'cine'/);
-    assert.match(carousel, /cine-fiche-split/);
-    assert.equal(carousel.includes("pack === 'theatre'"), true);
-    assert.equal(
-      /pack === 'theatre'[\s\S]{0,80}cine-fiche-split/.test(carousel),
-      false,
-    );
-    assert.match(detail, /cinemaFiche \? \(/);
-    assert.match(detail, /<CineFicheFrame/);
-    assert.equal(detail.includes('<CineFicheFrame'), true);
-    const theatreStack =
-      detail.includes('cinemaFiche ?') &&
-      !detail.includes("pack === 'theatre' ? <CineFicheFrame");
-    assert.equal(theatreStack, true);
-  });
-
-  it('locks essai brief + 380 mock', async () => {
-    const mocks = fileURLToPath(new URL('../../briefs/v1-beta/mocks/', import.meta.url));
-    const brief = await readFile(
-      new URL('../../briefs/v1-beta/fiche-cine-mobile-split-essai.md', import.meta.url),
-      'utf8',
-    );
-    assert.equal(existsSync(`${mocks}fiche-cine-mobile-split-essai-380.html`), true);
-    assert.match(brief, /~32%/);
-    assert.match(brief, /ciné only/);
-    assert.match(brief, /object-fit|contain/i);
-    assert.match(brief, /théâtre|theatre/i);
   });
 });
