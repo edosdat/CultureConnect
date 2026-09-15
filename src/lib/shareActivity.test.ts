@@ -545,6 +545,7 @@ describe('B3b activity source contract', () => {
     assert.match(client, /lastSeenAt/);
     assert.match(client, /unreadCount/);
     assert.match(client, /scope/);
+    assert.match(client, /keepalive: true/);
     assert.equal(client.includes('ingestAccountItemSignal'), false);
 
     const teaserRoute = await readFile(
@@ -615,5 +616,44 @@ describe('B3b activity source contract', () => {
     assert.match(store, /isNotBeforeToday/);
     assert.match(store, /activityEventDateIso/);
     assert.match(store, /tokens: \{\}/);
+  });
+});
+
+describe('TIP cloche → fiche — navigate first, seen async', () => {
+  it('soft-navs without awaiting seen or cold-reloading home', async () => {
+    const inbox = await readFile(
+      new URL('../components/ActivityInbox.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.equal(inbox.includes('window.location.assign'), false);
+    assert.equal(inbox.includes('await markActivitySeen({ scope: \'token\''), false);
+    assert.match(inbox, /void markActivitySeen\(\{ scope: 'token'/);
+    assert.match(inbox, /router\.push\(href\)/);
+    assert.match(inbox, /history\.pushState/);
+    assert.match(inbox, /requestOpenFiche/);
+    assert.match(inbox, /setOpen\(false\)/);
+    assert.match(inbox, /active:bg-culture-sand/);
+
+    const events = await readFile(
+      new URL('../components/openFicheEvents.ts', import.meta.url),
+      'utf8',
+    );
+    assert.match(events, /cc-open-fiche/);
+    assert.match(events, /export function requestOpenFiche/);
+
+    const app = await readFile(
+      new URL('../components/CultureConnectApp.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(app, /OPEN_FICHE_EVENT/);
+    assert.match(app, /showCatalogueShell=\{false\}/);
+    assert.match(app, /DeepLinkFicheFallback/);
+
+    const visit = await readFile(
+      new URL('../components/ShareVisitProvider.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(visit, /OPEN_FICHE_EVENT/);
+    assert.match(visit, /setToken/);
   });
 });

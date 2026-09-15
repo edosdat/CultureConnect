@@ -12,8 +12,11 @@ import HomeTop3BootFallback from './HomeTop3BootFallback';
 /** Streaming share: fiche + photo first; catalogue hydrates behind. */
 export default function DeepLinkFicheFallback({
   item,
+  showCatalogueShell = true,
 }: {
   item: DayItem | null;
+  /** Home already painted — skip the catalogue boot shell (cloche → fiche). */
+  showCatalogueShell?: boolean;
 }) {
   const title = item ? itemTitle(item) : '';
   const photo = item ? itemImageUrl(item) : '';
@@ -29,7 +32,7 @@ export default function DeepLinkFicheFallback({
 
   return (
     <>
-      <HomeTop3BootFallback />
+      {showCatalogueShell ? <HomeTop3BootFallback /> : null}
       <div
         className="fixed inset-0 z-50 flex items-end justify-center bg-culture-ink/40 p-0 sm:items-center sm:p-6"
         role="dialog"

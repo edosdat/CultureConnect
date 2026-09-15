@@ -98,6 +98,7 @@ export async function markActivitySeen(
     const res = await fetch(ACTIVITY_SEEN_PATH, {
       method: 'POST',
       credentials: 'same-origin',
+      keepalive: true,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });

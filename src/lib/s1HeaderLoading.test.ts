@@ -112,6 +112,8 @@ describe('S1 deep-link share — fiche + photo first, social skeleton', () => {
     assert.match(fallback, /className="hero/);
     assert.match(fallback, /share-social-pending/);
     assert.match(fallback, /cc-s1-skbtn/);
+    assert.match(fallback, /showCatalogueShell = true/);
+    assert.match(fallback, /showCatalogueShell \? <HomeTop3BootFallback/);
 
     const social = await readFile(
       new URL('../components/ShareSocial.tsx', import.meta.url),
