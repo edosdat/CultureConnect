@@ -585,19 +585,19 @@ describe('top 3 adaptive layout', () => {
     assert.equal(seanceCardShowsPitch('compact'), true);
   });
 
-  it('H2 says Le top N du moment for guests (1 / 2 / 3 cards)', () => {
-    assert.equal(top3Heading(1), 'Le top 1 du moment');
-    assert.equal(top3Heading(2), 'Le top 2 du moment');
-    assert.equal(top3Heading(3), 'Le top 3 du moment');
-    assert.equal(top3Heading(0), 'Le top 3 du moment');
-    assert.equal(top3Heading(3, false), 'Le top 3 du moment');
-  });
-
-  it('H2 says Mon top N du moment when signed in (1 / 2 / 3 cards)', () => {
-    assert.equal(top3Heading(1, true), 'Mon top 1 du moment');
-    assert.equal(top3Heading(2, true), 'Mon top 2 du moment');
-    assert.equal(top3Heading(3, true), 'Mon top 3 du moment');
-    assert.equal(top3Heading(0, true), 'Mon top 3 du moment');
+  it('H2 is the same LOCK string for guests and signed-in (any card count)', () => {
+    const lock = 'Pas d’idée ? Trois sorties';
+    assert.equal(top3Heading(1), lock);
+    assert.equal(top3Heading(2), lock);
+    assert.equal(top3Heading(3), lock);
+    assert.equal(top3Heading(0), lock);
+    assert.equal(top3Heading(3, false), lock);
+    assert.equal(top3Heading(1, true), lock);
+    assert.equal(top3Heading(2, true), lock);
+    assert.equal(top3Heading(3, true), lock);
+    assert.equal(top3Heading(0, true), lock);
+    assert.equal(lock.includes('\u2019'), true);
+    assert.equal(/Le top|Mon top|Ton top/i.test(lock), false);
   });
 });
 
