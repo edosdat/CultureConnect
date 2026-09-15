@@ -436,6 +436,7 @@ describe('B3b source contract', () => {
     const carouselPicker = carousel.indexOf('<CineSeancePicker');
     assert.ok(carouselSocial > 0 && carouselPicker > 0 && carouselSocial < carouselPicker);
     assert.match(carousel, /token=\{null\}/);
+    assert.match(carousel, /key=\{active\.key\}/);
 
     const conf = await readFile(
       new URL('../app/confidentialite/page.tsx', import.meta.url),

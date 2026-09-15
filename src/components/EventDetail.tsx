@@ -498,7 +498,7 @@ export default function EventDetail({
                   </p>
                 ) : null}
                 {hasFilmSeances ? (
-                  <ShareSocial item={item} token={shareToken} />
+                  <ShareSocial key={item.key} item={item} token={shareToken} />
                 ) : null}
                 {hasFilmSeances ? (
                   <div className="mt-3">
@@ -600,7 +600,7 @@ export default function EventDetail({
             ) : null}
 
             {hasFilmSeances && !cinemaFiche ? (
-              <ShareSocial item={item} token={shareToken} />
+              <ShareSocial key={item.key} item={item} token={shareToken} />
             ) : null}
 
             {hasFilmSeances && !cinemaFiche ? (
@@ -669,7 +669,7 @@ export default function EventDetail({
             )}
 
             {!hasFilmSeances ? (
-              <ShareSocial item={item} token={shareToken} />
+              <ShareSocial key={item.key} item={item} token={shareToken} />
             ) : null}
 
             {ev && (
@@ -940,7 +940,7 @@ export default function EventDetail({
             </section>
           )}
 
-          <ShareSocial item={item} token={shareToken} />
+          <ShareSocial key={item.key} item={item} token={shareToken} />
 
           <FichePressBlock item={item} />
 
