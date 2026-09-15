@@ -452,3 +452,59 @@ export async function resolveAccountTaste(
   if (hasPersistedTasteState(jwtState)) return jwtState;
   return (await readAccountTaste(user)) ?? jwtState;
 }
+
+export type AccountTasteAdminRow = {
+  userKey: string;
+  state: AccountTasteState;
+  updatedAt?: string;
+};
+
+/** Admin analytics — all persisted comptes. Never joins cc_vid. */
+export async function listAccountTastesForAdmin(
+  limit = 500,
+): Promise<AccountTasteAdminRow[]> {
+  try {
+    const pg = await ensureAccountTastesTable();
+    if (!pg) return [];
+    const cap = Math.max(1, Math.min(2000, Math.floor(limit)));
+    const result = await pg.query(
+      `SELECT user_key, state, updated_at
+       FROM account_tastes
+       ORDER BY updated_at ASC
+       LIMIT $1`,
+      [cap],
+    );
+    const out: AccountTasteAdminRow[] = [];
+    for (const row of result.rows as Array<{
+      user_key?: unknown;
+      state?: unknown;
+      updated_at?: Date | string;
+    }>) {
+      const userKey =
+        typeof row.user_key === 'string' ? row.user_key.trim().toLowerCase() : '';
+      if (!userKey) continue;
+      let parsed: AccountTasteState | null = null;
+      const raw = row.state;
+      if (typeof raw === 'string') {
+        try {
+          parsed = parseTasteState(JSON.parse(raw));
+        } catch {
+          parsed = null;
+        }
+      } else {
+        parsed = parseTasteState(raw);
+      }
+      if (!parsed) continue;
+      const updatedAt =
+        row.updated_at instanceof Date
+          ? row.updated_at.toISOString()
+          : row.updated_at
+            ? String(row.updated_at)
+            : undefined;
+      out.push({ userKey, state: parsed, updatedAt });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}

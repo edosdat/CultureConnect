@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useTastesUi } from './Providers';
 import { requestOpenTastes } from './tastesUiEvents';
@@ -8,6 +9,7 @@ import { useSignals } from './SignalsProvider';
 import MailIdeasCheckbox from './MailIdeasCheckbox';
 import ActivityInbox from './ActivityInbox';
 import GuestTeaserBell from './GuestTeaserBell';
+import { showHomeEventsCounter } from '@/lib/homeEventsCounter';
 
 const AUTH_HINT_KEY = 'cc_auth_hint';
 
@@ -198,6 +200,16 @@ export default function AuthButtons() {
             >
               Mes goûts
             </button>
+            {showHomeEventsCounter(user?.email) ? (
+              <Link
+                href="/admin/analytics"
+                role="menuitem"
+                data-account-control="admin-analytics"
+                className="block w-full px-3 py-2 text-left text-[13px] text-culture-ink hover:bg-culture-cream"
+              >
+                Analytics
+              </Link>
+            ) : null}
             <div className="px-3 py-2">
               <MailIdeasCheckbox className="flex items-start gap-1.5 text-left text-xs leading-snug text-culture-ink" />
             </div>
