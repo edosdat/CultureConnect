@@ -925,13 +925,14 @@ export default function CinemaCarousel({
         ref={heroCardRef}
         data-carousel-hero=""
         data-testid={pack === 'cine' ? 'cine-fiche-split' : undefined}
+        data-cine-mobile-split={pack === 'cine' ? '1' : undefined}
         onTouchStart={onHeroTouchStart}
         onTouchMove={onHeroTouchMove}
         onTouchEnd={onHeroTouchEnd}
         className={
           'scroll-mt-16 overflow-hidden rounded-card-lg border border-culture-line bg-culture-surface shadow-card' +
           (pack === 'cine'
-            ? ' cine-fiche-split flex flex-col min-[900px]:grid min-[900px]:grid-cols-[1fr_3fr]'
+            ? ' cine-fiche-split grid grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)] min-[900px]:grid-cols-[1fr_3fr]'
             : '')
         }
       >
@@ -947,7 +948,12 @@ export default function CinemaCarousel({
             priority={pack === 'cine'}
           />
         </div>
-        <div className="flex min-w-0 flex-col gap-2 p-3 md:p-4">
+        <div
+          className={
+            'flex min-w-0 flex-col gap-2 p-3 md:p-4' +
+            (pack === 'cine' ? ' cine-fiche-body' : '')
+          }
+        >
           {titleBlock}
           <ShareSocial key={active.key} item={active} token={null} />
           {pack === 'cine' && seances.length > 0 ? (

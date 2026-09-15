@@ -14,8 +14,10 @@ type Props = {
 };
 
 /**
- * Cine fiche chrome: stack on ~380, ~1/4 image | ~3/4 text from 900px.
- * Live-ref FAIL: full-bleed landscape hero that pushes DESCRIPTION under the fold.
+ * Cine fiche chrome.
+ * Mobile (~380) essai: cadre contain (~28–32% × ≤13rem) | text + Prop A.
+ * Web ≥900 KEEP: ~1/4 image | ~3/4 text — do not change that split.
+ * Live-ref FAIL: full-bleed landscape hero / huge cover-crop photo.
  */
 export default function CineFicheFrame({
   item,
@@ -28,8 +30,9 @@ export default function CineFicheFrame({
   return (
     <div
       data-testid="cine-fiche-split"
+      data-cine-mobile-split="1"
       className={
-        'cine-fiche-split flex flex-col min-[900px]:grid min-[900px]:grid-cols-[1fr_3fr] ' +
+        'cine-fiche-split grid grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)] min-[900px]:grid-cols-[1fr_3fr] ' +
         className
       }
     >

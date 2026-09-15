@@ -266,18 +266,66 @@ body {
   }
 }
 
+/*
+ * Mobile cine fiche essai (~380, ciné only via .cine-fiche-split):
+ * cadre image — PAS poster géant. ~28–32% wide, height clamped to
+ * useful text (title + meta + Prop A + start of synopsis), cap ~13rem.
+ * Contain + center even if the poster is small. Neutral / light blur OK.
+ * Théâtre / musique never get this class — they stay stacked.
+ */
+@media (max-width: 899.98px) {
+  .cine-fiche-split {
+    align-items: start;
+    column-gap: 0.625rem;
+    padding: 0.625rem 0.75rem 0;
+  }
+  .cine-fiche-split .cine-fiche-visual {
+    width: 100%;
+    max-width: 7.5rem; /* ~28–32% of 380 */
+    max-height: 13rem; /* 12–14rem cadre — PAS poster géant */
+    align-self: start;
+    overflow: hidden;
+    background: var(--cc-ink);
+    border-radius: 0.5rem;
+  }
+  .cine-fiche-split .cine-hero-frame {
+    /* Portrait cadre; contain poster centered inside (even if small). */
+    aspect-ratio: 2 / 3;
+    width: 100%;
+    height: auto;
+    max-width: 7.5rem;
+    max-height: 13rem;
+    min-height: 0;
+    border-radius: 0.5rem;
+  }
+  .cine-fiche-split .cine-hero-poster {
+    object-fit: contain;
+    object-position: center;
+  }
+  .cine-fiche-split .cine-fiche-body {
+    padding-left: 0;
+    padding-top: 0.125rem;
+  }
+}
+
 /* Web cine fiche: portrait column beside text, not a landscape banner. */
 @media (min-width: 900px) {
   .cine-fiche-split {
     align-items: stretch;
+    padding: 0;
+    column-gap: 0;
   }
   .cine-fiche-split .cine-fiche-visual {
     min-height: 20rem;
+    max-width: none;
+    max-height: none;
+    height: auto;
     align-self: stretch;
   }
   .cine-fiche-split .cine-hero-frame {
     aspect-ratio: auto;
     max-height: none;
+    max-width: none;
     min-height: 20rem;
     height: 100%;
   }
