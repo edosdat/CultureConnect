@@ -480,10 +480,7 @@ export const TOP3_SUBLINE_PARTS = [
  * H2 for the reco row. Card count and auth no longer change the title
  * (S5 — no Le / Mon / Ton split).
  */
-export function top3Heading(
-  _cardCount?: number,
-  _signedIn = false,
-): string {
+export function top3Heading(_cardCount?: number, _signedIn?: boolean): string {
   return TOP3_HEADING;
 }
 
