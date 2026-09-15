@@ -389,8 +389,9 @@ describe('B3b source contract', () => {
     assert.match(ui, /DAUGHTER_NOTICE/);
     assert.match(ui, /circleGoingLine/);
     assert.match(ui, /circleEnvieLine/);
-    assert.match(ui, /bg-culture-sand/);
+    assert.match(ui, /share-rsvp-daughter/);
     assert.match(ui, /share-rsvp-mother/);
+    assert.equal(ui.includes('bg-culture-sand'), false);
     assert.equal(/intéress/i.test(ui), false);
 
     const detail = await readFile(
@@ -405,6 +406,16 @@ describe('B3b source contract', () => {
     assert.ok(firstSocial > 0 && cine > 0 && firstSocial < cine);
     assert.ok(seancesHeading > 0 && firstSocial < seancesHeading);
     assert.ok(lastSocial > 0 && lastSocial < lastFavorite);
+    assert.match(detail, /cineMeta/);
+
+    const carousel = await readFile(
+      new URL('../components/CinemaCarousel.tsx', import.meta.url),
+      'utf8',
+    );
+    const carouselSocial = carousel.indexOf('<ShareSocial');
+    const carouselPicker = carousel.indexOf('<CineSeancePicker');
+    assert.ok(carouselSocial > 0 && carouselPicker > 0 && carouselSocial < carouselPicker);
+    assert.match(carousel, /token=\{null\}/);
 
     const conf = await readFile(
       new URL('../app/confidentialite/page.tsx', import.meta.url),

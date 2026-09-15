@@ -23,10 +23,10 @@ type MotherStats = { envie: number; going: number };
 
 function rsvpButtonClass(active: boolean): string {
   return (
-    'inline-flex min-h-10 items-center rounded-full border px-4 py-2 text-sm font-medium ' +
+    'inline-flex min-h-10 flex-1 items-center justify-center rounded-full border px-4 py-2 text-sm font-medium ' +
     (active
       ? 'border-culture-terracotta bg-culture-terracotta text-white'
-      : 'border-culture-line bg-culture-surface text-culture-ink hover:bg-white')
+      : 'border-culture-line bg-white text-culture-ink hover:bg-culture-sand')
   );
 }
 
@@ -137,11 +137,8 @@ function DaughterRsvp({ item, token }: { item: DayItem; token: string }) {
       : '';
 
   return (
-    <section
-      data-testid="share-rsvp-daughter"
-      className="mt-3 rounded-2xl bg-culture-sand px-3.5 py-3"
-    >
-      <div className="flex flex-wrap items-center gap-2">
+    <section data-testid="share-rsvp-daughter" className="mt-2">
+      <div className="flex items-center gap-2">
         <button
           type="button"
           disabled={busy}
@@ -178,10 +175,10 @@ function DaughterRsvp({ item, token }: { item: DayItem; token: string }) {
       {goingLine || envieLine ? (
         <div data-testid="share-rsvp-names" className="mt-2 space-y-0.5">
           {goingLine ? (
-            <p className="text-sm font-medium text-culture-ink">{goingLine}</p>
+            <p className="text-sm font-semibold text-culture-ink">{goingLine}</p>
           ) : null}
           {envieLine ? (
-            <p className="text-sm font-medium text-culture-ink">{envieLine}</p>
+            <p className="text-sm text-culture-ink">{envieLine}</p>
           ) : null}
         </div>
       ) : anon ? (
