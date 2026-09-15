@@ -266,18 +266,65 @@ body {
   }
 }
 
+/*
+ * Mobile cine fiche essai (~380, ciné only via .cine-fiche-split):
+ * constrained contain frame (~32%) beside useful text (~68%).
+ * QA: readable poster · max W+H · object-fit contain · height ≤ text.
+ * Théâtre / musique never get this class — they stay stacked.
+ */
+@media (max-width: 899.98px) {
+  .cine-fiche-split {
+    align-items: start;
+    column-gap: 0.625rem;
+    padding: 0.625rem 0.75rem 0;
+  }
+  .cine-fiche-split .cine-fiche-visual {
+    width: 100%;
+    max-width: 7.25rem; /* ~116px ≈ 32% of 380 */
+    max-height: 10rem; /* 160px — not a huge photo */
+    /* Size to the text column; do not contribute intrinsic banner height. */
+    height: 0;
+    min-height: 100%;
+    align-self: stretch;
+    overflow: hidden;
+  }
+  .cine-fiche-split .cine-hero-frame {
+    aspect-ratio: auto;
+    width: 100%;
+    height: 100%;
+    max-width: 7.25rem;
+    max-height: 10rem;
+    min-height: 0;
+    border-radius: 0.5rem;
+  }
+  .cine-fiche-split .cine-hero-poster {
+    object-fit: contain;
+    object-position: center;
+  }
+  .cine-fiche-split .cine-fiche-body {
+    padding-left: 0;
+    padding-top: 0.125rem;
+  }
+}
+
 /* Web cine fiche: portrait column beside text, not a landscape banner. */
 @media (min-width: 900px) {
   .cine-fiche-split {
     align-items: stretch;
+    padding: 0;
+    column-gap: 0;
   }
   .cine-fiche-split .cine-fiche-visual {
     min-height: 20rem;
+    max-width: none;
+    max-height: none;
+    height: auto;
     align-self: stretch;
   }
   .cine-fiche-split .cine-hero-frame {
     aspect-ratio: auto;
     max-height: none;
+    max-width: none;
     min-height: 20rem;
     height: 100%;
   }
