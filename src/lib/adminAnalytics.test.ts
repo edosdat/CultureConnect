@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { HOME_EVENTS_COUNTER_EMAIL } from './homeEventsCounter';
+import { ADMIN_EMAILS, HOME_EVENTS_COUNTER_EMAIL } from './homeEventsCounter';
 import {
   analyticsWindowDays,
   csvEscape,
@@ -180,6 +180,10 @@ describe('KV key helpers', () => {
 
 describe('admin gate + export route', () => {
   it('gates the whole /admin namespace and 404s everyone else', () => {
+    assert.deepEqual([...ADMIN_EMAILS], [
+      'edosdat@gmail.com',
+      'katimostef@gmail.com',
+    ]);
     assert.equal(HOME_EVENTS_COUNTER_EMAIL, 'edosdat@gmail.com');
     const layout = readFileSync(
       new URL('../app/admin/layout.tsx', import.meta.url),
@@ -264,8 +268,11 @@ describe('RGPD — export 18 + 0 join vid', () => {
 });
 
 describe('UX admin — allowlist + menu', () => {
-  it('menu Analytics / Admin is gated on HOME_EVENTS_COUNTER_EMAIL only', () => {
-    assert.equal(HOME_EVENTS_COUNTER_EMAIL, 'edosdat@gmail.com');
+  it('menu Analytics / Admin is gated on ADMIN_EMAILS via showHomeEventsCounter', () => {
+    assert.deepEqual([...ADMIN_EMAILS], [
+      'edosdat@gmail.com',
+      'katimostef@gmail.com',
+    ]);
     const auth = readFileSync(
       new URL('../components/AuthButtons.tsx', import.meta.url),
       'utf8',
