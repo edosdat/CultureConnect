@@ -1032,14 +1032,19 @@ export function resolvedFormOfItem(item: DayItem): string {
   return formFromCategorieAndForm(ev?.categorie || '', prog?.form || ev?.form);
 }
 
+/**
+ * Theatre / concert keep parent-event tags. Cinema séances (film_id or
+ * slotForm cine) do not — season parents store the union of child-film moods.
+ */
+export function itemInheritsParentClosedTags(item: DayItem): boolean {
+  const prog = item.kind === 'programme' ? item.programme : null;
+  return !((prog?.film_id || '').trim() || slotFormOfItem(item) === 'cine');
+}
+
 function itemClosedSlugs(item: DayItem): string[] {
   const ev = item.evenement ?? null;
   const prog = item.kind === 'programme' ? item.programme : null;
-  // Cinema séances: own programme tags only. Season parents (E003/E003b/E006
-  // etc.) store the union of child-film moods on the event — inheriting them
-  // fabricated reasons like « Des Fleurs — parce que tu aimes rire ».
-  const inheritParent =
-    !((prog?.film_id || '').trim() || slotFormOfItem(item) === 'cine');
+  const inheritParent = itemInheritsParentClosedTags(item);
   const raw = [
     ...splitTagSlugs(prog?.moods),
     ...(inheritParent ? splitTagSlugs(ev?.moods) : []),
