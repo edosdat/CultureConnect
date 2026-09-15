@@ -60,7 +60,8 @@ import { isCinemaDayItem } from '@/lib/nouveautesCine';
 import { pickFilmVivantComplements } from '@/lib/filmVivantComplements';
 import { rawUrls, reservePickOf } from '@/lib/reserve';
 import EventImage from './EventImage';
-import VisualFallback, { categoryLabelOf } from './VisualFallback';
+import VisualFallback from './VisualFallback';
+import CategoryBadge from './CategoryBadge';
 import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 import FilmVersionBadge from './FilmVersionBadge';
 import PressBadge from './PressBadge';
@@ -879,7 +880,6 @@ export default function CinemaCarousel({
 
   const item = hero.item;
   const image = posterUrl(item);
-  const cat = categoryLabelOf(item);
   const groupSeances = filterSeancesForActiveFilters(
     hero.seances?.length ? hero.seances : [item],
     displayFilter,
@@ -975,9 +975,7 @@ export default function CinemaCarousel({
     <>
       <div className="flex items-start justify-between gap-2">
         <span className="flex min-w-0 flex-wrap items-center gap-1.5">
-          <span className="inline-flex rounded bg-culture-terracotta px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">
-            {cat || copy.fallbackCat}
-          </span>
+          <CategoryBadge item={item} className="rounded" />
           {pack === 'cine' ? <FilmVersionBadge item={active} /> : null}
           <TheatreUrgenceBadge item={item} />
         </span>

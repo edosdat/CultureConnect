@@ -14,14 +14,23 @@
   --cc-soft: #f6d5c8;
   --cc-sand: #f3e8da;
 
-  /* Category tokens — one hue per cat (barre + pastille) */
-  --cc-cat-musique: #7c3a6e;
-  --cc-cat-theatre: #1e3a5f;
-  --cc-cat-festival: #d97706;
-  --cc-cat-cinema: #e85d3b;
-  --cc-cat-expo: #5f7a5a;
-  --cc-cat-famille: #0f766e;
-  --cc-cat-autre: #78716c;
+  /* S8 category palette LOCK — paint chips / badges / H2 / fallback wash only */
+  --cat-cine: #e85d3b; /* LOCK terracotta — do not change */
+  --cat-musique: #6b3fa0;
+  --cat-theatre: #0d7377;
+  --cat-festival: #be185d;
+  --cat-expo: #334155;
+  --cat-enfants: #ca8a04;
+
+  /* Legacy --cc-cat-* aliases (chips / pastilles already wired) */
+  --cc-cat-cinema: var(--cat-cine);
+  --cc-cat-cine: var(--cat-cine);
+  --cc-cat-musique: var(--cat-musique);
+  --cc-cat-theatre: var(--cat-theatre);
+  --cc-cat-festival: var(--cat-festival);
+  --cc-cat-expo: var(--cat-expo);
+  --cc-cat-famille: var(--cat-enfants);
+  --cc-cat-enfants: var(--cat-enfants);
 }
 
 html {
@@ -48,69 +57,35 @@ body {
 
 /* Explicit category utilities — not reliant on Tailwind scanning src/lib */
 @layer utilities {
-  .cc-cat-bg-musique { background-color: var(--cc-cat-musique); }
-  .cc-cat-bg-theatre { background-color: var(--cc-cat-theatre); }
-  .cc-cat-bg-festival { background-color: var(--cc-cat-festival); }
-  .cc-cat-bg-cinema { background-color: var(--cc-cat-cinema); }
-  .cc-cat-bg-expo { background-color: var(--cc-cat-expo); }
-  .cc-cat-bg-famille { background-color: var(--cc-cat-famille); }
-  .cc-cat-bg-autre { background-color: var(--cc-cat-autre); }
+  .cc-cat-bg-musique { background-color: var(--cat-musique); }
+  .cc-cat-bg-theatre { background-color: var(--cat-theatre); }
+  .cc-cat-bg-festival { background-color: var(--cat-festival); }
+  .cc-cat-bg-cinema,
+  .cc-cat-bg-cine { background-color: var(--cat-cine); }
+  .cc-cat-bg-expo { background-color: var(--cat-expo); }
+  .cc-cat-bg-famille,
+  .cc-cat-bg-enfants { background-color: var(--cat-enfants); }
 
-  .cc-cat-grad-musique {
-    background-image: linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--cc-cat-musique) 92%, white),
-      color-mix(in srgb, var(--cc-cat-musique) 55%, var(--cc-sand))
-    );
+  /* 10% wash on cream — VisualFallback only, never a dead gray block */
+  .cc-cat-wash-musique {
+    background-color: color-mix(in srgb, var(--cat-musique) 10%, var(--cc-cream));
   }
-  .cc-cat-grad-theatre {
-    background-image: linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--cc-cat-theatre) 92%, white),
-      color-mix(in srgb, var(--cc-cat-theatre) 55%, var(--cc-sand))
-    );
+  .cc-cat-wash-theatre {
+    background-color: color-mix(in srgb, var(--cat-theatre) 10%, var(--cc-cream));
   }
-  .cc-cat-grad-festival {
-    background-image: linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--cc-cat-festival) 92%, white),
-      color-mix(in srgb, var(--cc-cat-festival) 55%, var(--cc-sand))
-    );
+  .cc-cat-wash-festival {
+    background-color: color-mix(in srgb, var(--cat-festival) 10%, var(--cc-cream));
   }
-  .cc-cat-grad-cinema {
-    background-image: linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--cc-cat-cinema) 92%, white),
-      color-mix(in srgb, var(--cc-cat-cinema) 55%, var(--cc-sand))
-    );
+  .cc-cat-wash-cinema,
+  .cc-cat-wash-cine {
+    background-color: color-mix(in srgb, var(--cat-cine) 10%, var(--cc-cream));
   }
-  .cc-cat-grad-expo {
-    background-image: linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--cc-cat-expo) 92%, white),
-      color-mix(in srgb, var(--cc-cat-expo) 55%, var(--cc-sand))
-    );
+  .cc-cat-wash-expo {
+    background-color: color-mix(in srgb, var(--cat-expo) 10%, var(--cc-cream));
   }
-  .cc-cat-grad-famille {
-    background-image: linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--cc-cat-famille) 92%, white),
-      color-mix(in srgb, var(--cc-cat-famille) 55%, var(--cc-sand))
-    );
-  }
-  .cc-cat-grad-autre {
-    background-image: linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--cc-cat-autre) 92%, white),
-      color-mix(in srgb, var(--cc-cat-autre) 55%, var(--cc-sand))
-    );
-  }
-  .cc-cat-grad-muted {
-    background-image: linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--cc-muted) 70%, white),
-      var(--cc-sand)
-    );
+  .cc-cat-wash-famille,
+  .cc-cat-wash-enfants {
+    background-color: color-mix(in srgb, var(--cat-enfants) 10%, var(--cc-cream));
   }
 }
 

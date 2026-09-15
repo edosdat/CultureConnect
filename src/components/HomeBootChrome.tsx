@@ -2,23 +2,13 @@ import type { ReactNode } from 'react';
 import {
   EXTRA_CATEGORY_CHIPS,
   HOME_CATEGORY_CHIPS,
-  type MainCategoryId,
 } from '@/lib/categories';
+import { MAIN_CAT_CSS_VAR } from '@/lib/categoryColor';
 import { HOME_CHROME_STACK_CLASS, SEARCH_PLACEHOLDER } from '@/lib/displayHome';
 import { MONTH_NAMES_FR } from '@/lib/labels';
 import { NEAR_ME_CHIP_LABEL, TOULOUSE_CHIP_DEFAULT } from '@/lib/nearMe';
 import { parisParts, TIME_SCOPE_CHIPS } from '@/lib/timeScope';
 import { HomeListWaitSlot } from './ListWaitDots';
-
-/** Same --cc-cat-* hex as CategoryFilter home chips. */
-const CHIP_VAR: Record<MainCategoryId, string> = {
-  musique: '--cc-cat-musique',
-  theatre_danse: '--cc-cat-theatre',
-  festival: '--cc-cat-festival',
-  cinema: '--cc-cat-cinema',
-  expo_patrimoine: '--cc-cat-expo',
-  enfants_famille: '--cc-cat-famille',
-};
 
 function homeBootMonthLabel(now = new Date()): string {
   const { year, month } = parisParts(now);
@@ -89,7 +79,7 @@ export default function HomeBootChrome({ children }: { children: ReactNode }) {
                 Quoi
               </p>
               {homeCats.map(({ id, label }) => {
-                const tint = `var(${CHIP_VAR[id]})`;
+                const tint = `var(${MAIN_CAT_CSS_VAR[id]})`;
                 return (
                   <span
                     key={id}

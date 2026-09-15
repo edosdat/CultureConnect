@@ -2,8 +2,10 @@
 
 import type { ReactNode } from 'react';
 import {
+  HOME_SECTION_TITLE_ACCENT_VAR,
   HOME_SECTION_TITLE_CLASS,
   HOME_SECTION_TITLE_RULE_CLASS,
+  homeSectionAccentStyle,
 } from '@/lib/displayHome';
 
 type Props = {
@@ -15,6 +17,8 @@ type Props = {
   expanded?: boolean;
   /** Public: hide "N sorties". Admin debug keeps the number. */
   hideCount?: boolean;
+  /** S8 `--cat-*` token for the H2 underline (pack rail title). */
+  accentVar?: string;
   children: ReactNode;
   className?: string;
 };
@@ -27,6 +31,7 @@ export default function HomeSection({
   onSeeAll,
   expanded = false,
   hideCount = false,
+  accentVar = HOME_SECTION_TITLE_ACCENT_VAR,
   children,
   className = '',
 }: Props) {
@@ -36,7 +41,11 @@ export default function HomeSection({
     <section id={id} className={'scroll-mt-16 space-y-3 ' + className}>
       <div className="flex flex-wrap items-end justify-between gap-2">
         <h2 className={HOME_SECTION_TITLE_CLASS}>
-          <span className={HOME_SECTION_TITLE_RULE_CLASS}>
+          <span
+            className={HOME_SECTION_TITLE_RULE_CLASS}
+            style={homeSectionAccentStyle(accentVar)}
+            data-cat-h2={accentVar}
+          >
             {title}
           </span>
         </h2>

@@ -329,8 +329,17 @@ export function top3TrackClass(count: number): string {
 export const HOME_SECTION_TITLE_CLASS =
   'font-display text-xl text-culture-ink sm:text-2xl';
 
-export const HOME_SECTION_TITLE_RULE_CLASS =
-  'border-b-2 border-culture-terracotta pb-0.5';
+/** Underline only — color comes from `--cat-*` / terracotta via inline style. */
+export const HOME_SECTION_TITLE_RULE_CLASS = 'border-b-2 pb-0.5';
+
+/** Default H2 accent (Top 3 / mixed). Same hex as LOCK --cat-cine. */
+export const HOME_SECTION_TITLE_ACCENT_VAR = '--cc-terracotta';
+
+export function homeSectionAccentStyle(
+  accentVar: string = HOME_SECTION_TITLE_ACCENT_VAR,
+): { borderBottomColor: string } {
+  return { borderBottomColor: `var(${accentVar})` };
+}
 
 /**
  * Stack between QUAND/QUOI, city row, list-wait, and Top 3.

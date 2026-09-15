@@ -10,6 +10,7 @@ import {
   HOME_PACK_MORE_CAT,
   HOME_PACK_MORE_ELLIPSIS,
   HOME_PACK_MORE_LABEL,
+  HOME_SECTION_TITLE_ACCENT_VAR,
   HOME_SECTION_TITLE_CLASS,
   HOME_SECTION_TITLE_RULE_CLASS,
   fillEmptyCineFromPool,
@@ -1407,7 +1408,8 @@ describe('Top 3 mobile carousel (<md)', () => {
       HOME_SECTION_TITLE_CLASS,
       'font-display text-xl text-culture-ink sm:text-2xl',
     );
-    assert.ok(HOME_SECTION_TITLE_RULE_CLASS.includes('border-culture-terracotta'));
+    assert.ok(HOME_SECTION_TITLE_RULE_CLASS.includes('border-b-2'));
+    assert.equal(HOME_SECTION_TITLE_ACCENT_VAR, '--cc-terracotta');
     assert.equal(HOME_SECTION_TITLE_CLASS.includes('w-full'), false);
     assert.equal(HOME_SECTION_TITLE_CLASS.includes('leading-tight'), false);
     assert.ok(TOP3_SECTION_CLASS.includes('px-2'));
