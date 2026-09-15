@@ -9,6 +9,7 @@ import {
   recommendForProfile,
   recommendSlice,
   slotFormOfItem,
+  workIdOf,
 } from './reco';
 import { emptyProfile, emptyTasteState, type AccountTasteState, type TasteProfile } from './signals';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
@@ -241,5 +242,55 @@ describe('recoEngine — tag-count insensitivity (cosine follow-up)', () => {
     assert.ok(leanScore > 0 && heavyScore > 0);
     const ratio = heavyScore / leanScore;
     assert.ok(ratio >= 0.95 && ratio <= 1.05, `score ratio ${ratio}`);
+  });
+});
+
+describe('recoEngine — P2 temporal demote', () => {
+  it('does not reuse a demoted #1 when an alternative exists in the same slot', () => {
+    const first = item({
+      key: 'cine-a',
+      cat: 'cinema',
+      filmId: 'FA',
+      moods: 'rigolo',
+      day: '2026-09-02',
+    });
+    const second = item({
+      key: 'cine-b',
+      cat: 'cinema',
+      filmId: 'FB',
+      moods: 'rigolo',
+      day: '2026-09-05',
+    });
+    const st = state({
+      profile: profile({ moods: { rigolo: { weight: 10, pct: 100 } } }),
+    });
+    const monday = recommendForProfile([first, second], st, 3, { now: NOW });
+    const mondayCine = monday.find((r) => slotFormOfItem(r.item) === 'cine');
+    assert.ok(mondayCine);
+    const week = recommendForProfile([first, second], st, 3, {
+      now: NOW,
+      demoteWorkIds: new Set([workIdOf(mondayCine.item)]),
+    });
+    const weekCine = week.find((r) => slotFormOfItem(r.item) === 'cine');
+    assert.ok(weekCine);
+    assert.notEqual(workIdOf(weekCine.item), workIdOf(mondayCine.item));
+  });
+
+  it('still fills the slot when the only item is demoted', () => {
+    const only = item({
+      key: 'cine-only',
+      cat: 'cinema',
+      filmId: 'FO',
+      moods: 'rigolo',
+    });
+    const st = state({
+      profile: profile({ moods: { rigolo: { weight: 10, pct: 100 } } }),
+    });
+    const out = recommendForProfile([only], st, 3, {
+      now: NOW,
+      demoteWorkIds: new Set([workIdOf(only)]),
+    });
+    assert.equal(out.length, 1);
+    assert.equal(slotFormOfItem(out[0]!.item), 'cine');
   });
 });

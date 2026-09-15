@@ -801,6 +801,13 @@ export type ScoredDayItem = {
 export type RecommendOptions = {
   now?: Date;
   nouveauFilmIds?: ReadonlySet<string>;
+  /**
+   * Work ids already retained for an earlier temporal window of the same
+   * profile. They lose to any alternative in compareRank / pickBestPerSlot
+   * so week/month do not clone monday's picks. If a slot has no alternative,
+   * the demoted item still fills it.
+   */
+  demoteWorkIds?: ReadonlySet<string>;
 };
 
 /**
@@ -1278,8 +1285,24 @@ function scoreOverlapHit(
   };
 }
 
-/** score desc, then date+time, then key. No Math.random. */
-function compareRank(a: ScoredDayItem, b: ScoredDayItem): number {
+function rankWorkId(item: DayItem): string {
+  return workIdOf(item) || item.key || '';
+}
+
+/** score desc, then date+time, then key. No Math.random.
+ * demoteWorkIds (P2): a previously retained work loses to any alternative
+ * so later windows vary; last resort still keeps the slot filled.
+ */
+function compareRank(
+  a: ScoredDayItem,
+  b: ScoredDayItem,
+  demote?: ReadonlySet<string>,
+): number {
+  if (demote && demote.size > 0) {
+    const aD = demote.has(rankWorkId(a.item)) ? 1 : 0;
+    const bD = demote.has(rankWorkId(b.item)) ? 1 : 0;
+    if (aD !== bD) return aD - bD;
+  }
   if (b.score !== a.score) return b.score - a.score;
   const day = a.item.dayIso.localeCompare(b.item.dayIso);
   if (day !== 0) return day;
@@ -1300,14 +1323,17 @@ function compareItemTieBreak(a: DayItem, b: DayItem): number {
   return (a.key || '').localeCompare(b.key || '');
 }
 
-function pickBestPerSlot(scored: ScoredDayItem[]): ScoredDayItem[] {
+function pickBestPerSlot(
+  scored: ScoredDayItem[],
+  demote?: ReadonlySet<string>,
+): ScoredDayItem[] {
   const best = new Map<RecoSlotForm, ScoredDayItem>();
   for (const entry of scored) {
     if (entry.score <= 0) continue;
     const slot = slotFormOfItem(entry.item);
     if (!slot) continue;
     const prev = best.get(slot);
-    if (!prev || compareRank(entry, prev) < 0) best.set(slot, entry);
+    if (!prev || compareRank(entry, prev, demote) < 0) best.set(slot, entry);
   }
   const out: ScoredDayItem[] = [];
   for (const slot of SLOT_ORDER) {
@@ -1585,7 +1611,8 @@ export function recommendForProfile(
   if (pool.length === 0) return [];
 
   const nouveauIds = options?.nouveauFilmIds ?? new Set<string>();
-  const fallback = pickBestPerSlot(scoreFallbackPool(pool, nouveauIds));
+  const demote = options?.demoteWorkIds;
+  const fallback = pickBestPerSlot(scoreFallbackPool(pool, nouveauIds), demote);
   const hasProfile = profileHasChipWeight(state.profile);
   const limit = Math.max(1, Math.min(topN, 3));
 
@@ -1639,7 +1666,7 @@ export function recommendForProfile(
     affinity.push({ item, score: 10 + hit.score, reason });
   }
 
-  const overlap = pickBestPerSlot(affinity);
+  const overlap = pickBestPerSlot(affinity, demote);
   if (overlap.length === 0) {
     return fallback.slice(0, limit);
   }
