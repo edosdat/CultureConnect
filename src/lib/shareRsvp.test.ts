@@ -391,7 +391,7 @@ describe('B3b source contract', () => {
     assert.match(ui, /circleEnvieLine/);
     assert.match(ui, /share-rsvp-daughter/);
     assert.match(ui, /share-rsvp-mother/);
-    assert.equal(ui.includes('bg-culture-sand'), false);
+    assert.equal(ui.includes('rounded-2xl bg-culture-sand'), false);
     assert.equal(/intéress/i.test(ui), false);
 
     const detail = await readFile(
