@@ -1,3 +1,4 @@
+import { PACK_CAT_CSS_VAR } from '@/lib/categoryColor';
 import {
   HOME_SECTION_TITLE_ACCENT_VAR,
   HOME_SECTION_TITLE_CLASS,
@@ -7,6 +8,7 @@ import {
 } from '@/lib/displayHome';
 import HomeBootChrome from './HomeBootChrome';
 import HomeAccroche from './HomeAccroche';
+import PackRailSkeleton from './PackRailSkeleton';
 import Top3GuestCta from './Top3GuestCta';
 import Top3Skeleton from './Top3Skeleton';
 
@@ -38,6 +40,16 @@ export default function HomeTop3BootFallback() {
           <Top3GuestCta />
           <Top3Skeleton />
         </section>
+        <PackRailSkeleton
+          id="cine"
+          title="Ciné"
+          accentVar={PACK_CAT_CSS_VAR.cine}
+        />
+        <PackRailSkeleton
+          id="theatre"
+          title="Théâtre & spectacle vivant"
+          accentVar={PACK_CAT_CSS_VAR.theatre}
+        />
       </HomeBootChrome>
     </main>
   );

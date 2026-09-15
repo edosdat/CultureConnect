@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 import {
   HOME_FIRST_PAINT_CINE_CAP,
+  HOME_FIRST_PAINT_THEATRE_CAP,
   HOME_PACK_HERO_COPY_CAP,
   HOME_PACK_WIRE_CAP,
   listItemHasHeroFicheCopy,
@@ -256,6 +257,7 @@ describe('home boot snapshots', () => {
     assert.equal(HOME_PACK_WIRE_CAP, 80);
     assert.equal(HOME_PACK_HERO_COPY_CAP, 8);
     assert.equal(HOME_FIRST_PAINT_CINE_CAP, 10);
+    assert.equal(HOME_FIRST_PAINT_THEATRE_CAP, 6);
   });
 
   it('omits the boot scope duplicate from listByScope', () => {

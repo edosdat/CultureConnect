@@ -169,16 +169,6 @@ export default function AuthButtons() {
         <ActivityInbox />
         <button
           type="button"
-          onPointerDown={holdMenu}
-          onClick={openSheetFromClick}
-          data-account-control="mes-gouts"
-          aria-label="Mes goûts"
-          className="shrink-0 rounded-full bg-culture-terracotta px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-culture-clay sm:px-3 sm:text-sm"
-        >
-          Mes goûts
-        </button>
-        <button
-          type="button"
           onClick={() => setMenuOpen((v) => !v)}
           aria-haspopup="menu"
           aria-expanded={menuOpen}
@@ -229,16 +219,11 @@ export default function AuthButtons() {
 
   if (status === 'loading' && !treatAsGuest) {
     return (
-      <button
-        type="button"
-        onPointerDown={holdMenu}
-        onClick={openSheetFromClick}
-        data-account-control="mes-gouts-pending"
-        aria-label="Mes goûts"
-        className="shrink-0 rounded-full bg-culture-terracotta px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-culture-clay"
-      >
-        Mes goûts
-      </button>
+      <span
+        data-account-control="avatar-pending"
+        aria-hidden
+        className="flex h-9 w-9 shrink-0 animate-pulse overflow-hidden rounded-full border border-culture-line bg-culture-sand/70"
+      />
     );
   }
 

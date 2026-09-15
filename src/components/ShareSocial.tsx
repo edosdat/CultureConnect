@@ -22,6 +22,22 @@ type Props = {
 
 type MotherStats = { envie: number; going: number };
 
+function SocialSkeleton() {
+  return (
+    <div
+      data-testid="share-social-pending"
+      aria-busy="true"
+      className="mt-2 space-y-2"
+    >
+      <div className="flex gap-2">
+        <div className="h-10 flex-1 animate-pulse rounded-full bg-culture-sand/80 blur-[0.5px]" />
+        <div className="h-10 flex-1 animate-pulse rounded-full bg-culture-sand/70 blur-[0.5px]" />
+      </div>
+      <div className="h-3 w-2/3 animate-pulse rounded bg-culture-sand/60 blur-[0.5px]" />
+    </div>
+  );
+}
+
 function rsvpButtonClass(active: boolean): string {
   return (
     'inline-flex min-h-10 flex-1 items-center justify-center rounded-full border px-4 py-2 text-sm font-medium ' +
@@ -40,10 +56,12 @@ export default function ShareSocial({ item, token }: Props) {
 
 function MotherStatsBlock({ itemKey }: { itemKey: string }) {
   const [stats, setStats] = useState<MotherStats | null>(null);
+  const [settled, setSettled] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setStats(null);
+    setSettled(false);
     void fetch(`/api/share/event/${encodeURIComponent(itemKey)}/stats`, {
       credentials: 'same-origin',
     })
@@ -54,12 +72,16 @@ function MotherStatsBlock({ itemKey }: { itemKey: string }) {
       })
       .catch(() => {
         if (!cancelled) setStats(null);
+      })
+      .finally(() => {
+        if (!cancelled) setSettled(true);
       });
     return () => {
       cancelled = true;
     };
   }, [itemKey]);
 
+  if (!settled) return <SocialSkeleton />;
   if (!stats) return null;
   const label = motherCountersLabel(stats.envie, stats.going);
   if (!label) return null;
@@ -80,18 +102,24 @@ function DaughterRsvp({ item, token }: { item: DayItem; token: string }) {
   const [mine, setMine] = useState<RsvpKind | null>(null);
   const [busy, setBusy] = useState(false);
   const [nudge, setNudge] = useState(false);
+  const [settled, setSettled] = useState(false);
 
   const loadSocial = useCallback(async () => {
     try {
       const res = await fetch(`/api/share/${encodeURIComponent(token)}/social`, {
         credentials: 'same-origin',
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        setSettled(true);
+        return;
+      }
       const data = (await res.json()) as TokenSocialPayload;
       setSocial(data);
       setMine(data.inCircle ? data.mine : null);
     } catch {
       /* keep last payload */
+    } finally {
+      setSettled(true);
     }
   }, [token]);
 
@@ -136,6 +164,8 @@ function DaughterRsvp({ item, token }: { item: DayItem; token: string }) {
     social && !social.inCircle && (social.envie >= 1 || social.going >= 1)
       ? motherCountersLabel(social.envie, social.going)
       : '';
+
+  if (!settled) return <SocialSkeleton />;
 
   return (
     <section data-testid="share-rsvp-daughter" className="mt-2">

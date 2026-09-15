@@ -794,6 +794,24 @@ export function homeSectionsVisible(cats: readonly string[]): {
 }
 
 /**
+ * Ciné / théâtre rails stay on first paint while the pack hydrates.
+ * Never a silent empty gap: shell (or real cards) until clash / chip hide.
+ */
+export function homePackShellVisible(opts: {
+  sectionAllowed: boolean;
+  rowCount: number;
+  packTotal?: number;
+  cataloguePending?: boolean;
+  phraseDateClash?: boolean;
+}): boolean {
+  if (opts.phraseDateClash) return false;
+  if (!opts.sectionAllowed) return false;
+  if (opts.rowCount > 0) return true;
+  if (opts.cataloguePending) return true;
+  return (opts.packTotal ?? 0) > 0;
+}
+
+/**
  * Look up a card by agenda key (`p:…` / `e:…`) across in-memory pools.
  * Pass the full Top 3 / reco catalogue first — never only the QUOI-filtered
  * grid (`applyList` / cine rows). Same key as `?e=` / `/api/agenda?id=`.

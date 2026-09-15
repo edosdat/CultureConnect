@@ -18,6 +18,7 @@ import SeanceCard from './SeanceCard';
 import CategoryBadge from './CategoryBadge';
 import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 import FilmVersionBadge from './FilmVersionBadge';
+import FilmPoster from './FilmPoster';
 import ShareSocial from './ShareSocial';
 import SharerActivitySand from './SharerActivitySand';
 import EventCtaRow from './EventCtaRow';
@@ -501,8 +502,9 @@ export default function EventDetail({
                 </div>
             </CineFicheFrame>
           ) : (
-            <div className="px-5 pt-4">
-              <div className="min-w-0 break-words">
+            <div>
+              <FilmPoster src={itemImageUrl(item)} item={item} blurBackdrop />
+              <div className="min-w-0 break-words px-5 pt-3">
                 <div className="flex flex-wrap gap-2">
                   <CategoryBadge item={item} className="rounded-full px-2.5 text-xs" />
                   {p.type_item && (
@@ -795,8 +797,9 @@ export default function EventDetail({
               </div>
           </CineFicheFrame>
         ) : (
-          <div className="px-5 pt-4">
-            <div className="min-w-0 break-words">
+          <div>
+            <FilmPoster src={itemImageUrl(item)} item={item} blurBackdrop />
+            <div className="min-w-0 break-words px-5 pt-3">
               <div className="flex flex-wrap items-center gap-2">
                 <CategoryBadge item={item} className="rounded-full px-2.5 text-xs" />
                 <TheatreUrgenceBadge item={item} />
