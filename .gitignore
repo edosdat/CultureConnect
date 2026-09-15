@@ -16,5 +16,9 @@
 .data/
 .data/account-tastes/
 
+# KPI 18 admin export dumps — interne, never commit
+*gouts-internes*.csv
+cc-gouts-internes*.csv
+
 # Vercel CLI (projectId/orgId — do not publish)
 .vercel/

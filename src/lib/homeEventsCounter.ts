@@ -1,15 +1,23 @@
 /**
- * Admin-only home debug totals. Gate on NextAuth session email only.
+ * Admin-only home debug totals + `/admin` gate. Session email only.
  * Never a query param, never analytics, never rendered on the page.
  */
 
-export const HOME_EVENTS_COUNTER_EMAIL = 'edosdat@gmail.com';
+export const ADMIN_EMAILS = [
+  'edosdat@gmail.com',
+  'katimostef@gmail.com',
+] as const;
+
+export const ADMIN_EMAIL_SET: ReadonlySet<string> = new Set(ADMIN_EMAILS);
+
+/** First allowlisted address — prefer `ADMIN_EMAILS` / `showHomeEventsCounter`. */
+export const HOME_EVENTS_COUNTER_EMAIL = ADMIN_EMAILS[0];
 
 export function showHomeEventsCounter(
   email: string | null | undefined,
 ): boolean {
   if (typeof email !== 'string') return false;
-  return email.trim().toLowerCase() === HOME_EVENTS_COUNTER_EMAIL;
+  return ADMIN_EMAIL_SET.has(email.trim().toLowerCase());
 }
 
 export type HomeEventsCounterTotals = {

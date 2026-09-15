@@ -1113,6 +1113,110 @@ async function listShareTokensNeonByEmail(
   }
 }
 
+/** Admin analytics — tokens from Neon (+ in-memory test rows). No vid. */
+export async function listShareTokensForAdmin(
+  limit = 2000,
+): Promise<ShareTokenRecord[]> {
+  const byToken = new Map<string, ShareTokenRecord>();
+  for (const rec of memoryTokens.values()) {
+    byToken.set(rec.token, { ...rec });
+  }
+  try {
+    const pg = await ensureShareTokensTable();
+    if (pg) {
+      const cap = Math.max(1, Math.min(5000, Math.floor(limit)));
+      const result = await pg.query(
+        `SELECT token, item_key, seance_key, created_at, sharer_email, opens
+         FROM share_tokens
+         ORDER BY created_at DESC
+         LIMIT $1`,
+        [cap],
+      );
+      for (const row of result.rows as Array<{
+        token?: string;
+        item_key?: string;
+        seance_key?: string | null;
+        created_at?: Date | string;
+        sharer_email?: string | null;
+        opens?: number;
+      }>) {
+        const createdAt =
+          row.created_at instanceof Date
+            ? row.created_at.toISOString()
+            : typeof row.created_at === 'string'
+              ? row.created_at
+              : new Date().toISOString();
+        const rec = parseTokenRecord({
+          token: row.token,
+          itemKey: row.item_key,
+          seanceKey: row.seance_key,
+          createdAt,
+          sharerEmail: row.sharer_email,
+          opens: row.opens,
+        });
+        if (rec) byToken.set(rec.token, rec);
+      }
+    }
+  } catch {
+    /* preview / local */
+  }
+  return [...byToken.values()].sort(
+    (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt),
+  );
+}
+
+/** Admin analytics — RSVPs from Neon (+ in-memory test rows). No vid. */
+export async function listShareRsvpsForAdmin(
+  limit = 5000,
+): Promise<ShareRsvpRecord[]> {
+  const byKey = new Map<string, ShareRsvpRecord>();
+  for (const rec of memoryAllRsvps()) {
+    byKey.set(`${rec.token}:${rec.emailHash}`, rec);
+  }
+  try {
+    const pg = await ensureShareRsvpsTable();
+    if (pg) {
+      const cap = Math.max(1, Math.min(8000, Math.floor(limit)));
+      const result = await pg.query(
+        `SELECT token, email_hash, item_key, work_id, kind, first_name, updated_at
+         FROM share_rsvps
+         ORDER BY updated_at DESC
+         LIMIT $1`,
+        [cap],
+      );
+      for (const row of result.rows as Array<{
+        token?: string;
+        email_hash?: string;
+        item_key?: string;
+        work_id?: string;
+        kind?: string;
+        first_name?: string;
+        updated_at?: Date | string;
+      }>) {
+        const updatedAt =
+          row.updated_at instanceof Date
+            ? row.updated_at.toISOString()
+            : typeof row.updated_at === 'string'
+              ? row.updated_at
+              : new Date().toISOString();
+        const rec = parseRsvpRecord({
+          token: row.token,
+          emailHash: row.email_hash,
+          itemKey: row.item_key,
+          workId: row.work_id,
+          kind: row.kind,
+          firstName: row.first_name,
+          ts: updatedAt,
+        });
+        if (rec) byKey.set(`${rec.token}:${rec.emailHash}`, rec);
+      }
+    }
+  } catch {
+    /* preview / local */
+  }
+  return [...byKey.values()];
+}
+
 export async function listShareTokensBySharerEmail(
   email: string,
 ): Promise<ShareTokenRecord[]> {

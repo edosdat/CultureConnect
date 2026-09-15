@@ -11,6 +11,7 @@ import {
   IP_RATE_LIMIT_PER_HOUR,
   RATE_WINDOW_MS,
   assertNoVidAccountJoin,
+  dailyVidUniquesKey,
   formatAppendLogLine,
   generateVid,
   isValidVid,
@@ -19,6 +20,7 @@ import {
   buildGuestAppendLine,
 } from '@/lib/guestSignals';
 import type { Signal } from '@/lib/signals';
+import { parisParts } from '@/lib/timeScope';
 
 type KvConfig = { url: string; token: string };
 
@@ -129,11 +131,25 @@ async function kvAppend(
   return rows !== null;
 }
 
+const DAILY_VID_TTL_SEC = 21 * 24 * 60 * 60;
+
+async function indexDailyVid(line: GuestAppendLine): Promise<void> {
+  const day = parisParts(new Date(line.ts || Date.now())).iso;
+  await kvPipeline([
+    ['SADD', dailyVidUniquesKey(day), line.vid],
+    ['EXPIRE', dailyVidUniquesKey(day), String(DAILY_VID_TTL_SEC)],
+  ]);
+}
+
 export async function persistGuestAppend(line: GuestAppendLine): Promise<void> {
   assertNoVidAccountJoin(line);
   const payload = formatAppendLogLine(line);
   const stored = await kvAppend(`cc:vs:${line.vid}`, payload);
-  if (!stored) console.log(payload);
+  if (!stored) {
+    console.log(payload);
+    return;
+  }
+  await indexDailyVid(line);
 }
 
 export type GuestCommitOk = {

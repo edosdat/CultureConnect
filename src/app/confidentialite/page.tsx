@@ -34,6 +34,11 @@ export default function ConfidentialitePage() {
           recommandations «&nbsp;Pour toi&nbsp;».
         </p>
         <p>
+          <span className="font-medium">Éditeur.</span> L’éditeur consulte des
+          agrégats de goûts et un export interne limité pour ajuster
+          «&nbsp;Pour toi&nbsp;».
+        </p>
+        <p>
           <span className="font-medium">Mails.</span> Si tu coches « Envoie-moi
           3 idées par mail », on t&apos;envoie 3 sorties et un lien vers
           l&apos;agenda. Pas plus d&apos;un mail par semaine. Base : ton

@@ -1,5 +1,6 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
+import { recordGoogleLogin } from '@/lib/adminCounters';
 import {
   clearAccountTasteCookie,
   readAccountTaste,
@@ -168,6 +169,10 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
     },
   },
   events: {
+    async signIn() {
+      // First-party login count (KV INCR by Paris day). No email / vid stored.
+      await recordGoogleLogin();
+    },
     async signOut() {
       // Cookie only — Neon account_tastes row must stay.
       await clearAccountTasteCookie();

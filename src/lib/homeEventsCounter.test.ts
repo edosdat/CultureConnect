@@ -1,17 +1,25 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  ADMIN_EMAILS,
   HOME_EVENTS_COUNTER_EMAIL,
   formatHomeEventsCounter,
   showHomeEventsCounter,
 } from './homeEventsCounter';
 
 describe('showHomeEventsCounter', () => {
-  it('is true only for the admin Google email (trimmed, case-insensitive)', () => {
+  it('is true for either allowlisted Google email (trimmed, case-insensitive)', () => {
+    assert.deepEqual([...ADMIN_EMAILS], [
+      'edosdat@gmail.com',
+      'katimostef@gmail.com',
+    ]);
+    assert.equal(HOME_EVENTS_COUNTER_EMAIL, 'edosdat@gmail.com');
     assert.equal(showHomeEventsCounter('edosdat@gmail.com'), true);
     assert.equal(showHomeEventsCounter('EdoSdat@Gmail.com'), true);
     assert.equal(showHomeEventsCounter(' edosdat@gmail.com '), true);
-    assert.equal(HOME_EVENTS_COUNTER_EMAIL, 'edosdat@gmail.com');
+    assert.equal(showHomeEventsCounter('katimostef@gmail.com'), true);
+    assert.equal(showHomeEventsCounter('KatiMostef@Gmail.com'), true);
+    assert.equal(showHomeEventsCounter(' katimostef@gmail.com '), true);
   });
 
   it('is false for guests and any other account', () => {
@@ -20,6 +28,7 @@ describe('showHomeEventsCounter', () => {
     assert.equal(showHomeEventsCounter(''), false);
     assert.equal(showHomeEventsCounter('other@gmail.com'), false);
     assert.equal(showHomeEventsCounter('edosdat@gmail.com.evil'), false);
+    assert.equal(showHomeEventsCounter('katimostef@gmail.com.evil'), false);
   });
 });
 

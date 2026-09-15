@@ -7,6 +7,7 @@ import {
   IP_RATE_LIMIT_PER_HOUR,
   SIGNAL_PAYLOAD_MAX_BYTES,
   VID_COOKIE,
+  dailyVidUniquesKey,
   assertNoVidAccountJoin,
   buildGuestAppendLine,
   fifoAppend,
@@ -57,6 +58,7 @@ describe('cc_vid format', () => {
     assert.equal(resolveVidFromCookie(id), id);
     assert.equal(resolveVidFromCookie(GUEST_STORAGE_KEY), null);
     assert.equal(VID_COOKIE, 'cc_vid');
+    assert.equal(dailyVidUniquesKey('2026-09-15'), 'cc:vu:2026-09-15');
     assert.notEqual(VID_COOKIE, GUEST_STORAGE_KEY);
     const opts = vidCookieOptions();
     assert.equal(opts.httpOnly, true);

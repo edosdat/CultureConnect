@@ -12,6 +12,11 @@ export {
   isValidVid,
   vidCookieOptions,
 } from '@/lib/guestId';
+
+/** Daily unique index for `cc_vid` (same write path as `cc:vs:<vid>`). */
+export function dailyVidUniquesKey(parisIso: string): string {
+  return `cc:vu:${parisIso}`;
+}
 export const GUEST_SIGNAL_FIFO_CAP = 200;
 export const GUEST_RATE_LIMIT_PER_HOUR = 60;
 export const IP_RATE_LIMIT_PER_HOUR = 120;
