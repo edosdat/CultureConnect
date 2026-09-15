@@ -95,6 +95,7 @@ describe('declutter cartes/fiche LOCK', () => {
       'utf8',
     );
     assert.match(picker, /<EventCtaRow/);
+    assert.match(picker, /grid-cols-2/);
     assert.equal(picker.includes('inline'), false);
     assert.equal(providers.includes('FirstLoginModal'), false);
     assert.equal(providers.includes('welcome'), false);
