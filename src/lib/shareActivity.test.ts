@@ -10,12 +10,14 @@ import {
   activitySandLines,
   buildActivityItemPayload,
   buildActivityListItems,
+  filterActivityTokensByEventDate,
   formatActivityDateShort,
   formatActivityRelative,
   hasSharerSand,
   inboxDeltaCopy,
   inboxUnreadCount,
   itemIsUnread,
+  lastSeenForToken,
   parseActivityItemPayload,
   parseActivityListPayload,
   parseActivitySeenPayload,
@@ -30,14 +32,41 @@ import {
 } from './shareActivityClient';
 import {
   createShareToken,
+  forgetActivitySeenMemoryForTests,
   guestActivityTeaserCount,
+  markSharerActivitySeen,
   recordShareVisit,
   resetShareStoreForTests,
+  setShareKvPipelineForTests,
   sharerActivityInbox,
   sharerActivityItem,
   toggleShareRsvp,
   writeActivityLastSeen,
 } from './shareStore';
+
+const upcomingDate = {
+  eventDateIsoForItemKey: () => '2099-12-31',
+};
+
+function memoryKv() {
+  const store = new Map<string, string>();
+  return {
+    store,
+    async pipeline(cmds: string[][]) {
+      return cmds.map((cmd) => {
+        const [op, key, val] = cmd;
+        if (op === 'SET' && key && val !== undefined) {
+          store.set(key, val);
+          return { result: 'OK' };
+        }
+        if (op === 'GET' && key) {
+          return { result: store.has(key) ? store.get(key)! : null };
+        }
+        return { result: null };
+      });
+    },
+  };
+}
 
 function ev(
   firstName: string,
@@ -132,6 +161,35 @@ describe('B3b activity copy', () => {
       ok: true,
       unreadCount: 0,
     });
+    assert.equal(
+      lastSeenForToken(
+        {
+          global: '2026-09-15T12:00:00.000Z',
+          tokens: { abcd1234: '2026-09-10T12:00:00.000Z' },
+        },
+        'abcd1234',
+      ),
+      '2026-09-15T12:00:00.000Z',
+    );
+    assert.equal(
+      lastSeenForToken(
+        {
+          global: '2026-09-10T12:00:00.000Z',
+          tokens: { abcd1234: '2026-09-15T12:00:00.000Z' },
+        },
+        'abcd1234',
+      ),
+      '2026-09-15T12:00:00.000Z',
+    );
+    assert.deepEqual(
+      filterActivityTokensByEventDate(
+        [{ itemKey: 'p:PAST' }, { itemKey: 'p:TODAY' }, { itemKey: 'p:MISS' }],
+        (key) =>
+          key === 'p:PAST' ? '2026-09-14' : key === 'p:TODAY' ? '2026-09-15' : '',
+        '2026-09-15',
+      ).map((t) => t.itemKey),
+      ['p:TODAY'],
+    );
   });
 
   it('canonical fiche href is /?e=&t=', () => {
@@ -218,7 +276,10 @@ describe('B3b activity store', () => {
       matchesToken: (t) => t.itemKey === 'p:P1847',
     });
     assert.equal('goingNames' in carol, false);
-    const inbox = await sharerActivityInbox({ email: 'alice@example.com' });
+    const inbox = await sharerActivityInbox({
+      email: 'alice@example.com',
+      ...upcomingDate,
+    });
     assert.equal(inbox.items.length, 1);
     assert.equal(inbox.unreadCount, 1);
     assert.equal(inbox.items[0]?.unread, true);
@@ -226,14 +287,165 @@ describe('B3b activity store', () => {
     assert.equal(inbox.items[0]?.latest?.firstName, 'Bob');
     assert.equal(inbox.items[0]?.events[0]?.kind, 'going');
     await writeActivityLastSeen('alice@example.com', '2026-09-20T00:00:00.000Z');
-    const after = await sharerActivityInbox({ email: 'alice@example.com' });
+    const after = await sharerActivityInbox({
+      email: 'alice@example.com',
+      ...upcomingDate,
+    });
     assert.equal(after.lastSeenAt, '2026-09-20T00:00:00.000Z');
     assert.equal(after.unreadCount, 0);
     assert.equal(after.items[0]?.unread, false);
   });
 
+  it('GET after POST seen persists lastSeenAt and drops unread across isolates', async () => {
+    const kv = memoryKv();
+    setShareKvPipelineForTests((cmds) => kv.pipeline(cmds));
+    const created = await createShareToken({
+      itemKey: 'p:P1847',
+      sharerEmail: 'alice@example.com',
+      origin: 'https://cc.test',
+    });
+    assert.ok(created);
+    await toggleShareRsvp({
+      token: created.token,
+      itemKey: 'p:P1847',
+      workId: 'p:P1847',
+      emailHash: 'bob-hash',
+      firstName: 'Bob',
+      kind: 'going',
+    });
+    const before = await sharerActivityInbox({
+      email: 'alice@example.com',
+      ...upcomingDate,
+    });
+    assert.equal(before.lastSeenAt, null);
+    assert.equal(before.unreadCount, 1);
+    const seen = await markSharerActivitySeen({
+      email: 'alice@example.com',
+      scope: 'all',
+      ...upcomingDate,
+    });
+    assert.equal(seen.ok, true);
+    assert.equal(seen.unreadCount, 0);
+    forgetActivitySeenMemoryForTests();
+    const after = await sharerActivityInbox({
+      email: 'alice@example.com',
+      ...upcomingDate,
+    });
+    assert.ok(after.lastSeenAt);
+    assert.equal(after.unreadCount, 0);
+    assert.equal(after.items[0]?.unread, false);
+  });
+
+  it('scope all lastSeen wins over an older per-token stamp', async () => {
+    const created = await createShareToken({
+      itemKey: 'p:P1847',
+      sharerEmail: 'alice@example.com',
+      origin: 'https://cc.test',
+    });
+    assert.ok(created);
+    await toggleShareRsvp({
+      token: created.token,
+      itemKey: 'p:P1847',
+      workId: 'p:P1847',
+      emailHash: 'bob-hash',
+      firstName: 'Bob',
+      kind: 'going',
+    });
+    await markSharerActivitySeen({
+      email: 'alice@example.com',
+      scope: 'token',
+      token: created.token,
+      now: new Date('2026-09-10T12:00:00.000Z'),
+      ...upcomingDate,
+    });
+    await toggleShareRsvp({
+      token: created.token,
+      itemKey: 'p:P1847',
+      workId: 'p:P1847',
+      emailHash: 'cam-hash',
+      firstName: 'Camille',
+      kind: 'envie',
+    });
+    const mid = await sharerActivityInbox({
+      email: 'alice@example.com',
+      ...upcomingDate,
+    });
+    assert.equal(mid.unreadCount, 1);
+    await markSharerActivitySeen({
+      email: 'alice@example.com',
+      scope: 'all',
+      now: new Date('2026-09-15T18:00:00.000Z'),
+      ...upcomingDate,
+    });
+    const after = await sharerActivityInbox({
+      email: 'alice@example.com',
+      ...upcomingDate,
+    });
+    assert.equal(after.unreadCount, 0);
+    assert.equal(after.lastSeenAt, '2026-09-15T18:00:00.000Z');
+  });
+
+  it('drops past and dateless tokens from inbox and unreadCount', async () => {
+    const past = await createShareToken({
+      itemKey: 'p:P1847',
+      sharerEmail: 'alice@example.com',
+      origin: 'https://cc.test',
+    });
+    const today = await createShareToken({
+      itemKey: 'p:P2099',
+      sharerEmail: 'alice@example.com',
+      origin: 'https://cc.test',
+    });
+    const missing = await createShareToken({
+      itemKey: 'p:P0000',
+      sharerEmail: 'alice@example.com',
+      origin: 'https://cc.test',
+    });
+    assert.ok(past && today && missing);
+    await toggleShareRsvp({
+      token: past.token,
+      itemKey: 'p:P1847',
+      workId: 'p:P1847',
+      emailHash: 'bob-hash',
+      firstName: 'Bob',
+      kind: 'going',
+    });
+    await toggleShareRsvp({
+      token: today.token,
+      itemKey: 'p:P2099',
+      workId: 'p:P2099',
+      emailHash: 'cam-hash',
+      firstName: 'Camille',
+      kind: 'envie',
+    });
+    await toggleShareRsvp({
+      token: missing.token,
+      itemKey: 'p:P0000',
+      workId: 'p:P0000',
+      emailHash: 'dan-hash',
+      firstName: 'Dan',
+      kind: 'going',
+    });
+    const dates: Record<string, string> = {
+      'p:P1847': '2026-09-10',
+      'p:P2099': '2026-09-15',
+      'p:P0000': '',
+    };
+    const inbox = await sharerActivityInbox({
+      email: 'alice@example.com',
+      now: new Date('2026-09-15T12:00:00.000Z'),
+      eventDateIsoForItemKey: (key) => dates[key] ?? '',
+    });
+    assert.equal(inbox.items.length, 1);
+    assert.equal(inbox.items[0]?.itemKey, 'p:P2099');
+    assert.equal(inbox.unreadCount, 1);
+  });
+
   it('does not invent RSVP rows when the sharer has no tokens', async () => {
-    const empty = await sharerActivityInbox({ email: 'nobody@example.com' });
+    const empty = await sharerActivityInbox({
+      email: 'nobody@example.com',
+      ...upcomingDate,
+    });
     assert.deepEqual(empty.items, []);
     assert.equal(empty.unreadCount, 0);
     const built = buildActivityListItems({ tokens: [], rsvpsByToken: new Map() });
@@ -302,6 +514,8 @@ describe('B3b activity source contract', () => {
     assert.match(inbox, /Mes partages/);
     assert.match(inbox, /fetchActivityInbox/);
     assert.match(inbox, /markActivitySeen/);
+    assert.match(inbox, /fetchActivityInbox/);
+    assert.match(inbox, /setUnreadCount\(parsed\.unreadCount\)/);
     assert.match(inbox, /scope: 'all'/);
     assert.match(inbox, /scope: 'token'/);
     assert.match(inbox, /activityFicheHref/);
@@ -387,5 +601,19 @@ describe('B3b activity source contract', () => {
       assert.equal(src.includes('commitGuestSignals'), false);
       assert.equal(/intéress/i.test(src), false);
     }
+
+    const seenLib = await readFile(
+      new URL('./shareActivity.ts', import.meta.url),
+      'utf8',
+    );
+    assert.equal(seenLib.includes('state.tokens[token] || state.global'), false);
+    assert.match(seenLib, /tokenMs >= globalMs/);
+
+    const store = await readFile(new URL('./shareStore.ts', import.meta.url), 'utf8');
+    assert.match(store, /share_activity_seen/);
+    assert.match(store, /kvSetString/);
+    assert.match(store, /isNotBeforeToday/);
+    assert.match(store, /activityEventDateIso/);
+    assert.match(store, /tokens: \{\}/);
   });
 });

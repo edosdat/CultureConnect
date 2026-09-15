@@ -1,8 +1,9 @@
 /**
  * B3 token store + B3b RSVP. KV keys: `share:tok:<token>`,
  * `share:visits:<token>` (cap 500), `share:visitors:<token>`,
- * `share:rsvp:<token>`, `share:rsvp:work:<workId>`.
- * Memory fallback for tests / local.
+ * `share:rsvp:<token>`, `share:rsvp:work:<workId>`,
+ * `share:activity:seen:<emailHash>` (+ Neon `share_activity_seen`).
+ * Memory fallback for tests / local — not enough for seen on Vercel.
  * RGPD: never persist cc_vid next to email / emailHash / firstName.
  */
 import { createHash } from 'crypto';
@@ -48,6 +49,7 @@ import {
   type ActivitySeenPayload,
   type ActivitySeenState,
 } from '@/lib/shareActivity';
+import { isNotBeforeToday, parisParts } from '@/lib/timeScope';
 
 export type ShareTokenRecord = {
   token: string;
@@ -93,6 +95,7 @@ function kvConfig(): KvConfig | null {
 }
 
 async function kvPipeline(cmds: string[][]): Promise<unknown[] | null> {
+  if (kvPipelineOverride) return kvPipelineOverride(cmds);
   const cfg = kvConfig();
   if (!cfg) return null;
   try {
@@ -110,6 +113,30 @@ async function kvPipeline(cmds: string[][]): Promise<unknown[] | null> {
   } catch {
     return null;
   }
+}
+
+function kvSetSucceeded(entry: unknown): boolean {
+  if (entry === 'OK' || entry === true) return true;
+  if (typeof entry === 'string' && entry.toUpperCase() === 'OK') return true;
+  if (entry && typeof entry === 'object' && 'result' in entry) {
+    const r = (entry as { result?: unknown }).result;
+    if (r === 'OK' || r === true) return true;
+    if (typeof r === 'string' && r.toUpperCase() === 'OK') return true;
+  }
+  return false;
+}
+
+async function kvGetString(key: string): Promise<string | null> {
+  const rows = await kvPipeline([['GET', key]]);
+  return rows ? pipelineString(rows[0]) : null;
+}
+
+/** SET then read-your-writes. Missing KV / failed HTTP → false (not 200-ok-noop). */
+async function kvSetString(key: string, value: string): Promise<boolean> {
+  const setRows = await kvPipeline([['SET', key, value]]);
+  if (!setRows || !kvSetSucceeded(setRows[0])) return false;
+  const got = await kvGetString(key);
+  return got === value;
 }
 
 function pipelineCount(entry: unknown): number {
@@ -155,6 +182,9 @@ function hourBucket(now = Date.now()): string {
   return String(Math.floor(now / RATE_WINDOW_MS));
 }
 
+type KvPipelineFn = (cmds: string[][]) => Promise<unknown[] | null>;
+let kvPipelineOverride: KvPipelineFn | null = null;
+
 const memoryTokens = new Map<string, ShareTokenRecord>();
 const memoryVisits = new Map<string, ShareVisitRecord[]>();
 const memoryVisitors = new Map<string, Set<string>>();
@@ -173,6 +203,17 @@ export function resetShareStoreForTests(): void {
   memoryOrphans.length = 0;
   memorySharerIndex.clear();
   memoryActivitySeen.clear();
+  kvPipelineOverride = null;
+}
+
+/** Simulate another serverless isolate (memory empty, durable KV/Neon still set). */
+export function forgetActivitySeenMemoryForTests(): void {
+  memoryActivitySeen.clear();
+}
+
+/** Inject a durable KV so tests can prove SET then GET across isolates. */
+export function setShareKvPipelineForTests(fn: KvPipelineFn | null): void {
+  kvPipelineOverride = fn;
 }
 
 export function shareOrphanLogsForTests(): readonly string[] {
@@ -232,6 +273,7 @@ function postgresUrl(): string | undefined {
 let pool: VercelPool | null = null;
 let tableReady: Promise<void> | null = null;
 let rsvpTableReady: Promise<void> | null = null;
+let seenTableReady: Promise<void> | null = null;
 
 function getPool(): VercelPool | null {
   const url = postgresUrl();
@@ -915,33 +957,110 @@ export async function listShareTokensBySharerEmail(
     .slice(0, SHARE_SHARER_INDEX_CAP);
 }
 
+async function ensureActivitySeenTable(): Promise<VercelPool | null> {
+  const pg = getPool();
+  if (!pg) return null;
+  if (!seenTableReady) {
+    seenTableReady = (async () => {
+      await pg.query(`
+        CREATE TABLE IF NOT EXISTS share_activity_seen (
+          email_hash TEXT PRIMARY KEY,
+          payload TEXT NOT NULL,
+          updated_at TIMESTAMPTZ NOT NULL
+        )
+      `);
+    })().catch((err: unknown) => {
+      seenTableReady = null;
+      throw err;
+    });
+  }
+  await seenTableReady;
+  return pg;
+}
+
+async function readActivitySeenNeon(hash: string): Promise<string | null> {
+  try {
+    const pg = await ensureActivitySeenTable();
+    if (!pg) return null;
+    const result = await pg.query(
+      `SELECT payload FROM share_activity_seen WHERE email_hash = $1 LIMIT 1`,
+      [hash],
+    );
+    const payload = result.rows[0]?.payload;
+    return typeof payload === 'string' && payload ? payload : null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeActivitySeenNeon(
+  hash: string,
+  payload: string,
+): Promise<boolean> {
+  try {
+    const pg = await ensureActivitySeenTable();
+    if (!pg) return false;
+    await pg.query(
+      `INSERT INTO share_activity_seen (email_hash, payload, updated_at)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (email_hash) DO UPDATE SET
+         payload = EXCLUDED.payload,
+         updated_at = EXCLUDED.updated_at`,
+      [hash, payload, new Date().toISOString()],
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function parseSeenPayload(raw: string): ActivitySeenState {
+  try {
+    return parseActivitySeenState(raw.startsWith('{') ? JSON.parse(raw) : raw);
+  } catch {
+    return parseActivitySeenState(raw);
+  }
+}
+
 async function readActivitySeenState(email: string): Promise<ActivitySeenState> {
   const normalized = email.trim().toLowerCase();
   if (!normalized.includes('@')) return { global: null, tokens: {} };
   const hash = emailHash(normalized);
   const mem = memoryActivitySeen.get(hash);
-  if (mem) return parseActivitySeenState(mem);
-  const rows = await kvPipeline([['GET', activitySeenKey(hash)]]);
-  const raw = rows ? pipelineString(rows[0]) : null;
-  if (raw) {
-    memoryActivitySeen.set(hash, raw);
-    try {
-      return parseActivitySeenState(raw.startsWith('{') ? JSON.parse(raw) : raw);
-    } catch {
-      return parseActivitySeenState(raw);
-    }
+  if (mem) return parseSeenPayload(mem);
+  const fromKv = await kvGetString(activitySeenKey(hash));
+  if (fromKv) {
+    memoryActivitySeen.set(hash, fromKv);
+    return parseSeenPayload(fromKv);
+  }
+  const fromNeon = await readActivitySeenNeon(hash);
+  if (fromNeon) {
+    memoryActivitySeen.set(hash, fromNeon);
+    return parseSeenPayload(fromNeon);
   }
   return { global: null, tokens: {} };
 }
 
+/**
+ * Durable write: KV SET (read-your-writes) and/or Neon.
+ * Memory-only is not enough on Vercel — next GET is another isolate.
+ * Returns false when a backend exists but neither write stuck.
+ */
 async function writeActivitySeenState(
   email: string,
   state: ActivitySeenState,
-): Promise<void> {
+): Promise<boolean> {
   const hash = emailHash(email.trim().toLowerCase());
   const payload = JSON.stringify(state);
-  memoryActivitySeen.set(hash, payload);
-  await kvPipeline([['SET', activitySeenKey(hash), payload]]);
+  const key = activitySeenKey(hash);
+  const kvOk = await kvSetString(key, payload);
+  const neonOk = await writeActivitySeenNeon(hash, payload);
+  const hasBackend = Boolean(kvConfig() || kvPipelineOverride || postgresUrl());
+  if (kvOk || neonOk || !hasBackend) {
+    memoryActivitySeen.set(hash, payload);
+    return true;
+  }
+  return false;
 }
 
 export async function readActivityLastSeen(email: string): Promise<string | null> {
@@ -957,30 +1076,57 @@ export async function writeActivityLastSeen(
   return ts;
 }
 
+async function activityEventDateIsoForItemKey(itemKey: string): Promise<string> {
+  try {
+    const { activityEventDateIso } = await import('@/lib/shareActivityDates');
+    return activityEventDateIso(itemKey);
+  } catch {
+    return '';
+  }
+}
+
 export async function markSharerActivitySeen(opts: {
   email: string;
   scope: 'all' | 'token';
   token?: string;
+  now?: Date;
+  eventDateIsoForItemKey?: (itemKey: string) => string;
 }): Promise<ActivitySeenPayload> {
-  const now = new Date().toISOString();
+  const now = (opts.now ?? new Date()).toISOString();
   const prev = await readActivitySeenState(opts.email);
-  if (opts.scope === 'token' && opts.token) {
-    await writeActivitySeenState(opts.email, {
-      ...prev,
-      tokens: { ...prev.tokens, [opts.token]: now },
-    });
-  } else {
-    await writeActivitySeenState(opts.email, { global: now, tokens: prev.tokens });
-  }
-  const inbox = await sharerActivityInbox({ email: opts.email });
-  return { ok: true, unreadCount: inbox.unreadCount };
+  const next: ActivitySeenState =
+    opts.scope === 'token' && opts.token
+      ? { ...prev, tokens: { ...prev.tokens, [opts.token]: now } }
+      : { global: now, tokens: {} };
+  const persisted = await writeActivitySeenState(opts.email, next);
+  const inbox = await sharerActivityInbox({
+    email: opts.email,
+    now: opts.now,
+    eventDateIsoForItemKey: opts.eventDateIsoForItemKey,
+  });
+  return { ok: persisted, unreadCount: inbox.unreadCount };
 }
 
 export async function sharerActivityInbox(opts: {
   email: string;
   limit?: number;
+  now?: Date;
+  eventDateIsoForItemKey?: (itemKey: string) => string;
 }): Promise<ActivityListPayload> {
-  const tokens = await listShareTokensBySharerEmail(opts.email);
+  const listed = await listShareTokensBySharerEmail(opts.email);
+  const todayIso = parisParts(opts.now).iso;
+  const resolveDate = opts.eventDateIsoForItemKey;
+  const dated = await Promise.all(
+    listed.map(async (t) => ({
+      token: t,
+      dateIso: resolveDate
+        ? resolveDate(t.itemKey)
+        : await activityEventDateIsoForItemKey(t.itemKey),
+    })),
+  );
+  const tokens = dated
+    .filter((row) => isNotBeforeToday(row.dateIso, todayIso))
+    .map((row) => row.token);
   const rsvpsByToken = new Map<string, ShareRsvpRecord[]>();
   await Promise.all(
     tokens.map(async (t) => {
