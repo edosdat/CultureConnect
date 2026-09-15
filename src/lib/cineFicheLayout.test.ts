@@ -1,0 +1,74 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { describe, it } from 'node:test';
+
+describe('cine fiche web split + compact action row', () => {
+  it('web ≥900 is 1/4 | 3/4; mobile stays stacked', async () => {
+    const frame = await readFile(
+      new URL('../components/CineFicheFrame.tsx', import.meta.url),
+      'utf8',
+    );
+    const detail = await readFile(
+      new URL('../components/EventDetail.tsx', import.meta.url),
+      'utf8',
+    );
+    const carousel = await readFile(
+      new URL('../components/CinemaCarousel.tsx', import.meta.url),
+      'utf8',
+    );
+    const css = await readFile(new URL('../app/globals.css', import.meta.url), 'utf8');
+
+    assert.match(frame, /data-testid="cine-fiche-split"/);
+    assert.match(frame, /flex flex-col/);
+    assert.match(frame, /min-\[900px\]:grid-cols-\[1fr_3fr\]/);
+    assert.equal(frame.includes('md:grid-cols'), false);
+
+    assert.match(detail, /<CineFicheFrame/);
+    assert.match(detail, /min-\[900px\]:max-w-6xl/);
+    assert.match(detail, /<FicheCast/);
+
+    assert.match(carousel, /cine-fiche-split/);
+    assert.match(carousel, /min-\[900px\]:grid-cols-\[1fr_3fr\]/);
+    assert.match(carousel, /pack === 'cine' \? <FicheCast item=\{detailItem \?\? item\}/);
+    assert.equal(carousel.includes("pack === 'theatre' ? <FicheCast"), false);
+
+    assert.match(css, /min-width: 900px/);
+    assert.match(css, /\.cine-fiche-split \.cine-hero-frame/);
+    assert.match(css, /max-height: none/);
+    assert.match(css, /portrait column beside text/);
+  });
+
+  it('action row is salle · horaire · compact Réserver · share · ⋯', async () => {
+    const picker = await readFile(
+      new URL('../components/CineSeancePicker.tsx', import.meta.url),
+      'utf8',
+    );
+    const cta = await readFile(
+      new URL('../components/EventCtaRow.tsx', import.meta.url),
+      'utf8',
+    );
+    const share = await readFile(
+      new URL('../components/ShareButton.tsx', import.meta.url),
+      'utf8',
+    );
+
+    assert.match(picker, /data-testid="cine-action-row"/);
+    assert.match(picker, /grid-cols-2/);
+    assert.match(picker, /min-\[900px\]:contents/);
+    assert.match(picker, /min-\[900px\]:flex-row/);
+    assert.match(picker, /<EventCtaRow/);
+    assert.equal(picker.includes('hidden md:'), false);
+    assert.equal(picker.includes('inline'), false);
+
+    assert.match(cta, /shrink-0/);
+    assert.match(cta, /Réserver/);
+    assert.match(cta, /<ShareButton/);
+    assert.match(cta, /<MoreActionsMenu/);
+    assert.equal(cta.includes('flex-1'), false);
+    assert.equal(cta.includes('w-full'), false);
+
+    assert.match(share, /share-icon/);
+    assert.match(share, /M18 16\.08/);
+    assert.equal(/>Partager</.test(share), false);
+  });
+});

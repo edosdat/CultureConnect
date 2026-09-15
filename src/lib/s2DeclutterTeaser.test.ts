@@ -72,7 +72,9 @@ describe('declutter cartes/fiche LOCK', () => {
     assert.match(share, /h-10 w-10/);
     assert.equal(/>Partager</.test(share), false);
     assert.match(cta, /Réserver/);
-    assert.match(cta, /flex-1/);
+    assert.match(cta, /shrink-0/);
+    assert.equal(cta.includes('flex-1'), false);
+    assert.equal(cta.includes('w-full'), false);
     assert.match(cta, /<ShareButton/);
     assert.match(cta, /<MoreActionsMenu/);
     assert.equal(/inline\?:/.test(cta), false);

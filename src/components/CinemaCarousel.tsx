@@ -65,7 +65,7 @@ import EventCtaRow from './EventCtaRow';
 import VivantComplementLinks from './VivantComplementLinks';
 import PressCitation from './PressCitation';
 import CineSeancePicker from './CineSeancePicker';
-import FicheDescription from './FicheDescription';
+import FicheDescription, { FicheCast } from './FicheDescription';
 import { fichePressCitation, pressItemForFiche } from '@/lib/pressCitation';
 
 export type CinemaCarouselPack =
@@ -912,17 +912,29 @@ export default function CinemaCarousel({
       <div
         ref={heroCardRef}
         data-carousel-hero=""
+        data-testid={pack === 'cine' ? 'cine-fiche-split' : undefined}
         onTouchStart={onHeroTouchStart}
         onTouchMove={onHeroTouchMove}
         onTouchEnd={onHeroTouchEnd}
-        className="scroll-mt-16 overflow-hidden rounded-card-lg border border-culture-line bg-culture-surface shadow-card"
+        className={
+          'scroll-mt-16 overflow-hidden rounded-card-lg border border-culture-line bg-culture-surface shadow-card' +
+          (pack === 'cine'
+            ? ' cine-fiche-split flex flex-col min-[900px]:grid min-[900px]:grid-cols-[1fr_3fr]'
+            : '')
+        }
       >
-        <FilmPoster
-          src={image}
-          item={item}
-          blurBackdrop
-          priority={pack === 'cine'}
-        />
+        <div
+          className={
+            pack === 'cine' ? 'cine-fiche-visual min-[900px]:min-h-[20rem]' : undefined
+          }
+        >
+          <FilmPoster
+            src={image}
+            item={item}
+            blurBackdrop
+            priority={pack === 'cine'}
+          />
+        </div>
         <div className="flex min-w-0 flex-col gap-2 p-3 md:p-4">
           {titleBlock}
           <ShareSocial key={active.key} item={active} token={null} />
@@ -944,6 +956,7 @@ export default function CinemaCarousel({
             item={detailItem ?? item}
             pending={!detailItem && !listItemHasHeroFicheCopy(item)}
           />
+          {pack === 'cine' ? <FicheCast item={detailItem ?? item} /> : null}
           {pack === 'theatre' || pack === 'musique' ? (
             <PressCitation
               citation={fichePressCitation(
