@@ -26,6 +26,7 @@ import FilmVersionBadge from './FilmVersionBadge';
 import FilmPoster from './FilmPoster';
 import ShareButton from './ShareButton';
 import ShareSocial from './ShareSocial';
+import SharerActivitySand from './SharerActivitySand';
 import FavoriteButton from './FavoriteButton';
 import {
   formatDateRange,
@@ -498,7 +499,12 @@ export default function EventDetail({
                   </p>
                 ) : null}
                 {hasFilmSeances ? (
-                  <ShareSocial key={item.key} item={item} token={shareToken} />
+                  <>
+                    <ShareSocial key={item.key} item={item} token={shareToken} />
+                    {!shareToken ? (
+                      <SharerActivitySand itemKey={item.key} />
+                    ) : null}
+                  </>
                 ) : null}
                 {hasFilmSeances ? (
                   <div className="mt-3">
@@ -600,7 +606,10 @@ export default function EventDetail({
             ) : null}
 
             {hasFilmSeances && !cinemaFiche ? (
-              <ShareSocial key={item.key} item={item} token={shareToken} />
+              <>
+                <ShareSocial key={item.key} item={item} token={shareToken} />
+                {!shareToken ? <SharerActivitySand itemKey={item.key} /> : null}
+              </>
             ) : null}
 
             {hasFilmSeances && !cinemaFiche ? (
@@ -669,7 +678,10 @@ export default function EventDetail({
             )}
 
             {!hasFilmSeances ? (
-              <ShareSocial key={item.key} item={item} token={shareToken} />
+              <>
+                <ShareSocial key={item.key} item={item} token={shareToken} />
+                {!shareToken ? <SharerActivitySand itemKey={item.key} /> : null}
+              </>
             ) : null}
 
             {ev && (
@@ -941,6 +953,7 @@ export default function EventDetail({
           )}
 
           <ShareSocial key={item.key} item={item} token={shareToken} />
+          {!shareToken ? <SharerActivitySand itemKey={item.key} /> : null}
 
           <FichePressBlock item={item} />
 

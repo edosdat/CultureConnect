@@ -6,6 +6,7 @@ import { useTastesUi } from './Providers';
 import { requestOpenTastes } from './tastesUiEvents';
 import { useSignals } from './SignalsProvider';
 import MailIdeasCheckbox from './MailIdeasCheckbox';
+import ActivityInbox from './ActivityInbox';
 
 const AUTH_HINT_KEY = 'cc_auth_hint';
 
@@ -164,6 +165,7 @@ export default function AuthButtons() {
         className="relative z-[80] flex shrink-0 items-center gap-1.5 overflow-visible"
         ref={menuRef}
       >
+        <ActivityInbox />
         <button
           type="button"
           onPointerDown={holdMenu}
