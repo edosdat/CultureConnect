@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { readFile, readdir } from 'node:fs/promises';
 import { describe, it } from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { HOME_ACCROCHE_H1, HOME_ACCROCHE_H2 } from './displayHome';
 
 const APOSTROPHE = '’';
@@ -99,6 +101,36 @@ describe('declutter cartes/fiche LOCK', () => {
     assert.equal(picker.includes('inline'), false);
     assert.equal(providers.includes('FirstLoginModal'), false);
     assert.equal(providers.includes('welcome'), false);
+  });
+
+  it('inventory CUTs: no welcome sheet, no cine chrome Partager/Agenda/ics/♥', async () => {
+    const componentsDir = fileURLToPath(
+      new URL('../components/', import.meta.url),
+    );
+    assert.equal(existsSync(`${componentsDir}FirstLoginModal.tsx`), false);
+    assert.equal(existsSync(`${componentsDir}FavoriteButton.tsx`), false);
+    const names = (await readdir(componentsDir)).filter((n) => n.endsWith('.tsx'));
+    const files = await Promise.all(
+      names.map(async (n) => ({
+        n,
+        src: await readFile(`${componentsDir}${n}`, 'utf8'),
+      })),
+    );
+    for (const { n, src } of files) {
+      assert.equal(/C[’']est bon, j[’']y vais/.test(src), false, n);
+      assert.equal(src.includes('Ajouter aux à voir'), false, n);
+      assert.equal(/>Partager</.test(src), false, n);
+      if (n !== 'MoreActionsMenu.tsx') {
+        assert.equal(src.includes('Google Agenda'), false, n);
+        assert.equal(src.includes('Télécharger .ics'), false, n);
+      }
+    }
+    const social = files.find((f) => f.n === 'ShareSocial.tsx')?.src || '';
+    assert.match(social, /if \(token\) \{\s*return <DaughterRsvp/);
+    const cta = files.find((f) => f.n === 'EventCtaRow.tsx')?.src || '';
+    assert.match(cta, /<ShareButton/);
+    assert.match(cta, /<MoreActionsMenu/);
+    assert.match(cta, /Réserver/);
   });
 
   it('grid cards demote favori; Envie/J’y vais stay on daughter fiche only', async () => {
