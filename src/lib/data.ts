@@ -26,6 +26,7 @@ import type {
 } from './types';
 import { fillEmptyCineForm } from './formCine';
 import { pressFieldDefaults } from './pressCitation';
+import { fillEmptyCatalogueImageUrl } from './sharePreviewImage';
 
 function readCsv<T extends Record<string, string>>(filename: string): T[] {
   const filePath = path.join(process.cwd(), 'data', filename);
@@ -153,6 +154,17 @@ function buildCultureData(): CultureData {
   const genresLegend = loadGenresLegend();
   const artistes = loadArtistes();
 
+  const filmImageById = new Map(
+    films.map((f) => [f.film_id, (f.image_url || '').trim()] as const),
+  );
+  for (const item of programme) {
+    item.image_url = fillEmptyCatalogueImageUrl(
+      item.image_url,
+      item.film_id,
+      filmImageById.get((item.film_id || '').trim()) || '',
+    );
+  }
+
   const lieuxById = new Map(lieux.map((l) => [l.lieu_id, l]));
   const evenementsById = new Map(evenements.map((e) => [e.event_id, e]));
 
@@ -173,6 +185,16 @@ function buildCultureData(): CultureData {
     // Fill-empty: event linked to an official film_id → form=cine. Never overwrite.
     if (!(ev.form || '').trim() && rows.some((p) => (p.film_id || '').trim())) {
       ev.form = 'cine';
+    }
+    // Fill-empty: blank event photo ← programme / films.csv poster. Never overwrite.
+    if (!(ev.image_url || '').trim()) {
+      for (const row of rows) {
+        const img = (row.image_url || '').trim();
+        if (img) {
+          ev.image_url = img;
+          break;
+        }
+      }
     }
   }
 

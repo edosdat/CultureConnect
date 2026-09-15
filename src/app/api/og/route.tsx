@@ -2,10 +2,12 @@ import { ImageResponse } from 'next/og';
 import { queryAgendaDetail } from '@/lib/agendaQuery';
 import { itemTitle, itemVenue } from '@/lib/displayHome';
 import { labelCategorie } from '@/lib/labels';
+import { SHARE_OG_SIZE } from '@/lib/sharePreviewImage';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+/** Always a 1200×630 PNG. Missing `e=` still returns the branded card — never empty. */
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const id = (url.searchParams.get('e') || url.searchParams.get('id') || '').trim();
@@ -70,6 +72,12 @@ export async function GET(req: Request) {
         </div>
       </div>
     ),
-    { width: 1200, height: 630 },
+    {
+      width: SHARE_OG_SIZE.width,
+      height: SHARE_OG_SIZE.height,
+      headers: {
+        'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
+      },
+    },
   );
 }
