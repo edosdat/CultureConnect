@@ -24,7 +24,11 @@
  * `--out <path>` is optional. Default is `bench-results/<date>-<HHMMSS>-<slug>.json`
  * so committed baselines (`2026-09-15.json`, `2026-09-15-eloi25.json`) are not
  * overwritten by a casual run.
+ *
+ * Top-3 metric (P1): slots filled (cine/theatre/concert present). vivantShare
+ * is kept only for free lists. Banc 0 used vivantShare — note the break.
  */
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
@@ -35,6 +39,7 @@ import {
   type MoodFormCounts,
   type MoodStockReference,
 } from './benchProfiles';
+import { slotsFilledOf } from './benchMetrics';
 import { loadBenchCatalogue } from './loadCatalogue';
 import { itemsForDateRange, itemsForDay } from '../src/lib/events';
 import { nouveauFilmIds } from '../src/lib/nouveautesCine';
@@ -102,6 +107,9 @@ type ListRow = {
 type RunRecord = {
   profileId: string;
   scenarioId: ScenarioId;
+  /** Distinct cine/theatre/concert slots actually present in the 1+1+1 top 3. */
+  slotsFilled: number;
+  /** Free lists only (recommendSlice). Null on the slotted top 3. */
   vivantShare: number | null;
   diversity: number | null;
   calibration: number | null;
@@ -136,9 +144,11 @@ type BenchJson = {
     catalogue: {
       evenements: number;
       programme: number;
+      programmeSha256: string;
       maxIso: string;
     };
     vivantRule: string;
+    slotsFilledRule: string;
   };
   profiles: Array<{
     id: string;
@@ -157,6 +167,7 @@ type BenchJson = {
     profileId: string;
     label: string;
     notes: string;
+    slotsFilled: number | null;
     vivantShare: number | null;
     diversity: number | null;
     calibration: number | null;
@@ -165,6 +176,7 @@ type BenchJson = {
   }>;
   global: {
     coverage: Coverage;
+    slotsFilled: number | null;
     vivantShare: number | null;
     fallbackRate: number | null;
     meanElapsedMs: number;
@@ -219,6 +231,11 @@ function workKey(item: DayItem): string {
 function isVivantSlot(item: DayItem): boolean {
   const slot = slotFormOfItem(item);
   return slot === 'theatre' || slot === 'concert';
+}
+
+function sha256File(rel: string): string {
+  const abs = path.isAbsolute(rel) ? rel : path.join(process.cwd(), rel);
+  return crypto.createHash('sha256').update(fs.readFileSync(abs)).digest('hex');
 }
 
 function moodVector(moods: readonly string[]): number[] {
@@ -455,6 +472,11 @@ function fmtNum(v: number | null | undefined, digits = 2): string {
   return v.toFixed(digits);
 }
 
+function fmtSlots(v: number | null | undefined): string {
+  if (v == null || !Number.isFinite(v)) return '—';
+  return `${v.toFixed(2)}/3`;
+}
+
 function fmtDelta(v: number | null | undefined, digits = 2, asPct = false): string {
   if (v == null || !Number.isFinite(v)) return '—';
   const shown = asPct ? v * 100 : v;
@@ -576,14 +598,15 @@ function runBench(set: BenchProfileSet): BenchJson {
       for (const item of listItems) {
         if (isVivantSlot(item)) recommendedVivant.add(workKey(item));
       }
-      const vivantCount = listItems.filter(isVivantSlot).length;
       const fallbackCount = scored.filter((s) =>
         isFallbackSource(s.reason?.source),
       ).length;
       runs.push({
         profileId: profile.id,
         scenarioId: scenario.id,
-        vivantShare: listItems.length ? vivantCount / listItems.length : null,
+        slotsFilled: slotsFilledOf(listItems.map((item) => ({ slot: slotFormOfItem(item) }))),
+        // 1+1+1 top 3: vivantShare measures the format, not the engine.
+        vivantShare: null,
         diversity: intraListDiversity(listItems),
         calibration: calibrationKl(profile.state, listItems),
         fallbackRate: scored.length ? fallbackCount / scored.length : null,
@@ -599,6 +622,7 @@ function runBench(set: BenchProfileSet): BenchJson {
       profileId: profile.id,
       label: profile.label,
       notes: profile.notes,
+      slotsFilled: mean(mine.map((r) => r.slotsFilled)),
       vivantShare: mean(mine.map((r) => r.vivantShare)),
       diversity: mean(mine.map((r) => r.diversity)),
       calibration: mean(mine.map((r) => r.calibration)),
@@ -630,10 +654,13 @@ function runBench(set: BenchProfileSet): BenchJson {
       catalogue: {
         evenements: catalogue.evenements.length,
         programme: catalogue.programme.length,
+        programmeSha256: sha256File('data/programme.csv'),
         maxIso: catalogue.maxIso,
       },
       vivantRule:
         'slotFormOfItem ∈ {theatre, concert} (festival/enfants follow that resolver; raw form is ignored)',
+      slotsFilledRule:
+        'top 3: count of cine/theatre/concert actually present (0–3). vivantShare kept only for free lists.',
     },
     profiles: profiles.map((p) => ({
       id: p.id,
@@ -648,6 +675,7 @@ function runBench(set: BenchProfileSet): BenchJson {
     byProfile,
     global: {
       coverage: coverageOf(recommendedVivant, feasibleVivant),
+      slotsFilled: mean(runs.map((r) => r.slotsFilled)),
       vivantShare: mean(runs.map((r) => r.vivantShare)),
       fallbackRate: mean(runs.map((r) => r.fallbackRate)),
       meanElapsedMs: mean(runs.map((r) => r.elapsedMs)) ?? 0,
@@ -698,14 +726,14 @@ function printTable(result: BenchJson, set: BenchProfileSet): void {
   }
   console.log('');
   console.log(
-    `${pad('profil', 56)} ${pad('vivant%', 8, 'right')} ${pad('divers', 7, 'right')} ${pad('calib', 7, 'right')} ${pad('repli', 7, 'right')}`,
+    `${pad('profil', 56)} ${pad('slots', 8, 'right')} ${pad('divers', 7, 'right')} ${pad('calib', 7, 'right')} ${pad('repli', 7, 'right')}`,
   );
   console.log('-'.repeat(88));
   for (const row of result.byProfile) {
     const flags =
       (row.diversity != null && row.diversity < THRESHOLD.diversity) ||
       (row.fallbackRate != null && row.fallbackRate > THRESHOLD.fallback);
-    const line = `${pad(profileTableLabel(row), 56)} ${pad(fmtPct(row.vivantShare, 0), 8, 'right')} ${pad(fmtNum(row.diversity, 2), 7, 'right')} ${pad(fmtNum(row.calibration, 2), 7, 'right')} ${pad(fmtPct(row.fallbackRate, 0), 7, 'right')}${warnMark(flags)}`;
+    const line = `${pad(profileTableLabel(row), 56)} ${pad(fmtSlots(row.slotsFilled), 8, 'right')} ${pad(fmtNum(row.diversity, 2), 7, 'right')} ${pad(fmtNum(row.calibration, 2), 7, 'right')} ${pad(fmtPct(row.fallbackRate, 0), 7, 'right')}${warnMark(flags)}`;
     console.log(line);
   }
   console.log('');
@@ -717,7 +745,10 @@ function printTable(result: BenchJson, set: BenchProfileSet): void {
   console.log(
     `couverture catalogue vivant : ${fmtPct(cov.ratio, 0)}  (${cov.recommended} / ${cov.feasible} items)${warnMark(covWarn)}`,
   );
-  console.log(`part de vivant moyenne      : ${fmtPct(result.global.vivantShare, 0)}`);
+  console.log(`slots remplis (moyenne)     : ${fmtSlots(result.global.slotsFilled)}`);
+  if (result.global.vivantShare != null) {
+    console.log(`part de vivant (listes libres): ${fmtPct(result.global.vivantShare, 0)}`);
+  }
   console.log(
     `taux de repli global        : ${fmtPct(result.global.fallbackRate, 0)}${warnMark(fbWarn)}`,
   );
@@ -731,45 +762,107 @@ function printTable(result: BenchJson, set: BenchProfileSet): void {
   console.log(
     'vivant = slotFormOfItem théâtre|concert — pas le champ form brut.',
   );
+  console.log(
+    'slots remplis = cine/theatre/concert effectivement présents dans le top 3.',
+  );
+}
+
+const SCENARIO_DUMP_ORDER: ScenarioId[] = ['monday', 'friday', 'week', 'month'];
+const SCENARIO_DUMP_LABEL: Record<ScenarioId, string> = {
+  monday: 'lundi',
+  friday: 'vendredi',
+  week: 'semaine',
+  month: 'mois',
+};
+
+function formatRunHeader(run: RunRecord, label: string): string {
+  const vivant =
+    run.vivantShare != null ? `  vivant=${fmtPct(run.vivantShare, 0)}` : '';
+  return `  ${label}  slots=${fmtSlots(run.slotsFilled)}${vivant}  divers=${fmtNum(run.diversity)}  calib=${fmtNum(run.calibration)}  repli=${fmtPct(run.fallbackRate, 0)}  ${fmtNum(run.elapsedMs, 1)}ms`;
+}
+
+function formatListRow(row: ListRow, index: number): string {
+  const slot = row.slot ?? row.form ?? '?';
+  const moods = row.moods.length ? row.moods.join('|') : '—';
+  const why = [row.reasonSource, row.reasonPhrase].filter(Boolean).join(' · ');
+  return `    ${index + 1}. ${row.title}  [${slot}]  ${moods}  — ${why}  (${row.dayIso})`;
 }
 
 function printTop3(result: BenchJson, profiles: BenchProfile[]): void {
-  const dumpIds: ScenarioId[] = ['week', 'month'];
   console.log('');
-  console.log('=== Top 3 — semaine & mois (crash-test) ===');
+  console.log('=== Top 3 — 4 scénarios (crash-test) ===');
   console.log(
-    'semaine = 7 j. à partir du lundi Paris fixé · mois = 30 j. à partir du même now',
+    'lundi / vendredi = jour Paris · semaine = 7 j. · mois = 30 j. à partir du même now',
   );
   for (const profile of profiles) {
     console.log('');
     console.log(`— ${profile.id}  ${profile.label}`);
     if (profile.notes) console.log(`  ${profile.notes}`);
-    for (const sid of dumpIds) {
+    for (const sid of SCENARIO_DUMP_ORDER) {
       const run = result.runs.find(
         (r) => r.profileId === profile.id && r.scenarioId === sid,
       );
-      const label = sid === 'week' ? 'semaine' : 'mois';
+      const label = SCENARIO_DUMP_LABEL[sid];
       if (!run) {
         console.log(`  ${label}: (pas de run)`);
         continue;
       }
-      console.log(
-        `  ${label}  vivant=${fmtPct(run.vivantShare, 0)}  divers=${fmtNum(run.diversity)}  calib=${fmtNum(run.calibration)}  repli=${fmtPct(run.fallbackRate, 0)}  ${fmtNum(run.elapsedMs, 1)}ms`,
-      );
+      console.log(formatRunHeader(run, label));
       if (run.list.length === 0) {
         console.log('    (liste vide)');
         continue;
       }
       run.list.forEach((row, i) => {
-        const slot = row.slot ?? row.form ?? '?';
-        const moods = row.moods.length ? row.moods.join('|') : '—';
-        const why = [row.reasonSource, row.reasonPhrase].filter(Boolean).join(' · ');
-        console.log(
-          `    ${i + 1}. ${row.title}  [${slot}]  ${moods}  — ${why}  (${row.dayIso})`,
-        );
+        console.log(formatListRow(row, i));
       });
     }
   }
+}
+
+function readableDump(result: BenchJson, profiles: BenchProfile[]): string {
+  const lines: string[] = [];
+  lines.push(`# Banc reco — dump Top 3 (${result.meta.generatedAt.slice(0, 10)})`);
+  lines.push('');
+  lines.push(`now Paris fixé : \`${result.meta.fixedNow}\``);
+  lines.push(
+    `programme.csv sha256 : \`${result.meta.catalogue.programmeSha256}\``,
+  );
+  lines.push(
+    `profils : ${profiles.length} · source : \`${result.meta.profilesSource}\``,
+  );
+  const cov = result.global.coverage;
+  lines.push(
+    `couverture : ${fmtPct(cov.ratio, 1)} (${cov.recommended} / ${cov.feasible}) · slots ${fmtSlots(result.global.slotsFilled)} · repli ${fmtPct(result.global.fallbackRate, 1)}`,
+  );
+  lines.push('');
+  for (const profile of profiles) {
+    lines.push(`## ${profile.id} — ${profile.label}`);
+    if (profile.notes) lines.push(profile.notes);
+    lines.push('');
+    for (const sid of SCENARIO_DUMP_ORDER) {
+      const run = result.runs.find(
+        (r) => r.profileId === profile.id && r.scenarioId === sid,
+      );
+      const label = SCENARIO_DUMP_LABEL[sid];
+      if (!run) {
+        lines.push(`### ${label}`);
+        lines.push('(pas de run)');
+        lines.push('');
+        continue;
+      }
+      lines.push(`### ${label}`);
+      lines.push(formatRunHeader(run, label).trim());
+      if (run.list.length === 0) {
+        lines.push('(liste vide)');
+      } else {
+        run.list.forEach((row, i) => {
+          lines.push(formatListRow(row, i).trim());
+        });
+      }
+      lines.push('');
+    }
+  }
+  return `${lines.join('\n')}\n`;
 }
 
 function loadCompare(file: string): BenchJson | null {
@@ -791,14 +884,14 @@ function printCompare(current: BenchJson, previous: BenchJson, file: string): vo
   console.log(`=== Δ vs ${file}  (${previous.meta.generatedAt.slice(0, 10)}) ===`);
   const prevBy = new Map(previous.byProfile.map((r) => [r.profileId, r]));
   console.log(
-    `${pad('profil', 56)} ${pad('Δvivant', 9, 'right')} ${pad('Δdivers', 8, 'right')} ${pad('Δcalib', 8, 'right')} ${pad('Δrepli', 8, 'right')}`,
+    `${pad('profil', 56)} ${pad('Δslots', 9, 'right')} ${pad('Δdivers', 8, 'right')} ${pad('Δcalib', 8, 'right')} ${pad('Δrepli', 8, 'right')}`,
   );
   console.log('-'.repeat(92));
   for (const row of current.byProfile) {
     const prev = prevBy.get(row.profileId);
     const dV =
-      row.vivantShare != null && prev?.vivantShare != null
-        ? row.vivantShare - prev.vivantShare
+      row.slotsFilled != null && prev?.slotsFilled != null
+        ? row.slotsFilled - prev.slotsFilled
         : null;
     const dD =
       row.diversity != null && prev?.diversity != null
@@ -819,9 +912,9 @@ function printCompare(current: BenchJson, previous: BenchJson, file: string): vo
   const cCov = current.global.coverage.ratio;
   const pCov = previous.global.coverage.ratio;
   const dCov = cCov != null && pCov != null ? cCov - pCov : null;
-  const dViv =
-    current.global.vivantShare != null && previous.global.vivantShare != null
-      ? current.global.vivantShare - previous.global.vivantShare
+  const dSlots =
+    current.global.slotsFilled != null && previous.global.slotsFilled != null
+      ? current.global.slotsFilled - previous.global.slotsFilled
       : null;
   const dFb =
     current.global.fallbackRate != null && previous.global.fallbackRate != null
@@ -829,7 +922,7 @@ function printCompare(current: BenchJson, previous: BenchJson, file: string): vo
       : null;
   console.log('');
   console.log(
-    `Δ couverture : ${fmtDelta(dCov, 1, true)}   Δ vivant : ${fmtDelta(dViv, 1, true)}   Δ repli : ${fmtDelta(dFb, 1, true)}`,
+    `Δ couverture : ${fmtDelta(dCov, 1, true)}   Δ slots : ${fmtDelta(dSlots, 2)}   Δ repli : ${fmtDelta(dFb, 1, true)}`,
   );
 }
 
@@ -856,8 +949,13 @@ function main(): void {
   fs.mkdirSync(resultsDir(), { recursive: true });
   const outPath = datedOutPath(out, set.source);
   fs.writeFileSync(outPath, `${JSON.stringify(result, null, 2)}\n`, 'utf-8');
+  const dumpPath = outPath.replace(/\.json$/i, '.dump.md');
+  fs.writeFileSync(dumpPath, readableDump(result, set.profiles), 'utf-8');
   console.log('');
   console.log(`JSON archivé : ${path.relative(process.cwd(), outPath)}`);
+  console.log(`Dump Top 3   : ${path.relative(process.cwd(), dumpPath)}`);
 }
 
-main();
+const isDirectRun =
+  typeof process.argv[1] === 'string' && /recoBench\.(ts|js)$/.test(process.argv[1]);
+if (isDirectRun) main();
