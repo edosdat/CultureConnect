@@ -25,6 +25,7 @@ import {
 import {
   fetchActivityInbox,
   fetchActivityItem,
+  fetchGuestTeaserCount,
   markActivitySeen,
 } from './shareActivityClient';
 import {
@@ -155,6 +156,7 @@ describe('B3b activity copy', () => {
       assert.equal(inbox.lastSeenAt, null);
       assert.equal(inbox.unreadCount, 0);
       assert.equal(await fetchActivityItem('p:P1847'), null);
+      assert.equal(await fetchGuestTeaserCount(['abcd1234']), 0);
       const seen = await markActivitySeen({ scope: 'all' });
       assert.equal(seen.unreadCount, 0);
     } finally {
@@ -271,12 +273,23 @@ describe('B3b activity source contract', () => {
     );
     assert.match(client, /\/api\/share\/activity/);
     assert.match(client, /\/api\/share\/activity\/item/);
+    assert.match(client, /\/api\/share\/activity\/teaser/);
+    assert.match(client, /fetchGuestTeaserCount/);
     assert.match(client, /status === 404/);
     assert.match(client, /emptyActivityInbox/);
     assert.match(client, /lastSeenAt/);
     assert.match(client, /unreadCount/);
     assert.match(client, /scope/);
     assert.equal(client.includes('ingestAccountItemSignal'), false);
+
+    const teaserRoute = await readFile(
+      new URL('../app/api/share/activity/teaser/route.ts', import.meta.url),
+      'utf8',
+    );
+    assert.match(teaserRoute, /guestActivityTeaserCount/);
+    assert.match(teaserRoute, /\{ count \}/);
+    assert.equal(teaserRoute.includes('firstName'), false);
+    assert.equal(teaserRoute.includes('envieNames'), false);
 
     const auth = await readFile(
       new URL('../components/AuthButtons.tsx', import.meta.url),

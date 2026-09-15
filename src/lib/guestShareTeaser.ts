@@ -97,6 +97,23 @@ export function guestTeaserCopy(n: number): string {
   return `${guestTeaserTitle(n)} — ${GUEST_TEASER_SHEET_SUB}`;
 }
 
+export function parseGuestTeaserPayload(raw: unknown): { count: number } {
+  if (!raw || typeof raw !== 'object') return { count: 0 };
+  const o = raw as Record<string, unknown>;
+  if (
+    'firstName' in o ||
+    'goingNames' in o ||
+    'envieNames' in o ||
+    'envie' in o ||
+    'going' in o
+  ) {
+    return { count: 0 };
+  }
+  const n = Number(o.count);
+  if (!Number.isFinite(n) || n < 0) return { count: 0 };
+  return { count: Math.floor(n) };
+}
+
 export function guestTeaserShouldShow(opts: {
   signedIn: boolean;
   tokens: readonly string[];

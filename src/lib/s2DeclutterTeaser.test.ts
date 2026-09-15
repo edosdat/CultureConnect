@@ -66,10 +66,16 @@ describe('declutter cartes/fiche LOCK', () => {
     );
     assert.match(share, /share-icon/);
     assert.match(share, /aria-label=\{copied \? 'Lien copié'/);
+    assert.match(share, /M18 16\.08/);
+    assert.match(share, /h-10 w-10/);
     assert.equal(/>Partager</.test(share), false);
+    assert.equal(/Partager<\/.test(share), false);
     assert.match(cta, /Réserver/);
+    assert.match(cta, /flex-1/);
     assert.match(cta, /<ShareButton/);
     assert.match(cta, /<MoreActionsMenu/);
+    assert.equal(/inline\?:/.test(cta), false);
+    assert.equal(/inline\s*=/.test(cta), false);
     assert.match(detail, /<EventCtaRow/);
     assert.match(carousel, /<EventCtaRow/);
     assert.equal(detail.includes('<FavoriteButton'), false);
@@ -81,6 +87,18 @@ describe('declutter cartes/fiche LOCK', () => {
     assert.match(more, /Télécharger \.ics/);
     assert.equal(/j[’']aime artiste/i.test(detail), false);
     assert.equal(/onboarding/i.test(detail), false);
+    const picker = await readFile(
+      new URL('../components/CineSeancePicker.tsx', import.meta.url),
+      'utf8',
+    );
+    const providers = await readFile(
+      new URL('../components/Providers.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(picker, /<EventCtaRow/);
+    assert.equal(picker.includes('inline'), false);
+    assert.equal(providers.includes('FirstLoginModal'), false);
+    assert.equal(providers.includes('welcome'), false);
   });
 
   it('grid cards demote favori; Envie/J’y vais stay on daughter fiche only', async () => {
@@ -129,6 +147,8 @@ describe('guest teaser cloche KEEP + connected inbox', () => {
     assert.match(teaser, /guestTeaserTitle/);
     assert.match(teaser, /GUEST_TEASER_SHEET_SUB/);
     assert.match(teaser, /readGuestCreatedTokens/);
+    assert.match(teaser, /fetchGuestTeaserCount/);
+    assert.equal(teaser.includes('fetchTokenReactions'), false);
     assert.equal(/Ludo/.test(teaser), false);
     assert.equal(/firstName/.test(teaser), false);
     assert.equal(/y va/.test(teaser), false);

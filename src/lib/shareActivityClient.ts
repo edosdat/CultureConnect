@@ -20,10 +20,12 @@ import {
   type ActivitySeenBody,
   type ActivitySeenPayload,
 } from '@/lib/shareActivity';
+import { parseGuestTeaserPayload } from '@/lib/guestShareTeaser';
 
 export const ACTIVITY_INBOX_PATH = '/api/share/activity';
 export const ACTIVITY_ITEM_PATH = '/api/share/activity/item';
 export const ACTIVITY_SEEN_PATH = '/api/share/activity/seen';
+export const ACTIVITY_TEASER_PATH = '/api/share/activity/teaser';
 
 async function readJson(res: Response): Promise<unknown> {
   try {
@@ -47,6 +49,24 @@ export async function fetchActivityInbox(
     return parseActivityListPayload(await readJson(res));
   } catch {
     return emptyActivityInbox();
+  }
+}
+
+/** Guest teaser badge. 401/404/network → 0. Never invents reactions. */
+export async function fetchGuestTeaserCount(
+  tokens: readonly string[],
+): Promise<number> {
+  if (tokens.length === 0) return 0;
+  try {
+    const q = tokens.slice(0, 30).join(',');
+    const res = await fetch(
+      `${ACTIVITY_TEASER_PATH}?tokens=${encodeURIComponent(q)}`,
+      { credentials: 'same-origin' },
+    );
+    if (res.status === 401 || res.status === 404 || !res.ok) return 0;
+    return parseGuestTeaserPayload(await readJson(res)).count;
+  } catch {
+    return 0;
   }
 }
 

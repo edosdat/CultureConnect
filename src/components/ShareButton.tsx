@@ -219,22 +219,17 @@ export default function ShareButton({
       aria-label={copied ? 'Lien copié' : busy ? 'Partage…' : 'Partager'}
       data-testid="share-icon"
       className={
-        'grid h-11 w-11 shrink-0 place-items-center rounded-lg border-2 border-culture-ink bg-white text-culture-ink hover:bg-culture-sand disabled:opacity-60 ' +
+        'grid h-10 w-10 shrink-0 place-items-center rounded-lg border-[1.5px] border-culture-ink bg-white text-culture-ink hover:bg-culture-sand disabled:opacity-60 ' +
         className
       }
     >
       <svg
         viewBox="0 0 24 24"
         className="h-5 w-5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        fill="currentColor"
         aria-hidden
       >
-        <path d="M7 17 17 7" />
-        <path d="M8 7h9v9" />
+        <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z" />
       </svg>
     </button>
   );

@@ -767,6 +767,23 @@ export async function toggleShareRsvp(opts: {
   return { kind: nextKind, rsvps: next };
 }
 
+/** Guest teaser: aggregate RSVP count only. No names, no envie/going split. */
+export async function guestActivityTeaserCount(
+  tokens: readonly string[],
+): Promise<number> {
+  let count = 0;
+  const seen = new Set<string>();
+  for (const raw of tokens) {
+    if (!isShareToken(raw) || seen.has(raw)) continue;
+    seen.add(raw);
+    const rec = await readShareToken(raw);
+    if (!rec) continue;
+    const rsvps = await listTokenRsvps(raw);
+    count += rsvps.length;
+  }
+  return count;
+}
+
 export async function tokenSocialPayload(opts: {
   token: string;
   viewerEmailHash: string | null;

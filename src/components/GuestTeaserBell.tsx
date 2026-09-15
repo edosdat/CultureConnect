@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { signIn, useSession } from 'next-auth/react';
 import { unreadBadgeLabel } from '@/lib/shareActivity';
+import { fetchGuestTeaserCount } from '@/lib/shareActivityClient';
 import {
   GUEST_TEASER_LATER,
   GUEST_TEASER_LOGIN,
@@ -12,7 +13,6 @@ import {
   guestTeaserShouldShow,
   guestTeaserTitle,
   readGuestCreatedTokens,
-  sumGuestTeaserReactions,
 } from '@/lib/guestShareTeaser';
 
 function BellIcon() {
@@ -31,25 +31,6 @@ function BellIcon() {
       <path d="M9.5 17a2.5 2.5 0 0 0 5 0" />
     </svg>
   );
-}
-
-async function fetchTokenReactions(token: string): Promise<{
-  envie: number;
-  going: number;
-} | null> {
-  try {
-    const res = await fetch(`/api/share/${encodeURIComponent(token)}/social`, {
-      credentials: 'same-origin',
-    });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { envie?: unknown; going?: unknown };
-    return {
-      envie: Number(data.envie) || 0,
-      going: Number(data.going) || 0,
-    };
-  } catch {
-    return null;
-  }
 }
 
 export default function GuestTeaserBell() {
@@ -71,8 +52,7 @@ export default function GuestTeaserBell() {
       setReactions(0);
       return;
     }
-    const rows = await Promise.all(mine.map(fetchTokenReactions));
-    setReactions(sumGuestTeaserReactions(rows));
+    setReactions(await fetchGuestTeaserCount(mine));
   }, [signedIn, status]);
 
   useEffect(() => {

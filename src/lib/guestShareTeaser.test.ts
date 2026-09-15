@@ -10,6 +10,7 @@ import {
   guestTeaserShouldShow,
   guestTeaserTitle,
   parseGuestCreatedTokens,
+  parseGuestTeaserPayload,
   sumGuestTeaserReactions,
 } from './guestShareTeaser';
 
@@ -89,6 +90,20 @@ describe('guest share teaser — Innovateur KEEP', () => {
       }),
       true,
     );
+  });
+
+  it('teaser payload is { count } only — rejects names / envie / going', () => {
+    assert.deepEqual(parseGuestTeaserPayload({ count: 3 }), { count: 3 });
+    assert.deepEqual(parseGuestTeaserPayload({ count: 2, firstName: 'Ludo' }), {
+      count: 0,
+    });
+    assert.deepEqual(parseGuestTeaserPayload({ count: 2, envie: 1 }), {
+      count: 0,
+    });
+    assert.deepEqual(parseGuestTeaserPayload({ count: 2, going: 1 }), {
+      count: 0,
+    });
+    assert.deepEqual(parseGuestTeaserPayload(null), { count: 0 });
   });
 
   it('parses only opaque 8-char tokens (their created list)', () => {

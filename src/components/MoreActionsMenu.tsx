@@ -172,7 +172,7 @@ export default function MoreActionsMenu({ item, onAgenda, onIcs }: Props) {
         data-testid="event-more"
         aria-label="Plus"
         onClick={() => setOpen(true)}
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-culture-line bg-white text-base font-bold leading-none text-culture-muted hover:text-culture-ink"
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-culture-line bg-white text-xl font-bold leading-none text-culture-muted hover:bg-culture-sand hover:text-culture-ink"
       >
         ⋯
       </button>

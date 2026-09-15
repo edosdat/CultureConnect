@@ -60,28 +60,28 @@ export default function CineSeancePicker({
           <span className="truncate text-xs text-culture-muted">{meta}</span>
         ) : null}
       </div>
-      <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-        <select
-          value={cinemaValue}
-          onChange={(e) => {
-            const next = seancesAtCinema(seances, e.target.value)[0];
-            if (next) onPick(next.key);
-          }}
-          aria-label="Choisir un cinéma"
-          className="h-11 w-full min-w-0 rounded-lg border border-culture-line bg-culture-surface px-2.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta sm:flex-1 sm:basis-28"
-        >
-          {groups.map((g) => (
-            <option key={g.lieuId} value={g.lieuId}>
-              {cinemaOptionLabel(g)}
-            </option>
-          ))}
-        </select>
-        <div className="flex w-full min-w-0 items-center gap-2 sm:flex-1 sm:basis-36">
+      <div className="mt-1 flex flex-col gap-2">
+        <div className="flex w-full min-w-0 items-center gap-2">
+          <select
+            value={cinemaValue}
+            onChange={(e) => {
+              const next = seancesAtCinema(seances, e.target.value)[0];
+              if (next) onPick(next.key);
+            }}
+            aria-label="Choisir un cinéma"
+            className="h-10 min-w-0 flex-1 rounded-lg border border-culture-line bg-culture-surface px-2.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
+          >
+            {groups.map((g) => (
+              <option key={g.lieuId} value={g.lieuId}>
+                {cinemaOptionLabel(g)}
+              </option>
+            ))}
+          </select>
           <select
             value={timeValue}
             onChange={(e) => onPick(e.target.value)}
             aria-label="Choisir un horaire"
-            className="h-11 min-w-0 flex-1 rounded-lg border border-culture-line bg-culture-surface px-2.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
+            className="h-10 min-w-0 flex-1 rounded-lg border border-culture-line bg-culture-surface px-2.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
           >
             {horaireRows.map((rel) => (
               <option
@@ -95,8 +95,6 @@ export default function CineSeancePicker({
             ))}
           </select>
         </div>
-      </div>
-      <div className="mt-2">
         <EventCtaRow
           item={active}
           seanceKey={active.key}
