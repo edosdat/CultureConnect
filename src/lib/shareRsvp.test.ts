@@ -425,5 +425,16 @@ describe('B3b source contract', () => {
     assert.match(conf, /Partage/);
     assert.match(conf, /Envie ou/);
     assert.match(conf, /cc_vid/);
+
+    const page = await readFile(
+      new URL('../app/page.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(page, /itemKeyForShareToken/);
+    const app = await readFile(
+      new URL('../components/CultureConnectApp.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(app, /shareVisitItemKey/);
   });
 });

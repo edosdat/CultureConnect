@@ -2,7 +2,7 @@ import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { deepLinkUrl } from './displayHome';
-import { normalizeDeepLinkId } from './deepLink';
+import { normalizeDeepLinkId, resolveShareDeepLinkKey } from './deepLink';
 import { nextPickedSeanceKey, resolveSharedSeanceKey } from './cineSeances';
 import { SIGNAL_WEIGHTS, isKnownSignalKind, makeSignal } from './signals';
 import {
@@ -26,6 +26,7 @@ import {
   logShareOrphan,
   memoryVisitCount,
   memoryVisitorCount,
+  itemKeyForShareToken,
   readShareToken,
   recordShareVisit,
   resetShareStoreForTests,
@@ -231,6 +232,50 @@ describe('B3 URL + open_shared + no B3b', () => {
     assert.equal(withTok, 'https://cc.test/?e=p%3AP1847&t=abcd1234');
     assert.equal(normalizeDeepLinkId('p:P1847'), 'p:P1847');
     assert.equal(normalizeDeepLinkId('abcd1234'), null);
+  });
+
+  it('t-only resolves store itemKey; e= still wins', async () => {
+    resetShareStoreForTests();
+    assert.equal(
+      resolveShareDeepLinkKey({
+        e: 'p:P1999',
+        tokenItemKey: 'p:P1847',
+      }),
+      'p:P1999',
+    );
+    assert.equal(
+      resolveShareDeepLinkKey({
+        tokenItemKey: 'p:P1847',
+        tokenSeanceKey: 'p:P2001',
+      }),
+      'p:P1847',
+    );
+    assert.equal(resolveShareDeepLinkKey({ e: '', tokenItemKey: '' }), null);
+    const created = await createShareToken({
+      itemKey: 'p:P1847',
+      seanceKey: 'p:P2001',
+      sharerEmail: null,
+      origin: 'https://cc.test',
+    });
+    assert.ok(created);
+    assert.match(created.url, /\?e=p%3AP2001&t=/);
+    assert.equal(await itemKeyForShareToken(created.token), 'p:P2001');
+    assert.equal(await itemKeyForShareToken('zzzzzzzz'), null);
+    const page = await readFile(new URL('../app/page.tsx', import.meta.url), 'utf8');
+    assert.match(page, /itemKeyForShareToken/);
+    assert.match(page, /openKeyFromSearch/);
+    const app = await readFile(
+      new URL('../components/CultureConnectApp.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(app, /shareVisitItemKey/);
+    assert.match(app, /fromQuery \|\| normalizeDeepLinkId\(shareVisitItemKey/);
+    const visitSrc = await readFile(
+      new URL('../components/ShareVisitProvider.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(visitSrc, /kind: 'visit'/);
+    assert.equal(page.includes('ingestAccountItemSignal'), false);
   });
 
   it('open_shared is a known Matching A kind at weight 4', () => {

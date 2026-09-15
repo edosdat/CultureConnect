@@ -8,7 +8,7 @@
 import { createHash } from 'crypto';
 import { VercelPool } from '@vercel/postgres';
 import { deepLinkUrl } from '@/lib/displayHome';
-import { normalizeDeepLinkId } from '@/lib/deepLink';
+import { normalizeDeepLinkId, resolveShareDeepLinkKey } from '@/lib/deepLink';
 import {
   assertNoVidAccountJoin,
   fifoAppend,
@@ -320,6 +320,18 @@ function parseTokenRecord(raw: unknown): ShareTokenRecord | null {
   };
   if (seanceKey) rec.seanceKey = seanceKey;
   return rec;
+}
+
+/** Read-only: token → B1 fiche key. No visit, no Matching A. */
+export async function itemKeyForShareToken(
+  token: string,
+): Promise<string | null> {
+  const record = await readShareToken(token);
+  if (!record) return null;
+  return resolveShareDeepLinkKey({
+    tokenItemKey: record.itemKey,
+    tokenSeanceKey: record.seanceKey,
+  });
 }
 
 export async function readShareToken(token: string): Promise<ShareTokenRecord | null> {

@@ -30,3 +30,20 @@ export function normalizeDeepLinkId(raw: string): string | null {
   }
   return null;
 }
+
+/**
+ * B1 `?e=` / `?id=` wins. `?t=`-only uses the share record’s itemKey
+ * (same DayItem.key space). Never invent a key from the raw token.
+ */
+export function resolveShareDeepLinkKey(opts: {
+  e?: string | null;
+  id?: string | null;
+  tokenItemKey?: string | null;
+  tokenSeanceKey?: string | null;
+}): string | null {
+  return (
+    normalizeDeepLinkId(opts.e || opts.id || '') ||
+    normalizeDeepLinkId(opts.tokenItemKey || '') ||
+    normalizeDeepLinkId(opts.tokenSeanceKey || '')
+  );
+}
