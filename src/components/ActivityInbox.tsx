@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import {
   ACTIVITY_EMPTY,
@@ -194,13 +195,13 @@ export default function ActivityInbox() {
                 {items.length === 0 ? (
                   <div className="px-4 py-8 text-center">
                     <p className="text-sm text-culture-muted">{ACTIVITY_EMPTY}</p>
-                    <a
+                    <Link
                       href="/"
                       className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-culture-terracotta hover:underline"
                       onClick={() => setOpen(false)}
                     >
                       Voir l’agenda
-                    </a>
+                    </Link>
                   </div>
                 ) : (
                   items.map((item, i) => {
