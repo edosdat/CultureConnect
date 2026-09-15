@@ -9,6 +9,7 @@ import {
 } from '@/lib/calendar';
 import { filterItemsByCommune, normalizeCommune } from '@/lib/commune';
 import {
+  cineDistanceOrigin,
   defaultCineSeance,
   seanceHeureLabel,
   seancesIncludingShared,
@@ -16,7 +17,7 @@ import {
   shareVisitPickerFilter,
 } from '@/lib/cineSeances';
 import { filterSeancesForActiveFilters } from '@/lib/displayFilter';
-import { isLikelyMobile, itemImageUrl } from '@/lib/displayHome';
+import { isLikelyMobile, itemImageUrl, seanceWhenShort } from '@/lib/displayHome';
 import { pickFilmVivantComplements } from '@/lib/filmVivantComplements';
 import SeanceCard from './SeanceCard';
 import CategoryBadge from './CategoryBadge';
@@ -24,6 +25,7 @@ import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 import FilmVersionBadge from './FilmVersionBadge';
 import FilmPoster from './FilmPoster';
 import ShareButton from './ShareButton';
+import ShareSocial from './ShareSocial';
 import FavoriteButton from './FavoriteButton';
 import {
   formatDateRange,
@@ -47,7 +49,7 @@ import {
 } from '@/lib/reserve';
 import { isCinemaDayItem } from '@/lib/nouveautesCine';
 import { fichePressCitation } from '@/lib/pressCitation';
-import type { GeoPos } from '@/lib/nearMe';
+import { itemKmLabel, type GeoPos } from '@/lib/nearMe';
 import VivantComplementLinks from './VivantComplementLinks';
 import PressCitation from './PressCitation';
 import FicheDescription from './FicheDescription';
@@ -353,6 +355,7 @@ export default function EventDetail({
   const [mobileCal, setMobileCal] = useState(false);
   const {
     seanceKey: sharedSeanceKey,
+    token: shareToken,
     hasShareToken,
     sharedSeanceItem,
     sharedRelatedItems,
@@ -426,6 +429,15 @@ export default function EventDetail({
           userGps: origin,
         })
       : [];
+    const cineMeta = cinemaFiche
+      ? [
+          formatLieuAffiche(filmForSuggestions.lieu),
+          itemKmLabel(filmForSuggestions, cineDistanceOrigin(origin)),
+          seanceWhenShort(filmForSuggestions),
+        ]
+          .filter(Boolean)
+          .join(' · ')
+      : '';
 
     return (
       <div
@@ -480,6 +492,14 @@ export default function EventDetail({
                     {ev.titre}
                   </p>
                 )}
+                {cineMeta ? (
+                  <p className="mt-1.5 text-sm leading-snug text-culture-muted">
+                    {cineMeta}
+                  </p>
+                ) : null}
+                {hasFilmSeances ? (
+                  <ShareSocial item={item} token={shareToken} />
+                ) : null}
                 {hasFilmSeances ? (
                   <div className="mt-3">
                     <CineFilmSeances
@@ -580,6 +600,10 @@ export default function EventDetail({
             ) : null}
 
             {hasFilmSeances && !cinemaFiche ? (
+              <ShareSocial item={item} token={shareToken} />
+            ) : null}
+
+            {hasFilmSeances && !cinemaFiche ? (
               <section>
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
                   Séances
@@ -643,6 +667,10 @@ export default function EventDetail({
                 )}
               </section>
             )}
+
+            {!hasFilmSeances ? (
+              <ShareSocial item={item} token={shareToken} />
+            ) : null}
 
             {ev && (
               <section>
@@ -911,6 +939,8 @@ export default function EventDetail({
               )}
             </section>
           )}
+
+          <ShareSocial item={item} token={shareToken} />
 
           <FichePressBlock item={item} />
 

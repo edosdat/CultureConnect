@@ -4,6 +4,7 @@ import CultureConnectApp from '@/components/CultureConnectApp';
 import HomeTop3BootFallback from '@/components/HomeTop3BootFallback';
 import { loadHomeFirstPaint, queryAgendaDetail } from '@/lib/agendaQuery';
 import { normalizeDeepLinkId } from '@/lib/deepLink';
+import { itemKeyForShareToken } from '@/lib/shareStore';
 import { normalizeShareToken } from '@/lib/shareToken';
 import {
   itemImageUrl,
@@ -27,9 +28,7 @@ export async function generateMetadata({
   searchParams: Promise<{ e?: string; id?: string; t?: string }>;
 }): Promise<Metadata> {
   const params = await searchParams;
-  const key = normalizeDeepLinkId(
-    firstParam(params?.e) || firstParam(params?.id),
-  );
+  const key = await openKeyFromSearch(params);
   if (!key) {
     return {
       title: DEFAULT_TITLE,
@@ -81,6 +80,21 @@ function firstParam(value: string | string[] | undefined): string {
   return value ?? '';
 }
 
+/** `?e=` / `?id=` first. `?t=`-only → store itemKey. Never override e. */
+async function openKeyFromSearch(params: {
+  e?: string;
+  id?: string;
+  t?: string;
+}): Promise<string | null> {
+  const fromQuery = normalizeDeepLinkId(
+    firstParam(params?.e) || firstParam(params?.id),
+  );
+  if (fromQuery) return fromQuery;
+  const token = normalizeShareToken(firstParam(params?.t));
+  if (!token) return null;
+  return itemKeyForShareToken(token);
+}
+
 export default function HomePage({
   searchParams,
 }: {
@@ -100,9 +114,7 @@ async function HomePageContent({
 }) {
   const boot = await loadHomeFirstPaint();
   const params = await searchParams;
-  const initialOpenKey = normalizeDeepLinkId(
-    firstParam(params?.e) || firstParam(params?.id),
-  );
+  const initialOpenKey = await openKeyFromSearch(params);
   const shareToken = normalizeShareToken(firstParam(params?.t));
   const openDetail = initialOpenKey
     ? queryAgendaDetail(initialOpenKey, shareToken ? null : 'Toulouse')

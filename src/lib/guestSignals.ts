@@ -142,7 +142,13 @@ export function fifoAppend<T>(list: readonly T[], item: T, cap: number): T[] {
 }
 
 /** RGPD hard lock: never persist email / Neon key alongside `cc_vid`. */
-const ACCOUNT_JOIN_KEYS = ['email', 'emailHash', 'user_key', 'userKey'] as const;
+const ACCOUNT_JOIN_KEYS = [
+  'email',
+  'emailHash',
+  'user_key',
+  'userKey',
+  'firstName',
+] as const;
 
 export function recordHasVid(record: object): boolean {
   const rec = record as Record<string, unknown>;

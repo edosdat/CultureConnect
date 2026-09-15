@@ -16,10 +16,19 @@ import {
   createShareToken,
   emailHash,
   isShareCreateRateLimited,
+  isShareRsvpRateLimited,
   logShareOrphan,
   readShareToken,
   recordShareVisit,
+  toggleShareRsvp,
 } from '@/lib/shareStore';
+import {
+  firstNameFromDisplayName,
+  isRsvpKind,
+  RSVP_LOGIN_ERROR,
+  type RsvpKind,
+} from '@/lib/shareRsvp';
+import { workIdForItemKey } from '@/lib/shareRsvpWork';
 import {
   isShareToken,
   normalizeSeanceKey,
@@ -28,6 +37,7 @@ import {
   sessionSharerEmail,
   shareCreateItemKey,
 } from '@/lib/shareToken';
+import { normalizeDeepLinkId } from '@/lib/deepLink';
 
 function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
@@ -168,6 +178,45 @@ export async function POST(req: Request) {
       res.cookies.set(VID_COOKIE, committed.vid, vidCookieOptions());
     }
     return res;
+  }
+
+  if (isRsvpKind(incoming.kind)) {
+    const kind = incoming.kind as RsvpKind;
+    const token = normalizeShareToken(
+      typeof incoming.token === 'string' ? incoming.token : '',
+    );
+    const itemKey = normalizeDeepLinkId(
+      typeof incoming.itemKey === 'string' ? incoming.itemKey : '',
+    );
+    if (!token || !isShareToken(token)) {
+      return jsonError('token invalide', 400);
+    }
+    if (!itemKey) return jsonError('itemKey invalide', 400);
+    if (!session?.user || !sharerEmail) {
+      return NextResponse.json({ error: RSVP_LOGIN_ERROR, login: true }, { status: 401 });
+    }
+    const record = await readShareToken(token);
+    if (!record) return jsonError('Lien introuvable', 404);
+    if (await isShareRsvpRateLimited({ ip, email: sharerEmail })) {
+      return jsonError('Too many requests', 429);
+    }
+    const firstName = firstNameFromDisplayName(
+      typeof session.user.name === 'string' ? session.user.name : '',
+    );
+    const result = await toggleShareRsvp({
+      token,
+      itemKey,
+      workId: workIdForItemKey(record.itemKey || itemKey),
+      emailHash: emailHash(sharerEmail),
+      firstName,
+      kind,
+    });
+    return NextResponse.json({
+      ok: true,
+      kind: result.kind,
+      envie: result.rsvps.filter((r) => r.kind === 'envie').length,
+      going: result.rsvps.filter((r) => r.kind === 'going').length,
+    });
   }
 
   return jsonError('kind invalide', 400);

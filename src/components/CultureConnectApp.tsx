@@ -337,7 +337,11 @@ export default function CultureConnectApp({
 }: Props) {
   const { track, trackItem, rememberItem, tasteState, sessionStatus } =
     useSignals();
-  const { seanceKey: sharedSeanceKey, hasShareToken } = useShareVisit();
+  const {
+    seanceKey: sharedSeanceKey,
+    hasShareToken,
+    itemKey: shareVisitItemKey,
+  } = useShareVisit();
   const { data: session, status: authStatus } = useSession();
   // Session email only — never searchParams / analytics / page copy.
   const showAdminCounts =
@@ -588,13 +592,18 @@ export default function CultureConnectApp({
   const titleLeftover = committedTitle;
 
   // Client fallback: `?e=` / `?id=` when SSR did not pass a key (client nav).
+  // `?t=`-only: open the same B1 fiche once visit/store returns itemKey.
   // Same contract as deepLinkBootState — fiche only, no pack-focus.
   useEffect(() => {
     if (initialOpenKey) return;
     const params = new URLSearchParams(window.location.search);
-    const key = normalizeDeepLinkId(params.get('e') || params.get('id') || '');
+    const fromQuery = normalizeDeepLinkId(
+      params.get('e') || params.get('id') || '',
+    );
+    const key =
+      fromQuery || normalizeDeepLinkId(shareVisitItemKey || '');
     if (key) setSelectedItemKey(deepLinkBootState(key).selectedItemKey);
-  }, [initialOpenKey]);
+  }, [initialOpenKey, shareVisitItemKey]);
 
   function applyScopeFromSearch(scope: TimeScopeId, dateIso: string | null) {
     setTimeScope(scope);

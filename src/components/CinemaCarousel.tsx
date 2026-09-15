@@ -53,6 +53,7 @@ import {
   itemPitch,
   rowDisplayTitle,
   seanceWhen,
+  seanceWhenShort,
 } from '@/lib/displayHome';
 import { itemKmLabel, minKmLabel, type GeoPos } from '@/lib/nearMe';
 import { cineDistanceOrigin, defaultCineSeance } from '@/lib/cineSeances';
@@ -68,6 +69,7 @@ import PressBadge from './PressBadge';
 import FilmPoster from './FilmPoster';
 import FavoriteButton from './FavoriteButton';
 import ShareButton from './ShareButton';
+import ShareSocial from './ShareSocial';
 import { useSignals } from './SignalsProvider';
 import VivantComplementLinks from './VivantComplementLinks';
 import PressCitation from './PressCitation';
@@ -899,7 +901,7 @@ export default function CinemaCarousel({
     seances.find((s) => s.key === item.key) ??
     seances[0] ??
     item;
-  const when = seanceWhen(active);
+  const when = pack === 'cine' ? seanceWhenShort(active) : seanceWhen(active);
   const venue = formatLieuAffiche(active.lieu);
   const kmOrigin = pack === 'cine' ? cineDistanceOrigin(origin) : origin;
   const km =
@@ -985,7 +987,7 @@ export default function CinemaCarousel({
         {rowDisplayTitle(hero)}
       </h3>
       <p className="text-sm leading-snug text-culture-muted">
-        {[venue, km, when].filter(Boolean).join(' • ')}
+        {[venue, km, when].filter(Boolean).join(pack === 'cine' ? ' · ' : ' • ')}
       </p>
     </>
   );
@@ -1008,6 +1010,7 @@ export default function CinemaCarousel({
         />
         <div className="flex min-w-0 flex-col gap-2 p-3 md:p-4">
           {titleBlock}
+          <ShareSocial item={active} token={null} />
           {pack === 'cine' && seances.length > 0 ? (
             <div ref={seancesRef} id={seancesDomId}>
               <CineSeancePicker
