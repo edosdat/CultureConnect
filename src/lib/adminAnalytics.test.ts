@@ -3,10 +3,19 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { ADMIN_EMAILS, HOME_EVENTS_COUNTER_EMAIL } from './homeEventsCounter';
 import {
+  adminCsvFilename,
   analyticsWindowDays,
+  analyticsWindowDaysN,
+  buildRsvpTableRows,
+  buildTokenTableRows,
+  buildVisitsAgg,
   csvEscape,
   dailyVidUniquesKey,
+  displayEmailHash,
+  formatRsvpExportCsv,
   formatTasteExportCsv,
+  formatTokenExportCsv,
+  formatVisitsAggExportCsv,
   googleLoginCountKey,
   hashEmailKey,
   inParisWindow,
@@ -18,7 +27,9 @@ import {
   splitCatalogueTagSlugs,
   tagBucket,
   tasteExportRows,
-  TASTE_EXPORT_LIMIT,
+  tasteTableRows,
+  topTagsComptes,
+  truncateTokenUi,
   uniquesAndReturns,
   usefulTagsFromFields,
   usefulTasteTags,
@@ -170,6 +181,8 @@ describe('KPI 18 CSV interne', () => {
     assert.equal(rows.length, 2);
     assert.equal(rows[0]?.emailHash, hashEmailKey('first@gmail.com'));
     assert.equal(rows[0]?.emailHash.includes('@'), false);
+    assert.equal(rows[0]?.nSignals, 0);
+    assert.equal(rows[0]?.scorable, true);
     const csv = formatTasteExportCsv(rows);
     assert.match(csv, /INTERNE/);
     assert.equal(csv.includes('first@gmail.com'), false);
@@ -222,7 +235,15 @@ describe('admin gate + export route', () => {
     assert.equal(page.includes('searchParams'), false);
     assert.match(exportRoute, /isAdminSession/);
     assert.match(exportRoute, /status: 404/);
-    assert.match(loader, /cc-gouts-internes/);
+    assert.match(loader, /adminCsvFilename\('tastes'/);
+    assert.match(loader, /cc-tastes|adminCsvFilename/);
+    const storeExport = readFileSync(
+      new URL('../app/admin/analytics/export/[store]/route.ts', import.meta.url),
+      'utf8',
+    );
+    assert.match(storeExport, /isAdminSession/);
+    assert.match(storeExport, /status: 404/);
+    assert.match(storeExport, /isAdminCsvStore/);
     assert.match(loader, /cc:vs:\*/);
     assert.match(loader, /not cc:vu daily index/);
     assert.equal(loader.includes('readDailyVidSets'), false);
@@ -231,8 +252,7 @@ describe('admin gate + export route', () => {
 });
 
 describe('RGPD — export 18 + 0 join vid', () => {
-  it('caps at 30, hashes email, useful columns only, no vid↔compte', () => {
-    assert.equal(TASTE_EXPORT_LIMIT, 30);
+  it('exports all scorable rows, hashes email, useful columns only, no vid↔compte', () => {
     const many = Array.from({ length: 40 }, (_, i) => ({
       userKey: `u${i}@gmail.com`,
       state: state({
@@ -242,7 +262,8 @@ describe('RGPD — export 18 + 0 join vid', () => {
       updatedAt: `2026-08-${String((i % 28) + 1).padStart(2, '0')}T00:00:00.000Z`,
     }));
     const rows = tasteExportRows(many, 99);
-    assert.equal(rows.length, 30);
+    assert.equal(rows.length, 40);
+    assert.equal(tasteExportRows(many).length, 40);
     assert.equal(rows.every((r) => !r.emailHash.includes('@')), true);
     const csv = formatTasteExportCsv(rows);
     assert.match(csv, /INTERNE/);
@@ -268,6 +289,10 @@ describe('RGPD — export 18 + 0 join vid', () => {
       'utf8',
     );
     assert.match(gitignore, /gouts-internes/);
+    assert.match(gitignore, /cc-tastes-\*\.csv/);
+    assert.match(gitignore, /cc-tokens-\*\.csv/);
+    assert.match(gitignore, /cc-rsvps-\*\.csv/);
+    assert.match(gitignore, /cc-visits-\*\.csv/);
     const conf = readFileSync(
       new URL('../app/confidentialite/page.tsx', import.meta.url),
       'utf8',
@@ -339,6 +364,10 @@ describe('UX admin — labels FR + glossaire + sections', () => {
     assert.equal(KPI_COPY['9']?.hint, KPI9_LOGIN_HINT);
     assert.equal(KPI9_LOGIN_HINT, 'Logins = depuis le deploy du 15/09');
     assert.equal(SECTION_COPY.goutsComptes.title, 'Goûts comptes');
+    assert.equal(SECTION_COPY.comptesTable.title, 'Comptes');
+    assert.equal(SECTION_COPY.tokensTable.title, 'Liens de partage');
+    assert.equal(SECTION_COPY.rsvpsTable.title, 'Réponses Envie / J’y vais');
+    assert.equal(SECTION_COPY.visitsTable.title, 'Lectures des liens');
     assert.equal(SECTION_COPY.tagsCatalogue.title, 'Tags catalogue');
     assert.match(SECTION_COPY.goutsComptes.intro, /pas les tags du catalogue/);
     assert.match(SECTION_COPY.tagsCatalogue.intro, /≠ ce que les gens aiment/);
@@ -350,6 +379,7 @@ describe('UX admin — labels FR + glossaire + sections', () => {
       'utf8',
     );
     assert.match(view, /SECTION_COPY\.goutsComptes/);
+    assert.match(view, /AdminDataTables/);
     assert.match(view, /SECTION_COPY\.tagsCatalogue/);
     assert.match(view, /kpi="12"/);
     assert.match(view, /kpi="13"/);
@@ -359,16 +389,168 @@ describe('UX admin — labels FR + glossaire + sections', () => {
     assert.match(view, /kpi="15"/);
     const goutsIdx = view.indexOf('SECTION_COPY.goutsComptes');
     const tagsIdx = view.indexOf('SECTION_COPY.tagsCatalogue');
+    const tablesIdx = view.indexOf('AdminDataTables');
     const kpi14 = view.indexOf('kpi="14"');
     const kpi15 = view.indexOf('kpi="15"');
     const kpi12 = view.indexOf('kpi="12"');
     const kpi18 = view.indexOf('kpi="18"');
     assert.ok(goutsIdx > 0 && tagsIdx > goutsIdx);
+    assert.ok(tablesIdx > goutsIdx && tablesIdx < tagsIdx);
     assert.ok(kpi12 > goutsIdx && kpi18 > goutsIdx && kpi18 < tagsIdx);
     assert.ok(kpi14 > tagsIdx && kpi15 > tagsIdx);
     assert.equal(view.includes('Tokens créés'), false);
     assert.equal(view.includes('Uniques cc_vid'), false);
     assert.equal(view.includes('Top tags Toulouse"'), false);
     assert.match(KPI_COPY['1']?.glossary ?? '', /nav privée \/ multi-device/);
+    assert.match(KPI_COPY['18']?.glossary ?? '', /tous les comptes/);
+    assert.equal(KPI_COPY['18']?.glossary.includes('30'), false);
+  });
+});
+
+describe('P1 admin tables + CSV (hash only)', () => {
+  it('covers 30 Paris days and hashes sha256[:16]', () => {
+    const days = analyticsWindowDaysN(30, new Date('2026-09-15T12:00:00+02:00'));
+    assert.equal(days.length, 30);
+    assert.equal(days[0], '2026-08-17');
+    assert.equal(days[29], '2026-09-15');
+    const hash = hashEmailKey('Eloi@Gmail.com');
+    assert.equal(hash.length, 16);
+    assert.equal(hash.includes('@'), false);
+    assert.equal(displayEmailHash(hash + 'deadbeefcafebabe'), hash);
+    assert.equal(truncateTokenUi('abcd1234'), 'abcd1234');
+    assert.equal(truncateTokenUi('abcdefghijklmnop'), 'abcdefgh…mnop');
+    assert.equal(adminCsvFilename('tastes', '2026-09-15'), 'cc-tastes-2026-09-15.csv');
+  });
+
+  it('table comptes includes empty rows; top tags count users ≠ catalogue', () => {
+    const accounts = [
+      {
+        userKey: 'a@gmail.com',
+        state: state({
+          profile: {
+            ...emptyProfile(),
+            moods: { rigolo: { weight: 2, pct: 100 } },
+          },
+        }),
+        updatedAt: '2026-09-15T10:00:00.000Z',
+      },
+      {
+        userKey: 'b@gmail.com',
+        state: state({
+          profile: {
+            ...emptyProfile(),
+            moods: { rigolo: { weight: 1, pct: 50 } },
+            genres: { comedie: { weight: 2, pct: 50 } },
+          },
+        }),
+        updatedAt: '2026-09-14T10:00:00.000Z',
+      },
+      {
+        userKey: 'empty@gmail.com',
+        state: state({}),
+        updatedAt: '2026-09-01T10:00:00.000Z',
+      },
+    ];
+    const table = tasteTableRows(accounts);
+    assert.equal(table.length, 3);
+    assert.equal(table[0]?.emailHash, hashEmailKey('a@gmail.com'));
+    assert.equal(table.some((r) => r.tagCount === 0), true);
+    const top = topTagsComptes(accounts);
+    const rigolo = top.find((t) => t.tag === 'rigolo');
+    const comedie = top.find((t) => t.tag === 'g:comedie');
+    assert.equal(rigolo?.userCount, 2);
+    assert.equal(comedie?.userCount, 1);
+    assert.equal(table.every((r) => !r.emailHash.includes('@')), true);
+  });
+
+  it('tokens hash sharer, rsvps omit prénom, visits are opens-only', () => {
+    const tokens = buildTokenTableRows([
+      {
+        token: 'abcd1234',
+        itemKey: 'e:E1',
+        seanceKey: 'p:P1',
+        createdAt: '2026-09-15T08:00:00.000Z',
+        sharerEmail: 'sharer@gmail.com',
+        opens: 4,
+      },
+      {
+        token: 'zzzz9999',
+        itemKey: 'e:E2',
+        createdAt: '2026-09-01T08:00:00.000Z',
+        sharerEmail: null,
+        opens: 0,
+      },
+    ]);
+    assert.equal(tokens[0]?.sharerHash, hashEmailKey('sharer@gmail.com'));
+    assert.equal(tokens[0]?.sharerHash.includes('@'), false);
+    const tokenCsv = formatTokenExportCsv(tokens);
+    assert.match(tokenCsv, /INTERNE/);
+    assert.equal(tokenCsv.includes('sharer@gmail.com'), false);
+    assert.match(tokenCsv, /abcd1234/);
+    assert.match(tokenCsv, /sharer_hash/);
+
+    const rsvps = buildRsvpTableRows([
+      {
+        token: 'abcd1234',
+        emailHash: hashEmailKey('guest@gmail.com') + 'ffffffffffffffff',
+        kind: 'envie',
+        itemKey: 'e:E1',
+        workId: 'f:F1',
+        ts: '2026-09-15T09:00:00.000Z',
+      },
+      {
+        token: 'abcd1234',
+        emailHash: hashEmailKey('other@gmail.com'),
+        kind: 'going',
+        itemKey: 'e:E1',
+        workId: 'f:F1',
+        ts: '2026-09-14T09:00:00.000Z',
+      },
+    ]);
+    assert.equal(Object.prototype.hasOwnProperty.call(rsvps[0], 'firstName'), false);
+    assert.equal(JSON.stringify(rsvps).includes('firstName'), false);
+    assert.equal(JSON.stringify(rsvps).includes('Léa'), false);
+    const rsvpCsv = formatRsvpExportCsv(rsvps);
+    assert.equal(rsvpCsv.includes('first_name'), false);
+    assert.equal(rsvpCsv.includes('firstName'), false);
+    assert.equal(rsvpCsv.includes('Léa'), false);
+    assert.match(rsvpCsv, /email_hash/);
+    assert.match(rsvpCsv, /envie/);
+
+    const visits = buildVisitsAgg(tokens, new Set(['2026-09-15']));
+    assert.equal(visits.window7.tokensCreated, 1);
+    assert.equal(visits.window7.opensSum, 4);
+    assert.equal(visits.window7.tokensWithOpens, 1);
+    assert.equal(visits.byTokenTop[0]?.opens, 4);
+    const visitCsv = formatVisitsAggExportCsv(visits.byTokenTop);
+    assert.equal(visitCsv.includes('cc_vid'), false);
+    assert.match(visitCsv, /^token,opens,created_at,sharer_hash$/m);
+    assert.equal(visitCsv.includes('guest@gmail.com'), false);
+
+    const tablesUi = readFileSync(
+      new URL('../components/AdminDataTables.tsx', import.meta.url),
+      'utf8',
+    );
+    const load = readFileSync(
+      new URL('./adminAnalyticsLoad.ts', import.meta.url),
+      'utf8',
+    );
+    const helpers = readFileSync(
+      new URL('./adminAnalytics.ts', import.meta.url),
+      'utf8',
+    );
+    assert.equal(tablesUi.includes('firstName'), false);
+    assert.equal(tablesUi.includes('first_name'), false);
+    assert.equal(tablesUi.includes('cc_vid'), false);
+    assert.equal(load.includes('firstName'), false);
+    assert.equal(helpers.includes('firstName'), false);
+    assert.equal(tablesUi.includes('analytics_daily'), false);
+    assert.equal(load.includes('analytics_daily'), false);
+    assert.match(tablesUi, /Top tags comptes/);
+    assert.match(tablesUi, /Filtrer par hash/);
+    assert.match(tablesUi, /export\/tastes/);
+    assert.match(tablesUi, /export\/tokens/);
+    assert.match(tablesUi, /export\/rsvps/);
+    assert.match(tablesUi, /export\/visits/);
   });
 });

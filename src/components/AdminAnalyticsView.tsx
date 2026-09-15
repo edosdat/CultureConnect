@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { AdminAnalyticsSnapshot } from '@/lib/adminAnalyticsLoad';
+import AdminDataTables from '@/components/AdminDataTables';
 import {
   KPI_COPY,
   SECTION_COPY,
@@ -107,7 +108,7 @@ export default function AdminAnalyticsView({
   const mixTotal = snap.mix.total;
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <p className="text-xs font-medium uppercase tracking-[0.15em] text-culture-terracotta">
         Admin · HOLD · first-party
       </p>
@@ -265,6 +266,11 @@ export default function AdminAnalyticsView({
         </div>
       </SectionBlock>
 
+      <AdminDataTables
+        tables={snap.adminTables}
+        windowDays7={snap.windowDays}
+      />
+
       <SectionBlock
         title={SECTION_COPY.tagsCatalogue.title}
         intro={SECTION_COPY.tagsCatalogue.intro}
@@ -303,8 +309,9 @@ export default function AdminAnalyticsView({
       ) : null}
 
       <p className="mt-6 text-xs text-culture-muted">
-        RGPD : page admin privée. Agrégats seuls. Export 18 interne. Merge
-        bloqué — revue RGPD + smoke Design.
+        RGPD : page admin privée. Tables hash only. 0 e-mail clair, 0 prénom,
+        0 identifiant visiteur. Exports CSV allowlist. Merge bloqué — QA
+        Connexion + revue RGPD.
       </p>
     </main>
   );
