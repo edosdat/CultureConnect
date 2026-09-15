@@ -106,6 +106,8 @@ import {
   type SearchChipParse,
 } from '@/lib/parseSearchChips';
 import { normalizeDeepLinkId } from '@/lib/deepLink';
+import DeepLinkFicheFallback from './DeepLinkFicheFallback';
+import { OPEN_FICHE_EVENT, type OpenFicheDetail } from './openFicheEvents';
 import {
   buildAgendaParams,
   listFetchShouldSkipBoot,
@@ -619,6 +621,20 @@ export default function CultureConnectApp({
       fromQuery || normalizeDeepLinkId(shareVisitItemKey || '');
     if (key) setSelectedItemKey(deepLinkBootState(key).selectedItemKey);
   }, [initialOpenKey, shareVisitItemKey]);
+
+  // Cloche → fiche: open from already-painted home state (no cold reload).
+  useEffect(() => {
+    function openFromKey(itemKey: string) {
+      const key = normalizeDeepLinkId(itemKey);
+      if (key) setSelectedItemKey(deepLinkBootState(key).selectedItemKey);
+    }
+    function onOpenFiche(e: Event) {
+      const itemKey = (e as CustomEvent<OpenFicheDetail>).detail?.itemKey;
+      if (itemKey) openFromKey(itemKey);
+    }
+    window.addEventListener(OPEN_FICHE_EVENT, onOpenFiche);
+    return () => window.removeEventListener(OPEN_FICHE_EVENT, onOpenFiche);
+  }, []);
 
   function applyScopeFromSearch(scope: TimeScopeId, dateIso: string | null) {
     setTimeScope(scope);
@@ -2713,6 +2729,8 @@ export default function CultureConnectApp({
           fallbackVivant={crossSellPool}
           origin={gpsOrigin}
         />
+      ) : selectedItemKey ? (
+        <DeepLinkFicheFallback item={null} showCatalogueShell={false} />
       ) : null}
     </div>
   );

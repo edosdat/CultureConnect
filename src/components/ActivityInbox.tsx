@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { requestOpenFiche } from './openFicheEvents';
 import {
   ACTIVITY_EMPTY,
   ACTIVITY_SHEET_SUB,
@@ -66,12 +68,16 @@ function hydrateMeta(item: DayItem): Meta {
 
 export default function ActivityInbox() {
   const { status } = useSession();
+  const router = useRouter();
+  const pathname = usePathname() || '/';
+  const onHome = pathname === '/' || pathname === '';
   const signedIn = status === 'authenticated';
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<ActivityListItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [rowFlags, setRowFlags] = useState<Record<string, boolean>>({});
   const [meta, setMeta] = useState<Record<string, Meta>>({});
+  const [pressedToken, setPressedToken] = useState<string | null>(null);
 
   const loadInbox = useCallback(async () => {
     if (!signedIn) {
@@ -137,6 +143,7 @@ export default function ActivityInbox() {
     : 'Notifications';
 
   async function openSheet() {
+    setPressedToken(null);
     setRowFlags(Object.fromEntries(items.map((it) => [it.token, it.unread])));
     setOpen(true);
     await markActivitySeen({ scope: 'all' });
@@ -145,12 +152,23 @@ export default function ActivityInbox() {
     setUnreadCount(parsed.unreadCount);
   }
 
-  async function openFiche(item: ActivityListItem) {
-    const seen = await markActivitySeen({ scope: 'token', token: item.token });
-    if (seen.unreadCount >= 0) setUnreadCount(seen.unreadCount);
-    else setUnreadCount((n) => Math.max(0, n - (item.unread ? 1 : 0)));
+  function openFiche(item: ActivityListItem) {
+    const href = activityFicheHref(item.itemKey, item.token);
+    setPressedToken(item.token);
+    setRowFlags((prev) => ({ ...prev, [item.token]: false }));
+    setUnreadCount((n) => Math.max(0, n - (item.unread ? 1 : 0)));
     setOpen(false);
-    window.location.assign(activityFicheHref(item.itemKey, item.token));
+    // Navigate first — never await seen. On home, History API keeps the
+    // already-painted agenda (S1 fiche/photo); off-home, soft router.push.
+    if (onHome) {
+      window.history.pushState(null, '', href);
+    } else {
+      router.push(href);
+    }
+    requestOpenFiche({ itemKey: item.itemKey, token: item.token, href });
+    void markActivitySeen({ scope: 'token', token: item.token }).then((seen) => {
+      if (seen.unreadCount >= 0) setUnreadCount(seen.unreadCount);
+    });
   }
 
   const sheet =
@@ -216,10 +234,14 @@ export default function ActivityInbox() {
                       <button
                         key={`${item.token}-${item.itemKey}`}
                         type="button"
-                        onClick={() => void openFiche(item)}
+                        onClick={() => openFiche(item)}
                         className={
-                          'flex w-full items-start gap-2.5 border-b border-culture-line px-3.5 py-2.5 text-left ' +
-                          (unreadRow ? 'bg-[#fff8f4]' : '')
+                          'flex w-full items-start gap-2.5 border-b border-culture-line px-3.5 py-2.5 text-left active:bg-culture-sand/70 ' +
+                          (pressedToken === item.token
+                            ? 'bg-culture-sand/70'
+                            : unreadRow
+                              ? 'bg-[#fff8f4]'
+                              : '')
                         }
                       >
                         <span

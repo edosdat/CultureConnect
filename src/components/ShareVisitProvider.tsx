@@ -12,6 +12,7 @@ import { useSession } from 'next-auth/react';
 import { normalizeDeepLinkId } from '@/lib/deepLink';
 import { normalizeShareToken, shareVisitStorageKey } from '@/lib/shareToken';
 import type { DayItem } from '@/lib/types';
+import { OPEN_FICHE_EVENT, type OpenFicheDetail } from './openFicheEvents';
 
 type ShareVisitValue = {
   seanceKey: string | null;
@@ -36,14 +37,15 @@ export function useShareVisit() {
   return useContext(ShareVisitContext);
 }
 
+function tokenFromLocation(next?: string | null): string | null {
+  if (typeof window === 'undefined') return normalizeShareToken(next || '');
+  const params = new URLSearchParams(window.location.search);
+  return normalizeShareToken(next || params.get('t') || '');
+}
+
 export default function ShareVisitProvider({ children }: { children: ReactNode }) {
   const { status } = useSession();
-  const [token] = useState(() => {
-    if (typeof window === 'undefined') return null;
-    return normalizeShareToken(
-      new URLSearchParams(window.location.search).get('t'),
-    );
-  });
+  const [token, setToken] = useState<string | null>(() => tokenFromLocation());
   const hasShareToken = Boolean(token);
   const [keys, setKeys] = useState<{
     seanceKey: string | null;
@@ -56,9 +58,22 @@ export default function ShareVisitProvider({ children }: { children: ReactNode }
   const [sharedRelatedItems, setSharedRelatedItems] = useState<DayItem[]>([]);
 
   useEffect(() => {
+    function syncToken(e?: Event) {
+      const fromEvent = (e as CustomEvent<OpenFicheDetail> | undefined)?.detail
+        ?.token;
+      setToken(tokenFromLocation(fromEvent));
+    }
+    window.addEventListener(OPEN_FICHE_EVENT, syncToken);
+    window.addEventListener('popstate', syncToken);
+    return () => {
+      window.removeEventListener(OPEN_FICHE_EVENT, syncToken);
+      window.removeEventListener('popstate', syncToken);
+    };
+  }, []);
+
+  useEffect(() => {
     if (status === 'loading') return;
     const params = new URLSearchParams(window.location.search);
-    const token = normalizeShareToken(params.get('t') || '');
     const eKey = normalizeDeepLinkId(params.get('e') || params.get('id') || '');
     if (!token) return;
     setKeys((prev) => ({
@@ -114,7 +129,7 @@ export default function ShareVisitProvider({ children }: { children: ReactNode }
       .catch(() => {
         /* never break the fiche */
       });
-  }, [status]);
+  }, [status, token]);
 
   useEffect(() => {
     const key = keys.seanceKey;
