@@ -194,3 +194,22 @@ describe('admin gate + export route', () => {
     assert.match(exportRoute, /filename/);
   });
 });
+
+describe('Mesure — approx. / minorant on guest KV KPIs', () => {
+  it('labels KPI 1–2, 10, 16 only', () => {
+    const view = readFileSync(
+      new URL('../components/AdminAnalyticsView.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(view, /export const APPROX_MINORANT_LABEL = 'approx\. \/ minorant'/);
+    const cards = view.split(/<Card\b/).slice(1);
+    const approxKpis = cards
+      .filter((block) => /\bapprox\b/.test(block))
+      .map((block) => block.match(/kpi="(\d+)"/)?.[1])
+      .filter((k): k is string => Boolean(k))
+      .sort((a, b) => Number(a) - Number(b));
+    assert.deepEqual(approxKpis, ['1', '2', '10', '16']);
+    assert.equal(cards.some((b) => /kpi="5"/.test(b) && /\bapprox\b/.test(b)), false);
+    assert.equal(cards.some((b) => /kpi="18"/.test(b) && /\bapprox\b/.test(b)), false);
+  });
+});

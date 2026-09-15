@@ -13,23 +13,37 @@ function pct(part: number, total: number): string {
   return `${Math.round((100 * part) / total)} %`;
 }
 
+/** Mesure: guest KV SCAN / FIFO — lower bound, not exact. KPI 1–2, 10, 16. */
+export const APPROX_MINORANT_LABEL = 'approx. / minorant';
+
+function ApproxBadge() {
+  return (
+    <span className="ml-1.5 inline-block rounded-full bg-culture-cream px-1.5 py-0.5 align-middle text-[10px] font-medium normal-case tracking-normal text-culture-muted">
+      {APPROX_MINORANT_LABEL}
+    </span>
+  );
+}
+
 function Card({
   kpi,
   title,
   value,
   hint,
+  approx,
   children,
 }: {
   kpi: string;
   title: string;
   value?: string;
   hint?: string;
+  approx?: boolean;
   children?: ReactNode;
 }) {
   return (
     <section className="rounded-2xl border border-culture-line bg-white px-4 py-3">
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
         KPI {kpi} · {title}
+        {approx ? <ApproxBadge /> : null}
       </p>
       {value != null ? (
         <p className="mt-1 font-display text-2xl text-culture-ink">{value}</p>
@@ -71,6 +85,7 @@ export default function AdminAnalyticsView({
           title="Uniques cc_vid / j"
           value={fmt(snap.traffic.distinct7j)}
           hint="Distincts sur 7j · guest signals + index journalier"
+          approx
         >
           <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
             {snap.traffic.perDay.map((d) => (
@@ -86,6 +101,7 @@ export default function AdminAnalyticsView({
           title="Retours (même vid j+1+)"
           value={fmt(snap.traffic.returners)}
           hint="Vids présents ≥2 jours distincts dans la fenêtre"
+          approx
         >
           <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
             {snap.traffic.perDay.map((d) => (
@@ -161,6 +177,7 @@ export default function AdminAnalyticsView({
           title="Signaux guest append"
           value={fmt(snap.compte.guestAppends)}
           hint="Lignes cc:vs:<vid> dans la fenêtre"
+          approx
         />
       </div>
 
@@ -251,7 +268,12 @@ export default function AdminAnalyticsView({
             </ul>
           )}
         </Card>
-        <Card kpi="16" title="Signaux guest par kind" hint="Fenêtre 7j · cc:vs">
+        <Card
+          kpi="16"
+          title="Signaux guest par kind"
+          hint="Fenêtre 7j · cc:vs"
+          approx
+        >
           {snap.gouts.guestByKind.length === 0 ? (
             <p className="mt-2 text-sm text-culture-muted">Aucun append guest.</p>
           ) : (
