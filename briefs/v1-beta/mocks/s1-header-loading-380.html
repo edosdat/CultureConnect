@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=1200"/>
+<title>S1 header + loading + deep link · 380</title>
+<style>
+  :root { --cream:#F7F0E8; --ink:#1a1a1a; --terra:#E85D3B; --teal:#0D7377; --muted:#6b6560; --line:#e8e0d6; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:13px/1.35 system-ui,sans-serif; background:#bbb; color:var(--ink); padding:12px; display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
+  .phone { width:380px; background:var(--cream); border-radius:12px; overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,.15); min-height:560px; }
+  .lab { font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); padding:8px 12px 0; }
+  header { display:flex; align-items:center; gap:8px; padding:8px 10px; background:#fff; border-bottom:1px solid var(--line); }
+  .logo { font-weight:700; color:var(--terra); font-size:13px; margin-right:auto; }
+  .nav { font-size:11px; color:var(--muted); }
+  .bell, .av { width:34px; height:34px; border-radius:999px; border:1px solid var(--line); display:grid; place-items:center; background:#fff; position:relative; font-size:14px; flex-shrink:0; }
+  .av { background:var(--ink); color:#fff; font-weight:700; font-size:12px; border:none; }
+  .badge { position:absolute; top:0; right:0; min-width:14px; height:14px; border-radius:999px; background:var(--terra); color:#fff; font-size:9px; font-weight:700; display:grid; place-items:center; }
+  .chip { font-size:10px; font-weight:600; padding:6px 8px; border-radius:999px; border:1px solid var(--line); background:#fff; color:var(--muted); }
+  .chip.bad { border-color:#c44; color:#c44; text-decoration:line-through; opacity:.7; }
+  .pad { padding:10px 12px; }
+  .h1 { font-family:Georgia,serif; font-size:18px; font-weight:700; margin:0 0 2px; }
+  .h2 { font-size:12px; color:var(--muted); margin:0 0 10px; }
+  .sec { font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; margin:12px 0 6px; }
+  .sec.cine { color:var(--terra); }
+  .sec.th { color:var(--teal); }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .shell { background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  .ph { height:72px; background:linear-gradient(90deg,#e8e0d6 25%,#f5f0ea 50%,#e8e0d6 75%); background-size:200% 100%; animation:sh 1.2s infinite; }
+  .ph.cine { background:linear-gradient(135deg,#f0c4b4,#e8e0d6); animation:none; opacity:.85; }
+  .ph.th { background:linear-gradient(135deg,#b8d4d5,#e8e0d6); animation:none; opacity:.85; }
+  .blur { padding:8px; }
+  .sk { height:10px; border-radius:4px; margin-bottom:6px; background:linear-gradient(90deg,#e8e0d6 25%,#f5f0ea 50%,#e8e0d6 75%); background-size:200% 100%; animation:sh 1.2s infinite; filter:blur(.3px); }
+  .sk.w60 { width:60%; }
+  .sk.w80 { width:80%; }
+  .sk.w40 { width:40%; }
+  @keyframes sh { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+  .more { text-align:center; padding:10px; color:var(--muted); font-size:18px; letter-spacing:2px; }
+  .note { font-size:11px; color:var(--muted); padding:0 12px 12px; }
+  /* deep link fiche */
+  .fiche { background:#fff; margin:8px; border-radius:12px; overflow:hidden; border:1px solid var(--line); }
+  .hero { height:160px; background:linear-gradient(135deg,#3a2a4a,#c4a882); }
+  .fp { padding:12px; }
+  .tag { display:inline-block; font-size:10px; font-weight:700; background:var(--teal); color:#fff; padding:2px 7px; border-radius:999px; }
+  .ft { font-family:Georgia,serif; font-size:18px; font-weight:700; margin:6px 0 4px; }
+  .fm { font-size:12px; color:var(--muted); margin:0 0 10px; }
+  .soc { display:flex; gap:8px; }
+  .soc .skbtn { flex:1; height:36px; border-radius:999px; background:linear-gradient(90deg,#e8e0d6 25%,#f5f0ea 50%,#e8e0d6 75%); background-size:200% 100%; animation:sh 1.2s infinite; border:none; }
+  .menu { position:absolute; right:12px; top:52px; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 20px rgba(0,0,0,.12); padding:6px 0; width:160px; z-index:2; font-size:13px; }
+  .menu div { padding:8px 12px; }
+  .menu .hi { font-weight:600; background:#f7f0e8; }
+  .wrap { position:relative; }
+</style>
+</head>
+<body>
+
+  <!-- A header -->
+  <div class="phone wrap">
+    <p class="lab">A — Header cible (S1)</p>
+    <header>
+      <div class="logo">CultureConnect</div>
+      <span class="nav">Agenda</span>
+      <span class="nav">Artistes</span>
+      <div class="bell">🔔<span class="badge">2</span></div>
+      <div class="av">E</div>
+    </header>
+    <div class="menu">
+      <div class="hi">Mes goûts</div>
+      <div>Compte</div>
+      <div>Déconnexion</div>
+    </div>
+    <div class="pad">
+      <p class="h1">L’agenda culturel de Toulouse</p>
+      <p class="h2">Partagez une sortie — voyez qui vient.</p>
+      <p class="note">CUT barre : chip Mes goûts · KEEP Artistes · Mes goûts = menu avatar</p>
+      <span class="chip bad">Mes goûts</span>
+    </div>
+  </div>
+
+  <!-- B loading -->
+  <div class="phone">
+    <p class="lab">B — Loading home</p>
+    <header>
+      <div class="logo">CultureConnect</div>
+      <div class="bell">🔔</div>
+      <div class="av">E</div>
+    </header>
+    <div class="pad">
+      <p class="h1">L’agenda culturel de Toulouse</p>
+      <p class="h2">Partagez une sortie — voyez qui vient.</p>
+      <p class="sec cine">Cinéma</p>
+      <div class="grid">
+        <div class="shell"><div class="ph cine"></div><div class="blur"><div class="sk w80"></div><div class="sk w60"></div></div></div>
+        <div class="shell"><div class="ph cine"></div><div class="blur"><div class="sk w80"></div><div class="sk w40"></div></div></div>
+      </div>
+      <p class="sec th">Théâtre</p>
+      <div class="grid">
+        <div class="shell"><div class="ph th"></div><div class="blur"><div class="sk w80"></div><div class="sk w60"></div></div></div>
+        <div class="shell"><div class="ph th"></div><div class="blur"><div class="sk w80"></div><div class="sk w40"></div></div></div>
+      </div>
+      <div class="more">⋯</div>
+      <p class="note">Coquilles ciné+théâtre tôt · blur texte · load more toujours signalé</p>
+    </div>
+  </div>
+
+  <!-- C deep link -->
+  <div class="phone">
+    <p class="lab">C — Deep link partage</p>
+    <header>
+      <div class="logo">CultureConnect</div>
+      <div class="bell">🔔</div>
+      <div class="av">E</div>
+    </header>
+    <div class="fiche">
+      <div class="hero"></div>
+      <div class="fp">
+        <span class="tag">THÉÂTRE</span>
+        <div class="ft">Cabaret iconiq’ de Noël</div>
+        <p class="fm">Théâtre du Pavé · 22/12 · 20:30</p>
+        <div class="soc">
+          <div class="skbtn" aria-label="social loading"></div>
+          <div class="skbtn" aria-label="social loading"></div>
+        </div>
+        <p class="note" style="padding:10px 0 0">Photo+fiche first · social = skeleton jusqu’à data</p>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

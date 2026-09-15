@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import CultureConnectApp from '@/components/CultureConnectApp';
+import DeepLinkFicheFallback from '@/components/DeepLinkFicheFallback';
 import HomeTop3BootFallback from '@/components/HomeTop3BootFallback';
 import { loadHomeFirstPaint, queryAgendaDetail } from '@/lib/agendaQuery';
 import { normalizeDeepLinkId } from '@/lib/deepLink';
@@ -102,23 +103,47 @@ export default function HomePage({
 }) {
   return (
     <Suspense fallback={<HomeTop3BootFallback />}>
-      <HomePageContent searchParams={searchParams} />
+      <HomePageGate searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function HomePageContent({
+async function HomePageGate({
   searchParams,
 }: {
   searchParams: Promise<{ e?: string; id?: string; t?: string }>;
 }) {
-  const boot = await loadHomeFirstPaint();
   const params = await searchParams;
   const initialOpenKey = await openKeyFromSearch(params);
   const shareToken = normalizeShareToken(firstParam(params?.t));
   const openDetail = initialOpenKey
     ? queryAgendaDetail(initialOpenKey, shareToken ? null : 'Toulouse')
     : null;
+
+  if (initialOpenKey) {
+    return (
+      <Suspense fallback={<DeepLinkFicheFallback item={openDetail?.item ?? null} />}>
+        <HomePageApp
+          initialOpenKey={initialOpenKey}
+          openDetail={openDetail}
+        />
+      </Suspense>
+    );
+  }
+
+  return (
+    <HomePageApp initialOpenKey={null} openDetail={null} />
+  );
+}
+
+async function HomePageApp({
+  initialOpenKey,
+  openDetail,
+}: {
+  initialOpenKey: string | null;
+  openDetail: ReturnType<typeof queryAgendaDetail>;
+}) {
+  const boot = await loadHomeFirstPaint();
 
   return (
     <main>

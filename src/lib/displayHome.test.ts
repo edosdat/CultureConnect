@@ -23,6 +23,7 @@ import {
   enfantsRows,
   expoRows,
   leftoverSectionVisible,
+  homePackShellVisible,
   homeSectionsVisible,
   musiqueRows,
   deepLinkBootState,
@@ -192,6 +193,58 @@ describe('homeSectionsVisible', () => {
       enfants: false,
       expo: false,
     });
+  });
+
+  it('cine + theatre shells stay visible while the pack hydrates', () => {
+    assert.equal(
+      homePackShellVisible({
+        sectionAllowed: true,
+        rowCount: 0,
+        cataloguePending: true,
+      }),
+      true,
+    );
+    assert.equal(
+      homePackShellVisible({
+        sectionAllowed: true,
+        rowCount: 0,
+        packTotal: 12,
+      }),
+      true,
+    );
+    assert.equal(
+      homePackShellVisible({
+        sectionAllowed: true,
+        rowCount: 3,
+      }),
+      true,
+    );
+    assert.equal(
+      homePackShellVisible({
+        sectionAllowed: true,
+        rowCount: 0,
+        packTotal: 0,
+        cataloguePending: false,
+      }),
+      false,
+    );
+    assert.equal(
+      homePackShellVisible({
+        sectionAllowed: false,
+        rowCount: 0,
+        cataloguePending: true,
+      }),
+      false,
+    );
+    assert.equal(
+      homePackShellVisible({
+        sectionAllowed: true,
+        rowCount: 0,
+        packTotal: 8,
+        phraseDateClash: true,
+      }),
+      false,
+    );
   });
 
   it('Théâtre only hides cine, musique, enfants and expos', () => {

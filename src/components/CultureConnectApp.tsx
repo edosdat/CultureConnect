@@ -45,6 +45,7 @@ import {
   packSourceItems,
   findDayItemByKey,
   leftoverSectionVisible,
+  homePackShellVisible,
   homeSectionsVisible,
   musiqueRows,
   deepLinkBootState,
@@ -82,6 +83,7 @@ import ListWaitDots, { HomeListWaitSlot } from './ListWaitDots';
 import Top3GuestCta from './Top3GuestCta';
 import HomeSection from './HomeSection';
 import HomeAccroche from './HomeAccroche';
+import PackRailSkeleton from './PackRailSkeleton';
 
 const EventDetail = dynamic(() => import('./EventDetail'), { ssr: false });
 const MonthCalendar = dynamic(() => import('./MonthCalendar'), { ssr: false });
@@ -445,6 +447,12 @@ export default function CultureConnectApp({
   const [enfantsLimit, setEnfantsLimit] = useState(HOME_PACK_WIRE_CAP);
   const [expoLimit, setExpoLimit] = useState(HOME_PACK_WIRE_CAP);
   const [narrowHome, setNarrowHome] = useState(false);
+  const [catalogueReady, setCatalogueReady] = useState(
+    () => initialItems.length > 0 || initialVivantItems.length > 0,
+  );
+  const [packMorePending, setPackMorePending] = useState<
+    Partial<Record<LivingPackId | 'cine', boolean>>
+  >({});
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 639px)');
@@ -523,6 +531,7 @@ export default function CultureConnectApp({
       if (data.nouveauFilmIds?.length) {
         setNouveauFilmIdSet(new Set(data.nouveauFilmIds));
       }
+      setCatalogueReady(true);
     };
     const run = () => {
       void fetch('/api/agenda?window=home')
@@ -574,6 +583,11 @@ export default function CultureConnectApp({
     if (gen !== listFetchGen.current) return;
     if (listSlowTimerRef.current != null) {
       window.clearTimeout(listSlowTimerRef.current);
+    }
+    if (where === 'bottom') {
+      setListSlowWhere('bottom');
+      listSlowTimerRef.current = null;
+      return;
     }
     setListSlowWhere(null);
     listSlowTimerRef.current = window.setTimeout(() => {
@@ -762,6 +776,7 @@ export default function CultureConnectApp({
     if (!append && data.nouveauFilmIds) {
       setNouveauFilmIdSet(new Set(data.nouveauFilmIds));
     }
+    setCatalogueReady(true);
   }
 
   const recoWiped = Boolean(
@@ -1474,14 +1489,20 @@ export default function CultureConnectApp({
   const musiqueCount = allMusiqueRows.length;
   const enfantsCount = allEnfantsRows.length;
   const expoCount = allExpoRows.length;
-  const showCineBlock =
-    sectionVis.cine &&
-    visibleCineRows.length > 0 &&
-    !phraseDateClash;
-  const showTheatreBlock =
-    sectionVis.theatre &&
-    visibleTheatreRows.length > 0 &&
-    !phraseDateClash;
+  const showCineBlock = homePackShellVisible({
+    sectionAllowed: sectionVis.cine,
+    rowCount: visibleCineRows.length,
+    packTotal: cineTotal,
+    cataloguePending: !catalogueReady,
+    phraseDateClash,
+  });
+  const showTheatreBlock = homePackShellVisible({
+    sectionAllowed: sectionVis.theatre,
+    rowCount: visibleTheatreRows.length,
+    packTotal: theatreTotal,
+    cataloguePending: !catalogueReady,
+    phraseDateClash,
+  });
   const showMusiqueBlock =
     sectionVis.musique &&
     visibleMusiqueRows.length > 0 &&
@@ -1648,6 +1669,7 @@ export default function CultureConnectApp({
     if (listItems.length >= total) return;
     if (listLoadingRef.current) return;
     listLoadingRef.current = true;
+    setPackMorePending((prev) => ({ ...prev, cine: true }));
     const gen = ++listFetchGen.current;
     startListSlowWatch(gen, 'bottom');
     const params = buildAgendaParams({
@@ -1675,6 +1697,7 @@ export default function CultureConnectApp({
       .finally(() => {
         if (gen === listFetchGen.current) {
           listLoadingRef.current = false;
+          setPackMorePending((prev) => ({ ...prev, cine: false }));
           setGenreOptionsReadyKey(genreOptionsKeyRef.current);
         }
         stopListSlowWatch(gen);
@@ -1712,6 +1735,7 @@ export default function CultureConnectApp({
       if (packTotal > 0 && have >= packTotal) return;
       if (packMoreLock.current[pack]) return;
       packMoreLock.current[pack] = true;
+      setPackMorePending((prev) => ({ ...prev, [pack]: true }));
       const params = buildAgendaParams({
         scope: timeScope,
         commune: selectedCommune,
@@ -1750,6 +1774,7 @@ export default function CultureConnectApp({
         .catch(() => undefined)
         .finally(() => {
           packMoreLock.current[pack] = false;
+          setPackMorePending((prev) => ({ ...prev, [pack]: false }));
         });
     },
     [
@@ -2391,6 +2416,7 @@ export default function CultureConnectApp({
         ) : null}
 
         {showCineBlock ? (
+          visibleCineRows.length > 0 ? (
           <HomeSection
             id="cine"
             title="Ciné"
@@ -2425,6 +2451,7 @@ export default function CultureConnectApp({
               hasMore={
                 cineLimit < frozenCineRows.length || listItems.length < total
               }
+              loadingMore={Boolean(packMorePending.cine)}
               onNeedMore={() => {
                 setCineExpanded(true);
                 setCineLimit((n) => n + cineFirstPaint(narrowHome));
@@ -2438,6 +2465,9 @@ export default function CultureConnectApp({
               origin={gpsOrigin}
             />
           </HomeSection>
+          ) : (
+            <PackRailSkeleton id="cine" title="Cinéma" showMore={false} />
+          )
         ) : null}
 
         {showTheatreBlock || showMusiqueBlock ? (
@@ -2447,6 +2477,7 @@ export default function CultureConnectApp({
             className="space-y-2.5 sm:space-y-4"
           >
             {showTheatreBlock ? (
+              visibleTheatreRows.length > 0 ? (
               <HomeSection
                 id="theatre"
                 title="Théâtre & spectacle vivant"
@@ -2480,6 +2511,7 @@ export default function CultureConnectApp({
                     (theatreTotal > 0 &&
                       frozenTheatreRows.length < theatreTotal)
                   }
+                  loadingMore={Boolean(packMorePending.theatre)}
                   onNeedMore={() => handleLivingPackMore('theatre')}
                   fallbackVivant={allMusiqueRows.map((row) => row.item)}
                   onAgenda={(item) => trackItem(item, 'agenda_add')}
@@ -2489,6 +2521,9 @@ export default function CultureConnectApp({
                   origin={gpsOrigin}
                 />
               </HomeSection>
+              ) : (
+                <PackRailSkeleton id="theatre" title="Théâtre" />
+              )
             ) : null}
 
             {showMusiqueBlock ? (
@@ -2525,6 +2560,7 @@ export default function CultureConnectApp({
                     (musiqueTotal > 0 &&
                       frozenMusiqueRows.length < musiqueTotal)
                   }
+                  loadingMore={Boolean(packMorePending.musique)}
                   onNeedMore={() => handleLivingPackMore('musique')}
                   fallbackVivant={allTheatreRows.map((row) => row.item)}
                   onAgenda={(item) => trackItem(item, 'agenda_add')}
@@ -2571,6 +2607,7 @@ export default function CultureConnectApp({
                 enfantsLimit < frozenEnfantsRows.length ||
                 (enfantsTotal > 0 && frozenEnfantsRows.length < enfantsTotal)
               }
+              loadingMore={Boolean(packMorePending.enfants)}
               onNeedMore={() => handleLivingPackMore('enfants')}
               fallbackVivant={crossSellPool}
               onAgenda={(item) => trackItem(item, 'agenda_add')}
@@ -2615,6 +2652,7 @@ export default function CultureConnectApp({
                 expoLimit < frozenExpoRows.length ||
                 (expoTotal > 0 && frozenExpoRows.length < expoTotal)
               }
+              loadingMore={Boolean(packMorePending.expo)}
               onNeedMore={() => handleLivingPackMore('expo')}
               fallbackVivant={crossSellPool}
               onAgenda={(item) => trackItem(item, 'agenda_add')}

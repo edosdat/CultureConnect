@@ -25,16 +25,16 @@ export default function SiteNav() {
     <>
       <nav
         aria-label="Navigation principale"
-        className="relative z-30 overflow-visible border-b border-culture-line/80 bg-culture-cream/80 backdrop-blur"
+        className="relative z-30 overflow-visible border-b border-culture-line bg-white"
       >
-        <div className="mx-auto flex max-w-7xl min-w-0 items-center gap-1 px-4 py-3 sm:px-6">
+        <div className="mx-auto flex max-w-7xl min-w-0 items-center gap-2 px-2.5 py-2 sm:gap-3 sm:px-6 sm:py-3">
           <Link
             href="/"
-            className="mr-1.5 shrink-0 font-display text-base text-culture-terracotta hover:text-culture-clay sm:mr-3 sm:text-lg"
+            className="mr-auto shrink-0 font-display text-[13px] font-bold text-culture-terracotta hover:text-culture-clay sm:mr-3 sm:text-lg sm:font-normal"
           >
             CultureConnect
           </Link>
-          <div className="flex min-w-0 flex-1 flex-nowrap gap-1 overflow-x-hidden">
+          <div className="flex min-w-0 shrink-0 flex-nowrap items-center gap-2 sm:flex-1 sm:gap-1">
             {LINKS.map(({ href, label }) => {
               const active = isActive(href);
               return (
@@ -43,10 +43,10 @@ export default function SiteNav() {
                   href={href}
                   aria-current={active ? 'page' : undefined}
                   className={
-                    'shrink-0 rounded-full px-3 py-1.5 text-sm transition ' +
+                    'shrink-0 rounded-full px-1.5 py-1 text-[11px] transition sm:px-3 sm:py-1.5 sm:text-sm ' +
                     (active
                       ? 'bg-culture-terracotta text-white shadow-sm'
-                      : 'text-culture-muted hover:bg-white hover:text-culture-ink')
+                      : 'text-culture-muted hover:bg-culture-cream hover:text-culture-ink')
                   }
                 >
                   {label}

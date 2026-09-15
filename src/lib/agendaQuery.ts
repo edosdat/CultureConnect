@@ -54,6 +54,7 @@ import {
 import {
   detailDayItem,
   HOME_FIRST_PAINT_CINE_CAP,
+  HOME_FIRST_PAINT_THEATRE_CAP,
   HOME_PACK_HERO_COPY_CAP,
   HOME_PACK_WIRE_CAP,
   relatedSeanceDayItem,
@@ -1044,8 +1045,8 @@ export function deferredRecoByScope(): RecoByScope {
 }
 
 /**
- * First HTML: cine first-paint cards + totals + chip meta.
- * Living-arts rails hydrate from GET /api/agenda?window=home (append-only).
+ * First HTML: cine + theatre first-paint cards + totals + chip meta.
+ * Other living-arts rails hydrate from GET /api/agenda?window=home (append-only).
  */
 function assembleHomeFirstPaint(
   items: DayItem[],
@@ -1074,11 +1075,20 @@ function assembleHomeFirstPaint(
   const enfantsAll = items.filter(isEnfantsDayItem);
   const expoAll = items.filter(isExpoDayItem);
   const vivantAll = items.filter(isVivantDayItem);
-  const heroKeys = new Set(
+  const cineHeroKeys = new Set(
     takeUniqueWorkItems(cineAll, 1).map((item) => item.key),
   );
+  const theatreHeroKeys = new Set(
+    takeUniqueWorkItems(theatreAll, 1).map((item) => item.key),
+  );
   const page = takeUniqueWorkItems(cineAll, HOME_FIRST_PAINT_CINE_CAP).map(
-    (item) => slimDayItem(item, { keepFicheCopy: heroKeys.has(item.key) }),
+    (item) => slimDayItem(item, { keepFicheCopy: cineHeroKeys.has(item.key) }),
+  );
+  const theatrePage = takeUniqueWorkItems(
+    theatreAll,
+    HOME_FIRST_PAINT_THEATRE_CAP,
+  ).map((item) =>
+    slimDayItem(item, { keepFicheCopy: theatreHeroKeys.has(item.key) }),
   );
   return {
     scope: input.scope,
@@ -1097,7 +1107,7 @@ function assembleHomeFirstPaint(
     weekday: paris.weekday,
     genresLegend: input.includeListMeta ? data.genresLegend : [],
     nouveauFilmIds: Array.from(nouveauFilmIds(data.programmeWithContext, now)),
-    vivantItems: [],
+    vivantItems: theatrePage,
     vivantTotal: densifiedCardCount(vivantAll),
     cineTotal: densifiedCardCount(cineAll),
     theatreTotal: densifiedCardCount(theatreAll),
@@ -1131,14 +1141,14 @@ function computeHomeFirstPaint(now = new Date()): HomeWindow {
   };
 }
 
-/** Slim first HTML: chips + Top 3 shell + first cine pack. */
+/** Slim first HTML: chips + Top 3 shell + cine + théâtre packs. */
 export async function loadHomeFirstPaint(
   now = new Date(),
 ): Promise<HomeWindow> {
   const day = parisParts(now).iso;
   return unstable_cache(
     async () => computeHomeFirstPaint(new Date()),
-    ['home-first-paint-v2', day],
+    ['home-first-paint-v3', day],
     { revalidate: 300 },
   )();
 }

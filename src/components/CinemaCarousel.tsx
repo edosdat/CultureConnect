@@ -131,6 +131,8 @@ type Props = {
   /** Agenda title leftover — same prune/reset as genre chips. */
   titleQuery?: string;
   hasMore?: boolean;
+  /** Scroll / load more — keep ⋯ or a thumb skeleton, never a silent gap. */
+  loadingMore?: boolean;
   onNeedMore?: () => void;
   onAgenda?: (item: DayItem) => void;
   onIcs?: (item: DayItem) => void;
@@ -297,6 +299,7 @@ export default function CinemaCarousel({
   categories = [],
   titleQuery = '',
   hasMore = false,
+  loadingMore = false,
   onNeedMore,
   onAgenda,
   onIcs,
@@ -854,16 +857,25 @@ export default function CinemaCarousel({
             }
           />
         ))}
-        {hasMore && onNeedMore ? (
+        {hasMore || loadingMore ? (
           <button
             type="button"
             data-pack-more={pack}
             onClick={onNeedMore}
+            disabled={!onNeedMore || (!hasMore && loadingMore)}
+            aria-busy={loadingMore || undefined}
             aria-label={copy.more}
             className="flex aspect-[2/3] w-[7.5rem] shrink-0 flex-col items-center justify-center px-2 text-center text-2xl font-light leading-none tracking-[0.2em] text-culture-muted hover:text-culture-ink sm:w-[8.5rem]"
           >
             {HOME_PACK_MORE_ELLIPSIS}
           </button>
+        ) : null}
+        {loadingMore ? (
+          <div
+            data-pack-more-skeleton={pack}
+            aria-hidden
+            className="aspect-[2/3] w-[7.5rem] shrink-0 animate-pulse rounded-lg bg-culture-sand/80 sm:w-[8.5rem]"
+          />
         ) : null}
       </div>
       {rows.length > 4 && !mobile ? (
