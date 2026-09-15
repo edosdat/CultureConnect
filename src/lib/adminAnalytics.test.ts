@@ -301,6 +301,8 @@ describe('RGPD — export 18 + 0 join vid', () => {
     assert.match(gitignore, /cc-tokens-\*\.csv/);
     assert.match(gitignore, /cc-rsvps-\*\.csv/);
     assert.match(gitignore, /cc-visits-\*\.csv/);
+    assert.match(gitignore, /bench-results\/real30\//);
+    assert.match(gitignore, /bench-internal\/real30\//);
     const conf = readFileSync(
       new URL('../app/confidentialite/page.tsx', import.meta.url),
       'utf8',

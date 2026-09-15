@@ -1,0 +1,834 @@
+{
+  "version": 1,
+  "generatedFor": "CultureConnect — banc d'essai reco",
+  "note": "Profils synthétiques calibrés sur la distribution réelle des moods du catalogue (items à partir du 2026-09-20). Les pct sont des parts en pourcentage par bucket ; weight est proportionnel. À charger tel quel dans scripts/benchProfiles.ts.",
+  "moodStockReference": {
+    "comment": "Nombre d'items FUTURS portant ce mood, par forme. Sert à interpréter les résultats du banc.",
+    "rigolo": {
+      "cine": 99,
+      "theatre": 405,
+      "concert": 16,
+      "festival": 3,
+      "enfants": 13
+    },
+    "intense": {
+      "cine": 239,
+      "theatre": 79,
+      "concert": 61,
+      "festival": 0,
+      "enfants": 0
+    },
+    "festif": {
+      "cine": 78,
+      "theatre": 90,
+      "concert": 72,
+      "festival": 44,
+      "enfants": 8
+    },
+    "tendre": {
+      "cine": 39,
+      "theatre": 131,
+      "concert": 18,
+      "festival": 1,
+      "enfants": 76
+    },
+    "poetique": {
+      "cine": 2,
+      "theatre": 89,
+      "concert": 22,
+      "festival": 1,
+      "enfants": 15
+    },
+    "intimiste": {
+      "cine": 20,
+      "theatre": 72,
+      "concert": 17,
+      "festival": 1,
+      "enfants": 13
+    },
+    "dansant": {
+      "cine": 1,
+      "theatre": 15,
+      "concert": 50,
+      "festival": 17,
+      "enfants": 0
+    },
+    "critique": {
+      "cine": 17,
+      "theatre": 43,
+      "concert": 2,
+      "festival": 2,
+      "enfants": 0
+    },
+    "cerveau": {
+      "cine": 10,
+      "theatre": 34,
+      "concert": 3,
+      "festival": 13,
+      "enfants": 1
+    },
+    "sombre": {
+      "cine": 10,
+      "theatre": 25,
+      "concert": 15,
+      "festival": 0,
+      "enfants": 3
+    },
+    "epique": {
+      "cine": 19,
+      "theatre": 17,
+      "concert": 12,
+      "festival": 0,
+      "enfants": 2
+    },
+    "absurde": {
+      "cine": 5,
+      "theatre": 42,
+      "concert": 1,
+      "festival": 2,
+      "enfants": 0
+    },
+    "leger": {
+      "cine": 0,
+      "theatre": 31,
+      "concert": 14,
+      "festival": 0,
+      "enfants": 1
+    },
+    "contemplatif": {
+      "cine": 5,
+      "theatre": 20,
+      "concert": 10,
+      "festival": 0,
+      "enfants": 10
+    },
+    "angoissant": {
+      "cine": 35,
+      "theatre": 6,
+      "concert": 3,
+      "festival": 0,
+      "enfants": 0
+    },
+    "brutal": {
+      "cine": 18,
+      "theatre": 12,
+      "concert": 13,
+      "festival": 0,
+      "enfants": 0
+    },
+    "sortie": {
+      "cine": 12,
+      "theatre": 13,
+      "concert": 6,
+      "festival": 0,
+      "enfants": 1
+    }
+  },
+  "profiles": [
+    {
+      "id": "A1",
+      "label": "Profil vide",
+      "note": "Cold start total. Doit TOUJOURS renvoyer une liste (repli popularité/rareté), jamais vide.",
+      "signalCount": 0,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {},
+          "genres": {},
+          "themes": {},
+          "communes": {}
+        }
+      }
+    },
+    {
+      "id": "A2",
+      "label": "Un seul signal",
+      "note": "Profil naissant. Teste le seuil d'activation du scoring.",
+      "signalCount": 1,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "rigolo": {
+              "weight": 60.0,
+              "pct": 100
+            }
+          },
+          "genres": {},
+          "themes": {},
+          "communes": {}
+        }
+      }
+    },
+    {
+      "id": "A3",
+      "label": "Stock nul — cerveau",
+      "note": "cerveau : 10 ciné / 34 théâtre / 3 concert. Passerelle faible. Doit basculer en repli plutôt que d'inventer.",
+      "signalCount": 8,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "cerveau": {
+              "weight": 60.0,
+              "pct": 100
+            }
+          },
+          "genres": {},
+          "themes": {},
+          "communes": {}
+        }
+      }
+    },
+    {
+      "id": "A4",
+      "label": "Stock nul — angoissant",
+      "note": "angoissant : 35 ciné, 6 théâtre, 3 concert. Aucune passerelle vivant viable. Ne doit RIEN sortir de vivant forcé.",
+      "signalCount": 9,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "angoissant": {
+              "weight": 60.0,
+              "pct": 100
+            }
+          },
+          "genres": {},
+          "themes": {},
+          "communes": {}
+        }
+      }
+    },
+    {
+      "id": "A5",
+      "label": "Profil plat",
+      "note": "Six ambiances à poids égal. Teste le comportement quand rien ne domine.",
+      "signalCount": 20,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "rigolo": {
+              "weight": 10.2,
+              "pct": 17
+            },
+            "tendre": {
+              "weight": 10.2,
+              "pct": 17
+            },
+            "intense": {
+              "weight": 10.2,
+              "pct": 17
+            },
+            "festif": {
+              "weight": 10.2,
+              "pct": 17
+            },
+            "intimiste": {
+              "weight": 9.6,
+              "pct": 16
+            },
+            "poetique": {
+              "weight": 9.6,
+              "pct": 16
+            }
+          },
+          "genres": {},
+          "themes": {},
+          "communes": {}
+        }
+      }
+    },
+    {
+      "id": "B1",
+      "label": "Rigolo pur",
+      "note": "Ambiance la plus dense : 405 théâtre, 99 ciné. La meilleure passerelle ciné→vivant.",
+      "signalCount": 14,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "rigolo": {
+              "weight": 60.0,
+              "pct": 100
+            }
+          },
+          "genres": {},
+          "themes": {},
+          "communes": {}
+        }
+      }
+    },
+    {
+      "id": "B2",
+      "label": "Intense pur",
+      "note": "239 ciné, 79 théâtre, 61 concert. Passerelle ciné→concert.",
+      "signalCount": 13,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "intense": {
+              "weight": 60.0,
+              "pct": 100
+            }
+          },
+          "genres": {},
+          "themes": {},
+          "communes": {}
+        }
+      }
+    },
+    {
+      "id": "B3",
+      "label": "Festif pur",
+      "note": "Bien réparti : 78 ciné, 90 théâtre, 72 concert, 44 festival. Doit produire du mix naturel.",
+      "signalCount": 12,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "festif": {
+              "weight": 60.0,
+              "pct": 100
+            }
+          },
+          "genres": {},
+          "themes": {},
+          "communes": {}
+        }
+      }
+    },
+    {
+      "id": "B4",
+      "label": "Tendre pur",
+      "note": "131 théâtre, 76 enfants, 39 ciné. Teste la remontée du jeune public.",
+      "signalCount": 11,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "tendre": {
+              "weight": 60.0,
+              "pct": 100
+            }
+          },
+          "genres": {},
+          "themes": {},
+          "communes": {}
+        }
+      }
+    },
+    {
+      "id": "B5",
+      "label": "Intimiste pur",
+      "note": "72 théâtre, 20 ciné. Ambiance à dominante vivant — sens inverse de la passerelle habituelle.",
+      "signalCount": 10,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "intimiste": {
+              "weight": 60.0,
+              "pct": 100
+            }
+          },
+          "genres": {},
+          "themes": {},
+          "communes": {}
+        }
+      }
+    },
+    {
+      "id": "B6",
+      "label": "Poétique pur",
+      "note": "89 théâtre, 22 concert, 2 ciné SEULEMENT. Un cinéphile ne peut pas l'acquérir. Teste l'asymétrie.",
+      "signalCount": 10,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "poetique": {
+              "weight": 60.0,
+              "pct": 100
+            }
+          },
+          "genres": {},
+          "themes": {},
+          "communes": {}
+        }
+      }
+    },
+    {
+      "id": "B7",
+      "label": "Dansant pur",
+      "note": "50 concert, 17 festival, 1 ciné. Quasi exclusivement concert.",
+      "signalCount": 9,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "dansant": {
+              "weight": 60.0,
+              "pct": 100
+            }
+          },
+          "genres": {},
+          "themes": {},
+          "communes": {}
+        }
+      }
+    },
+    {
+      "id": "C1",
+      "label": "Comédie + tendresse",
+      "note": "Profil grand public le plus courant. Doit produire du théâtre comique et du jeune public.",
+      "signalCount": 22,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "rigolo": {
+              "weight": 42.0,
+              "pct": 70
+            },
+            "tendre": {
+              "weight": 18.0,
+              "pct": 30
+            }
+          },
+          "genres": {
+            "comedie": {
+              "weight": 36.0,
+              "pct": 60
+            },
+            "humour": {
+              "weight": 24.0,
+              "pct": 40
+            }
+          },
+          "themes": {},
+          "communes": {}
+        }
+      }
+    },
+    {
+      "id": "C2",
+      "label": "Sorties festives",
+      "note": "Profil fêtard. Concert et festival attendus.",
+      "signalCount": 18,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "festif": {
+              "weight": 30.0,
+              "pct": 50
+            },
+            "dansant": {
+              "weight": 18.0,
+              "pct": 30
+            },
+            "sortie": {
+              "weight": 12.0,
+              "pct": 20
+            }
+          },
+          "genres": {
+            "spectacle": {
+              "weight": 33.0,
+              "pct": 55
+            },
+            "standup": {
+              "weight": 27.0,
+              "pct": 45
+            }
+          },
+          "themes": {},
+          "communes": {}
+        }
+      }
+    },
+    {
+      "id": "C3",
+      "label": "Exigeant contemplatif",
+      "note": "Profil « intello ». Attention : cerveau a peu de stock, poetique et intimiste en ont.",
+      "signalCount": 25,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "intimiste": {
+              "weight": 24.0,
+              "pct": 40
+            },
+            "poetique": {
+              "weight": 21.0,
+              "pct": 35
+            },
+            "contemplatif": {
+              "weight": 15.0,
+              "pct": 25
+            }
+          },
+          "genres": {
+            "contemporain": {
+              "weight": 42.0,
+              "pct": 70
+            },
+            "drame": {
+              "weight": 18.0,
+              "pct": 30
+            }
+          },
+          "themes": {},
+          "communes": {}
+        }
+      }
+    },
+    {
+      "id": "C4",
+      "label": "Cinéphile pur",
+      "note": "Ambiances à dominante ciné. TEST CENTRAL : arrive-t-on à lui proposer du vivant ?",
+      "signalCount": 30,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "intense": {
+              "weight": 27.0,
+              "pct": 45
+            },
+            "angoissant": {
+              "weight": 18.0,
+              "pct": 30
+            },
+            "epique": {
+              "weight": 15.0,
+              "pct": 25
+            }
+          },
+          "genres": {
+            "action": {
+              "weight": 30.0,
+              "pct": 50
+            },
+            "fiction": {
+              "weight": 18.0,
+              "pct": 30
+            },
+            "drame": {
+              "weight": 12.0,
+              "pct": 20
+            }
+          },
+          "themes": {},
+          "communes": {}
+        }
+      }
+    },
+    {
+      "id": "C5",
+      "label": "Famille",
+      "note": "Doit remonter enfants et festival.",
+      "signalCount": 16,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "tendre": {
+              "weight": 33.0,
+              "pct": 55
+            },
+            "rigolo": {
+              "weight": 27.0,
+              "pct": 45
+            }
+          },
+          "genres": {},
+          "themes": {
+            "famille": {
+              "weight": 36.0,
+              "pct": 60
+            },
+            "jeunesse": {
+              "weight": 24.0,
+              "pct": 40
+            }
+          },
+          "communes": {}
+        }
+      }
+    },
+    {
+      "id": "C6",
+      "label": "Théâtre contemporain",
+      "note": "Profil abonné de salle. Critique + absurde sont à dominante théâtre.",
+      "signalCount": 27,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "critique": {
+              "weight": 24.0,
+              "pct": 40
+            },
+            "absurde": {
+              "weight": 21.0,
+              "pct": 35
+            },
+            "intimiste": {
+              "weight": 15.0,
+              "pct": 25
+            }
+          },
+          "genres": {
+            "theatre": {
+              "weight": 30.0,
+              "pct": 50
+            },
+            "contemporain": {
+              "weight": 30.0,
+              "pct": 50
+            }
+          },
+          "themes": {},
+          "communes": {}
+        }
+      }
+    },
+    {
+      "id": "C7",
+      "label": "Musique sombre",
+      "note": "sombre : 15 concert, 25 théâtre, 10 ciné. Stock réduit, teste la dégradation douce.",
+      "signalCount": 15,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "sombre": {
+              "weight": 33.0,
+              "pct": 55
+            },
+            "intense": {
+              "weight": 27.0,
+              "pct": 45
+            }
+          },
+          "genres": {
+            "rock_metal_punk": {
+              "weight": 36.0,
+              "pct": 60
+            },
+            "electro_techno": {
+              "weight": 24.0,
+              "pct": 40
+            }
+          },
+          "themes": {},
+          "communes": {}
+        }
+      }
+    },
+    {
+      "id": "C8",
+      "label": "Éclectique large",
+      "note": "Cinq ambiances contrastées. Teste la calibration : la liste doit refléter les parts minoritaires.",
+      "signalCount": 35,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "rigolo": {
+              "weight": 21.0,
+              "pct": 35
+            },
+            "intense": {
+              "weight": 15.0,
+              "pct": 25
+            },
+            "festif": {
+              "weight": 12.0,
+              "pct": 20
+            },
+            "intimiste": {
+              "weight": 7.2,
+              "pct": 12
+            },
+            "poetique": {
+              "weight": 4.8,
+              "pct": 8
+            }
+          },
+          "genres": {},
+          "themes": {},
+          "communes": {}
+        }
+      }
+    },
+    {
+      "id": "D1",
+      "label": "Toulouse centre",
+      "note": "Teste le filtre de faisabilité par commune.",
+      "signalCount": 20,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "rigolo": {
+              "weight": 36.0,
+              "pct": 60
+            },
+            "festif": {
+              "weight": 24.0,
+              "pct": 40
+            }
+          },
+          "genres": {},
+          "themes": {},
+          "communes": {
+            "Toulouse": 100
+          }
+        }
+      }
+    },
+    {
+      "id": "D2",
+      "label": "Périphérie ouest",
+      "note": "Colomiers/Blagnac : beaucoup de ciné, peu de vivant. Teste l'arbitrage proximité vs pertinence.",
+      "signalCount": 18,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "intense": {
+              "weight": 30.0,
+              "pct": 50
+            },
+            "rigolo": {
+              "weight": 30.0,
+              "pct": 50
+            }
+          },
+          "genres": {},
+          "themes": {},
+          "communes": {
+            "Colomiers": 55,
+            "Blagnac": 45
+          }
+        }
+      }
+    },
+    {
+      "id": "D3",
+      "label": "Multi-communes",
+      "note": "Profil mobile, aucune contrainte géographique forte.",
+      "signalCount": 24,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "festif": {
+              "weight": 24.0,
+              "pct": 40
+            },
+            "dansant": {
+              "weight": 21.0,
+              "pct": 35
+            },
+            "intense": {
+              "weight": 15.0,
+              "pct": 25
+            }
+          },
+          "genres": {},
+          "themes": {},
+          "communes": {
+            "Toulouse": 40,
+            "Ramonville-Saint-Agne": 30,
+            "Tournefeuille": 30
+          }
+        }
+      }
+    },
+    {
+      "id": "D4",
+      "label": "Texte libre uniquement",
+      "note": "Profil issu de la saisie de goûts, sans comportement. Teste le chemin tastesText.",
+      "signalCount": 2,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {
+            "rigolo": {
+              "weight": 30.0,
+              "pct": 50
+            },
+            "absurde": {
+              "weight": 30.0,
+              "pct": 50
+            }
+          },
+          "genres": {},
+          "themes": {},
+          "communes": {}
+        },
+        "tastesText": "j'aime les trucs drôles et absurdes, un peu décalés"
+      }
+    },
+    {
+      "id": "D5",
+      "label": "Genres sans ambiance",
+      "note": "Aucun mood, uniquement des genres. Teste le cloisonnement genre par forme.",
+      "signalCount": 12,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {},
+          "genres": {
+            "comedie": {
+              "weight": 24.0,
+              "pct": 40
+            },
+            "standup": {
+              "weight": 21.0,
+              "pct": 35
+            },
+            "drame": {
+              "weight": 15.0,
+              "pct": 25
+            }
+          },
+          "themes": {},
+          "communes": {}
+        }
+      }
+    }
+  ]
+}

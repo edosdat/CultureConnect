@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "generatedFor": "CultureConnect — banc d'essai reco (fixture 2 profils)",
+  "note": "Tiny --profiles smoke fixture. Same shape as benchProfiles.eloi.json.",
+  "profiles": [
+    {
+      "id": "F1",
+      "label": "Vide",
+      "note": "Cold start. Doit renvoyer une liste (repli), jamais vide.",
+      "family": "A",
+      "signalCount": 0,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {},
+          "moods": {},
+          "genres": {},
+          "themes": {},
+          "communes": {}
+        }
+      }
+    },
+    {
+      "id": "F2",
+      "label": "Ciné intense",
+      "note": "Un goût intense — smoke du chargeur externe.",
+      "family": "C",
+      "signalCount": 4,
+      "state": {
+        "signalsRecent": [],
+        "profile": {
+          "cats": {
+            "cinema": { "weight": 80, "pct": 100 }
+          },
+          "moods": {
+            "intense": { "weight": 70, "pct": 100 }
+          },
+          "genres": {},
+          "themes": {},
+          "communes": {}
+        }
+      }
+    }
+  ]
+}

@@ -24,5 +24,9 @@ cc-tokens-*.csv
 cc-rsvps-*.csv
 cc-visits-*.csv
 
+# hashed real-user bench snapshots — interne only, never commit
+bench-results/real30/
+bench-internal/real30/
+
 # Vercel CLI (projectId/orgId — do not publish)
 .vercel/
