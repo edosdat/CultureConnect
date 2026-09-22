@@ -199,6 +199,184 @@ function sameVisibleWork(a: DayItem, b: DayItem): boolean {
   return false;
 }
 
+function lieuIdOf(item: DayItem): string {
+  const fromLieu = (item.lieu?.lieu_id || '').trim();
+  if (fromLieu) return fromLieu;
+  if (item.kind === 'programme') return (item.programme.lieu_id || '').trim();
+  return (item.evenement.lieu_id || '').trim();
+}
+
+/** HH:MM. Empty when the row has no clock time — those slots are not twins. */
+function horaireHHMM(raw: string): string {
+  const h = raw.trim().toLowerCase().replace('h', ':');
+  const m = h.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return '';
+  return `${m[1]!.padStart(2, '0')}:${m[2]}`;
+}
+
+function lieuHoraireSlot(item: DayItem): string {
+  const lieuId = lieuIdOf(item);
+  const day = seanceDateIso(item);
+  const heure = horaireHHMM(heureKey(item));
+  if (!lieuId || !day || !heure) return '';
+  return `${lieuId}|${day}|${heure}`;
+}
+
+function sceneSalleNorm(item: DayItem): string {
+  if (item.kind !== 'programme') return '';
+  return (item.programme.scene_salle || '').trim().toLowerCase();
+}
+
+/** Parallel rooms stay. A blank TMP salle still matches the official room. */
+function sallesCompatible(a: DayItem, b: DayItem): boolean {
+  const sa = sceneSalleNorm(a);
+  const sb = sceneSalleNorm(b);
+  if (!sa || !sb) return true;
+  return sa === sb;
+}
+
+function foldMathAlpha(raw: string): string {
+  let out = '';
+  for (const ch of raw) {
+    const cp = ch.codePointAt(0)!;
+    const ascii = mathAlphaToAscii(cp);
+    out += ascii ?? ch;
+  }
+  return out;
+}
+
+/** Sans-serif bold and the other contiguous math A–Z / a–z blocks. */
+function mathAlphaToAscii(cp: number): string | null {
+  const blocks: Array<[number, number]> = [
+    [0x1d400, 0x1d41a],
+    [0x1d434, 0x1d44e],
+    [0x1d468, 0x1d482],
+    [0x1d4d0, 0x1d4ea],
+    [0x1d56c, 0x1d586],
+    [0x1d5a0, 0x1d5ba],
+    [0x1d5d4, 0x1d5ee],
+    [0x1d608, 0x1d622],
+    [0x1d63c, 0x1d656],
+    [0x1d670, 0x1d68a],
+  ];
+  for (const [upper, lower] of blocks) {
+    if (cp >= upper && cp < upper + 26) {
+      return String.fromCharCode(65 + (cp - upper));
+    }
+    if (cp >= lower && cp < lower + 26) {
+      return String.fromCharCode(97 + (cp - lower));
+    }
+  }
+  return null;
+}
+
+/**
+ * Living-arts slot stem for TMP/official twins.
+ * Strips punctuation and a leading « complet » so the official title still matches.
+ */
+export function livingSlotStem(raw: string): string {
+  return foldMathAlpha(raw)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[''`´‘’]/g, '')
+    .replace(/[-–—:.,…·|+/#!?*()[\]«»“”"]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^(complet|annule|reporte|sold out)\b\s*/, '')
+    .trim();
+}
+
+function significantTokens(stem: string): string[] {
+  return stem.split(' ').filter((w) => w.length > 2);
+}
+
+function tokensClose(a: string, b: string): boolean {
+  if (a === b) return true;
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  if (short.length < 4) return false;
+  return long.startsWith(short) && long.length - short.length <= 2;
+}
+
+/** Same show spelled two ways. Distinct titles (two plays, two stages) stay apart. */
+export function slotTitlesCompatible(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  if (short.length >= 12 && long.startsWith(`${short} `)) return true;
+  const st = significantTokens(short);
+  const lt = significantTokens(long);
+  if (st.length < 2 || short.length < 12) return false;
+  const used = new Set<number>();
+  for (const tok of st) {
+    const i = lt.findIndex((other, idx) => !used.has(idx) && tokensClose(tok, other));
+    if (i < 0) return false;
+    used.add(i);
+  }
+  return true;
+}
+
+function tmpShadow(item: DayItem): boolean {
+  const pid = item.kind === 'programme' ? item.programme.programme_id || '' : '';
+  return /tmp/i.test(pid) || /tmp/i.test(eventIdOf(item));
+}
+
+/** Official row, then a photo, then the longer title. */
+function preferKeptTwin(candidate: DayItem, current: DayItem): boolean {
+  const candTmp = tmpShadow(candidate) ? 1 : 0;
+  const curTmp = tmpShadow(current) ? 1 : 0;
+  if (candTmp !== curTmp) return candTmp < curTmp;
+  const candImg = hasImage(candidate) ? 1 : 0;
+  const curImg = hasImage(current) ? 1 : 0;
+  if (candImg !== curImg) return candImg > curImg;
+  return itemTitleRaw(candidate).trim().length > itemTitleRaw(current).trim().length;
+}
+
+/**
+ * Display lists only. Non-cinema twins that share lieu + date + heure collapse
+ * to one row (TMP title vs official title). Cinema (slot cine or film_id) stays,
+ * including two screens at the same clock time. Different works at that slot stay.
+ */
+export function dedupeNonCinemaSameLieuHoraire<T extends DayItem>(
+  items: readonly T[],
+): T[] {
+  const result: T[] = [];
+  const clustersBySlot = new Map<string, { rep: T; index: number }[]>();
+
+  for (const item of items) {
+    if (looksCinema(item)) {
+      result.push(item);
+      continue;
+    }
+    const slot = lieuHoraireSlot(item);
+    const stem = livingSlotStem(itemTitleRaw(item));
+    if (!slot || !stem) {
+      result.push(item);
+      continue;
+    }
+    let clusters = clustersBySlot.get(slot);
+    if (!clusters) {
+      clusters = [];
+      clustersBySlot.set(slot, clusters);
+    }
+    const hit = clusters.find(
+      (c) =>
+        sallesCompatible(c.rep, item) &&
+        slotTitlesCompatible(livingSlotStem(itemTitleRaw(c.rep)), stem),
+    );
+    if (!hit) {
+      result.push(item);
+      clusters.push({ rep: item, index: result.length - 1 });
+      continue;
+    }
+    if (preferKeptTwin(item, hit.rep)) {
+      result[hit.index] = item;
+      hit.rep = item;
+    }
+  }
+  return result;
+}
+
 /**
  * Unique visible works in the first N cards vs the first N raw rows.
  * First scroll must be 100% unique after densify.
@@ -226,12 +404,13 @@ export function densify(
   items: DayItem[],
   opts?: { origin?: GeoPos | null },
 ): DenseRow[] {
+  const source = dedupeNonCinemaSameLieuHoraire(items);
   const groups = new Map<string, DayItem[]>();
   const order: string[] = [];
   const filmFlags = new Map<string, boolean>();
   const origin = opts?.origin ?? null;
 
-  for (const item of items) {
+  for (const item of source) {
     const groupKey = densifyGroupKey(item);
     const isFilm = groupKey.startsWith('film:');
     if (!groups.has(groupKey)) {
@@ -313,7 +492,7 @@ export function takeUniqueWorkItems(items: readonly DayItem[], cap: number): Day
   if (cap <= 0) return [];
   const seen = new Set<string>();
   const out: DayItem[] = [];
-  for (const item of items) {
+  for (const item of dedupeNonCinemaSameLieuHoraire(items)) {
     const key = densifyGroupKey(item);
     if (seen.has(key)) continue;
     seen.add(key);

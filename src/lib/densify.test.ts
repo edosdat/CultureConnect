@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   cinemaStemsCompatible,
   cinemaTitleStem,
+  dedupeNonCinemaSameLieuHoraire,
   densify,
   densifyGroupKey,
   densifiedCardCount,
@@ -73,6 +74,7 @@ function item(opts: {
   eventId?: string;
   lieuId?: string;
   form?: string;
+  sceneSalle?: string;
 }): DayItem {
   const day = opts.day ?? '2026-09-07';
   const heure = opts.heure ?? '20:00';
@@ -91,6 +93,7 @@ function item(opts: {
       lieu_id: lieuId,
       film_id: opts.filmId,
       form: opts.form,
+      scene_salle: opts.sceneSalle ?? '',
     }),
     evenement: ev({
       event_id: eventId,
@@ -274,6 +277,126 @@ describe('densify visible-card identity', () => {
     );
     assert.equal(rows.length, 1);
     assert.equal(rows[0]!.seances.length, 7);
+  });
+
+  it('collapses theatre twins that share lieu + heure', () => {
+    const rows = densify([
+      item({
+        key: 'TMPP0485',
+        title: 'COMPLET – TENTATIVE D’ÉPUISEMENT #1',
+        cat: 'theatre',
+        eventId: 'TMP0139',
+        lieuId: 'L042',
+        heure: '21:00',
+        form: 'theatre',
+      }),
+      item({
+        key: 'P1509',
+        title: 'Tentative d’épuisement #1',
+        cat: 'theatre',
+        eventId: 'E395',
+        lieuId: 'L042',
+        heure: '21:00',
+        form: 'theatre',
+      }),
+    ]);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0]!.seances.length, 1);
+    assert.equal(rows[0]!.item.key, 'P1509');
+  });
+
+  it('keeps two cine séances at the same lieu + heure', () => {
+    const sameFilm = densify([
+      item({
+        key: 'p-fjord-a',
+        title: 'Fjord',
+        cat: 'cinema',
+        filmId: 'F0005',
+        lieuId: 'L125',
+        heure: '17:05',
+        form: 'cine',
+      }),
+      item({
+        key: 'p-fjord-b',
+        title: 'Fjord',
+        cat: 'cinema',
+        filmId: 'F0005',
+        lieuId: 'L125',
+        heure: '17:05',
+        form: 'cine',
+      }),
+    ]);
+    assert.equal(sameFilm.length, 1);
+    assert.equal(sameFilm[0]!.seances.length, 2);
+
+    const twoFilms = densify([
+      item({
+        key: 'p-fjord',
+        title: 'Fjord',
+        cat: 'cinema',
+        filmId: 'F0005',
+        lieuId: 'L125',
+        heure: '13:30',
+        form: 'cine',
+      }),
+      item({
+        key: 'p-condor',
+        title: 'La Fille Condor',
+        cat: 'cinema',
+        filmId: 'F0056',
+        lieuId: 'L125',
+        heure: '13:30',
+        form: 'cine',
+      }),
+    ]);
+    assert.equal(twoFilms.length, 2);
+  });
+
+  it('fiche séance list drops non-cinema lieu+heure twins and keeps cine', () => {
+    const theatre = dedupeNonCinemaSameLieuHoraire([
+      item({
+        key: 'p-bulle-tmp',
+        title: 'La Bulle',
+        cat: 'theatre',
+        eventId: 'TMP1',
+        lieuId: 'L1',
+        heure: '20:00',
+        form: 'theatre',
+      }),
+      item({
+        key: 'p-bulle-off',
+        title: 'La Bulle',
+        cat: 'theatre',
+        eventId: 'E351',
+        lieuId: 'L1',
+        heure: '20:00',
+        form: 'theatre',
+      }),
+    ]);
+    assert.equal(theatre.length, 1);
+    assert.equal(theatre[0]!.key, 'p-bulle-off');
+
+    const cine = dedupeNonCinemaSameLieuHoraire([
+      item({
+        key: 'p-cine-a',
+        title: 'Fjord',
+        cat: 'cinema',
+        filmId: 'F0005',
+        lieuId: 'L125',
+        heure: '13:30',
+        form: 'cine',
+      }),
+      item({
+        key: 'p-cine-b',
+        title: 'La Fille Condor',
+        cat: 'cinema',
+        filmId: 'F0056',
+        lieuId: 'L125',
+        heure: '13:30',
+        form: 'cine',
+      }),
+    ]);
+    assert.equal(cine.length, 2);
   });
 
   it('keeps two living-arts works with different titles apart', () => {
