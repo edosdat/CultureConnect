@@ -1542,4 +1542,21 @@ describe('rowDisplayTitle', () => {
     const stub = item({ key: 'c-only', cat: 'cinema', title: 'C…' });
     assert.equal(rowDisplayTitle({ item: stub, seances: [stub] }), 'C…');
   });
+
+  it('prefers the official title over a longer COMPLET twin', () => {
+    const official = item({
+      key: 'E395',
+      cat: 'theatre',
+      title: 'Tentative d’épuisement #1',
+    });
+    const complet = item({
+      key: 'TMPP0485',
+      cat: 'theatre',
+      title: 'COMPLET – TENTATIVE D’ÉPUISEMENT #1',
+    });
+    assert.equal(
+      rowDisplayTitle({ item: complet, seances: [complet, official] }),
+      'Tentative d’épuisement #1',
+    );
+  });
 });
