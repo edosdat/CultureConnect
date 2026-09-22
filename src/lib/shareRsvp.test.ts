@@ -13,6 +13,7 @@ import {
   motherStatsFromRsvps,
   parseRsvpRecord,
   visibleMotherStats,
+  viewerMotherKind,
   RSVP_LOGIN_ERROR,
   rsvpsForEventStats,
   viewerInCircle,
@@ -21,6 +22,9 @@ import {
 import {
   createShareToken,
   emailHash,
+  eventRsvpStats,
+  listShareTokensByRsvpEmail,
+  listShareTokensBySharerEmail,
   listTokenRsvps,
   memoryAllRsvps,
   memoryRsvpCount,
@@ -28,9 +32,10 @@ import {
   recordShareVisit,
   resetShareStoreForTests,
   seedSharerEnvie,
+  sharerActivityItem,
   tokenSocialPayload,
   toggleShareRsvp,
-  eventRsvpStats,
+  toggleViewerEventRsvp,
 } from './shareStore';
 import { assertNoVidAccountJoin } from './guestSignals';
 
@@ -491,6 +496,199 @@ describe('connected share auto-Envie — AE1–AE8', () => {
   });
 });
 
+describe('mother fiche Envie / J’y vais — no ?t=', () => {
+  beforeEach(() => {
+    resetShareStoreForTests();
+  });
+
+  it('viewer status is exclusive; going wins across that account', () => {
+    assert.equal(viewerMotherKind([]), null);
+    assert.equal(viewerMotherKind([{ kind: 'envie' }]), 'envie');
+    assert.equal(viewerMotherKind([{ kind: 'going' }]), 'going');
+    assert.equal(
+      viewerMotherKind([{ kind: 'envie' }, { kind: 'going' }]),
+      'going',
+    );
+  });
+
+  it('Envie and J’y vais are different writes; second tap clears', async () => {
+    const envie = await toggleViewerEventRsvp({
+      email: 'lea@example.com',
+      firstName: 'Léa Martin',
+      itemKey: 'e:E9001',
+      workId: 'e:E9001',
+      kind: 'envie',
+      origin: 'https://cc.test',
+    });
+    assert.equal(envie.ok, true);
+    if (!envie.ok) return;
+    assert.equal(envie.kind, 'envie');
+    assert.equal(envie.envie, 1);
+    assert.equal(envie.going, 0);
+
+    const going = await toggleViewerEventRsvp({
+      email: 'lea@example.com',
+      firstName: 'Léa Martin',
+      itemKey: 'e:E9001',
+      workId: 'e:E9001',
+      kind: 'going',
+      origin: 'https://cc.test',
+    });
+    assert.equal(going.ok, true);
+    if (!going.ok) return;
+    assert.equal(going.kind, 'going');
+    assert.equal(going.envie, 0);
+    assert.equal(going.going, 1);
+
+    const off = await toggleViewerEventRsvp({
+      email: 'lea@example.com',
+      firstName: 'Léa Martin',
+      itemKey: 'e:E9001',
+      workId: 'e:E9001',
+      kind: 'going',
+      origin: 'https://cc.test',
+    });
+    assert.equal(off.ok, true);
+    if (!off.ok) return;
+    assert.equal(off.kind, null);
+    assert.equal(off.envie, 0);
+    assert.equal(off.going, 0);
+  });
+
+  it('anchor token is not a share: no sharer index, no names on mother sand', async () => {
+    const wrote = await toggleViewerEventRsvp({
+      email: 'lea@example.com',
+      firstName: 'Léa Martin',
+      itemKey: 'p:P9001',
+      workId: 'f:F9001',
+      kind: 'envie',
+      origin: 'https://cc.test',
+    });
+    assert.equal(wrote.ok, true);
+    const sharer = await listShareTokensBySharerEmail('lea@example.com');
+    assert.equal(sharer.length, 0);
+    const rsvpTokens = await listShareTokensByRsvpEmail('lea@example.com');
+    assert.equal(rsvpTokens.length, 1);
+    assert.equal(rsvpTokens[0]?.sharerEmail, null);
+    const sand = await sharerActivityItem({
+      email: 'lea@example.com',
+      itemKey: 'p:P9001',
+      matchesToken: () => true,
+    });
+    assert.equal(sand.envieNames, undefined);
+    assert.equal(sand.goingNames, undefined);
+
+    const sibling = await eventRsvpStats({ itemKey: 'p:P9002', workId: 'f:F9001' });
+    assert.equal(sibling.envie, 1);
+    assert.equal(sibling.going, 0);
+
+    for (const row of memoryAllRsvps()) {
+      assert.equal('email' in row, false);
+      assert.equal('vid' in row, false);
+      assert.equal(JSON.stringify(row).includes('@'), false);
+      assert.equal(row.firstName, 'Léa');
+    }
+  });
+
+  it('does not join someone else’s daughter circle', async () => {
+    const created = await createShareToken({
+      itemKey: 'e:E9002',
+      sharerEmail: 'alice@example.com',
+      firstName: 'Alice Martin',
+      origin: 'https://cc.test',
+    });
+    assert.ok(created);
+    const before = await tokenSocialPayload({
+      token: created.token,
+      viewerEmailHash: emailHash('alice@example.com'),
+    });
+    assert.equal(before?.inCircle, true);
+
+    const lea = await toggleViewerEventRsvp({
+      email: 'lea@example.com',
+      firstName: 'Léa Martin',
+      itemKey: 'e:E9002',
+      workId: 'e:E9002',
+      kind: 'going',
+      origin: 'https://cc.test',
+    });
+    assert.equal(lea.ok, true);
+    if (!lea.ok) return;
+    assert.equal(lea.kind, 'going');
+    assert.equal(lea.envie, 1);
+    assert.equal(lea.going, 1);
+
+    const after = await tokenSocialPayload({
+      token: created.token,
+      viewerEmailHash: emailHash('alice@example.com'),
+    });
+    assert.equal(after?.inCircle, true);
+    if (!after?.inCircle) return;
+    assert.equal(after.mine, 'envie');
+    assert.deepEqual(after.envieNames, ['Alice']);
+    assert.deepEqual(after.goingNames, []);
+    const onDaughter = await listTokenRsvps(created.token);
+    assert.equal(
+      onDaughter.some((r) => r.emailHash === emailHash('lea@example.com')),
+      false,
+    );
+  });
+
+  it('reuses an existing daughter RSVP row instead of minting a second one', async () => {
+    const created = await createShareToken({
+      itemKey: 'e:E9003',
+      sharerEmail: 'alice@example.com',
+      firstName: 'Alice Martin',
+      origin: 'https://cc.test',
+    });
+    assert.ok(created);
+    await toggleShareRsvp({
+      token: created.token,
+      itemKey: 'e:E9003',
+      workId: 'e:E9003',
+      emailHash: emailHash('lea@example.com'),
+      firstName: 'Léa',
+      kind: 'envie',
+    });
+    const switched = await toggleViewerEventRsvp({
+      email: 'lea@example.com',
+      firstName: 'Léa Martin',
+      itemKey: 'e:E9003',
+      workId: 'e:E9003',
+      kind: 'going',
+      origin: 'https://cc.test',
+    });
+    assert.equal(switched.ok, true);
+    if (!switched.ok) return;
+    assert.equal(switched.kind, 'going');
+    const social = await tokenSocialPayload({
+      token: created.token,
+      viewerEmailHash: emailHash('lea@example.com'),
+    });
+    assert.equal(social?.inCircle, true);
+    if (!social?.inCircle) return;
+    assert.equal(social.mine, 'going');
+    assert.deepEqual(social.goingNames, ['Léa']);
+    assert.deepEqual(social.envieNames, ['Alice']);
+    const owned = await listShareTokensBySharerEmail('lea@example.com');
+    assert.equal(owned.length, 0);
+    assert.equal(memoryRsvpCount(created.token), 2);
+  });
+
+  it('blank email writes nothing', async () => {
+    const res = await toggleViewerEventRsvp({
+      email: '',
+      firstName: 'Léa',
+      itemKey: 'e:E9004',
+      workId: 'e:E9004',
+      kind: 'envie',
+      origin: 'https://cc.test',
+    });
+    assert.equal(res.ok, false);
+    assert.equal(memoryAllRsvps().length, 0);
+  });
+});
+
 describe('B3b source contract', () => {
   it('API + UI lock wording and isolate RSVP from Matching A', async () => {
     const route = await readFile(
@@ -514,6 +712,9 @@ describe('B3b source contract', () => {
     assert.match(route, /isRsvpKind\(incoming\.kind\)/);
     assert.match(route, /RSVP_LOGIN_ERROR/);
     assert.match(route, /status: 401/);
+    assert.match(rsvpHandler, /toggleViewerEventRsvp/);
+    assert.match(rsvpHandler, /toggleShareRsvp/);
+    assert.match(rsvpHandler, /if \(!rawToken\)/);
     assert.equal(rsvpHandler.includes('ingestAccountItemSignal'), false);
     assert.equal(rsvpHandler.includes('commitGuestSignals'), false);
     assert.equal(rsvpHandler.includes('seedSharerEnvie'), false);
@@ -539,6 +740,8 @@ describe('B3b source contract', () => {
     assert.match(stats, /eventRsvpStats/);
     assert.match(stats, /envie/);
     assert.match(stats, /going/);
+    assert.match(stats, /mine/);
+    assert.match(stats, /viewerMotherKind/);
     assert.equal(stats.includes('firstName'), false);
 
     const ui = await readFile(
@@ -552,6 +755,9 @@ describe('B3b source contract', () => {
     assert.match(ui, /circleEnvieLine/);
     assert.match(ui, /share-rsvp-daughter/);
     assert.match(ui, /share-rsvp-mother/);
+    assert.match(ui, /data-testid="mother-rsvp-envie"/);
+    assert.match(ui, /data-testid="mother-rsvp-going"/);
+    assert.match(ui, /JSON\.stringify\(\{ kind, itemKey \}\)/);
     assert.match(ui, /visibleMotherStats/);
     assert.match(ui, /setStats\(null\)/);
     assert.match(ui, /key=\{item\.key\}/);

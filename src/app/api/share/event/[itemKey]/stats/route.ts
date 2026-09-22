@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@/auth';
 import { normalizeDeepLinkId } from '@/lib/deepLink';
 import { isAllowedSignalOrigin } from '@/lib/guestSignals';
-import { eventRsvpStats } from '@/lib/shareStore';
+import { viewerMotherKind } from '@/lib/shareRsvp';
+import { emailHash, eventRsvpStats, listEventRsvps } from '@/lib/shareStore';
 import { workIdForItemKey } from '@/lib/shareRsvpWork';
+import { sessionSharerEmail } from '@/lib/shareToken';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -25,5 +28,14 @@ export async function GET(
   }
   const workId = workIdForItemKey(itemKey) || itemKey;
   const stats = await eventRsvpStats({ itemKey, workId });
-  return NextResponse.json({ envie: stats.envie, going: stats.going });
+  const session = await auth();
+  const email = sessionSharerEmail(session?.user);
+  const mine = email
+    ? viewerMotherKind(
+        (await listEventRsvps({ itemKey, workId })).filter(
+          (r) => r.emailHash === emailHash(email),
+        ),
+      )
+    : null;
+  return NextResponse.json({ envie: stats.envie, going: stats.going, mine });
 }

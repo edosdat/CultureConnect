@@ -7,6 +7,7 @@ import {
   circleEnvieLine,
   circleGoingLine,
   DAUGHTER_NOTICE,
+  isRsvpKind,
   motherCountersLabel,
   RSVP_LOGIN_ERROR,
   visibleMotherStats,
@@ -52,43 +53,122 @@ export default function ShareSocial({ item, token }: Props) {
 }
 
 function MotherStatsBlock({ itemKey }: { itemKey: string }) {
+  const { data: session, status } = useSession();
+  const authed = status === 'authenticated' && Boolean(session?.user);
   const [stats, setStats] = useState<MotherStats | null>(null);
+  const [mine, setMine] = useState<RsvpKind | null>(null);
   const [settled, setSettled] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [nudge, setNudge] = useState(false);
+
+  const loadStats = useCallback(async (isCurrent: () => boolean) => {
+    try {
+      const res = await fetch(`/api/share/event/${encodeURIComponent(itemKey)}/stats`, {
+        credentials: 'same-origin',
+      });
+      if (!isCurrent()) return;
+      const data: unknown = res.ok ? await res.json() : null;
+      if (!isCurrent()) return;
+      setStats(visibleMotherStats(data as MotherStats | null));
+      const rawMine =
+        data && typeof data === 'object' && 'mine' in data
+          ? (data as { mine?: unknown }).mine
+          : null;
+      setMine(isRsvpKind(rawMine) ? rawMine : null);
+    } catch {
+      if (isCurrent()) setStats(null);
+    } finally {
+      if (isCurrent()) setSettled(true);
+    }
+  }, [itemKey]);
 
   useEffect(() => {
     let cancelled = false;
     setStats(null);
+    setMine(null);
     setSettled(false);
-    void fetch(`/api/share/event/${encodeURIComponent(itemKey)}/stats`, {
-      credentials: 'same-origin',
-    })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: unknown) => {
-        if (cancelled) return;
-        setStats(visibleMotherStats(data as MotherStats | null));
-      })
-      .catch(() => {
-        if (!cancelled) setStats(null);
-      })
-      .finally(() => {
-        if (!cancelled) setSettled(true);
-      });
+    setNudge(false);
+    void loadStats(() => !cancelled);
     return () => {
       cancelled = true;
     };
-  }, [itemKey]);
+  }, [loadStats]);
+
+  async function tap(kind: RsvpKind) {
+    if (status === 'loading' || busy) return;
+    if (!authed) {
+      setNudge(true);
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ kind, itemKey }),
+      });
+      if (res.status === 401) {
+        setNudge(true);
+        return;
+      }
+      if (!res.ok) return;
+      const data = (await res.json()) as { kind?: unknown };
+      setMine(isRsvpKind(data.kind) ? data.kind : null);
+      await loadStats(() => true);
+    } catch {
+      /* stay */
+    } finally {
+      setBusy(false);
+    }
+  }
 
   if (!settled) return <SocialSkeleton />;
-  if (!stats) return null;
-  const label = motherCountersLabel(stats.envie, stats.going);
-  if (!label) return null;
+  const label = stats ? motherCountersLabel(stats.envie, stats.going) : '';
+
   return (
-    <p
-      data-testid="share-rsvp-mother"
-      className="mt-2 text-sm text-culture-muted"
-    >
-      {label}
-    </p>
+    <section data-testid="share-rsvp-mother" className="mt-2">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          data-testid="mother-rsvp-envie"
+          disabled={busy}
+          aria-pressed={mine === 'envie'}
+          onClick={() => void tap('envie')}
+          className={rsvpButtonClass(mine === 'envie')}
+        >
+          Envie
+        </button>
+        <button
+          type="button"
+          data-testid="mother-rsvp-going"
+          disabled={busy}
+          aria-pressed={mine === 'going'}
+          onClick={() => void tap('going')}
+          className={rsvpButtonClass(mine === 'going')}
+        >
+          J’y vais
+        </button>
+      </div>
+      {nudge && !authed ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <p className="text-sm text-culture-ink">{RSVP_LOGIN_ERROR}</p>
+          <button
+            type="button"
+            data-testid="mother-rsvp-login"
+            onClick={() =>
+              signIn('google', { callbackUrl: window.location.href })
+            }
+            className="inline-flex min-h-10 items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-semibold text-white hover:bg-culture-clay"
+          >
+            Continuer avec Google
+          </button>
+        </div>
+      ) : null}
+      {label ? (
+        <p className="mt-2 text-sm text-culture-muted">{label}</p>
+      ) : null}
+    </section>
   );
 }
 

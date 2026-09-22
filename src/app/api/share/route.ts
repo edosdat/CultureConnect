@@ -22,6 +22,7 @@ import {
   recordShareVisit,
   seedSharerEnvie,
   toggleShareRsvp,
+  toggleViewerEventRsvp,
 } from '@/lib/shareStore';
 import {
   firstNameFromDisplayName,
@@ -197,12 +198,45 @@ export async function POST(req: Request) {
 
   if (isRsvpKind(incoming.kind)) {
     const kind = incoming.kind as RsvpKind;
-    const token = normalizeShareToken(
-      typeof incoming.token === 'string' ? incoming.token : '',
-    );
+    const rawToken = typeof incoming.token === 'string' ? incoming.token.trim() : '';
     const itemKey = normalizeDeepLinkId(
       typeof incoming.itemKey === 'string' ? incoming.itemKey : '',
     );
+
+    // Mother fiche: no `?t=`. Same RSVP rows, anchor token is not a share.
+    if (!rawToken) {
+      if (!itemKey) return jsonError('itemKey invalide', 400);
+      if (!session?.user || !sharerEmail) {
+        return NextResponse.json({ error: RSVP_LOGIN_ERROR, login: true }, { status: 401 });
+      }
+      if (await isShareRsvpRateLimited({ ip, email: sharerEmail })) {
+        return jsonError('Too many requests', 429);
+      }
+      const firstName = firstNameFromDisplayName(
+        typeof session.user.name === 'string' ? session.user.name : '',
+      );
+      const viewer = await toggleViewerEventRsvp({
+        email: sharerEmail,
+        firstName,
+        itemKey,
+        workId: workIdForItemKey(itemKey) || itemKey,
+        kind,
+        origin: requestOrigin(req),
+      });
+      if (!viewer.ok) {
+        if (viewer.error === 'rate') return jsonError('Too many requests', 429);
+        if (viewer.error === 'invalid') return jsonError('itemKey invalide', 400);
+        return jsonError('Création impossible', 500);
+      }
+      return NextResponse.json({
+        ok: true,
+        kind: viewer.kind,
+        envie: viewer.envie,
+        going: viewer.going,
+      });
+    }
+
+    const token = normalizeShareToken(rawToken);
     if (!token || !isShareToken(token)) {
       return jsonError('token invalide', 400);
     }

@@ -135,7 +135,7 @@ describe('declutter cartes/fiche LOCK', () => {
     assert.match(cta, /Réserver/);
   });
 
-  it('grid cards demote favori; Envie/J’y vais stay on daughter fiche only', async () => {
+  it('grid cards demote favori; Envie/J’y vais stay on mother and daughter fiches', async () => {
     const card = await readFile(
       new URL('../components/SeanceCard.tsx', import.meta.url),
       'utf8',
@@ -153,6 +153,9 @@ describe('declutter cartes/fiche LOCK', () => {
     assert.match(social, /Envie/);
     assert.match(social, /J’y vais/);
     assert.match(social, /share-rsvp-daughter/);
+    assert.match(social, /share-rsvp-mother/);
+    assert.match(social, /data-testid="mother-rsvp-envie"/);
+    assert.match(social, /data-testid="mother-rsvp-going"/);
     assert.match(social, /visibleMotherStats/);
   });
 });

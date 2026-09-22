@@ -175,7 +175,7 @@ describe('artist favori toggle', () => {
 });
 
 describe('fiche Envie / J’y vais smoke + favori surfaces', () => {
-  it('fiche keeps daughter Envie / J’y vais beside artist favori, no new RSVP', async () => {
+  it('fiche keeps Envie / J’y vais beside artist favori; favori is not an RSVP', async () => {
     const detail = await readFile(
       new URL('../components/EventDetail.tsx', import.meta.url),
       'utf8',
@@ -207,6 +207,9 @@ describe('fiche Envie / J’y vais smoke + favori surfaces', () => {
     assert.match(social, /aria-pressed=\{mine === 'envie'\}/);
     assert.match(social, /aria-pressed=\{mine === 'going'\}/);
     assert.match(social, /if \(token\) \{\s*return <DaughterRsvp/);
+    assert.match(social, /data-testid="mother-rsvp-envie"/);
+    assert.match(social, /data-testid="mother-rsvp-going"/);
+    assert.match(social, /JSON\.stringify\(\{ kind, itemKey \}\)/);
 
     assert.match(artiste, /<ArtisteFavoriControl/);
     assert.equal(/j[’']aime artiste/i.test(artiste + detail), false);
