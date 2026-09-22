@@ -85,13 +85,45 @@ function itemTitleRaw(item: DayItem): string {
     : item.evenement.titre || '';
 }
 
-export function normalizeDisplayTitle(raw: string): string {
+/**
+ * Scrape status glued onto a work title. Separators are « – » / « - » / « // ».
+ * Folded (lower + accents stripped) so it runs after `foldDisplayTitle`.
+ */
+const STATUS_TITLE_PREFIX =
+  /^(?:complet|annule|reporte|sold out)\s*(?:\/\/|[-–—])\s+/u;
+
+function foldDisplayTitle(raw: string): string {
   return raw
     .toLowerCase()
     .normalize('NFD')
     .replace(/\p{M}/gu, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function stripStatusTitlePrefix(folded: string): string {
+  let title = folded;
+  let prev = '';
+  while (title && title !== prev) {
+    prev = title;
+    title = title.replace(STATUS_TITLE_PREFIX, '').trim();
+  }
+  return title;
+}
+
+/**
+ * Title key for non-cinema cards and living-arts fiche matching.
+ * Strips a leading COMPLET / ANNULÉ / REPORTÉ so the official title and the
+ * TMP status twin share one `visibleWorkKey`. Cinema stems do not use this.
+ */
+export function normalizeDisplayTitle(raw: string): string {
+  return stripStatusTitlePrefix(foldDisplayTitle(raw));
+}
+
+/** True when a leading COMPLET / ANNULÉ / REPORTÉ was removed from the key. */
+export function hasStatusTitlePrefix(raw: string): boolean {
+  const folded = foldDisplayTitle(raw);
+  return stripStatusTitlePrefix(folded) !== folded;
 }
 
 function titleNorm(item: DayItem): string {

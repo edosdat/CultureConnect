@@ -8,7 +8,9 @@ import {
   densifyGroupKey,
   densifiedCardCount,
   firstScrollUniqueShare,
+  normalizeDisplayTitle,
   takeUniqueWorkItems,
+  visibleWorkKey,
 } from './densify';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 
@@ -277,6 +279,116 @@ describe('densify visible-card identity', () => {
     );
     assert.equal(rows.length, 1);
     assert.equal(rows[0]!.seances.length, 7);
+  });
+
+  it('strips COMPLET and ANNULÉ prefixes so they do not split a work', () => {
+    const bare = 'Tentative d’épuisement #1';
+    const dash = 'COMPLET – Tentative d’épuisement #1';
+    const slash = 'COMPLET // Tentative d’épuisement #1';
+    assert.equal(normalizeDisplayTitle(dash), normalizeDisplayTitle(bare));
+    assert.equal(normalizeDisplayTitle(slash), normalizeDisplayTitle(bare));
+    assert.equal(
+      normalizeDisplayTitle('ANNULÉ // Mokhtar en solo'),
+      normalizeDisplayTitle('Mokhtar en solo'),
+    );
+    // Cinema identity stays on the film stem — a status prefix is not stripped there.
+    assert.match(cinemaTitleStem('COMPLET – Fjord'), /^complet /);
+
+    const sameSlot = [
+      item({
+        key: 'E395',
+        title: bare,
+        cat: 'theatre',
+        eventId: 'E395',
+        lieuId: 'L042',
+        day: '2026-09-23',
+        heure: '21:00',
+        form: 'theatre',
+      }),
+      item({
+        key: 'TMPP0485',
+        title: dash,
+        cat: 'theatre',
+        eventId: 'TMP0139',
+        lieuId: 'L042',
+        day: '2026-09-23',
+        heure: '21:00',
+        form: 'theatre',
+      }),
+      item({
+        key: 'T90P0494',
+        title: slash,
+        cat: 'theatre',
+        eventId: 'TMP0139',
+        lieuId: 'L042',
+        day: '2026-09-23',
+        heure: '21:00',
+        form: 'theatre',
+      }),
+    ];
+    assert.equal(visibleWorkKey(sameSlot[0]!), visibleWorkKey(sameSlot[1]!));
+    assert.equal(visibleWorkKey(sameSlot[0]!), visibleWorkKey(sameSlot[2]!));
+    const rows = densify(sameSlot);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0]!.item.key, 'E395');
+
+    // Other clocks (27/09 18:00, 30/09 19:00) still join the official card.
+    const week = densify([
+      item({
+        key: 'E395',
+        title: bare,
+        cat: 'theatre',
+        eventId: 'E395',
+        lieuId: 'L042',
+        day: '2026-09-23',
+        heure: '21:00',
+        form: 'theatre',
+      }),
+      item({
+        key: 'TMPP0489',
+        title: 'COMPLET – TENTATIVE D’ÉPUISEMENT #1',
+        cat: 'theatre',
+        eventId: 'TMP0139',
+        lieuId: 'L042',
+        day: '2026-09-27',
+        heure: '18:00',
+        form: 'theatre',
+      }),
+      item({
+        key: 'T90P0494',
+        title: 'COMPLET // TENTATIVE D’ÉPUISEMENT #1',
+        cat: 'theatre',
+        eventId: 'TMP0139',
+        lieuId: 'L042',
+        day: '2026-09-30',
+        heure: '19:00',
+        form: 'theatre',
+      }),
+    ]);
+    assert.equal(week.length, 1);
+    assert.equal(week[0]!.seances.length, 3);
+
+    const cine = densify([
+      item({
+        key: 'p-fjord',
+        title: 'Fjord',
+        cat: 'cinema',
+        filmId: 'F0005',
+        lieuId: 'L125',
+        heure: '21:00',
+        form: 'cine',
+      }),
+      item({
+        key: 'p-condor',
+        title: 'La Fille Condor',
+        cat: 'cinema',
+        filmId: 'F0056',
+        lieuId: 'L125',
+        heure: '21:00',
+        form: 'cine',
+      }),
+    ]);
+    assert.equal(cine.length, 2);
   });
 
   it('collapses theatre twins that share lieu + heure', () => {

@@ -10,6 +10,8 @@ import {
   cinemaDisplayStem,
   densify,
   densifyGroupKey,
+  hasStatusTitlePrefix,
+  normalizeDisplayTitle,
   visibleWorkKey,
   type DenseRow,
 } from './densify';
@@ -96,7 +98,11 @@ function titleDisplayScore(title: string): number {
   if (!trimmed) return 0;
   const stem = trimmed.replace(/[.…]+$/u, '').trim();
   const stub = /[.…]$/u.test(trimmed) && stem.length < 24;
-  return stub ? stem.length : trimmed.length + 100;
+  if (stub) return stem.length;
+  const key = normalizeDisplayTitle(trimmed);
+  // A COMPLET / ANNULÉ prefix must not beat the clean official title.
+  const clean = hasStatusTitlePrefix(trimmed) ? 0 : 20;
+  return key.length + 100 + clean;
 }
 
 /** Longest / least-truncated title in a densified row (thumb + hero). */
