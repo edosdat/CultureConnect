@@ -20,6 +20,7 @@ import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 import FilmVersionBadge from './FilmVersionBadge';
 import FilmPoster from './FilmPoster';
 import ShareSocial from './ShareSocial';
+import { ArtisteFavoriFromItem } from './ArtisteFavoriControl';
 import SharerActivitySand from './SharerActivitySand';
 import EventCtaRow from './EventCtaRow';
 import {
@@ -294,6 +295,24 @@ function FichePressBlock({ item }: { item: DayItem }) {
   return <PressCitation citation={fichePressCitation(item)} />;
 }
 
+function FicheSocialBlock({
+  item,
+  shareToken,
+}: {
+  item: DayItem;
+  shareToken: string | null;
+}) {
+  return (
+    <>
+      <ArtisteFavoriFromItem item={item} />
+      <ShareSocial key={item.key} item={item} token={shareToken} />
+      {!shareToken ? (
+        <SharerActivitySand itemKey={item.key} />
+      ) : null}
+    </>
+  );
+}
+
 function creditNamesOf(item: DayItem): string[] {
   const ev = item.evenement;
   const raw = (ev?.casting || '').trim();
@@ -461,12 +480,7 @@ export default function EventDetail({
                   </p>
                 ) : null}
                 {hasFilmSeances ? (
-                  <>
-                    <ShareSocial key={item.key} item={item} token={shareToken} />
-                    {!shareToken ? (
-                      <SharerActivitySand itemKey={item.key} />
-                    ) : null}
-                  </>
+                  <FicheSocialBlock item={item} shareToken={shareToken} />
                 ) : null}
                 {hasFilmSeances ? (
                   <div className="mt-3">
@@ -577,10 +591,7 @@ export default function EventDetail({
             ) : null}
 
             {hasFilmSeances && !cinemaFiche ? (
-              <>
-                <ShareSocial key={item.key} item={item} token={shareToken} />
-                {!shareToken ? <SharerActivitySand itemKey={item.key} /> : null}
-              </>
+              <FicheSocialBlock item={item} shareToken={shareToken} />
             ) : null}
 
             {hasFilmSeances && !cinemaFiche ? (
@@ -674,10 +685,7 @@ export default function EventDetail({
             )}
 
             {!hasFilmSeances ? (
-              <>
-                <ShareSocial key={item.key} item={item} token={shareToken} />
-                {!shareToken ? <SharerActivitySand itemKey={item.key} /> : null}
-              </>
+              <FicheSocialBlock item={item} shareToken={shareToken} />
             ) : null}
 
             {ev && (
@@ -888,8 +896,7 @@ export default function EventDetail({
             </section>
           )}
 
-          <ShareSocial key={item.key} item={item} token={shareToken} />
-          {!shareToken ? <SharerActivitySand itemKey={item.key} /> : null}
+          <FicheSocialBlock item={item} shareToken={shareToken} />
 
           <FichePressBlock item={item} />
 

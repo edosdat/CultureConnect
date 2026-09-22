@@ -75,13 +75,16 @@ export function resolveCohort(
 }
 
 export function itemKeyFromSignal(
-  s: Pick<Signal, 'film_id' | 'event_id' | 'programme_id' | 'chip' | 'query'>,
+  s: Pick<
+    Signal,
+    'film_id' | 'event_id' | 'programme_id' | 'artiste_id' | 'chip' | 'query'
+  >,
 ): string {
   return signalTarget(s);
 }
 
 export function itemIdsOutOfBounds(s: Signal): boolean {
-  for (const key of ['event_id', 'programme_id', 'film_id', 'lieu_id'] as const) {
+  for (const key of ['event_id', 'programme_id', 'film_id', 'artiste_id', 'lieu_id'] as const) {
     const v = s[key];
     if (typeof v === 'string' && v.length > ITEM_ID_MAX_LEN) return true;
   }
