@@ -104,6 +104,21 @@ export function countKinds(rsvps: readonly ShareRsvpRecord[]): MotherStats {
  * Mother: unique account per work. `going` wins if the same email
  * RSVP’d both kinds on different tokens.
  */
+/**
+ * One account, one status on a fiche. `going` wins over `envie`
+ * (same rule as mother counters). No row → not set.
+ */
+export function viewerMotherKind(
+  rsvps: readonly { kind: RsvpKind }[],
+): RsvpKind | null {
+  let envie = false;
+  for (const r of rsvps) {
+    if (r.kind === 'going') return 'going';
+    if (r.kind === 'envie') envie = true;
+  }
+  return envie ? 'envie' : null;
+}
+
 export function motherStatsFromRsvps(
   rsvps: readonly ShareRsvpRecord[],
 ): MotherStats {

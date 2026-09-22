@@ -317,12 +317,13 @@ describe('B3b activity store', () => {
     assert.equal(inbox.items[0]?.deltaGoing, 1);
     assert.equal(inbox.items[0]?.latest?.firstName, 'Bob');
     assert.equal(inbox.items[0]?.events[0]?.kind, 'going');
-    await writeActivityLastSeen('alice@example.com', '2026-09-20T00:00:00.000Z');
+    const seenAt = new Date(Date.now() + 60_000).toISOString();
+    await writeActivityLastSeen('alice@example.com', seenAt);
     const after = await sharerActivityInbox({
       email: 'alice@example.com',
       ...upcomingDate,
     });
-    assert.equal(after.lastSeenAt, '2026-09-20T00:00:00.000Z');
+    assert.equal(after.lastSeenAt, seenAt);
     assert.equal(after.unreadCount, 0);
     assert.equal(after.items[0]?.unread, false);
   });

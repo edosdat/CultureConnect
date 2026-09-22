@@ -35,6 +35,7 @@ import {
   parseRsvpRecord,
   RSVP_RATE_PER_HOUR,
   rsvpsForEventStats,
+  viewerMotherKind,
   type RsvpKind,
   type ShareRsvpRecord,
   type TokenSocialPayload,
@@ -1071,26 +1072,102 @@ export async function tokenSocialPayload(opts: {
   });
 }
 
-export async function eventRsvpStats(opts: {
+/** RSVP rows for one fiche. Same source order as the public counters. */
+export async function listEventRsvps(opts: {
   itemKey: string;
   workId: string;
-}): Promise<{ envie: number; going: number }> {
+}): Promise<ShareRsvpRecord[]> {
   const collected: ShareRsvpRecord[] = [];
   for (const list of memoryRsvps.values()) {
     collected.push(...list);
   }
   if (collected.length > 0) {
-    return motherStatsFromRsvps(rsvpsForEventStats(collected, opts));
+    return rsvpsForEventStats(collected, opts);
   }
   const neon = await readEventRsvpsNeon(opts);
-  if (neon && neon.length > 0) return motherStatsFromRsvps(neon);
+  if (neon && neon.length > 0) return neon;
   const fromWork = await readWorkRsvpsKv(opts.workId);
   const fromItem =
     opts.itemKey !== opts.workId ? await readWorkRsvpsKv(opts.itemKey) : null;
   const kv = [...(fromWork ?? []), ...(fromItem ?? [])];
-  if (kv.length > 0) return motherStatsFromRsvps(kv);
-  if (neon) return motherStatsFromRsvps(neon);
-  return { envie: 0, going: 0 };
+  if (kv.length > 0) return kv;
+  if (neon) return neon;
+  return [];
+}
+
+export async function eventRsvpStats(opts: {
+  itemKey: string;
+  workId: string;
+}): Promise<{ envie: number; going: number }> {
+  return motherStatsFromRsvps(await listEventRsvps(opts));
+}
+
+/**
+ * Logged-in Envie / J’y vais on the mother fiche (no `?t=`).
+ * Reuses `persistShareRsvp`: updates this account’s rows for the work,
+ * or mints an unshared anchor token (no sharer index, no auto-Envie).
+ * Going wins across that account’s rows. Not Matching C.
+ */
+export async function toggleViewerEventRsvp(opts: {
+  email: string;
+  firstName: string;
+  itemKey: string;
+  workId: string;
+  kind: RsvpKind;
+  origin: string;
+}): Promise<
+  | { ok: true; kind: RsvpKind | null; envie: number; going: number }
+  | { ok: false; error: 'rate' | 'invalid' | 'create' }
+> {
+  const email = (opts.email || '').trim().toLowerCase();
+  const itemKey = (opts.itemKey || '').trim();
+  const workId = (opts.workId || '').trim() || itemKey;
+  if (!email.includes('@') || !itemKey || !isRsvpKind(opts.kind)) {
+    return { ok: false, error: 'invalid' };
+  }
+  const hash = emailHash(email);
+  const firstName = firstNameFromDisplayName(opts.firstName);
+  const mine = (await listEventRsvps({ itemKey, workId })).filter(
+    (r) => r.emailHash === hash,
+  );
+  const next = applyRsvpToggle(viewerMotherKind(mine), opts.kind);
+  const tokens = [...new Set(mine.map((r) => r.token))];
+
+  if (tokens.length === 0) {
+    if (next) {
+      if (await isShareCreateRateLimited({ ip: '', email })) {
+        return { ok: false, error: 'rate' };
+      }
+      const created = await createShareToken({
+        itemKey,
+        sharerEmail: null,
+        origin: opts.origin,
+      });
+      if (!created) return { ok: false, error: 'create' };
+      await upsertShareRsvp({
+        token: created.token,
+        itemKey,
+        workId,
+        emailHash: hash,
+        firstName,
+        kind: next,
+      });
+    }
+  } else {
+    for (const token of tokens) {
+      await persistShareRsvp({
+        token,
+        itemKey,
+        workId,
+        emailHash: hash,
+        firstName,
+        kind: next,
+      });
+    }
+  }
+
+  const stats = await eventRsvpStats({ itemKey, workId });
+  return { ok: true, kind: next, envie: stats.envie, going: stats.going };
 }
 
 export function memoryRsvpCount(token: string): number {
