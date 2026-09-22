@@ -306,7 +306,9 @@ function FicheSocialBlock({
     <>
       <ArtisteFavoriFromItem item={item} />
       <ShareSocial key={item.key} item={item} token={shareToken} />
-      {!shareToken ? <SharerActivitySand itemKey={item.key} /> : null}
+      {!shareToken ? (
+        <SharerActivitySand itemKey={item.key} />
+      ) : null}
     </>
   );
 }

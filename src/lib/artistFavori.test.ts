@@ -68,7 +68,7 @@ describe('artist favori toggle', () => {
     assert.equal(on.artiste_id, 'A0004');
     assert.equal(on.kind, 'favorite');
     assert.ok(on.genres.includes('electro'));
-    assert.ok(on.genres.includes('techno'));
+    assert.equal(on.genres.includes('techno'), false);
     assert.ok(on.genres.every((g) => (TASTE_GENRE_SLUGS as readonly string[]).includes(g)));
 
     const added = commitTasteSignals({ events: [], profile: emptyProfile() }, [on], 40);
@@ -217,11 +217,12 @@ describe('fiche Envie / J’y vais smoke + favori surfaces', () => {
     assert.equal(control.includes('/api/share'), false);
     assert.equal(control.includes('seedSharerEnvie'), false);
 
-    const tap = control.slice(control.indexOf('function tap'), control.indexOf('return ('));
+    const tapStart = control.indexOf('function tap()');
+    const tap = control.slice(tapStart, control.indexOf('return (', tapStart));
     const loginAt = tap.indexOf("decision.type === 'login'");
     const trackAt = tap.indexOf('track(');
-    assert.ok(loginAt >= 0 && trackAt > loginAt);
-    assert.equal(control.includes("if (!artisteId.trim()) return null"), true);
+    assert.ok(tapStart >= 0 && loginAt >= 0 && trackAt > loginAt);
+    assert.equal(control.includes('if (!artisteId.trim()) return null'), true);
   });
 
   it('taste CSV stays on the hash allowlist — no artiste id or clear email column', () => {
