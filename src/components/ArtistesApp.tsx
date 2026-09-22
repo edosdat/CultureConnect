@@ -8,6 +8,7 @@ import {
   musicGenresFromLegend,
 } from '@/lib/artists';
 import ArtisteDetail from './ArtisteDetail';
+import { ArtisteFavoriBadge } from './ArtisteFavoriControl';
 
 type Props = {
   artistes: ArtisteWithDates[];
@@ -146,8 +147,11 @@ export default function ArtistesApp({ artistes, genresLegend, mode }: Props) {
                 onClick={() => setSelectedId(a.artiste_id)}
                 className="flex h-full w-full flex-col rounded-2xl border border-culture-sand bg-white p-4 text-left shadow-sm transition hover:border-culture-terracotta/40 hover:shadow-md"
               >
-                <span className="font-display text-xl text-culture-ink">
-                  {a.nom}
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="font-display text-xl text-culture-ink">
+                    {a.nom}
+                  </span>
+                  <ArtisteFavoriBadge artisteId={a.artiste_id} />
                 </span>
                 <span className="mt-2 flex flex-wrap gap-1.5">
                   {a.genres.map((slug) => (

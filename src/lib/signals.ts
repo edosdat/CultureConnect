@@ -54,6 +54,8 @@ export type Signal = {
   event_id?: string;
   programme_id?: string;
   film_id?: string;
+  /** Catalogue artiste id (A0004…). Never a name or email. */
+  artiste_id?: string;
   lieu_id?: string;
   commune?: string;
   categorie?: string;
@@ -228,6 +230,8 @@ export type TrackPayload = {
   event_id?: string;
   programme_id?: string;
   film_id?: string;
+  /** Catalogue artiste id. Never a name or email. */
+  artiste_id?: string;
   lieu_id?: string;
   commune?: string;
   categorie?: string;
@@ -383,11 +387,30 @@ export function extractMoods(...parts: Array<string | undefined | null>): string
   return out;
 }
 
-export function signalTarget(s: Pick<Signal, 'film_id' | 'event_id' | 'programme_id' | 'chip' | 'query'>): string {
+/** Catalogue id only. Drops names, emails, and multi-id blobs. */
+export function sanitizeArtisteId(raw?: string | null): string {
+  const id = (raw || '').trim();
+  if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(id)) return '';
+  return id;
+}
+
+/** Artist favori target. Prefix so it does not collide with event/programme ids. */
+export function artistSignalTarget(artisteId?: string | null): string {
+  const id = sanitizeArtisteId(artisteId);
+  return id ? `a:${id}` : '';
+}
+
+export function signalTarget(
+  s: Pick<
+    Signal,
+    'film_id' | 'event_id' | 'programme_id' | 'artiste_id' | 'chip' | 'query'
+  >,
+): string {
   return (
     (s.film_id || '').trim() ||
     (s.event_id || '').trim() ||
     (s.programme_id || '').trim() ||
+    artistSignalTarget(s.artiste_id) ||
     (s.chip || '').trim() ||
     (s.query || '').trim() ||
     ''
@@ -472,6 +495,8 @@ export function makeSignal(payload: TrackPayload): Signal {
   if (payload.event_id) signal.event_id = payload.event_id;
   if (payload.programme_id) signal.programme_id = payload.programme_id;
   if (payload.film_id) signal.film_id = payload.film_id;
+  const artisteId = sanitizeArtisteId(payload.artiste_id);
+  if (artisteId) signal.artiste_id = artisteId;
   if (payload.lieu_id) signal.lieu_id = payload.lieu_id;
   if (payload.commune) signal.commune = payload.commune;
   if (categorie) signal.categorie = categorie;

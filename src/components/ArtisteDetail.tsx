@@ -8,6 +8,7 @@ import { artistPressCitation } from '@/lib/pressCitation';
 import { formatDateFr } from '@/lib/labels';
 import { compactTimeRangeFromFields } from '@/lib/eventTimes';
 import PressCitation from './PressCitation';
+import ArtisteFavoriControl from './ArtisteFavoriControl';
 
 type Props = {
   artiste: ArtisteWithDates | null;
@@ -116,14 +117,21 @@ export default function ArtisteDetail({ artiste, legend, onClose }: Props) {
               {artiste.pastCount > 0 ? ` · ${artiste.pastCount} passé${artiste.pastCount > 1 ? 's' : ''}` : ''}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full border border-culture-sand bg-white px-3 py-1 text-sm text-culture-ink hover:bg-culture-sand"
-            aria-label="Fermer"
-          >
-            Fermer
-          </button>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <ArtisteFavoriControl
+              artisteId={artiste.artiste_id}
+              genres={artiste.genres}
+              className=""
+            />
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full border border-culture-sand bg-white px-3 py-1 text-sm text-culture-ink hover:bg-culture-sand"
+              aria-label="Fermer"
+            >
+              Fermer
+            </button>
+          </div>
         </div>
 
         <div className="space-y-6 px-5 py-5">
