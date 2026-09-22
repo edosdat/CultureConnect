@@ -18,6 +18,7 @@ import {
   cinemaDisplayStem,
   cinemaStemsCompatible,
   cinemaTitleStem,
+  dedupeNonCinemaSameLieuHoraire,
   densifiedCardCount,
   isLivingArtsRelatedSeance,
   takeUniqueWorkItems,
@@ -1295,16 +1296,18 @@ function relatedSeancesFromProgramme(
       );
     })
     .map(relatedSeanceDayItem);
-  return filterSeancesForDisplay(
-    filterItemsByCommune(
-      hideSeancesBeforeToday(mapped, parisParts().iso),
-      commune,
+  return dedupeNonCinemaSameLieuHoraire(
+    filterSeancesForDisplay(
+      filterItemsByCommune(
+        hideSeancesBeforeToday(mapped, parisParts().iso),
+        commune,
+      ),
+      {
+        startIso: window?.dateFrom,
+        endIso: window?.dateTo,
+        soir: Boolean(window?.soir),
+      },
     ),
-    {
-      startIso: window?.dateFrom,
-      endIso: window?.dateTo,
-      soir: Boolean(window?.soir),
-    },
   );
 }
 
