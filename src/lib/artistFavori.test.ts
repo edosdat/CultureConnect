@@ -212,6 +212,11 @@ describe('fiche Envie / J’y vais smoke + favori surfaces', () => {
     assert.match(social, /JSON\.stringify\(\{ kind, itemKey \}\)/);
 
     assert.match(artiste, /<ArtisteFavoriControl/);
+    assert.match(artiste, /grid-cols-\[minmax\(0,1fr\)_auto\]/);
+    assert.match(artiste, /min-w-0 max-w-2xl overflow-y-auto overflow-x-hidden/);
+    assert.match(control, /flex min-w-0 max-w-full flex-col items-stretch gap-2/);
+    assert.match(control, /sm:flex-row sm:flex-wrap/);
+    assert.match(control, /col-span-2/);
     assert.equal(/j[’']aime artiste/i.test(artiste + detail), false);
     assert.equal(detail.includes('<FavoriteButton'), false);
     assert.equal(/J’y vais/.test(artiste), false);

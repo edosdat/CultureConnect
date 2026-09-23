@@ -91,11 +91,11 @@ export default function ArtisteDetail({ artiste, legend, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-t-3xl border border-culture-sand bg-culture-cream shadow-xl sm:rounded-3xl"
+        className="max-h-[92vh] w-full min-w-0 max-w-2xl overflow-y-auto overflow-x-hidden rounded-t-3xl border border-culture-sand bg-culture-cream shadow-xl sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="sticky top-0 flex items-start justify-between gap-3 border-b border-culture-sand bg-culture-cream/95 px-5 py-4 backdrop-blur">
-          <div>
+        <div className="sticky top-0 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 border-b border-culture-sand bg-culture-cream/95 px-5 py-4 backdrop-blur">
+          <div className="col-start-1 row-start-1 min-w-0">
             <div className="flex flex-wrap gap-2">
               {artiste.genres.map((slug) => (
                 <span
@@ -108,7 +108,7 @@ export default function ArtisteDetail({ artiste, legend, onClose }: Props) {
             </div>
             <h2
               id="artiste-detail-title"
-              className="mt-2 font-display text-2xl text-culture-ink"
+              className="mt-2 break-words font-display text-2xl text-culture-ink"
             >
               {artiste.nom}
             </h2>
@@ -117,21 +117,22 @@ export default function ArtisteDetail({ artiste, legend, onClose }: Props) {
               {artiste.pastCount > 0 ? ` · ${artiste.pastCount} passé${artiste.pastCount > 1 ? 's' : ''}` : ''}
             </p>
           </div>
-          <div className="flex shrink-0 flex-col items-end gap-2">
-            <ArtisteFavoriControl
-              artisteId={artiste.artiste_id}
-              genres={artiste.genres}
-              className=""
-            />
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-full border border-culture-sand bg-white px-3 py-1 text-sm text-culture-ink hover:bg-culture-sand"
-              aria-label="Fermer"
-            >
-              Fermer
-            </button>
-          </div>
+          <ArtisteFavoriControl
+            artisteId={artiste.artiste_id}
+            genres={artiste.genres}
+            className=""
+            sheet
+            trailing={
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-full border border-culture-sand bg-white px-3 py-1 text-sm text-culture-ink hover:bg-culture-sand"
+                aria-label="Fermer"
+              >
+                Fermer
+              </button>
+            }
+          />
         </div>
 
         <div className="space-y-6 px-5 py-5">
