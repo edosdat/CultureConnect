@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import type { DayItem } from '@/lib/types';
 import {
@@ -18,6 +18,13 @@ type Props = {
   moods?: readonly string[];
   themes?: readonly string[];
   className?: string;
+  /**
+   * Artiste sheet header. Favori stays in the top-right cell; the guest
+   * login row spans the sheet below `sm` so it cannot clip at ~380px.
+   */
+  sheet?: boolean;
+  /** Close control, placed under Favori when `sheet` is set. */
+  trailing?: ReactNode;
 };
 
 function favoriButtonClass(active: boolean): string {
@@ -48,12 +55,48 @@ export function ArtisteFavoriBadge({ artisteId }: { artisteId: string }) {
   );
 }
 
+const loginButtonClass =
+  'inline-flex w-max max-w-full min-h-10 shrink-0 items-center self-end justify-center whitespace-normal rounded-full bg-culture-terracotta px-4 py-2 text-center text-sm font-semibold text-white hover:bg-culture-clay sm:self-auto';
+
+function LoginCluster({
+  sheet,
+  onLogin,
+}: {
+  sheet: boolean;
+  onLogin: () => void;
+}) {
+  return (
+    <div
+      className={
+        'flex min-w-0 max-w-full flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end ' +
+        (sheet
+          ? 'col-span-2 row-start-2 max-sm:w-full sm:col-span-1 sm:col-start-2 sm:justify-self-end'
+          : 'mt-2')
+      }
+    >
+      <p className="min-w-0 break-words text-sm text-culture-ink">
+        {ARTISTE_FAVORI_LOGIN}
+      </p>
+      <button
+        type="button"
+        data-testid="artiste-favori-login"
+        onClick={onLogin}
+        className={loginButtonClass}
+      >
+        Continuer avec Google
+      </button>
+    </div>
+  );
+}
+
 export default function ArtisteFavoriControl({
   artisteId,
   genres,
   moods,
   themes,
   className = 'mt-2',
+  sheet = false,
+  trailing = null,
 }: Props) {
   const { data: session, status } = useSession();
   const { track } = useSignals();
@@ -98,34 +141,46 @@ export default function ArtisteFavoriControl({
     track(payload);
   }
 
+  function login() {
+    if (typeof window === 'undefined') return;
+    void signIn('google', { callbackUrl: window.location.href });
+  }
+
+  const favoriButton = (
+    <button
+      type="button"
+      data-testid="artiste-favori"
+      aria-pressed={on}
+      aria-label={on ? 'Retirer des favoris' : 'Ajouter à mes goûts / favori'}
+      onClick={tap}
+      className={favoriButtonClass(on)}
+    >
+      Favori
+    </button>
+  );
+
+  const loginCluster =
+    nudge && !authed ? <LoginCluster sheet={sheet} onLogin={login} /> : null;
+
+  if (sheet) {
+    return (
+      <>
+        <div
+          className={`col-start-2 row-start-1 flex flex-col items-end gap-2 ${className}`}
+          data-testid="artiste-favori-row"
+        >
+          {favoriButton}
+          {trailing}
+        </div>
+        {loginCluster}
+      </>
+    );
+  }
+
   return (
     <div className={className} data-testid="artiste-favori-row">
-      <button
-        type="button"
-        data-testid="artiste-favori"
-        aria-pressed={on}
-        aria-label={on ? 'Retirer des favoris' : 'Ajouter à mes goûts / favori'}
-        onClick={tap}
-        className={favoriButtonClass(on)}
-      >
-        Favori
-      </button>
-      {nudge && !authed ? (
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <p className="text-sm text-culture-ink">{ARTISTE_FAVORI_LOGIN}</p>
-          <button
-            type="button"
-            data-testid="artiste-favori-login"
-            onClick={() => {
-              if (typeof window === 'undefined') return;
-              void signIn('google', { callbackUrl: window.location.href });
-            }}
-            className="inline-flex min-h-10 items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-semibold text-white hover:bg-culture-clay"
-          >
-            Continuer avec Google
-          </button>
-        </div>
-      ) : null}
+      {favoriButton}
+      {loginCluster}
     </div>
   );
 }
