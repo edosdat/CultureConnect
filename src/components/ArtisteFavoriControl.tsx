@@ -70,7 +70,7 @@ function LoginCluster({
       className={
         'flex min-w-0 max-w-full flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end ' +
         (sheet
-          ? 'col-span-2 row-start-2 max-sm:w-full sm:col-span-1 sm:col-start-2 sm:max-w-xs sm:justify-self-end'
+          ? 'col-span-2 row-start-2 max-sm:w-full sm:col-span-1 sm:col-start-2 sm:justify-self-end'
           : 'mt-2')
       }
     >
