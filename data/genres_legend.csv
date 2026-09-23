@@ -9,7 +9,6 @@ chanson_variete,Chanson / variété,musique
 musiques_monde_trad,Musiques du monde / trad,musique
 musique_autre,Musique (autre),musique
 guinguette_sorties,Guinguettes & sorties,musique
-blindtest,Blind test,musique
 theatre_contemporain,Théâtre contemporain,theatre
 theatre_classique,Théâtre classique,theatre
 humour_standup,Humour / stand-up,theatre
@@ -22,6 +21,3 @@ documentaire,Documentaire,cinema
 animation_jeune_public,Animation / jeune public,cinema
 patrimoine_retro,Patrimoine / rétro,cinema
 festival_avp,Festival / avant-première,cinema
-expo,Expo & patrimoine,autre
-atelier_mediation,Atelier / médiation,autre
-festival_multi,Festival multi,autre
