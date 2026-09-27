@@ -986,15 +986,27 @@ const SLOT_WEIGHTS: Record<RecoSlotForm, { mood: number; theme: number; genre: n
 
 export const SLOT_ORDER: RecoSlotForm[] = ['cine', 'theatre', 'concert'];
 
+/**
+ * Sync ciné writes programme.genre outside CLOSED_GENRES.
+ * Explicit exhaustive map — no prefix heuristic.
+ * fiction and festival_avp stay unmapped and are dropped by CLOSED_VOCAB.
+ */
+const GENRE_ALIAS: Record<string, string> = {
+  animation_jeune_public: 'animation',
+  patrimoine_retro: 'patrimoine',
+  // fiction and festival_avp: no alias — stay filtered by CLOSED_VOCAB
+};
+
 function splitTagSlugs(raw: string | string[] | undefined | null): string[] {
   if (!raw) return [];
-  if (Array.isArray(raw)) {
-    return raw.map((s) => s.trim().toLowerCase()).filter(Boolean);
+  const parts = Array.isArray(raw) ? raw : raw.split(/[|,]/);
+  const out: string[] = [];
+  for (const part of parts) {
+    const slug = part.trim().toLowerCase();
+    if (!slug) continue;
+    out.push(GENRE_ALIAS[slug] ?? slug);
   }
-  return raw
-    .split(/[|,]/)
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
+  return out;
 }
 
 /** cine | theatre | concert only. Festival / expo / enfants are not slots. */
