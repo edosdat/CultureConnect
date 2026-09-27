@@ -266,8 +266,8 @@ describe('blind test catalogue chip — not vocab 89', () => {
   });
 });
 
-describe('September 2026 CSV — official musique blind tests only', () => {
-  it('has the two official titles and does not invent rows', () => {
+describe('September 2026 CSV — official musique blind tests', () => {
+  it('keeps the two official titles; other real blind-test rows may exist', () => {
     const csv = readFileSync(join(process.cwd(), 'data/evenements.csv'), 'utf8');
     const rows = csv.split('\n').filter(Boolean);
     const header = rows[0]!.split(',');
@@ -295,11 +295,12 @@ describe('September 2026 CSV — official musique blind tests only', () => {
       csv.includes(BETTY_TITLE),
       'Betty Pop’s official title must stay in evenements.csv',
     );
-    assert.equal(
-      hits.length,
-      2,
-      `expected 2 musique blind tests in Sept 2026, got ${hits.length}`,
-    );
+    // Count is not the contract: a later sync can add a real musique row
+    // that mentions a blind test (Quiz Fondation des Femmes, genre
+    // quiz|blind_test|karaoke, is one). Both official titles must remain.
+    assert.ok(hits.length >= 2, `got ${hits.length} musique blind-test rows`);
+    assert.ok(hits.some((hit) => hit.titre.includes(BIJOU_TITLE)));
+    assert.ok(hits.some((hit) => hit.titre.includes(BETTY_TITLE)));
     assert.ok(csv.includes(',blindtest,'));
     assert.equal(csv.includes('vocab_blindtest_invented'), false);
   });
