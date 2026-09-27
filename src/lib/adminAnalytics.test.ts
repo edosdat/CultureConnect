@@ -219,6 +219,10 @@ describe('admin gate + export route', () => {
       new URL('../app/admin/analytics/page.tsx', import.meta.url),
       'utf8',
     );
+    const index = readFileSync(
+      new URL('../app/admin/page.tsx', import.meta.url),
+      'utf8',
+    );
     const exportRoute = readFileSync(
       new URL('../app/admin/analytics/export/route.ts', import.meta.url),
       'utf8',
@@ -234,6 +238,11 @@ describe('admin gate + export route', () => {
     assert.match(page, /isAdminSession/);
     assert.match(page, /notFound\(\)/);
     assert.equal(page.includes('searchParams'), false);
+    assert.match(
+      index,
+      /if \(!\(await isAdminSession\(\)\)\) notFound\(\);\s*permanentRedirect\('\/admin\/analytics'\);/,
+    );
+    assert.equal(index.includes('searchParams'), false);
     assert.match(exportRoute, /isAdminSession/);
     assert.match(exportRoute, /status: 404/);
     assert.match(loader, /adminCsvFilename\('tastes'/);
@@ -330,6 +339,13 @@ describe('UX admin — allowlist + menu', () => {
     assert.match(auth, /showHomeEventsCounter\(user\?\.email\)/);
     assert.match(auth, /Analytics \/ Admin/);
     assert.match(auth, /data-account-control="admin-analytics"/);
+    const adminItem = auth.slice(
+      auth.indexOf('showHomeEventsCounter(user?.email)'),
+      auth.indexOf('Analytics / Admin'),
+    );
+    assert.match(adminItem, /href="\/admin\/analytics"/);
+    assert.match(adminItem, /onPointerDown=\{holdMenu\}/);
+    assert.match(adminItem, /setMenuOpen\(false\)/);
     assert.equal(auth.includes('@gmail.com'), false);
     const gate = readFileSync(new URL('./adminGate.ts', import.meta.url), 'utf8');
     assert.match(gate, /showHomeEventsCounter/);
