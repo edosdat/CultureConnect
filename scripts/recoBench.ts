@@ -1,0 +1,1112 @@
+/**
+ * CultureConnect — banc d'essai du moteur de recommandation (dev-only).
+ *
+ * Read-only on Matching A: calls `recommendForProfile` and never writes `data/`.
+ * Exit 0 even when ⚠ thresholds fire — this is a dashboard, not a test.
+ *
+ * Windows (fixed Europe/Paris `now` = Monday 2026-09-21 00:00):
+ *   lundi    — that calendar day
+ *   vendredi — Friday 2026-09-25
+ *   semaine  — next 7 days inclusive  [now, now+6]
+ *   mois     — next 30 days inclusive [now, now+29]
+ *
+ * Usage:
+ *   npm run bench
+ *   npm run bench -- --compare bench-results/2026-09-15.json
+ *   npm run bench -- --out bench-results/2026-09-15-eloi25.json
+ *   npm run bench -- --profiles path/to/real30.json
+ *   npm run bench -- --profiles scripts/fixtures/bench-profiles-2.json
+ *
+ * `--profiles <path>` loads external JSON (Eloi25 shape or a real30 export):
+ * array or `{ profiles: [...] }` with AccountTasteState + optional id/note/family.
+ * Omit the flag to keep the baked-in Eloi 25 file (`scripts/benchProfiles.eloi.json`).
+ *
+ * `--out <path>` is optional. Default is `bench-results/<date>-<HHMMSS>-<slug>.json`
+ * so committed baselines (`2026-09-15.json`, `2026-09-15-eloi25.json`) are not
+ * overwritten by a casual run.
+ *
+ * Top-3 metric (P1): slots filled (cine/theatre/concert present). vivantShare
+ * is kept only for free lists. Banc 0 used vivantShare — note the break.
+ */
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import {
+  ELOI_PROFILES_META,
+  loadBenchProfileSet,
+  type BenchProfile,
+  type BenchProfileSet,
+  type MoodFormCounts,
+  type MoodStockReference,
+} from './benchProfiles';
+import {
+  INHERITED_FAMILY_DEFINITION,
+  INHERITED_FAMILY_MIN_PARENT_MOODS,
+  isSeasonMegaMoodParent,
+  slotsFilledOf,
+} from './benchMetrics';
+import { loadBenchCatalogue } from './loadCatalogue';
+import { itemsForDateRange, itemsForDay } from '../src/lib/events';
+import { nouveauFilmIds } from '../src/lib/nouveautesCine';
+import { recoWhyForMood } from '../src/lib/displayHome';
+import {
+  isTimeReachable,
+  itemIdentity,
+  recommendForProfile,
+  resolvedFormOfItem,
+  slotFormOfItem,
+  workIdOf,
+  type RecoReason,
+  type RecoReasonSource,
+  type RecoSlotForm,
+  type ScoredDayItem,
+} from '../src/lib/reco';
+import { TASTE_MOODS, isTasteMood } from '../src/lib/phraseTags';
+import { addDaysIso, parisParts } from '../src/lib/timeScope';
+import type { DayItem } from '../src/lib/types';
+import { entryPct, entryWeight, type AccountTasteState } from '../src/lib/signals';
+
+const FALLBACK_SOURCES = new Set<string>(['popularite', 'nouveaute', 'rarete']);
+const KL_EPS = 0.01;
+const TOP_N = 3;
+
+/** ⚠ thresholds — brief §4.5. Never fail the process. */
+const THRESHOLD = {
+  coverage: 0.15,
+  diversity: 0.3,
+  fallback: 0.5,
+} as const;
+
+/**
+ * Pin the clock so before/after JSON compares the same windows.
+ * 00:00 Paris → every séance that calendar day is still reachable.
+ */
+const FIXED_NOW = new Date('2026-09-21T00:00:00+02:00');
+
+type ScenarioId = 'monday' | 'friday' | 'week' | 'month';
+
+type Scenario = {
+  id: ScenarioId;
+  label: string;
+  /** Inclusive YYYY-MM-DD. */
+  startIso: string;
+  endIso: string;
+  now: Date;
+  definition: string;
+};
+
+type InheritedFamilyParent = {
+  eventId: string;
+  title: string;
+  parentMoodCount: number;
+};
+
+type InheritedFamilyByParent = InheritedFamilyParent & {
+  recommendedWorks: number;
+  recommendedRows: number;
+};
+
+type InheritedFamilyMetric = {
+  definition: string;
+  minParentTasteMoods: number;
+  parentEvents: InheritedFamilyParent[];
+  recommendedWorks: number;
+  recommendedRows: number;
+  recommendedWorkIds: string[];
+  byFamily: InheritedFamilyByParent[];
+};
+
+type ListRow = {
+  key: string;
+  workId: string;
+  title: string;
+  eventId: string;
+  inheritedFamily: boolean;
+  inheritedFamilyEventId?: string;
+  slot: RecoSlotForm | null;
+  form: string;
+  moods: string[];
+  dayIso: string;
+  reasonSource: RecoReasonSource | 'rarete' | string;
+  reasonMood?: string;
+  reasonGenre?: string;
+  reasonPhrase: string | null;
+};
+
+type RunRecord = {
+  profileId: string;
+  scenarioId: ScenarioId;
+  /** Distinct cine/theatre/concert slots actually present in the 1+1+1 top 3. */
+  slotsFilled: number;
+  /** Free lists only (recommendSlice). Null on the slotted top 3. */
+  vivantShare: number | null;
+  diversity: number | null;
+  calibration: number | null;
+  fallbackRate: number | null;
+  elapsedMs: number;
+  list: ListRow[];
+};
+
+type Coverage = {
+  recommended: number;
+  feasible: number;
+  ratio: number | null;
+};
+
+type BenchJson = {
+  meta: {
+    generatedAt: string;
+    engine: 'recommendForProfile';
+    fixedNow: string;
+    windows: Record<
+      ScenarioId,
+      { startIso: string; endIso: string; definition: string }
+    >;
+    moodVocab: {
+      poetique: string;
+      dansant: string;
+      sortie: string;
+    };
+    profilesSource: string;
+    moodStockReference: MoodStockReference;
+    thresholds: typeof THRESHOLD;
+    catalogue: {
+      evenements: number;
+      programme: number;
+      programmeSha256: string;
+      maxIso: string;
+    };
+    vivantRule: string;
+    slotsFilledRule: string;
+    inheritedFamilyRule: string;
+  };
+  profiles: Array<{
+    id: string;
+    label: string;
+    group: string;
+    notes: string;
+    signalCount?: number;
+  }>;
+  scenarios: Scenario[];
+  stock: Record<
+    ScenarioId,
+    { items: number; works: number; vivantWorks: number; cineWorks: number }
+  >;
+  runs: RunRecord[];
+  byProfile: Array<{
+    profileId: string;
+    label: string;
+    notes: string;
+    slotsFilled: number | null;
+    vivantShare: number | null;
+    diversity: number | null;
+    calibration: number | null;
+    fallbackRate: number | null;
+    meanElapsedMs: number;
+  }>;
+  global: {
+    coverage: Coverage;
+    slotsFilled: number | null;
+    vivantShare: number | null;
+    fallbackRate: number | null;
+    meanElapsedMs: number;
+    inheritedFamily: InheritedFamilyMetric;
+  };
+};
+
+function titleOf(item: DayItem): string {
+  if (item.kind === 'programme') {
+    return (
+      (item.programme.nom_item || '').trim() ||
+      (item.evenement?.titre || '').trim() ||
+      item.key
+    );
+  }
+  return (item.evenement.titre || '').trim() || item.key;
+}
+
+function splitTags(raw: string | string[] | undefined | null): string[] {
+  if (!raw) return [];
+  const parts = Array.isArray(raw) ? raw : raw.split(/[|,]/);
+  return parts.map((s) => s.trim().toLowerCase()).filter(Boolean);
+}
+
+/** Closed goût slugs the engine sees (P0: cine skips parent event moods). */
+function itemTasteMoods(item: DayItem): string[] {
+  const ev = item.evenement ?? null;
+  const prog = item.kind === 'programme' ? item.programme : null;
+  const inheritParent =
+    !((prog?.film_id || '').trim() || slotFormOfItem(item) === 'cine');
+  const raw = [
+    ...splitTags(prog?.moods),
+    ...(inheritParent ? splitTags(ev?.moods) : []),
+    ...splitTags(prog?.genres_mood),
+    ...(inheritParent ? splitTags(ev?.genres_mood) : []),
+  ];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const slug of raw) {
+    if (!isTasteMood(slug) || seen.has(slug)) continue;
+    seen.add(slug);
+    out.push(slug);
+  }
+  return out;
+}
+
+function eventIdOf(item: DayItem): string {
+  if (item.kind === 'programme') {
+    return (
+      (item.programme.event_id || '').trim() ||
+      (item.evenement?.event_id || '').trim()
+    );
+  }
+  return (item.evenement.event_id || '').trim();
+}
+
+function seasonMegaMoodParents(
+  events: Array<{
+    event_id?: string;
+    titre?: string;
+    form?: string;
+    categorie?: string;
+    moods?: string;
+  }>,
+): InheritedFamilyParent[] {
+  const out: InheritedFamilyParent[] = [];
+  for (const ev of events) {
+    const eventId = (ev.event_id || '').trim();
+    if (!eventId) continue;
+    const moods = splitTags(ev.moods).filter((s) => isTasteMood(s));
+    if (!isSeasonMegaMoodParent(moods, ev.form, ev.categorie)) continue;
+    out.push({
+      eventId,
+      title: (ev.titre || '').trim() || eventId,
+      parentMoodCount: moods.length,
+    });
+  }
+  return out;
+}
+
+function inheritedFamilyMetric(
+  parents: InheritedFamilyParent[],
+  rows: ReadonlyArray<{ workId: string; eventId: string }>,
+): InheritedFamilyMetric {
+  const parentById = new Map(parents.map((p) => [p.eventId, p]));
+  const works = new Set<string>();
+  const byFamilyWorks = new Map<string, Set<string>>();
+  const byFamilyRows = new Map<string, number>();
+  let recommendedRows = 0;
+  for (const row of rows) {
+    if (!parentById.has(row.eventId)) continue;
+    recommendedRows += 1;
+    works.add(row.workId);
+    const set = byFamilyWorks.get(row.eventId) ?? new Set<string>();
+    set.add(row.workId);
+    byFamilyWorks.set(row.eventId, set);
+    byFamilyRows.set(row.eventId, (byFamilyRows.get(row.eventId) ?? 0) + 1);
+  }
+  return {
+    definition: INHERITED_FAMILY_DEFINITION,
+    minParentTasteMoods: INHERITED_FAMILY_MIN_PARENT_MOODS,
+    parentEvents: parents,
+    recommendedWorks: works.size,
+    recommendedRows,
+    recommendedWorkIds: [...works].sort(),
+    byFamily: parents.map((p) => ({
+      ...p,
+      recommendedWorks: byFamilyWorks.get(p.eventId)?.size ?? 0,
+      recommendedRows: byFamilyRows.get(p.eventId) ?? 0,
+    })),
+  };
+}
+
+function workKey(item: DayItem): string {
+  return workIdOf(item) || itemIdentity(item) || item.key;
+}
+
+/**
+ * Vivant = theatre | concert slot via `slotFormOfItem` (not raw `form`).
+ * Festival / enfants rows that resolve to those slots count; cine does not.
+ */
+function isVivantSlot(item: DayItem): boolean {
+  const slot = slotFormOfItem(item);
+  return slot === 'theatre' || slot === 'concert';
+}
+
+function sha256File(rel: string): string {
+  const abs = path.isAbsolute(rel) ? rel : path.join(process.cwd(), rel);
+  return crypto.createHash('sha256').update(fs.readFileSync(abs)).digest('hex');
+}
+
+function moodVector(moods: readonly string[]): number[] {
+  return TASTE_MOODS.map((m) => (moods.includes(m) ? 1 : 0));
+}
+
+function cosine(a: number[], b: number[]): number | null {
+  let dot = 0;
+  let na = 0;
+  let nb = 0;
+  const n = Math.min(a.length, b.length);
+  for (let i = 0; i < n; i++) {
+    const x = a[i] ?? 0;
+    const y = b[i] ?? 0;
+    dot += x * y;
+    na += x * x;
+    nb += y * y;
+  }
+  if (na === 0 || nb === 0) return null;
+  return dot / (Math.sqrt(na) * Math.sqrt(nb));
+}
+
+/** Mean pairwise 1 − cos on closed-mood vectors. Null if < 2 usable pairs. */
+function intraListDiversity(lists: readonly DayItem[]): number | null {
+  const vectors = lists.map((item) => moodVector(itemTasteMoods(item)));
+  const dists: number[] = [];
+  for (let i = 0; i < vectors.length; i++) {
+    for (let j = i + 1; j < vectors.length; j++) {
+      const c = cosine(vectors[i]!, vectors[j]!);
+      if (c == null) continue;
+      dists.push(1 - c);
+    }
+  }
+  if (dists.length === 0) return null;
+  return dists.reduce((s, d) => s + d, 0) / dists.length;
+}
+
+function normalizeDist(weights: Record<string, number>): Record<string, number> {
+  let sum = 0;
+  for (const w of Object.values(weights)) {
+    if (w > 0) sum += w;
+  }
+  const out: Record<string, number> = {};
+  if (sum <= 0) return out;
+  for (const [k, w] of Object.entries(weights)) {
+    if (w > 0) out[k] = w / sum;
+  }
+  return out;
+}
+
+function profileMoodDist(state: AccountTasteState): Record<string, number> {
+  const raw: Record<string, number> = {};
+  for (const [slug, entry] of Object.entries(state.profile.moods ?? {})) {
+    if (!isTasteMood(slug)) continue;
+    const pct = entryPct(entry);
+    const w = pct > 0 ? pct : entryWeight(entry);
+    if (w > 0) raw[slug] = w;
+  }
+  return normalizeDist(raw);
+}
+
+function listMoodDist(items: readonly DayItem[]): Record<string, number> {
+  const raw: Record<string, number> = {};
+  for (const item of items) {
+    for (const mood of itemTasteMoods(item)) {
+      raw[mood] = (raw[mood] ?? 0) + 1;
+    }
+  }
+  return normalizeDist(raw);
+}
+
+/** KL(p ‖ q̃) with q̃ = (1−ε)q + εp. Null when the profile has no goût. */
+function calibrationKl(
+  state: AccountTasteState,
+  items: readonly DayItem[],
+): number | null {
+  const p = profileMoodDist(state);
+  const keys = Object.keys(p);
+  if (keys.length === 0) return null;
+  const q = listMoodDist(items);
+  let kl = 0;
+  for (const t of keys) {
+    const pt = p[t] ?? 0;
+    if (pt <= 0) continue;
+    const qt = (1 - KL_EPS) * (q[t] ?? 0) + KL_EPS * pt;
+    kl += pt * Math.log(pt / qt);
+  }
+  return kl;
+}
+
+function mean(values: Array<number | null | undefined>): number | null {
+  const xs = values.filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+  if (xs.length === 0) return null;
+  return xs.reduce((s, v) => s + v, 0) / xs.length;
+}
+
+function ratio(num: number, den: number): number | null {
+  if (den <= 0) return null;
+  return num / den;
+}
+
+function isFallbackSource(source: string | undefined): boolean {
+  return Boolean(source && FALLBACK_SOURCES.has(source));
+}
+
+function reasonPhrase(reason: RecoReason | undefined): string | null {
+  if (!reason) return null;
+  if (reason.source === 'popularite') return 'repli popularité';
+  if (reason.source === 'nouveaute') return 'repli nouveauté';
+  if ((reason.source as string) === 'rarete') return 'repli rareté';
+  const why = recoWhyForMood(reason.mood);
+  if (why) return why;
+  if (reason.genre) return `parce que tu aimes ${reason.genre}`;
+  return 'profil';
+}
+
+function toListRow(
+  scored: ScoredDayItem,
+  familyEventIds: ReadonlySet<string>,
+): ListRow {
+  const { item, reason } = scored;
+  const eventId = eventIdOf(item);
+  const inheritedFamily = familyEventIds.has(eventId);
+  return {
+    key: item.key,
+    workId: workKey(item),
+    title: titleOf(item),
+    eventId,
+    inheritedFamily,
+    ...(inheritedFamily ? { inheritedFamilyEventId: eventId } : {}),
+    slot: slotFormOfItem(item),
+    form: resolvedFormOfItem(item),
+    moods: itemTasteMoods(item),
+    dayIso: item.dayIso,
+    reasonSource: reason?.source ?? 'popularite',
+    ...(reason?.mood ? { reasonMood: reason.mood } : {}),
+    ...(reason?.genre ? { reasonGenre: reason.genre } : {}),
+    reasonPhrase: reasonPhrase(reason),
+  };
+}
+
+function buildScenarios(now: Date): Scenario[] {
+  const start = parisParts(now).iso;
+  const monday = start;
+  // Next Friday of this pinned week (Mon + 4).
+  const friday = addDaysIso(start, 4);
+  const weekEnd = addDaysIso(start, 6);
+  const monthEnd = addDaysIso(start, 29);
+  const fridayNow = new Date('2026-09-25T00:00:00+02:00');
+  return [
+    {
+      id: 'monday',
+      label: 'lundi',
+      startIso: monday,
+      endIso: monday,
+      now,
+      definition: `Single Paris day ${monday} (lundi) — thin vivant stock.`,
+    },
+    {
+      id: 'friday',
+      label: 'vendredi',
+      startIso: friday,
+      endIso: friday,
+      now: fridayNow,
+      definition: `Single Paris day ${friday} (vendredi) — richer vivant stock.`,
+    },
+    {
+      id: 'week',
+      label: 'semaine',
+      startIso: start,
+      endIso: weekEnd,
+      now,
+      definition: `Next 7 days inclusive from pinned Paris now: ${start} → ${weekEnd}.`,
+    },
+    {
+      id: 'month',
+      label: 'mois',
+      startIso: start,
+      endIso: monthEnd,
+      now,
+      definition: `Next 30 days inclusive from pinned Paris now: ${start} → ${monthEnd}.`,
+    },
+  ];
+}
+
+function loadWindowItems(
+  catalogue: ReturnType<typeof loadBenchCatalogue>,
+  scenario: Scenario,
+): DayItem[] {
+  if (scenario.startIso === scenario.endIso) {
+    return itemsForDay(
+      catalogue.programmeWithContext,
+      catalogue.events,
+      scenario.startIso,
+    );
+  }
+  return itemsForDateRange(
+    catalogue.programmeWithContext,
+    catalogue.events,
+    scenario.startIso,
+    scenario.endIso,
+  );
+}
+
+function feasibleItems(items: DayItem[], now: Date): DayItem[] {
+  const reachable = items.filter((item) => isTimeReachable(item, now));
+  return reachable.length > 0 ? reachable : items;
+}
+
+function stockSnapshot(items: DayItem[], now: Date) {
+  const feasible = feasibleItems(items, now);
+  const works = new Set<string>();
+  const vivantWorks = new Set<string>();
+  const cineWorks = new Set<string>();
+  for (const item of feasible) {
+    const id = workKey(item);
+    works.add(id);
+    const slot = slotFormOfItem(item);
+    if (slot === 'theatre' || slot === 'concert') vivantWorks.add(id);
+    if (slot === 'cine') cineWorks.add(id);
+  }
+  return {
+    items: feasible.length,
+    works: works.size,
+    vivantWorks: vivantWorks.size,
+    cineWorks: cineWorks.size,
+  };
+}
+
+function pad(text: string, width: number, align: 'left' | 'right' = 'left'): string {
+  const s = text.length > width ? text.slice(0, width) : text;
+  return align === 'right' ? s.padStart(width) : s.padEnd(width);
+}
+
+function fmtPct(v: number | null | undefined, digits = 0): string {
+  if (v == null || !Number.isFinite(v)) return '—';
+  return `${(v * 100).toFixed(digits)}%`;
+}
+
+function fmtNum(v: number | null | undefined, digits = 2): string {
+  if (v == null || !Number.isFinite(v)) return '—';
+  return v.toFixed(digits);
+}
+
+function fmtSlots(v: number | null | undefined): string {
+  if (v == null || !Number.isFinite(v)) return '—';
+  return `${v.toFixed(2)}/3`;
+}
+
+function fmtDelta(v: number | null | undefined, digits = 2, asPct = false): string {
+  if (v == null || !Number.isFinite(v)) return '—';
+  const shown = asPct ? v * 100 : v;
+  const sign = shown > 0 ? '+' : '';
+  const suffix = asPct ? 'pt' : '';
+  return `${sign}${shown.toFixed(digits)}${suffix}`;
+}
+
+function warnMark(flag: boolean): string {
+  return flag ? ' ⚠' : '';
+}
+
+function parseArgs(argv: string[]): {
+  compare: string | null;
+  out: string | null;
+  profiles: string | null;
+} {
+  let compare: string | null = null;
+  let out: string | null = null;
+  let profiles: string | null = null;
+  for (let i = 0; i < argv.length; i++) {
+    const flag = argv[i];
+    const value = argv[i + 1];
+    if (flag === '--compare') {
+      if (!value || value.startsWith('--')) {
+        console.error('Usage: npm run bench -- --compare <file.json>');
+      } else {
+        compare = value;
+        i += 1;
+      }
+    } else if (flag === '--out') {
+      if (!value || value.startsWith('--')) {
+        console.error('Usage: npm run bench -- --out <file.json>');
+      } else {
+        out = value;
+        i += 1;
+      }
+    } else if (flag === '--profiles') {
+      if (!value || value.startsWith('--')) {
+        console.error('Usage: npm run bench -- --profiles path/to/real30.json');
+      } else {
+        profiles = value;
+        i += 1;
+      }
+    }
+  }
+  return { compare, out, profiles };
+}
+
+function resultsDir(): string {
+  return path.join(process.cwd(), 'bench-results');
+}
+
+function outSlug(profilesSource: string): string {
+  if (
+    profilesSource === ELOI_PROFILES_META.source ||
+    profilesSource.endsWith('benchProfiles.eloi.json')
+  ) {
+    return 'eloi25';
+  }
+  const stem = path.basename(profilesSource, path.extname(profilesSource));
+  return stem.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'profiles';
+}
+
+function datedOutPath(explicit: string | null, profilesSource: string): string {
+  if (explicit) {
+    return path.isAbsolute(explicit) ? explicit : path.join(process.cwd(), explicit);
+  }
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10);
+  const hhmmss = now.toISOString().slice(11, 19).replace(/:/g, '');
+  return path.join(resultsDir(), `${date}-${hhmmss}-${outSlug(profilesSource)}.json`);
+}
+
+function coverageOf(
+  recommended: ReadonlySet<string>,
+  feasible: ReadonlySet<string>,
+): Coverage {
+  return {
+    recommended: recommended.size,
+    feasible: feasible.size,
+    ratio: ratio(recommended.size, feasible.size),
+  };
+}
+
+function runBench(set: BenchProfileSet): BenchJson {
+  const catalogue = loadBenchCatalogue();
+  const familyParents = seasonMegaMoodParents(catalogue.evenements);
+  const familyEventIds = new Set(familyParents.map((p) => p.eventId));
+  const scenarios = buildScenarios(FIXED_NOW);
+  const nouveauIds = nouveauFilmIds(catalogue.programmeWithContext, FIXED_NOW);
+  const { profiles } = set;
+
+  const windowItems = new Map<ScenarioId, DayItem[]>();
+  const stock = {} as BenchJson['stock'];
+  for (const scenario of scenarios) {
+    const items = loadWindowItems(catalogue, scenario);
+    windowItems.set(scenario.id, items);
+    stock[scenario.id] = stockSnapshot(items, scenario.now);
+  }
+
+  const runs: RunRecord[] = [];
+  const recommendedVivant = new Set<string>();
+  const feasibleVivant = new Set<string>();
+  /** Work ids already retained for earlier windows of the same profile (P2). */
+  const priorWorks = new Map<string, Set<string>>();
+
+  for (const scenario of scenarios) {
+    const items = windowItems.get(scenario.id) ?? [];
+    const feasible = feasibleItems(items, scenario.now);
+    for (const item of feasible) {
+      if (isVivantSlot(item)) feasibleVivant.add(workKey(item));
+    }
+
+    for (const profile of profiles) {
+      const t0 = performance.now();
+      const demoteWorkIds = priorWorks.get(profile.id) ?? new Set<string>();
+      const scored = recommendForProfile(items, profile.state, TOP_N, {
+        now: scenario.now,
+        nouveauFilmIds: nouveauIds,
+        demoteWorkIds,
+      });
+      const elapsedMs = performance.now() - t0;
+      const listItems = scored.map((s) => s.item);
+      for (const item of listItems) {
+        if (isVivantSlot(item)) recommendedVivant.add(workKey(item));
+      }
+      const fallbackCount = scored.filter((s) =>
+        isFallbackSource(s.reason?.source),
+      ).length;
+      runs.push({
+        profileId: profile.id,
+        scenarioId: scenario.id,
+        slotsFilled: slotsFilledOf(listItems.map((item) => ({ slot: slotFormOfItem(item) }))),
+        // 1+1+1 top 3: vivantShare measures the format, not the engine.
+        vivantShare: null,
+        diversity: intraListDiversity(listItems),
+        calibration: calibrationKl(profile.state, listItems),
+        fallbackRate: scored.length ? fallbackCount / scored.length : null,
+        elapsedMs,
+        list: scored.map((row) => toListRow(row, familyEventIds)),
+      });
+      const acc = priorWorks.get(profile.id) ?? new Set<string>();
+      for (const item of listItems) acc.add(workKey(item));
+      priorWorks.set(profile.id, acc);
+    }
+  }
+
+  const byProfile = profiles.map((profile) => {
+    const mine = runs.filter((r) => r.profileId === profile.id);
+    return {
+      profileId: profile.id,
+      label: profile.label,
+      notes: profile.notes,
+      slotsFilled: mean(mine.map((r) => r.slotsFilled)),
+      vivantShare: mean(mine.map((r) => r.vivantShare)),
+      diversity: mean(mine.map((r) => r.diversity)),
+      calibration: mean(mine.map((r) => r.calibration)),
+      fallbackRate: mean(mine.map((r) => r.fallbackRate)),
+      meanElapsedMs: mean(mine.map((r) => r.elapsedMs)) ?? 0,
+    };
+  });
+
+  return {
+    meta: {
+      generatedAt: new Date().toISOString(),
+      engine: 'recommendForProfile',
+      fixedNow: FIXED_NOW.toISOString(),
+      windows: Object.fromEntries(
+        scenarios.map((s) => [
+          s.id,
+          { startIso: s.startIso, endIso: s.endIso, definition: s.definition },
+        ]),
+      ) as BenchJson['meta']['windows'],
+      moodVocab: {
+        poetique: 'in TASTE_MOODS (16 closed goûts) — no alias needed',
+        dansant: 'in TASTE_MOODS (16 closed goûts) — no alias needed',
+        sortie:
+          'phrase/catalogue slug, not a goût; kept on C2 (Sorties festives) but not scored',
+      },
+      profilesSource: set.source,
+      moodStockReference: set.moodStockReference,
+      thresholds: THRESHOLD,
+      catalogue: {
+        evenements: catalogue.evenements.length,
+        programme: catalogue.programme.length,
+        programmeSha256: sha256File('data/programme.csv'),
+        maxIso: catalogue.maxIso,
+      },
+      vivantRule:
+        'slotFormOfItem ∈ {theatre, concert} (festival/enfants follow that resolver; raw form is ignored)',
+      slotsFilledRule:
+        'top 3: count of cine/theatre/concert actually present (0–3). vivantShare kept only for free lists.',
+      inheritedFamilyRule: INHERITED_FAMILY_DEFINITION,
+    },
+    profiles: profiles.map((p) => ({
+      id: p.id,
+      label: p.label,
+      group: p.group,
+      notes: p.notes,
+      ...(typeof p.signalCount === 'number' ? { signalCount: p.signalCount } : {}),
+    })),
+    scenarios,
+    stock,
+    runs,
+    byProfile,
+    global: {
+      coverage: coverageOf(recommendedVivant, feasibleVivant),
+      slotsFilled: mean(runs.map((r) => r.slotsFilled)),
+      vivantShare: mean(runs.map((r) => r.vivantShare)),
+      fallbackRate: mean(runs.map((r) => r.fallbackRate)),
+      meanElapsedMs: mean(runs.map((r) => r.elapsedMs)) ?? 0,
+      inheritedFamily: inheritedFamilyMetric(
+        familyParents,
+        runs.flatMap((r) => r.list),
+      ),
+    },
+  };
+}
+
+const MOOD_STOCK_FORMS = ['cine', 'theatre', 'concert', 'festival', 'enfants'] as const;
+
+function printMoodStock(ref: MoodStockReference): void {
+  console.log('stock moods (items FUTURS, par forme) — référence Eloi :');
+  if (typeof ref.comment === 'string' && ref.comment) {
+    console.log(`  ${ref.comment}`);
+  }
+  for (const [mood, counts] of Object.entries(ref)) {
+    if (mood === 'comment' || !counts || typeof counts !== 'object') continue;
+    const row = counts as MoodFormCounts;
+    const parts = MOOD_STOCK_FORMS.map(
+      (form) => `${form} ${String(row[form] ?? 0).padStart(3)}`,
+    );
+    console.log(`  ${pad(mood, 14)} ${parts.join('  ')}`);
+  }
+  console.log('');
+}
+
+function profileTableLabel(row: { profileId: string; label: string; notes?: string }): string {
+  const shortNote = (row.notes ?? '').split(/[.!]/)[0]?.trim() || row.label;
+  return `${row.profileId}  ${shortNote}`;
+}
+
+function printTable(result: BenchJson, set: BenchProfileSet): void {
+  const date = result.meta.generatedAt.slice(0, 10);
+  console.log(`CultureConnect — banc d'essai reco          ${date}`);
+  console.log(`profils : ${set.headline} — ${set.source}`);
+  if (set.note) {
+    console.log(set.note);
+  }
+  console.log('');
+  printMoodStock(result.meta.moodStockReference);
+  console.log(
+    `fenêtres (Paris, now=${result.scenarios[0]?.startIso ?? '?'} 00:00 · ${result.meta.fixedNow}):`,
+  );
+  for (const s of result.scenarios) {
+    const st = result.stock[s.id];
+    console.log(
+      `  ${pad(s.label, 10)} ${s.startIso} → ${s.endIso}   vivant faisable: ${st.vivantWorks} works / ${st.items} rows  (ciné ${st.cineWorks})`,
+    );
+  }
+  console.log('');
+  console.log(
+    `${pad('profil', 56)} ${pad('slots', 8, 'right')} ${pad('divers', 7, 'right')} ${pad('calib', 7, 'right')} ${pad('repli', 7, 'right')}`,
+  );
+  console.log('-'.repeat(88));
+  for (const row of result.byProfile) {
+    const flags =
+      (row.diversity != null && row.diversity < THRESHOLD.diversity) ||
+      (row.fallbackRate != null && row.fallbackRate > THRESHOLD.fallback);
+    const line = `${pad(profileTableLabel(row), 56)} ${pad(fmtSlots(row.slotsFilled), 8, 'right')} ${pad(fmtNum(row.diversity, 2), 7, 'right')} ${pad(fmtNum(row.calibration, 2), 7, 'right')} ${pad(fmtPct(row.fallbackRate, 0), 7, 'right')}${warnMark(flags)}`;
+    console.log(line);
+  }
+  console.log('');
+  const cov = result.global.coverage;
+  const covWarn = cov.ratio != null && cov.ratio < THRESHOLD.coverage;
+  const fbWarn =
+    result.global.fallbackRate != null &&
+    result.global.fallbackRate > THRESHOLD.fallback;
+  console.log(
+    `couverture catalogue vivant : ${fmtPct(cov.ratio, 0)}  (${cov.recommended} / ${cov.feasible} items)${warnMark(covWarn)}`,
+  );
+  console.log(`slots remplis (moyenne)     : ${fmtSlots(result.global.slotsFilled)}`);
+  if (result.global.vivantShare != null) {
+    console.log(`part de vivant (listes libres): ${fmtPct(result.global.vivantShare, 0)}`);
+  }
+  console.log(
+    `taux de repli global        : ${fmtPct(result.global.fallbackRate, 0)}${warnMark(fbWarn)}`,
+  );
+  console.log(
+    `temps moyen / appel         : ${fmtNum(result.global.meanElapsedMs, 1)} ms`,
+  );
+  const fam = result.global.inheritedFamily;
+  if (fam) {
+    const parents = fam.parentEvents.map((p) => p.eventId).join(', ') || '—';
+    console.log(
+      `familles héritées (works)   : ${fam.recommendedWorks} works / ${fam.recommendedRows} rows  [${parents}]`,
+    );
+  }
+  console.log('');
+  console.log(
+    '⚠ seuils: couverture < 15 % · diversité < 0.3 · repli > 50 %  (exit 0 quand même)',
+  );
+  console.log(
+    'vivant = slotFormOfItem théâtre|concert — pas le champ form brut.',
+  );
+  console.log(
+    'slots remplis = cine/theatre/concert effectivement présents dans le top 3.',
+  );
+}
+
+const SCENARIO_DUMP_ORDER: ScenarioId[] = ['monday', 'friday', 'week', 'month'];
+const SCENARIO_DUMP_LABEL: Record<ScenarioId, string> = {
+  monday: 'lundi',
+  friday: 'vendredi',
+  week: 'semaine',
+  month: 'mois',
+};
+
+function formatRunHeader(run: RunRecord, label: string): string {
+  const vivant =
+    run.vivantShare != null ? `  vivant=${fmtPct(run.vivantShare, 0)}` : '';
+  return `  ${label}  slots=${fmtSlots(run.slotsFilled)}${vivant}  divers=${fmtNum(run.diversity)}  calib=${fmtNum(run.calibration)}  repli=${fmtPct(run.fallbackRate, 0)}  ${fmtNum(run.elapsedMs, 1)}ms`;
+}
+
+function formatListRow(row: ListRow, index: number): string {
+  const slot = row.slot ?? row.form ?? '?';
+  const moods = row.moods.length ? row.moods.join('|') : '—';
+  const why = [row.reasonSource, row.reasonPhrase].filter(Boolean).join(' · ');
+  const family = row.inheritedFamily
+    ? `  family=${row.inheritedFamilyEventId ?? row.eventId}`
+    : '';
+  return `    ${index + 1}. ${row.title}  [${slot}]  ${moods}  — ${why}  (${row.dayIso})${family}`;
+}
+
+function printTop3(result: BenchJson, profiles: BenchProfile[]): void {
+  console.log('');
+  console.log('=== Top 3 — 4 scénarios (crash-test) ===');
+  console.log(
+    'lundi / vendredi = jour Paris · semaine = 7 j. · mois = 30 j. à partir du même now',
+  );
+  for (const profile of profiles) {
+    console.log('');
+    console.log(`— ${profile.id}  ${profile.label}`);
+    if (profile.notes) console.log(`  ${profile.notes}`);
+    for (const sid of SCENARIO_DUMP_ORDER) {
+      const run = result.runs.find(
+        (r) => r.profileId === profile.id && r.scenarioId === sid,
+      );
+      const label = SCENARIO_DUMP_LABEL[sid];
+      if (!run) {
+        console.log(`  ${label}: (pas de run)`);
+        continue;
+      }
+      console.log(formatRunHeader(run, label));
+      if (run.list.length === 0) {
+        console.log('    (liste vide)');
+        continue;
+      }
+      run.list.forEach((row, i) => {
+        console.log(formatListRow(row, i));
+      });
+    }
+  }
+}
+
+function readableDump(result: BenchJson, profiles: BenchProfile[]): string {
+  const lines: string[] = [];
+  lines.push(`# Banc reco — dump Top 3 (${result.meta.generatedAt.slice(0, 10)})`);
+  lines.push('');
+  lines.push(`now Paris fixé : \`${result.meta.fixedNow}\``);
+  lines.push(
+    `programme.csv sha256 : \`${result.meta.catalogue.programmeSha256}\``,
+  );
+  lines.push(
+    `profils : ${profiles.length} · source : \`${result.meta.profilesSource}\``,
+  );
+  const cov = result.global.coverage;
+  lines.push(
+    `couverture : ${fmtPct(cov.ratio, 1)} (${cov.recommended} / ${cov.feasible}) · slots ${fmtSlots(result.global.slotsFilled)} · repli ${fmtPct(result.global.fallbackRate, 1)}`,
+  );
+  const fam = result.global.inheritedFamily;
+  if (fam) {
+    const parentList = fam.parentEvents
+      .map((p) => `${p.eventId} (${p.parentMoodCount} moods)`)
+      .join(', ');
+    lines.push('');
+    lines.push('## Familles héritées (saison mega-moods)');
+    lines.push('');
+    lines.push(fam.definition);
+    lines.push('');
+    lines.push(
+      `Parents détectés : ${parentList || '—'} · works recommandés dans une famille : **${fam.recommendedWorks}** (${fam.recommendedRows} rows)`,
+    );
+    for (const row of fam.byFamily) {
+      lines.push(
+        `- ${row.eventId} — ${row.title} : ${row.recommendedWorks} works / ${row.recommendedRows} rows`,
+      );
+    }
+  }
+  lines.push('');
+  for (const profile of profiles) {
+    lines.push(`## ${profile.id} — ${profile.label}`);
+    if (profile.notes) lines.push(profile.notes);
+    lines.push('');
+    for (const sid of SCENARIO_DUMP_ORDER) {
+      const run = result.runs.find(
+        (r) => r.profileId === profile.id && r.scenarioId === sid,
+      );
+      const label = SCENARIO_DUMP_LABEL[sid];
+      if (!run) {
+        lines.push(`### ${label}`);
+        lines.push('(pas de run)');
+        lines.push('');
+        continue;
+      }
+      lines.push(`### ${label}`);
+      lines.push(formatRunHeader(run, label).trim());
+      if (run.list.length === 0) {
+        lines.push('(liste vide)');
+      } else {
+        run.list.forEach((row, i) => {
+          lines.push(formatListRow(row, i).trim());
+        });
+      }
+      lines.push('');
+    }
+  }
+  return `${lines.join('\n')}\n`;
+}
+
+function loadCompare(file: string): BenchJson | null {
+  const resolved = path.isAbsolute(file) ? file : path.join(process.cwd(), file);
+  if (!fs.existsSync(resolved)) {
+    console.error(`--compare: fichier introuvable: ${resolved}`);
+    return null;
+  }
+  try {
+    return JSON.parse(fs.readFileSync(resolved, 'utf-8')) as BenchJson;
+  } catch (err) {
+    console.error(`--compare: JSON illisible (${resolved}):`, err);
+    return null;
+  }
+}
+
+function printCompare(current: BenchJson, previous: BenchJson, file: string): void {
+  console.log('');
+  console.log(`=== Δ vs ${file}  (${previous.meta.generatedAt.slice(0, 10)}) ===`);
+  const prevBy = new Map(previous.byProfile.map((r) => [r.profileId, r]));
+  console.log(
+    `${pad('profil', 56)} ${pad('Δslots', 9, 'right')} ${pad('Δdivers', 8, 'right')} ${pad('Δcalib', 8, 'right')} ${pad('Δrepli', 8, 'right')}`,
+  );
+  console.log('-'.repeat(92));
+  for (const row of current.byProfile) {
+    const prev = prevBy.get(row.profileId);
+    const dV =
+      row.slotsFilled != null && prev?.slotsFilled != null
+        ? row.slotsFilled - prev.slotsFilled
+        : null;
+    const dD =
+      row.diversity != null && prev?.diversity != null
+        ? row.diversity - prev.diversity
+        : null;
+    const dC =
+      row.calibration != null && prev?.calibration != null
+        ? row.calibration - prev.calibration
+        : null;
+    const dF =
+      row.fallbackRate != null && prev?.fallbackRate != null
+        ? row.fallbackRate - prev.fallbackRate
+        : null;
+    console.log(
+      `${pad(profileTableLabel(row), 56)} ${pad(fmtDelta(dV, 1, true), 9, 'right')} ${pad(fmtDelta(dD, 2), 8, 'right')} ${pad(fmtDelta(dC, 2), 8, 'right')} ${pad(fmtDelta(dF, 1, true), 8, 'right')}`,
+    );
+  }
+  const cCov = current.global.coverage.ratio;
+  const pCov = previous.global.coverage.ratio;
+  const dCov = cCov != null && pCov != null ? cCov - pCov : null;
+  const dSlots =
+    current.global.slotsFilled != null && previous.global.slotsFilled != null
+      ? current.global.slotsFilled - previous.global.slotsFilled
+      : null;
+  const dFb =
+    current.global.fallbackRate != null && previous.global.fallbackRate != null
+      ? current.global.fallbackRate - previous.global.fallbackRate
+      : null;
+  console.log('');
+  console.log(
+    `Δ couverture : ${fmtDelta(dCov, 1, true)}   Δ slots : ${fmtDelta(dSlots, 2)}   Δ repli : ${fmtDelta(dFb, 1, true)}`,
+  );
+}
+
+function main(): void {
+  const { compare, out, profiles: profilesPath } = parseArgs(process.argv.slice(2));
+  let set: BenchProfileSet;
+  try {
+    set = loadBenchProfileSet(profilesPath);
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : err);
+    process.exitCode = 1;
+    return;
+  }
+  const result = runBench(set);
+
+  printTable(result, set);
+  printTop3(result, set.profiles);
+
+  if (compare) {
+    const prev = loadCompare(compare);
+    if (prev) printCompare(result, prev, compare);
+  }
+
+  fs.mkdirSync(resultsDir(), { recursive: true });
+  const outPath = datedOutPath(out, set.source);
+  fs.writeFileSync(outPath, `${JSON.stringify(result, null, 2)}\n`, 'utf-8');
+  const dumpPath = outPath.replace(/\.json$/i, '.dump.md');
+  fs.writeFileSync(dumpPath, readableDump(result, set.profiles), 'utf-8');
+  console.log('');
+  console.log(`JSON archivé : ${path.relative(process.cwd(), outPath)}`);
+  console.log(`Dump Top 3   : ${path.relative(process.cwd(), dumpPath)}`);
+}
+
+const isDirectRun =
+  typeof process.argv[1] === 'string' && /recoBench\.(ts|js)$/.test(process.argv[1]);
+if (isDirectRun) main();
