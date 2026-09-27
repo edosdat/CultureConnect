@@ -17,6 +17,9 @@ import {
   formatTasteExportCsv,
   formatTokenExportCsv,
   formatVisitsAggExportCsv,
+  accountEmailSha256,
+  countActiveGoogleAccounts,
+  countDistinctGoogleAccounts,
   googleLoginCountKey,
   hashEmailKey,
   inParisWindow,
@@ -37,10 +40,10 @@ import {
 } from './adminAnalytics';
 import {
   KPI_COPY,
-  KPI9_LOGIN_HINT,
   SECTION_COPY,
   signalKindLabel,
 } from './adminAnalyticsCopy';
+import { emailHash } from './shareStore';
 import { emptyProfile, type AccountTasteState } from './signals';
 
 function state(partial: Partial<AccountTasteState>): AccountTasteState {
@@ -387,8 +390,15 @@ describe('UX admin — labels FR + glossaire + sections', () => {
     assert.equal(KPI_COPY['15']?.title, 'Top tags catalogue Toulouse');
     assert.match(KPI_COPY['15']?.glossary ?? '', /≠/);
     assert.match(KPI_COPY['15']?.glossary ?? '', /pas ce que les gens aiment/i);
-    assert.equal(KPI_COPY['9']?.hint, KPI9_LOGIN_HINT);
-    assert.equal(KPI9_LOGIN_HINT, 'Logins = depuis le deploy du 15/09');
+    assert.equal(KPI_COPY['9']?.title, 'Comptes Google');
+    assert.equal(KPI_COPY['9']?.hint, undefined);
+    assert.match(KPI_COPY['9']?.glossary ?? '', /depuis le début/);
+    assert.equal(/15\/09|Connexions Google|pas d’historique/.test(KPI_COPY['9']?.glossary ?? ''), false);
+    assert.equal(KPI_COPY['19']?.title, 'Actifs 7 jours');
+    assert.match(KPI_COPY['19']?.glossary ?? '', /0/);
+    assert.match(KPI_COPY['19']?.glossary ?? '', /Envie/);
+    assert.match(KPI_COPY['19']?.glossary ?? '', /dernière connexion/);
+    assert.equal(/15\/09|cc_vid|KV/.test(KPI_COPY['19']?.glossary ?? ''), false);
     assert.equal(SECTION_COPY.goutsComptes.title, 'Goûts comptes');
     assert.equal(SECTION_COPY.comptesTable.title, 'Comptes');
     assert.equal(SECTION_COPY.tokensTable.title, 'Liens de partage');
@@ -407,6 +417,19 @@ describe('UX admin — labels FR + glossaire + sections', () => {
     assert.match(view, /SECTION_COPY\.goutsComptes/);
     assert.match(view, /AdminDataTables/);
     assert.match(view, /SECTION_COPY\.tagsCatalogue/);
+    assert.match(view, /kpi="9"/);
+    assert.match(view, /kpi="19"/);
+    assert.match(view, /googleAccounts/);
+    assert.match(view, /active7d/);
+    assert.equal(view.includes('googleLogins'), false);
+    assert.equal(view.includes('Connexions Google'), false);
+    const compteIdx = view.indexOf('SECTION_COPY.compte');
+    const mixIdx = view.indexOf('SECTION_COPY.mix');
+    const kpi9 = view.indexOf('kpi="9"');
+    const kpi19 = view.indexOf('kpi="19"');
+    const kpi10 = view.indexOf('kpi="10"');
+    assert.ok(compteIdx > 0 && kpi9 > compteIdx && kpi19 > kpi9 && kpi10 > kpi19);
+    assert.ok(mixIdx > kpi10);
     assert.match(view, /kpi="12"/);
     assert.match(view, /kpi="13"/);
     assert.match(view, /kpi="17"/);
@@ -596,5 +619,83 @@ describe('P1 admin tables + CSV (hash only)', () => {
     );
     assert.match(view, /download=\{tastesCsvName\}/);
     assert.match(view, /adminCsvFilename\(\s*'tastes'/);
+  });
+});
+
+describe('Compte KPIs — Neon comptes, not the login counter', () => {
+  it('counts distinct Google accounts and 7-day Neon actions', () => {
+    assert.equal(countDistinctGoogleAccounts(['A@Gmail.com', 'a@gmail.com', 'nope', '']), 1);
+    assert.equal(countDistinctGoogleAccounts(['a@gmail.com', 'b@gmail.com']), 2);
+    assert.equal(accountEmailSha256('Eloi@Gmail.com'), emailHash('eloi@gmail.com'));
+    assert.equal(accountEmailSha256('a@b.c').slice(0, 16), hashEmailKey('a@b.c'));
+
+    const windowDays = [
+      '2026-09-09',
+      '2026-09-10',
+      '2026-09-11',
+      '2026-09-12',
+      '2026-09-13',
+      '2026-09-14',
+      '2026-09-15',
+    ];
+    const accounts = [
+      { userKey: 'A@Gmail.com', updatedAt: '2026-08-01T10:00:00.000Z' },
+      { userKey: 'b@gmail.com', updatedAt: '2026-09-15T10:00:00.000Z' },
+      { userKey: 'c@gmail.com', updatedAt: '2026-08-01T10:00:00.000Z' },
+      { userKey: 'd@gmail.com', updatedAt: '2026-09-08T21:00:00.000Z' },
+    ];
+    const active = countActiveGoogleAccounts({
+      accounts,
+      shares: [
+        { sharerEmail: 'a@gmail.com', createdAt: '2026-09-12T12:00:00.000Z' },
+        { sharerEmail: 'a@gmail.com', createdAt: '2026-09-13T12:00:00.000Z' },
+        { sharerEmail: 'stranger@gmail.com', createdAt: '2026-09-12T12:00:00.000Z' },
+      ],
+      rsvps: [
+        { emailHash: emailHash('c@gmail.com'), kind: 'envie', ts: '2026-09-14T08:00:00.000Z' },
+        { emailHash: emailHash('c@gmail.com'), kind: 'going', ts: '2026-09-14T09:00:00.000Z' },
+        { emailHash: emailHash('guest@gmail.com'), kind: 'going', ts: '2026-09-14T09:00:00.000Z' },
+        { emailHash: emailHash('d@gmail.com'), kind: 'envie', ts: '2026-09-01T09:00:00.000Z' },
+        { emailHash: emailHash('b@gmail.com'), kind: 'other', ts: '2026-09-14T09:00:00.000Z' },
+      ],
+      windowDays,
+    });
+    assert.equal(countDistinctGoogleAccounts(accounts.map((a) => a.userKey)), 4);
+    assert.equal(active, 3);
+    assert.equal(
+      countActiveGoogleAccounts({
+        accounts: [{ userKey: 'quiet@gmail.com', updatedAt: '2026-01-01T00:00:00.000Z' }],
+        shares: [],
+        rsvps: [],
+        windowDays,
+      }),
+      0,
+    );
+    assert.equal(inParisWindow('2026-09-08T22:30:00.000Z', new Set(windowDays)), true);
+    assert.equal(inParisWindow('2026-09-08T21:00:00.000Z', new Set(windowDays)), false);
+
+    const list = readFileSync(new URL('./accountTasteAdminList.ts', import.meta.url), 'utf8');
+    const load = readFileSync(new URL('./adminAnalyticsLoad.ts', import.meta.url), 'utf8');
+    const share = readFileSync(new URL('./shareStore.ts', import.meta.url), 'utf8');
+    assert.match(list, /COUNT\(DISTINCT lower\(btrim\(user_key\)\)\)/);
+    assert.match(list, /position\('@' in user_key\)/);
+    const countSql = list.slice(list.indexOf('GOOGLE_ACCOUNTS_COUNT_SQL'));
+    assert.equal(countSql.includes('cc_vid'), false);
+    assert.equal(countSql.includes('cc:vs'), false);
+    assert.match(load, /countGoogleAccountsNeon/);
+    assert.match(load, /countActiveGoogleAccounts/);
+    assert.match(load, /listShareAccountActionsForAdmin/);
+    assert.equal(load.includes('googleLogins'), false);
+    assert.equal(load.includes('cc:login'), false);
+    assert.equal(load.includes('readGoogleLoginCounts'), false);
+    const actionFn = share.slice(
+      share.indexOf('export async function listShareAccountActionsForAdmin'),
+      share.indexOf('export async function listShareTokensBySharerEmail'),
+    );
+    assert.match(actionFn, /kind IN \('envie', 'going'\)/);
+    assert.match(actionFn, /FROM share_tokens/);
+    assert.equal(actionFn.includes('opens'), false);
+    assert.equal(actionFn.includes('cc_vid'), false);
+    assert.equal(actionFn.includes('share:visits'), false);
   });
 });

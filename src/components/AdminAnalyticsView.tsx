@@ -184,7 +184,14 @@ export default function AdminAnalyticsView({
 
       <SectionBlock title={SECTION_COPY.compte.title}>
         <div className="mt-2 grid gap-3 sm:grid-cols-2">
-          <Card kpi="9" value={fmt(snap.compte.googleLogins)} />
+          <Card
+            kpi="9"
+            value={snap.compte.googleAccounts == null ? '—' : fmt(snap.compte.googleAccounts)}
+          />
+          <Card
+            kpi="19"
+            value={snap.compte.active7d == null ? '—' : fmt(snap.compte.active7d)}
+          />
           <Card kpi="10" value={fmt(snap.compte.guestAppends)} approx />
         </div>
       </SectionBlock>
