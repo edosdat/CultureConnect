@@ -36,6 +36,7 @@ Les fichiers CSV sont dans `data/` :
 | `lieux.csv` | Lieux culturels |
 | `evenements.csv` | Évènements |
 | `programme.csv` | Items de programme liés aux évènements |
+| `films.csv` | Une ligne par film. Tags d'œuvre durables (`moods`, `genres_mood`, `themes`) |
 
 ### Mise à jour hebdomadaire
 
@@ -48,6 +49,25 @@ Schéma attendu :
 - **lieux** : `lieu_id`, `nom`, `type`, `adresse`, `commune`, `lat`, `lng`, `dist_km_capitole`, `site_web`, `notes`
 - **evenements** : `event_id`, `lieu_id`, `titre`, `categorie`, `date_debut`, `date_fin`, `heure_debut`, `heure_fin`, `prix`, `gratuit`, `url_source`, `description_courte`, `statut`
 - **programme** : `programme_id`, `event_id`, `lieu_id`, `nom_item`, `type_item`, `date`, `heure_debut`, `heure_fin`, `scene_salle`, `prix_item`, `url`, `notes`
+- **films** : `film_id`, `titre`, `titre_normalise`, `genre_principal`, `nb_seances`, `nb_salles`, `lieux_ids`, `image_url`, `notes`, `moods`, `genres_mood`, `themes`
+
+### Taggage des films
+
+Après chaque sync ciné, le taggage se fait dans `films.csv`, jamais dans `programme.csv`. Le sync réécrit les séances ; un tag posé sur une ligne de `programme.csv` disparaît au sync suivant.
+
+Au chargement, une séance sans tag reçoit le jeu de `films.csv` pour son `film_id`. Si cette ligne n'a aucun tag, le chargement reprend la meilleure ligne sœur déjà taggée dans `programme.csv` (hors `mood_source=parent`). Sinon la séance reste sans tag.
+
+`scripts/backfillFilmTags.ts` est un script **one-shot**. Il copie dans `films.csv` le jeu de tags déjà résolu par cette règle sœur. Il n'écrase jamais une valeur déjà présente, et il ne crée pas de ligne pour un `film_id` absent de `films.csv`. Il ne fait pas partie de `npm run build` ni de `npm test` — ne pas le brancher sur le build.
+
+```bash
+npx tsx scripts/backfillFilmTags.ts
+```
+
+`data/films-a-tagger.csv` (`film_id`, `titre`, `nb_seances`) liste les films ciné à venir (date ≥ 2026-09-27, `form=cine`) qui n'ont toujours aucun tag, triés par `nb_seances` décroissant. `nb_seances` est la colonne déjà agrégée de `films.csv`. Ce fichier est une liste de travail : le site ne le lit pas, et les tags ne s'y saisissent pas. Le régénérer sans modifier `films.csv` :
+
+```bash
+npx tsx scripts/backfillFilmTags.ts --list
+```
 
 Notes :
 

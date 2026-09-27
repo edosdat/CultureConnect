@@ -137,6 +137,10 @@ export type Film = {
   lieux_ids: string;
   image_url: string;
   notes: string;
+  /** Durable work tags. Empty until filled in films.csv. */
+  moods: string;
+  genres_mood: string;
+  themes: string;
 };
 
 /** Film with linked programme screenings (optional UX helper). */

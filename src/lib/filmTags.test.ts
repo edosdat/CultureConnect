@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildFilmTagStore, fillEmptyWorkTags } from './filmTags';
+import { buildFilmTagStore, fillEmptyWorkTags, type FilmTagRecord } from './filmTags';
 import { itemInheritsParentClosedTags, itemIsUntagged } from './reco';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 
@@ -308,5 +308,81 @@ describe('fillEmptyWorkTags', () => {
     };
     assert.deepEqual(resolved(orderA), expected);
     assert.deepEqual(resolved(orderB), expected);
+  });
+
+  it('prefers films.csv over a haute sibling line', () => {
+    const haute = row({
+      programme_id: 'P-HAUTE',
+      moods: 'rigolo',
+      genres_mood: 'comedie',
+      themes: 'amour',
+      mood_source: 'pitch',
+      mood_confiance: 'haute',
+      scraped_at: '2026-09-01T19:00:07',
+    });
+    const empty = row({
+      programme_id: 'P-EMPTY',
+      moods: '',
+      genres_mood: '',
+      themes: '',
+      mood_source: '',
+    });
+    const films: FilmTagRecord[] = [
+      {
+        film_id: 'F1',
+        moods: 'sombre',
+        genres_mood: 'drame',
+        themes: 'deuil',
+      },
+    ];
+    const store = buildFilmTagStore([haute, empty], films);
+    assert.deepEqual(store.get('F1'), {
+      moods: 'sombre',
+      genres_mood: 'drame',
+      themes: 'deuil',
+    });
+    const filled = fillEmptyWorkTags(empty, store);
+    assert.equal(filled.moods, 'sombre');
+    assert.equal(filled.genres_mood, 'drame');
+    assert.equal(filled.themes, 'deuil');
+    assert.equal(filled.mood_source, 'work');
+
+    const blankFilms: FilmTagRecord[] = [
+      { film_id: 'F1', moods: '', genres_mood: '  ', themes: '' },
+    ];
+    assert.equal(buildFilmTagStore([haute], blankFilms).get('F1')?.moods, 'rigolo');
+  });
+
+  it('does not throw when a programme film_id is absent from films.csv', () => {
+    const tagged = row({
+      programme_id: 'P-TAG',
+      film_id: 'F-ABSENT',
+      moods: 'sombre',
+      genres_mood: 'drame',
+      themes: 'deuil',
+      mood_confiance: 'moyenne',
+    });
+    const empty = row({
+      programme_id: 'P-EMPTY',
+      film_id: 'F-ABSENT',
+      moods: '',
+      genres_mood: '',
+      themes: '',
+    });
+    const films: FilmTagRecord[] = [
+      {
+        film_id: 'F-PRESENT',
+        moods: 'rigolo',
+        genres_mood: 'comedie',
+        themes: 'famille',
+      },
+    ];
+    const store = buildFilmTagStore([tagged, empty], films);
+    const filled = fillEmptyWorkTags(empty, store);
+    assert.equal(store.get('F-ABSENT')?.moods, 'sombre');
+    assert.equal(store.get('F-PRESENT')?.moods, 'rigolo');
+    assert.equal(filled.moods, 'sombre');
+    assert.equal(filled.mood_source, 'work');
+    assert.equal(filled.film_id, 'F-ABSENT');
   });
 });

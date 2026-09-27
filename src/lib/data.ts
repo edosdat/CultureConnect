@@ -101,14 +101,17 @@ export function loadFilms(): Film[] {
     lieux_ids: r.lieux_ids ?? '',
     image_url: r.image_url ?? '',
     notes: r.notes ?? '',
+    moods: r.moods ?? '',
+    genres_mood: r.genres_mood ?? '',
+    themes: r.themes ?? '',
   }));
 }
 
 export function loadProgramme(): ProgrammeItem[] {
   const raw = readCsv<ProgrammeItem>('programme.csv');
   // Official film_id from CSV only — do not invent from titre matching.
-  // Pass 1: one source line per film_id. Pass 2: fill-empty on each séance.
-  const store = buildFilmTagStore(raw);
+  // Pass 1: films.csv, else one sibling source line. Pass 2: fill-empty.
+  const store = buildFilmTagStore(raw, loadFilms());
   return raw.map((r) => {
     const base: ProgrammeItem = {
       ...r,
