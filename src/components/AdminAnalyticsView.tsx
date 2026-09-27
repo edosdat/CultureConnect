@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { AdminAnalyticsSnapshot } from '@/lib/adminAnalyticsLoad';
 import AdminDataTables from '@/components/AdminDataTables';
-import { adminCsvFilename } from '@/lib/adminAnalytics';
+import { adminCsvFilename, loginPopulationShare } from '@/lib/adminAnalytics';
 import {
   KPI_COPY,
   SECTION_COPY,
@@ -99,6 +99,58 @@ function SectionBlock({
   );
 }
 
+function shareCount(count: number, percent: number | null): string {
+  if (percent == null) return fmt(count);
+  return `${fmt(count)} · ${percent} %`;
+}
+
+/** KPI 1 uniques + Actifs 7 jours, shown side by side. Not a vid↔email join. */
+function LoginShareCard({
+  guests,
+  connected,
+}: {
+  guests: number;
+  connected: number | null;
+}) {
+  const share = loginPopulationShare(guests, connected);
+  const unread = share.connected == null || share.guestPct == null || share.connectedPct == null;
+  const bothZero = !unread && share.total === 0;
+  return (
+    <Card kpi="20" value={bothZero ? '0 / 0 (0 %)' : unread ? '—' : undefined}>
+      <ul className="mt-2 space-y-1.5 text-sm text-culture-ink">
+        <li className="flex items-center justify-between gap-3">
+          <span className="flex items-center gap-2">
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-culture-muted" aria-hidden />
+            Non connectés
+          </span>
+          <span>{shareCount(share.guests, share.guestPct)}</span>
+        </li>
+        <li className="flex items-center justify-between gap-3">
+          <span className="flex items-center gap-2">
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-culture-terracotta" aria-hidden />
+            Connectés
+          </span>
+          <span>{unread ? '—' : shareCount(share.connected ?? 0, share.connectedPct)}</span>
+        </li>
+      </ul>
+      <div
+        className="mt-3 flex h-2.5 overflow-hidden rounded-full bg-culture-line"
+        aria-hidden
+      >
+        {unread || bothZero ? null : (
+          <>
+            <div className="h-full bg-culture-muted" style={{ width: `${share.guestPct}%` }} />
+            <div
+              className="h-full bg-culture-terracotta"
+              style={{ width: `${share.connectedPct}%` }}
+            />
+          </>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 export default function AdminAnalyticsView({
   snap,
 }: {
@@ -192,6 +244,12 @@ export default function AdminAnalyticsView({
             kpi="19"
             value={snap.compte.active7d == null ? '—' : fmt(snap.compte.active7d)}
           />
+          <div className="sm:col-span-2">
+            <LoginShareCard
+              guests={snap.traffic.distinct7j}
+              connected={snap.compte.active7d}
+            />
+          </div>
           <Card kpi="10" value={fmt(snap.compte.guestAppends)} approx />
         </div>
       </SectionBlock>

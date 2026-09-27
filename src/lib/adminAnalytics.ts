@@ -365,6 +365,42 @@ export function countActiveGoogleAccounts(opts: {
   return active.size;
 }
 
+export type LoginPopulationShare = {
+  guests: number;
+  connected: number | null;
+  guestPct: number | null;
+  connectedPct: number | null;
+  total: number | null;
+};
+
+/**
+ * Display base only: KPI 1 guest uniques + Actifs 7 jours.
+ * The two counts are independent populations. Nothing here joins vid to email.
+ * Both 0 → 0 / 0 and 0 %. One side 0 → 0 % and 100 %. Connected unread → null percents.
+ */
+export function loginPopulationShare(
+  guestUniques: number,
+  activeAccounts: number | null,
+): LoginPopulationShare {
+  const guests = Number.isFinite(guestUniques) && guestUniques > 0 ? Math.floor(guestUniques) : 0;
+  if (activeAccounts == null || !Number.isFinite(activeAccounts)) {
+    return { guests, connected: null, guestPct: null, connectedPct: null, total: null };
+  }
+  const connected = activeAccounts > 0 ? Math.floor(activeAccounts) : 0;
+  const total = guests + connected;
+  if (total === 0) {
+    return { guests: 0, connected: 0, guestPct: 0, connectedPct: 0, total: 0 };
+  }
+  const guestPct = Math.round((100 * guests) / total);
+  return {
+    guests,
+    connected,
+    guestPct,
+    connectedPct: 100 - guestPct,
+    total,
+  };
+}
+
 /** UI hash: sha256[:16]. Store RSVP hashes may already be full sha256. */
 export function displayEmailHash(hash: string): string {
   return hash.trim().toLowerCase().slice(0, 16);

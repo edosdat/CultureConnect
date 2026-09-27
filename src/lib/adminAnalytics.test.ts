@@ -20,6 +20,7 @@ import {
   accountEmailSha256,
   countActiveGoogleAccounts,
   countDistinctGoogleAccounts,
+  loginPopulationShare,
   googleLoginCountKey,
   hashEmailKey,
   inParisWindow,
@@ -399,6 +400,12 @@ describe('UX admin — labels FR + glossaire + sections', () => {
     assert.match(KPI_COPY['19']?.glossary ?? '', /Envie/);
     assert.match(KPI_COPY['19']?.glossary ?? '', /dernière connexion/);
     assert.equal(/15\/09|cc_vid|KV/.test(KPI_COPY['19']?.glossary ?? ''), false);
+    assert.equal(KPI_COPY['20']?.title, 'Connectés et non connectés');
+    assert.match(KPI_COPY['20']?.glossary ?? '', /indépendantes/);
+    assert.match(KPI_COPY['20']?.glossary ?? '', /additionnées/);
+    assert.match(KPI_COPY['20']?.glossary ?? '', /0 \/ 0/);
+    assert.match(KPI_COPY['20']?.glossary ?? '', /pas les mêmes personnes/i);
+    assert.equal(/\bcc_vid\b/.test(KPI_COPY['20']?.glossary ?? ''), false);
     assert.equal(SECTION_COPY.goutsComptes.title, 'Goûts comptes');
     assert.equal(SECTION_COPY.comptesTable.title, 'Comptes');
     assert.equal(SECTION_COPY.tokensTable.title, 'Liens de partage');
@@ -427,9 +434,14 @@ describe('UX admin — labels FR + glossaire + sections', () => {
     const mixIdx = view.indexOf('SECTION_COPY.mix');
     const kpi9 = view.indexOf('kpi="9"');
     const kpi19 = view.indexOf('kpi="19"');
+    const shareCard = view.indexOf('<LoginShareCard');
     const kpi10 = view.indexOf('kpi="10"');
-    assert.ok(compteIdx > 0 && kpi9 > compteIdx && kpi19 > kpi9 && kpi10 > kpi19);
+    assert.ok(compteIdx > 0 && kpi9 > compteIdx && kpi19 > kpi9 && shareCard > kpi19 && kpi10 > shareCard);
     assert.ok(mixIdx > kpi10);
+    assert.match(view, /function LoginShareCard[\s\S]*kpi="20"/);
+    assert.match(view, /guests=\{snap\.traffic\.distinct7j\}/);
+    assert.match(view, /connected=\{snap\.compte\.active7d\}/);
+    assert.match(view, /loginPopulationShare/);
     assert.match(view, /kpi="12"/);
     assert.match(view, /kpi="13"/);
     assert.match(view, /kpi="17"/);
@@ -697,5 +709,67 @@ describe('Compte KPIs — Neon comptes, not the login counter', () => {
     assert.equal(actionFn.includes('opens'), false);
     assert.equal(actionFn.includes('cc_vid'), false);
     assert.equal(actionFn.includes('share:visits'), false);
+  });
+});
+
+describe('Proportion connectés / non connectés — display base, no join', () => {
+  it('sums independent counts and stays at 0% when both sides are 0', () => {
+    assert.deepEqual(loginPopulationShare(0, 0), {
+      guests: 0,
+      connected: 0,
+      guestPct: 0,
+      connectedPct: 0,
+      total: 0,
+    });
+    assert.deepEqual(loginPopulationShare(0, 4), {
+      guests: 0,
+      connected: 4,
+      guestPct: 0,
+      connectedPct: 100,
+      total: 4,
+    });
+    assert.deepEqual(loginPopulationShare(4, 0), {
+      guests: 4,
+      connected: 0,
+      guestPct: 100,
+      connectedPct: 0,
+      total: 4,
+    });
+    assert.deepEqual(loginPopulationShare(1, 3), {
+      guests: 1,
+      connected: 3,
+      guestPct: 25,
+      connectedPct: 75,
+      total: 4,
+    });
+    assert.deepEqual(loginPopulationShare(1, 1), {
+      guests: 1,
+      connected: 1,
+      guestPct: 50,
+      connectedPct: 50,
+      total: 2,
+    });
+    const unread = loginPopulationShare(6, null);
+    assert.equal(unread.guests, 6);
+    assert.equal(unread.connected, null);
+    assert.equal(unread.guestPct, null);
+    assert.equal(unread.connectedPct, null);
+    assert.equal(unread.total, null);
+    assert.deepEqual(loginPopulationShare(Number.NaN, -2), {
+      guests: 0,
+      connected: 0,
+      guestPct: 0,
+      connectedPct: 0,
+      total: 0,
+    });
+
+    const fn = readFileSync(new URL('./adminAnalytics.ts', import.meta.url), 'utf8');
+    const body = fn.slice(
+      fn.indexOf('export function loginPopulationShare'),
+      fn.indexOf('export function displayEmailHash'),
+    );
+    assert.equal(body.includes('cc_vid'), false);
+    assert.equal(body.includes('email'), false);
+    assert.equal(body.includes('user_key'), false);
   });
 });

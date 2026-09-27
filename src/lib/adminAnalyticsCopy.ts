@@ -144,6 +144,11 @@ export const KPI_COPY: Record<string, KpiCopy> = {
     glossary:
       'Comptes Google avec au moins une action Neon sur les 7 jours calendaires de Paris : enregistrement des goûts ou des signaux du compte, création d’un lien de partage, ou réponse Envie / J’y vais. Il n’y a pas de date de dernière connexion, donc un simple login n’est pas compté. Les ouvertures de lien ne sont pas rattachées à un compte. 0 = aucun compte dans ce cas. Si Neon ne répond pas, la carte affiche —.',
   },
+  '20': {
+    title: 'Connectés et non connectés',
+    glossary:
+      'Sur 7 jours Paris, deux populations indépendantes additionnées seulement comme base d’affichage : non connectés = visiteurs distincts sans compte (le même chiffre que les visiteurs distincts), connectés = comptes actifs 7 jours. Ce ne sont pas les mêmes personnes rapprochées. Base = non connectés + connectés. 0 et 0 donnent 0 / 0 (0 %). Si Neon ne répond pas, les pourcentages ne s’affichent pas.',
+  },
 };
 
 /** Display labels for guest action kinds — data keys unchanged. */
