@@ -25,6 +25,7 @@ import type {
   ProgrammeWithContext,
 } from './types';
 import { fillEmptyCineForm } from './formCine';
+import { buildFilmTagStore, fillEmptyWorkTags } from './filmTags';
 import { pressFieldDefaults } from './pressCitation';
 import { fillEmptyCatalogueImageUrl } from './sharePreviewImage';
 
@@ -104,28 +105,33 @@ export function loadFilms(): Film[] {
 }
 
 export function loadProgramme(): ProgrammeItem[] {
-  const rows = readCsv<ProgrammeItem>('programme.csv');
+  const raw = readCsv<ProgrammeItem>('programme.csv');
   // Official film_id from CSV only — do not invent from titre matching.
-  return rows.map((r) => ({
-    ...r,
-    artiste_id: r.artiste_id ?? '',
-    film_id: r.film_id ?? '',
-    description_item: r.description_item ?? '',
-    image_url: r.image_url ?? '',
-    billetterie_url: r.billetterie_url ?? '',
-    duree_min: r.duree_min ?? '',
-    public_cible: r.public_cible ?? '',
-    langue: r.langue ?? '',
-    scraped_at: r.scraped_at ?? '',
-    form: fillEmptyCineForm(r.form, r.film_id),
-    moods: r.moods ?? '',
-    mood_source: r.mood_source ?? '',
-    mood_confiance: r.mood_confiance ?? '',
-    genres_mood: r.genres_mood ?? '',
-    themes: r.themes ?? '',
-    entities: r.entities ?? '',
-    ...pressFieldDefaults(r),
-  }));
+  // Pass 1: one source line per film_id. Pass 2: fill-empty on each séance.
+  const store = buildFilmTagStore(raw);
+  return raw.map((r) => {
+    const base: ProgrammeItem = {
+      ...r,
+      artiste_id: r.artiste_id ?? '',
+      film_id: r.film_id ?? '',
+      description_item: r.description_item ?? '',
+      image_url: r.image_url ?? '',
+      billetterie_url: r.billetterie_url ?? '',
+      duree_min: r.duree_min ?? '',
+      public_cible: r.public_cible ?? '',
+      langue: r.langue ?? '',
+      scraped_at: r.scraped_at ?? '',
+      form: fillEmptyCineForm(r.form, r.film_id),
+      moods: r.moods ?? '',
+      mood_source: r.mood_source ?? '',
+      mood_confiance: r.mood_confiance ?? '',
+      genres_mood: r.genres_mood ?? '',
+      themes: r.themes ?? '',
+      entities: r.entities ?? '',
+      ...pressFieldDefaults(r),
+    };
+    return fillEmptyWorkTags(base, store);
+  });
 }
 
 export function loadGenresLegend(): GenreLegend[] {
