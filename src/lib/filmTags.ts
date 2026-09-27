@@ -8,8 +8,9 @@
  *   2. sinon, la meilleure ligne sœur de programme.csv (règle T1)
  *   3. sinon, rien
  *
- * NE PAS confondre avec l'héritage parent (P0) : la source sœur est une
- * AUTRE SÉANCE DU MÊME FILM (même film_id), jamais l'événement-saison.
+ * NE PAS confondre avec l'héritage de moods au matching : la source sœur
+ * est une AUTRE SÉANCE DU MÊME FILM (même film_id), jamais l'événement-saison.
+ * Le scoring lit les moods du parent à la volée ; ce magasin ne les copie pas.
  *
  * Une seule source par film_id — pas l'union des lignes sœurs, ni un
  * mélange films.csv + sœur.

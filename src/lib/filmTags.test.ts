@@ -193,7 +193,7 @@ describe('fillEmptyWorkTags', () => {
     assert.deepEqual(fromHighFirst, fromLowFirst);
   });
 
-  it('stays untagged when the season parent has moods and no sibling séance is tagged', () => {
+  it('does not copy season-parent moods into the work store', () => {
     const parentMoods =
       'rigolo|tendre|intense|angoissant|epique|brutal|festif|cerveau';
     const seance = row({
@@ -234,8 +234,9 @@ describe('fillEmptyWorkTags', () => {
       lieu: lieu(),
     };
     assert.equal(parentMoods.split('|').length, 8);
+    // Genres/themes stay off the film. Moods are visible to scoring only.
     assert.equal(itemInheritsParentClosedTags(day), false);
-    assert.equal(itemIsUntagged(day), true);
+    assert.equal(itemIsUntagged(day), false);
   });
 
   it('resolves the same source line when the input order changes', () => {
