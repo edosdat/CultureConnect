@@ -95,6 +95,17 @@ export function dateChipListGate(opts: {
   return { cataloguePending: true, clearStalePackTotals: true };
 }
 
+/**
+ * GET /api/agenda with no window, id, or scope runs the full « tous »
+ * catalogue (multi-second cold). Clients must pass one of those.
+ */
+export function agendaGetIsAddressed(params: URLSearchParams): boolean {
+  if ((params.get('window') || '').trim() === 'home') return true;
+  if ((params.get('id') || '').trim()) return true;
+  if ((params.get('scope') || '').trim()) return true;
+  return false;
+}
+
 export function buildAgendaParams(opts: AgendaParamsInput): URLSearchParams {
   const p = new URLSearchParams();
   p.set('scope', opts.scope);

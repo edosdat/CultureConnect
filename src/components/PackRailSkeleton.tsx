@@ -8,7 +8,7 @@ type Props = {
   showMore?: boolean;
 };
 
-/** Ciné / théâtre first-paint shells — 2-col cards, tinted photo, blur text. */
+/** List shell only. Image bytes never open or clear this rail. */
 export default function PackRailSkeleton({
   id,
   title,

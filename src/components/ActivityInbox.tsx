@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { requestOpenFiche } from './openFicheEvents';
+import EventImage from './EventImage';
 import {
   ACTIVITY_EMPTY,
   ACTIVITY_SHEET_SUB,
@@ -249,22 +250,20 @@ export default function ActivityInbox() {
                           }
                           aria-hidden
                         />
-                        {info?.image ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={info.image}
-                            alt=""
-                            className="h-10 w-10 shrink-0 rounded-lg object-cover"
-                          />
-                        ) : (
-                          <span
-                            className={
-                              'h-10 w-10 shrink-0 rounded-lg bg-gradient-to-br ' +
-                              THUMB_FALLBACKS[i % THUMB_FALLBACKS.length]
-                            }
-                            aria-hidden
-                          />
-                        )}
+                        <EventImage
+                          src={info?.image || ''}
+                          alt=""
+                          className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                          fallback={
+                            <span
+                              className={
+                                'h-10 w-10 shrink-0 rounded-lg bg-gradient-to-br ' +
+                                THUMB_FALLBACKS[i % THUMB_FALLBACKS.length]
+                              }
+                              aria-hidden
+                            />
+                          }
+                        />
                         <span className="min-w-0 flex-1">
                           <span
                             className={

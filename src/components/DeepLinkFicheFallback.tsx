@@ -8,6 +8,7 @@ import { formatDateFr } from '@/lib/labels';
 import { seanceTimeLabel } from '@/lib/eventTimes';
 import type { DayItem } from '@/lib/types';
 import HomeTop3BootFallback from './HomeTop3BootFallback';
+import EventImage from './EventImage';
 import type { OpenFicheSeed } from './openFicheEvents';
 
 /** Streaming share: fiche + photo first; catalogue hydrates behind. */
@@ -47,18 +48,16 @@ export default function DeepLinkFicheFallback({
         data-deeplink-fiche-boot=""
       >
         <div className="fiche mx-2 mb-2 max-h-[92vh] w-full max-w-2xl min-w-0 overflow-y-auto overflow-x-hidden rounded-xl border border-culture-line bg-white shadow-xl sm:mx-0 sm:mb-0 sm:rounded-3xl">
-          {photo ? (
-            <div className="hero relative h-40 overflow-hidden bg-culture-sand">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                className="absolute inset-0 h-full w-full object-cover"
-                src={photo}
-                alt=""
-              />
-            </div>
-          ) : (
-            <div className="hero h-40 animate-pulse bg-culture-sand/80" />
-          )}
+          <div className="hero relative h-40 overflow-hidden bg-culture-sand">
+            <EventImage
+              src={photo}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+              fallback={
+                <div className="absolute inset-0 animate-pulse bg-culture-sand/80" />
+              }
+            />
+          </div>
           <div className="fp min-w-0 break-words px-3 py-3 sm:px-5">
             {catLabel ? (
               <span
