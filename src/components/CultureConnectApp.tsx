@@ -53,6 +53,8 @@ import {
   leftoverSectionVisible,
   homePackShellVisible,
   homeSectionsVisible,
+  proposeSpectaclePlacement,
+  searchPackVisible,
   musiqueRows,
   deepLinkBootState,
   resolveHomeCardOpen,
@@ -90,6 +92,11 @@ import Top3GuestCta from './Top3GuestCta';
 import HomeSection from './HomeSection';
 import HomeAccroche from './HomeAccroche';
 import PackRailSkeleton from './PackRailSkeleton';
+import {
+  ProposeEmptyCard,
+  ProposeListFooter,
+  ProposeSpectacleSheet,
+} from './ProposeSpectacle';
 
 const EventDetail = dynamic(() => import('./EventDetail'), { ssr: false });
 const MonthCalendar = dynamic(() => import('./MonthCalendar'), { ssr: false });
@@ -550,6 +557,9 @@ export default function CultureConnectApp({
   const [catalogueReady, setCatalogueReady] = useState(
     () => initialItems.length > 0 || initialVivantItems.length > 0,
   );
+  /** Title query whose agenda list has landed (success or failure). */
+  const [settledSearchQ, setSettledSearchQ] = useState<string | null>(null);
+  const [proposeOpen, setProposeOpen] = useState(false);
   const [packMorePending, setPackMorePending] = useState<
     Partial<Record<LivingPackId | 'cine', boolean>>
   >({});
@@ -936,6 +946,7 @@ export default function CultureConnectApp({
     if (!append && data.nouveauFilmIds) {
       setNouveauFilmIdSet(new Set(data.nouveauFilmIds));
     }
+    if (!append) setSettledSearchQ(titleLeftover.trim());
     setCatalogueReady(true);
   }
 
@@ -1312,6 +1323,7 @@ export default function CultureConnectApp({
           if (cancelled || gen !== listFetchGen.current) return;
           if (!res.ok) {
             markDateChipListPending(timeScope);
+            setSettledSearchQ(titleLeftover.trim());
             return;
           }
           const data = (await res.json()) as AgendaListResponse;
@@ -1321,6 +1333,7 @@ export default function CultureConnectApp({
           if (cancelled || gen !== listFetchGen.current) return;
           // Date chips stay pending. « tous » keeps the previous window.
           markDateChipListPending(timeScope);
+          setSettledSearchQ(titleLeftover.trim());
         } finally {
           stopListSlowWatch(gen);
           if (!cancelled && gen === listFetchGen.current) {
@@ -1733,20 +1746,31 @@ export default function CultureConnectApp({
   const musiqueCount = allMusiqueRows.length;
   const enfantsCount = allEnfantsRows.length;
   const expoCount = allExpoRows.length;
-  const showCineBlock = homePackShellVisible({
-    sectionAllowed: sectionVis.cine,
-    rowCount: visibleCineRows.length,
-    packTotal: dateChipPending ? 0 : cineTotal,
-    cataloguePending: dateChipPending || !catalogueReady,
-    phraseDateClash,
-  });
-  const showTheatreBlock = homePackShellVisible({
-    sectionAllowed: sectionVis.theatre,
-    rowCount: visibleTheatreRows.length,
-    packTotal: dateChipPending ? 0 : theatreTotal,
-    cataloguePending: dateChipPending || !catalogueReady,
-    phraseDateClash,
-  });
+  const searchPackOnly = searchingUi && !phraseDateClash;
+  const showCineBlock = searchPackOnly
+    ? searchPackVisible({
+        sectionAllowed: sectionVis.cine,
+        rowCount: visibleCineRows.length,
+      })
+    : homePackShellVisible({
+        sectionAllowed: sectionVis.cine,
+        rowCount: visibleCineRows.length,
+        packTotal: dateChipPending ? 0 : cineTotal,
+        cataloguePending: dateChipPending || !catalogueReady,
+        phraseDateClash,
+      });
+  const showTheatreBlock = searchPackOnly
+    ? searchPackVisible({
+        sectionAllowed: sectionVis.theatre,
+        rowCount: visibleTheatreRows.length,
+      })
+    : homePackShellVisible({
+        sectionAllowed: sectionVis.theatre,
+        rowCount: visibleTheatreRows.length,
+        packTotal: dateChipPending ? 0 : theatreTotal,
+        cataloguePending: dateChipPending || !catalogueReady,
+        phraseDateClash,
+      });
   const showMusiqueBlock =
     sectionVis.musique &&
     visibleMusiqueRows.length > 0 &&
@@ -1797,6 +1821,27 @@ export default function CultureConnectApp({
     searching,
     titleLeftover,
   ]);
+  const searchResultCount =
+    visibleCineRows.length +
+    visibleTheatreRows.length +
+    visibleMusiqueRows.length +
+    visibleEnfantsRows.length +
+    visibleExpoRows.length +
+    leftoverRows.length;
+  const proposePlace = proposeSpectaclePlacement({
+    query: titleLeftover,
+    settled: settledSearchQ === titleLeftover.trim(),
+    resultCount: searchResultCount,
+    phraseDateClash,
+  });
+  function openProposeFlow() {
+    if (authStatus === 'loading') return;
+    if (authStatus !== 'authenticated') {
+      void signIn('google', { callbackUrl: '/' });
+      return;
+    }
+    setProposeOpen(true);
+  }
   const crossSellPool = useMemo(
     () => [
       ...allTheatreRows.map((row) => row.item),
@@ -2673,12 +2718,21 @@ export default function CultureConnectApp({
         ) : null}
         </div>
 
+        {proposePlace === 'empty' ? (
+          <ProposeEmptyCard
+            signedIn={authStatus === 'authenticated'}
+            onPropose={openProposeFlow}
+          />
+        ) : null}
+
         {listEmpty &&
         !showCineBlock &&
         !showTheatreBlock &&
         !showMusiqueBlock &&
         !showEnfantsBlock &&
-        !showExpoBlock ? (
+        !showExpoBlock &&
+        proposePlace !== 'empty' &&
+        !(searchingUi && !phraseDateClash) ? (
           phraseMode || searchingUi ? (
             <div className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-6 py-8 text-center">
               <p className="font-display text-xl text-culture-ink">
@@ -3021,6 +3075,10 @@ export default function CultureConnectApp({
           </HomeSection>
         ) : null}
 
+        {proposePlace === 'footer' ? (
+          <ProposeListFooter onPropose={openProposeFlow} />
+        ) : null}
+
         {listSlowWhere === 'bottom' ? (
           <div
             className="pointer-events-none flex justify-center"
@@ -3030,10 +3088,20 @@ export default function CultureConnectApp({
           </div>
         ) : null}
 
-        <LoginNudge />
+        {proposePlace === 'empty' ? null : <LoginNudge />}
       </div>
 
       <TastesOverlayHost />
+
+      <ProposeSpectacleSheet
+        open={proposeOpen}
+        query={titleLeftover.trim()}
+        onClose={() => setProposeOpen(false)}
+        onNeedAuth={() => {
+          setProposeOpen(false);
+          void signIn('google', { callbackUrl: '/' });
+        }}
+      />
 
       {selectedItem ? (
         <EventDetail

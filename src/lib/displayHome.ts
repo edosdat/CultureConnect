@@ -843,6 +843,38 @@ export function homePackShellVisible(opts: {
 }
 
 /**
+ * Title search: a pack shows only when it has matching cards.
+ * Home-pack skeletons (pending shell / stale totals) stay on the unqueried home.
+ */
+export function searchPackVisible(opts: {
+  sectionAllowed: boolean;
+  rowCount: number;
+}): boolean {
+  return opts.sectionAllowed && opts.rowCount > 0;
+}
+
+export type ProposeSpectaclePlace = 'hidden' | 'empty' | 'footer';
+
+/**
+ * Active title search only.
+ * 0 hits (once the list for this query has settled) → invitation.
+ * ≥1 hit → discrete footer after the result cards.
+ * No query, or a phrase/date clash, → no CTA.
+ */
+export function proposeSpectaclePlacement(opts: {
+  query: string;
+  settled: boolean;
+  resultCount: number;
+  phraseDateClash?: boolean;
+}): ProposeSpectaclePlace {
+  if (!(opts.query || '').trim()) return 'hidden';
+  if (opts.phraseDateClash) return 'hidden';
+  if (opts.resultCount > 0) return 'footer';
+  if (opts.settled) return 'empty';
+  return 'hidden';
+}
+
+/**
  * Look up a card by agenda key (`p:…` / `e:…`) across in-memory pools.
  * Pass the full Top 3 / reco catalogue first — never only the QUOI-filtered
  * grid (`applyList` / cine rows). Same key as `?e=` / `/api/agenda?id=`.

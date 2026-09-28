@@ -112,6 +112,12 @@ export default function ConfidentialitePage() {
           tout effacer via le bouton «&nbsp;Supprimer mon compte&nbsp;»
           ci-dessous.
         </p>
+        <p>
+          <span className="font-medium">Proposition.</span> Tu peux proposer un
+          spectacle manquant. On garde le titre, le lieu, la date et le lien le
+          temps de vérifier. Ça n’entre pas dans l’agenda tant qu’on n’a pas
+          vérifié. Supprimer le compte retire aussi ces propositions.
+        </p>
       </div>
 
       <DeleteAccountButton />
