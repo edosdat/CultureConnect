@@ -12,6 +12,16 @@ import { normalizeCommune } from './commune';
  */
 export const GUEST_BOOT_RECO_SSR_BUDGET_MS = 200;
 
+/**
+ * Cold fill waits this long before `recommendForProfile`.
+ * That work is synchronous, so a timer cannot preempt it. Yielding past the
+ * SSR budget lets homepage HTML return; the fill then finishes via `after`
+ * or the guest POST. Cache hits do not run the fill.
+ */
+export function guestBootRecoFillDelayMs(eager: boolean): number {
+  return eager ? 0 : GUEST_BOOT_RECO_SSR_BUDGET_MS + 50;
+}
+
 /** Boot scope whose guest populaire Top 3 is cached. Profile reco stays live. */
 export const GUEST_BOOT_RECO_SCOPE = 'tous' as const;
 

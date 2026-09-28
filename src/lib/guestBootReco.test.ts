@@ -6,6 +6,8 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import {
+  GUEST_BOOT_RECO_SSR_BUDGET_MS,
+  guestBootRecoFillDelayMs,
   isGuestBootRecoRequest,
   shouldSkipGuestBootRecoPost,
   withDeadline,
@@ -118,6 +120,13 @@ describe('guest boot reco predicates', () => {
 });
 
 describe('guest boot reco SSR budget', () => {
+  it('yields a cold fill past the budget and lets an eager POST compute immediately', () => {
+    assert.equal(guestBootRecoFillDelayMs(true), 0);
+    assert.ok(
+      guestBootRecoFillDelayMs(false) > GUEST_BOOT_RECO_SSR_BUDGET_MS,
+    );
+  });
+
   it('returns a cache hit without waiting out the budget', async () => {
     const started = Date.now();
     const value = await withDeadline(Promise.resolve('cards'), 200, 'empty');
@@ -206,6 +215,8 @@ describe('guest boot reco wiring', () => {
     assert.match(query, /guest-boot-reco-v1/);
     assert.match(query, /attachGuestBootReco/);
     assert.match(query, /GUEST_BOOT_RECO_SSR_BUDGET_MS/);
+    assert.match(query, /guestBootRecoFillDelayMs/);
+    assert.match(query, /eager: true/);
     assert.match(query, /function demoteChainFor/);
     assert.match(query, /export async function queryAgendaReco/);
     assert.match(query, /home-first-paint-v3/);

@@ -91,6 +91,7 @@ import { normalizeDeepLinkId } from './deepLink';
 import { agendaListCacheKeyParts } from './agendaParams';
 import {
   GUEST_BOOT_RECO_SSR_BUDGET_MS,
+  guestBootRecoFillDelayMs,
   isGuestBootRecoRequest,
   withDeadline,
 } from './guestBootReco';
@@ -1442,14 +1443,23 @@ const guestBootRecoInflight = new Map<string, Promise<AgendaListResponse>>();
  */
 export function loadGuestBootReco(
   now = new Date(),
+  opts?: { eager?: boolean },
 ): Promise<AgendaListResponse> {
   const day = parisParts(now).iso;
   const pending = guestBootRecoInflight.get(day);
   if (pending) return pending;
+  // Captured per call. SSR stays non-eager so a miss yields past the budget.
+  // The guest POST passes eager and computes immediately.
+  const delayMs = guestBootRecoFillDelayMs(Boolean(opts?.eager));
   let work: Promise<AgendaListResponse>;
   try {
     work = unstable_cache(
-      async () => computeGuestBootReco(new Date()),
+      async () => {
+        if (delayMs > 0) {
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+        return computeGuestBootReco(new Date());
+      },
       ['guest-boot-reco-v1', day, 'tous', 'Toulouse'],
       { revalidate: 300 },
     )();
@@ -1494,8 +1504,9 @@ function keepGuestBootRecoAlive(work: Promise<unknown>): void {
 
 /**
  * Attach cached guest Top 3 onto an already-built first paint.
- * Cache hit: cards land in the RSC payload. Cache miss: return within
- * `budgetMs` and let the fill finish via `after` / the guest POST.
+ * Cache hit: cards land in the RSC payload. Cache miss: the fill yields
+ * past `budgetMs` (sync reco cannot be preempted), HTML returns without
+ * Top 3, and `after` / the guest POST finish the cache write.
  */
 export async function attachGuestBootReco(
   boot: HomeWindow,
@@ -1543,7 +1554,7 @@ export async function queryAgendaReco(
       selectedDate: input.selectedDate,
     })
   ) {
-    return loadGuestBootReco(now);
+    return loadGuestBootReco(now, { eager: true });
   }
   return queryAgenda(input, now);
 }
