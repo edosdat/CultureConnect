@@ -25,6 +25,7 @@ import {
   relatedSeancesFilter,
 } from '@/lib/displayFilter';
 import { densify, densifiedCardCount, type DenseRow } from '@/lib/densify';
+import { formatSectionBadge, sectionSlotQueryKey } from '@/lib/sectionBadge';
 import { appendOnlyStripRows } from '@/lib/carouselSelect';
 import { filmIdOfItem, homePackOfItem, isCinemaDayItem } from '@/lib/nouveautesCine';
 import {
@@ -199,6 +200,12 @@ type Props = {
         musiqueTotal?: number;
         enfantsTotal?: number;
         expoTotal?: number;
+        cineSlotTotal?: number;
+        theatreSlotTotal?: number;
+        musiqueSlotTotal?: number;
+        enfantsSlotTotal?: number;
+        expoSlotTotal?: number;
+        autresSlotTotal?: number;
       }
     >
   >;
@@ -214,6 +221,12 @@ type Props = {
   initialMusiqueTotal?: number;
   initialEnfantsTotal?: number;
   initialExpoTotal?: number;
+  initialCineSlotTotal?: number;
+  initialTheatreSlotTotal?: number;
+  initialMusiqueSlotTotal?: number;
+  initialEnfantsSlotTotal?: number;
+  initialExpoSlotTotal?: number;
+  initialAutresSlotTotal?: number;
 };
 
 type RecoKind = 'guest' | 'profile' | 'wiped' | 'pending';
@@ -363,6 +376,12 @@ export default function CultureConnectApp({
   initialMusiqueTotal = 0,
   initialEnfantsTotal = 0,
   initialExpoTotal = 0,
+  initialCineSlotTotal = 0,
+  initialTheatreSlotTotal = 0,
+  initialMusiqueSlotTotal = 0,
+  initialEnfantsSlotTotal = 0,
+  initialExpoSlotTotal = 0,
+  initialAutresSlotTotal = 0,
 }: Props) {
   const { track, trackItem, rememberItem, tasteState, sessionStatus } =
     useSignals();
@@ -473,6 +492,52 @@ export default function CultureConnectApp({
   const [musiqueTotal, setMusiqueTotal] = useState(initialMusiqueTotal);
   const [enfantsTotal, setEnfantsTotal] = useState(initialEnfantsTotal);
   const [expoTotal, setExpoTotal] = useState(initialExpoTotal);
+  const [cineSlotTotal, setCineSlotTotal] = useState(initialCineSlotTotal);
+  const [theatreSlotTotal, setTheatreSlotTotal] = useState(initialTheatreSlotTotal);
+  const [musiqueSlotTotal, setMusiqueSlotTotal] = useState(initialMusiqueSlotTotal);
+  const [enfantsSlotTotal, setEnfantsSlotTotal] = useState(initialEnfantsSlotTotal);
+  const [expoSlotTotal, setExpoSlotTotal] = useState(initialExpoSlotTotal);
+  const [autresSlotTotal, setAutresSlotTotal] = useState(initialAutresSlotTotal);
+  const bootSlotKey = sectionSlotQueryKey({
+    scope: initialScope,
+    commune: 'Toulouse',
+  });
+  const [slotTotalsKey, setSlotTotalsKey] = useState(bootSlotKey);
+  function applySlotTotals(
+    data: {
+      cineSlotTotal?: number;
+      theatreSlotTotal?: number;
+      musiqueSlotTotal?: number;
+      enfantsSlotTotal?: number;
+      expoSlotTotal?: number;
+      autresSlotTotal?: number;
+    },
+    key: string,
+  ) {
+    const hasSlot =
+      typeof data.cineSlotTotal === 'number' ||
+      typeof data.theatreSlotTotal === 'number' ||
+      typeof data.musiqueSlotTotal === 'number' ||
+      typeof data.enfantsSlotTotal === 'number' ||
+      typeof data.expoSlotTotal === 'number' ||
+      typeof data.autresSlotTotal === 'number';
+    if (!hasSlot) return;
+    if (typeof data.cineSlotTotal === 'number') setCineSlotTotal(data.cineSlotTotal);
+    if (typeof data.theatreSlotTotal === 'number') {
+      setTheatreSlotTotal(data.theatreSlotTotal);
+    }
+    if (typeof data.musiqueSlotTotal === 'number') {
+      setMusiqueSlotTotal(data.musiqueSlotTotal);
+    }
+    if (typeof data.enfantsSlotTotal === 'number') {
+      setEnfantsSlotTotal(data.enfantsSlotTotal);
+    }
+    if (typeof data.expoSlotTotal === 'number') setExpoSlotTotal(data.expoSlotTotal);
+    if (typeof data.autresSlotTotal === 'number') {
+      setAutresSlotTotal(data.autresSlotTotal);
+    }
+    setSlotTotalsKey(key);
+  }
   const [cineExpanded, setCineExpanded] = useState(false);
   const [cineLimit, setCineLimit] = useState(() => cineFirstPaint(false));
   const [theatreLimit, setTheatreLimit] = useState(HOME_PACK_WIRE_CAP);
@@ -557,6 +622,10 @@ export default function CultureConnectApp({
       if (typeof data.musiqueTotal === 'number') setMusiqueTotal(data.musiqueTotal);
       if (typeof data.enfantsTotal === 'number') setEnfantsTotal(data.enfantsTotal);
       if (typeof data.expoTotal === 'number') setExpoTotal(data.expoTotal);
+      applySlotTotals(
+        data,
+        sectionSlotQueryKey({ scope: initialScope, commune: 'Toulouse' }),
+      );
       if (typeof data.total === 'number') setTotal(data.total);
       if (typeof data.densifiedTotal === 'number') {
         setDensifiedTotalApi(data.densifiedTotal);
@@ -808,6 +877,20 @@ export default function CultureConnectApp({
         (phraseTags?.date_to && phraseTags.date_to < scopeRange.startIso)),
   );
 
+  const liveSlotKey = sectionSlotQueryKey({
+    scope: timeScope,
+    day: selectedDay,
+    year,
+    month,
+    commune: selectedCommune,
+    lieuId: selectedLieuId,
+    categories: selectedCategories,
+    genres: selectedGenres,
+    title: titleLeftover,
+    phrase: phraseScopeKey,
+  });
+  const slotTotalsLive = slotTotalsKey === liveSlotKey;
+
   function applyList(data: AgendaListResponse, append = false) {
     setListItems((prev) => (append ? [...prev, ...data.items] : data.items));
     if (!append) {
@@ -828,6 +911,7 @@ export default function CultureConnectApp({
       if (typeof data.musiqueTotal === 'number') setMusiqueTotal(data.musiqueTotal);
       if (typeof data.enfantsTotal === 'number') setEnfantsTotal(data.enfantsTotal);
       if (typeof data.expoTotal === 'number') setExpoTotal(data.expoTotal);
+      applySlotTotals(data, liveSlotKey);
       setTotal(data.total);
       setDensifiedTotalApi(data.densifiedTotal);
       if (typeof data.csvEvents === 'number') setCsvEvents(data.csvEvents);
@@ -1557,7 +1641,7 @@ export default function CultureConnectApp({
     [isGuestReco, tasteState, timeScope, selectedCommune],
   );
 
-  /** Same unique-film set as the Ciné strip — never Toulouse-wide cineTotal. */
+  /** Densified cards on the Ciné strip (voir tout). The public badge uses cineSlotTotal. */
   const cineCount = allCineRows.length;
 
   useEffect(() => {
@@ -2014,6 +2098,21 @@ export default function CultureConnectApp({
         if (typeof snap.musiqueTotal === 'number') setMusiqueTotal(snap.musiqueTotal);
         if (typeof snap.enfantsTotal === 'number') setEnfantsTotal(snap.enfantsTotal);
         if (typeof snap.expoTotal === 'number') setExpoTotal(snap.expoTotal);
+        applySlotTotals(
+          snap,
+          sectionSlotQueryKey({
+            scope,
+            day:
+              scope === 'date'
+                ? selectedDay || initialParisIso
+                : scope === 'aujourdhui' || scope === 'soir'
+                  ? initialParisIso
+                  : null,
+            year,
+            month,
+            commune: 'Toulouse',
+          }),
+        );
         setTotal(snap.total);
         setDensifiedTotalApi(snap.densifiedTotal);
         setVenueOptions(snap.venues ?? []);
@@ -2039,6 +2138,17 @@ export default function CultureConnectApp({
         setMusiqueTotal(initialMusiqueTotal);
         setEnfantsTotal(initialEnfantsTotal);
         setExpoTotal(initialExpoTotal);
+        applySlotTotals(
+          {
+            cineSlotTotal: initialCineSlotTotal,
+            theatreSlotTotal: initialTheatreSlotTotal,
+            musiqueSlotTotal: initialMusiqueSlotTotal,
+            enfantsSlotTotal: initialEnfantsSlotTotal,
+            expoSlotTotal: initialExpoSlotTotal,
+            autresSlotTotal: initialAutresSlotTotal,
+          },
+          bootSlotKey,
+        );
         setTotal(initialTotal);
         setDensifiedTotalApi(initialDensifiedTotal);
         setVenueOptions(initialVenues);
@@ -2120,13 +2230,23 @@ export default function CultureConnectApp({
     void requestBrowserPosition().then((result) => {
       if (cancelled) return;
       // Keep the painted list/order. Do not refetch agenda with commune=null.
+      // Slot totals stay the Toulouse inventory already on screen.
       skipListFetchBootGps.current = true;
-      applyNearMeState(nearMeFromBoot(result));
+      const next = nearMeFromBoot(result);
+      if (next.commune !== 'Toulouse') {
+        setSlotTotalsKey(
+          sectionSlotQueryKey({
+            scope: initialScope,
+            commune: next.commune,
+          }),
+        );
+      }
+      applyNearMeState(next);
     });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialScope]);
 
   function handleNearMeToggle() {
     if (nearMePending) return;
@@ -2212,6 +2332,57 @@ export default function CultureConnectApp({
     (selectedLieuId ? 1 : 0) +
     (selectedCommune !== 'Toulouse' ? 1 : 0) +
     (nearMeActive ? 1 : 0);
+
+  const badgeDayIso =
+    timeScope === 'date'
+      ? selectedDay ||
+        (scopeRange.startIso === scopeRange.endIso ? scopeRange.startIso : null)
+      : null;
+  const badgeMonthIso =
+    timeScope === 'date' && !badgeDayIso ? scopeRange.startIso : null;
+  const visibleSlotCount = (count: number) => (slotTotalsLive ? count : 0);
+  const cineBadge = formatSectionBadge({
+    count: visibleSlotCount(cineSlotTotal),
+    unit: 'seance',
+    scope: timeScope,
+    dayIso: badgeDayIso,
+    monthIso: badgeMonthIso,
+  });
+  const theatreBadge = formatSectionBadge({
+    count: visibleSlotCount(theatreSlotTotal),
+    unit: 'sortie',
+    scope: timeScope,
+    dayIso: badgeDayIso,
+    monthIso: badgeMonthIso,
+  });
+  const musiqueBadge = formatSectionBadge({
+    count: visibleSlotCount(musiqueSlotTotal),
+    unit: 'sortie',
+    scope: timeScope,
+    dayIso: badgeDayIso,
+    monthIso: badgeMonthIso,
+  });
+  const enfantsBadge = formatSectionBadge({
+    count: visibleSlotCount(enfantsSlotTotal),
+    unit: 'sortie',
+    scope: timeScope,
+    dayIso: badgeDayIso,
+    monthIso: badgeMonthIso,
+  });
+  const expoBadge = formatSectionBadge({
+    count: visibleSlotCount(expoSlotTotal),
+    unit: 'sortie',
+    scope: timeScope,
+    dayIso: badgeDayIso,
+    monthIso: badgeMonthIso,
+  });
+  const autresBadge = formatSectionBadge({
+    count: visibleSlotCount(autresSlotTotal),
+    unit: 'sortie',
+    scope: timeScope,
+    dayIso: badgeDayIso,
+    monthIso: badgeMonthIso,
+  });
 
   return (
     <div className="mx-auto max-w-7xl min-w-0 overflow-x-hidden px-4 pb-16 pt-3 sm:px-6 sm:pt-6">
@@ -2519,7 +2690,7 @@ export default function CultureConnectApp({
             title="Ciné"
             accentVar={PACK_CAT_CSS_VAR.cine}
             count={cineCount}
-            hideCount={!showAdminCounts}
+            badge={cineBadge}
             shown={visibleCineRows.length}
             expanded={
               cineLimit >= cineCount && listItems.length >= total
@@ -2580,7 +2751,7 @@ export default function CultureConnectApp({
                 title="Théâtre & spectacle vivant"
                 accentVar={PACK_CAT_CSS_VAR.theatre}
                 count={theatreCount}
-                hideCount={!showAdminCounts}
+                badge={theatreBadge}
                 shown={visibleTheatreRows.length}
                 expanded={
                   theatreLimit >= frozenTheatreRows.length &&
@@ -2629,7 +2800,7 @@ export default function CultureConnectApp({
                 title="Musique"
                 accentVar={PACK_CAT_CSS_VAR.musique}
                 count={musiqueCount}
-                hideCount={!showAdminCounts}
+                badge={musiqueBadge}
                 shown={visibleMusiqueRows.length}
                 expanded={
                   musiqueLimit >= frozenMusiqueRows.length &&
@@ -2677,7 +2848,7 @@ export default function CultureConnectApp({
             title="Enfants"
             accentVar={PACK_CAT_CSS_VAR.enfants}
             count={enfantsCount}
-            hideCount={!showAdminCounts}
+            badge={enfantsBadge}
             shown={visibleEnfantsRows.length}
             expanded={
               enfantsLimit >= frozenEnfantsRows.length &&
@@ -2722,7 +2893,7 @@ export default function CultureConnectApp({
             title="Expos"
             accentVar={PACK_CAT_CSS_VAR.expo}
             count={expoCount}
-            hideCount={!showAdminCounts}
+            badge={expoBadge}
             shown={visibleExpoRows.length}
             expanded={
               expoLimit >= frozenExpoRows.length &&
@@ -2766,7 +2937,7 @@ export default function CultureConnectApp({
             id="autres"
             title="Aussi"
             count={leftoverRows.length}
-            hideCount={!showAdminCounts}
+            badge={autresBadge}
             shown={leftoverRows.length}
           >
             <SeanceGrid

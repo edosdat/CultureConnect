@@ -202,6 +202,12 @@ async function HomePageApp({
         initialMusiqueTotal={boot.musiqueTotal ?? 0}
         initialEnfantsTotal={boot.enfantsTotal ?? 0}
         initialExpoTotal={boot.expoTotal ?? 0}
+        initialCineSlotTotal={boot.cineSlotTotal ?? 0}
+        initialTheatreSlotTotal={boot.theatreSlotTotal ?? 0}
+        initialMusiqueSlotTotal={boot.musiqueSlotTotal ?? 0}
+        initialEnfantsSlotTotal={boot.enfantsSlotTotal ?? 0}
+        initialExpoSlotTotal={boot.expoSlotTotal ?? 0}
+        initialAutresSlotTotal={boot.autresSlotTotal ?? 0}
       />
     </main>
   );

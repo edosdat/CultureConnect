@@ -24,6 +24,7 @@ import {
   isLivingArtsRelatedSeance,
   takeUniqueWorkItems,
 } from './densify';
+import { sectionSlotTotals } from './sectionBadge';
 import {
   countItemsByDay,
   itemsForDateRange,
@@ -1241,6 +1242,9 @@ function assembleListFromItems(
   const venues = venuesFromWindow(items, input.lieuId);
   const genreSlugs =
     input.cats.length > 0 ? genreSlugsFromItems(items) : [];
+  const slots = sectionSlotTotals(items, {
+    enfantsChip: input.cats.includes('enfants_famille'),
+  });
 
   return {
     scope: input.scope,
@@ -1267,6 +1271,7 @@ function assembleListFromItems(
     musiqueTotal,
     enfantsTotal,
     expoTotal,
+    ...slots,
   };
 }
 
@@ -1292,6 +1297,12 @@ export type ScopeListSnapshot = {
   musiqueTotal?: number;
   enfantsTotal?: number;
   expoTotal?: number;
+  cineSlotTotal?: number;
+  theatreSlotTotal?: number;
+  musiqueSlotTotal?: number;
+  enfantsSlotTotal?: number;
+  expoSlotTotal?: number;
+  autresSlotTotal?: number;
 };
 
 export type ListByScope = Partial<Record<RecoBootScope, ScopeListSnapshot>>;
@@ -1390,6 +1401,7 @@ function assembleHomeFirstPaint(
     musiqueTotal: densifiedCardCount(musiqueAll),
     enfantsTotal: densifiedCardCount(enfantsAll),
     expoTotal: densifiedCardCount(expoAll),
+    ...sectionSlotTotals(items),
   };
 }
 
@@ -1616,7 +1628,7 @@ export async function loadHomeFirstPaint(
   const day = parisParts(now).iso;
   const boot = await unstable_cache(
     async () => computeHomeFirstPaint(new Date()),
-    ['home-first-paint-v3', day],
+    ['home-first-paint-v4', day],
     { revalidate: 300 },
   )();
   return attachGuestBootReco(boot, now);
@@ -1683,7 +1695,7 @@ export async function loadHomeWindow(
   const day = parisParts(now).iso;
   return unstable_cache(
     async () => computeHomeWindow(new Date()),
-    ['home-window-slim-v3', day],
+    ['home-window-slim-v4', day],
     { revalidate: 300 },
   )();
 }

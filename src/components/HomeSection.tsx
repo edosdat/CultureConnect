@@ -17,8 +17,11 @@ type Props = {
   shown: number;
   onSeeAll?: () => void;
   expanded?: boolean;
-  /** Public: hide "N sorties". Admin debug keeps the number. */
-  hideCount?: boolean;
+  /**
+   * Public inventory line, e.g. « 12 séances ce soir ».
+   * Empty or omitted hides the badge (including a zero count).
+   */
+  badge?: string | null;
   /** S8 `--cat-*` token — H2 underline + S8b section contour (pack rails). */
   accentVar?: string;
   children: ReactNode;
@@ -32,13 +35,19 @@ export default function HomeSection({
   shown,
   onSeeAll,
   expanded = false,
-  hideCount = false,
+  badge = null,
   accentVar = HOME_SECTION_TITLE_ACCENT_VAR,
   children,
   className = '',
 }: Props) {
   const canSeeAll = Boolean(onSeeAll) && count > shown && !expanded;
-  const showMeta = !hideCount || canSeeAll;
+  const badgeText = (badge || '').trim();
+  const showBadge = badgeText.length > 0;
+  const badgeSplit = badgeText.indexOf(' ');
+  const badgeCount =
+    badgeSplit > 0 ? badgeText.slice(0, badgeSplit) : badgeText;
+  const badgeRest = badgeSplit > 0 ? badgeText.slice(badgeSplit) : '';
+  const showMeta = showBadge || canSeeAll;
   const frameClass = homeSectionFrameClass(accentVar);
   const frameStyle = homeSectionFrameStyle(accentVar);
   return (
@@ -62,12 +71,12 @@ export default function HomeSection({
         </h2>
         {showMeta ? (
           <div className="flex items-center gap-3 text-sm">
-            {hideCount ? null : (
-              <span className="text-culture-muted">
-                <span className="font-medium text-culture-ink">{count}</span>
-                {count <= 1 ? ' sortie' : ' sorties'}
+            {showBadge ? (
+              <span className="text-culture-muted" data-section-badge="">
+                <span className="font-medium text-culture-ink">{badgeCount}</span>
+                {badgeRest}
               </span>
-            )}
+            ) : null}
             {canSeeAll ? (
               <button
                 type="button"
