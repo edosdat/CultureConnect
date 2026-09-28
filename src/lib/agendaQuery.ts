@@ -84,6 +84,7 @@ import {
   recommendForProfile,
   resolvedFormOfItem,
   slotFormOfItem,
+  workIdOf,
 } from './reco';
 import type { TasteEntry, TasteProfile } from './signals';
 import { normalizeDeepLinkId } from './deepLink';
@@ -786,6 +787,274 @@ function withRecoTags(item: DayItem): DayItem {
   return withTasteTags(slimDayItem(item), item);
 }
 
+const EMPTY_WORK_IDS: ReadonlySet<string> = new Set();
+
+/**
+ * Plafond produit : +120 ms ajoutés sur scope=tous, profil chargé.
+ * Mesure 2026-09-28, 25 profils banc, lundi 28/09 10:00 Paris, après échauffement :
+ * chaîne complète (soir + aujourd'hui + week-end + semaine) — médiane 136,3 ms, max 161,0 ms.
+ * Au-dessus du plafond. Arbitrage : semaine et tous ne démotent qu'aujourd'hui
+ * (l'essentiel du gain variété du banc 1). Aujourd'hui continue de démoter ce soir ;
+ * le week-end garde sa règle (aujourd'hui seulement si le jour Paris est dans le week-end).
+ * Mesure après arbitrage (deux passages) : médiane ~63 ms, max observé 70 ms.
+ */
+const DEMOTE_FULL_CHAIN = false;
+
+/** Durée de la dernière chaîne (ms), hors recommend de la fenêtre servie. */
+export let lastDemoteChainMs = 0;
+
+/**
+ * Point d'appel unique de recommendForProfile pour le Top 3.
+ * Fenêtre servie, repli `tous` et fenêtres étroites passent par ici.
+ */
+export const agendaRecommend: {
+  forProfile: typeof recommendForProfile;
+} = {
+  forProfile: recommendForProfile,
+};
+
+export type AgendaRecoTraceHit = {
+  role: 'narrow' | 'window' | 'fallback';
+  scope: TimeScopeId;
+  demoteWorkIds: ReadonlySet<string>;
+};
+
+let agendaRecoTrace: AgendaRecoTraceHit[] | null = null;
+
+/** Compteur de test : aucun effet tant qu'il n'est pas armé. */
+export function traceAgendaRecoForTests(): AgendaRecoTraceHit[] {
+  const buf: AgendaRecoTraceHit[] = [];
+  agendaRecoTrace = buf;
+  return buf;
+}
+
+export function stopAgendaRecoTraceForTests(): void {
+  agendaRecoTrace = null;
+}
+
+type DemoteCtx = {
+  input: AgendaQueryInput;
+  profile: TasteProfile;
+  now: Date;
+  /** Séances encore à venir de la fenêtre servie, aujourd'hui inclus. */
+  windowPool: DayItem[];
+  nouveauIds: ReadonlySet<string>;
+  demoteByKey: Map<string, ReadonlySet<string>>;
+  retainedByKey: Map<string, ReadonlySet<string>>;
+};
+
+function profileMemoKey(profile: TasteProfile): string {
+  const chunks: string[] = [];
+  const bucket = (
+    name: string,
+    rec: Record<string, { weight: number; pct: number }> | undefined,
+  ) => {
+    for (const k of Object.keys(rec ?? {}).sort()) {
+      const entry = rec![k];
+      chunks.push(`${name}:${k}:${entry?.weight ?? 0}:${entry?.pct ?? 0}`);
+    }
+  };
+  bucket('cats', profile.cats);
+  bucket('moods', profile.moods);
+  bucket('genres', profile.genres);
+  bucket('themes', profile.themes);
+  for (const k of Object.keys(profile.communes ?? {}).sort()) {
+    chunks.push(`commune:${k}:${profile.communes[k] ?? 0}`);
+  }
+  return chunks.join('|');
+}
+
+function demoteMemoKey(scope: TimeScopeId, profile: TasteProfile): string {
+  return `${scope}\0${profileMemoKey(profile)}`;
+}
+
+/** Ven / Sam / Dim : aujourd'hui est dans le week-end (weekendRange). */
+function parisTodayInWeekend(now: Date): boolean {
+  const { weekday } = parisParts(now);
+  return weekday === 0 || weekday === 5 || weekday === 6;
+}
+
+function predecessorScopes(scope: TimeScopeId, now: Date): readonly TimeScopeId[] {
+  if (!DEMOTE_FULL_CHAIN && (scope === 'semaine' || scope === 'tous')) {
+    return ['aujourdhui'];
+  }
+  switch (scope) {
+    case 'soir':
+    case 'date':
+      return [];
+    case 'aujourdhui':
+      return ['soir'];
+    case 'weekend':
+      return parisTodayInWeekend(now) ? ['aujourdhui'] : [];
+    case 'semaine':
+      return ['soir', 'aujourdhui', 'weekend'];
+    case 'tous':
+      return ['soir', 'aujourdhui', 'weekend', 'semaine'];
+    default:
+      return [];
+  }
+}
+
+/** Sous-ensemble du pool déjà chargé : même commune, mêmes filtres reco. */
+function itemsInScope(
+  items: DayItem[],
+  scope: TimeScopeId,
+  input: AgendaQueryInput,
+  now: Date,
+): DayItem[] {
+  if (scope === 'tous') return items;
+  const range = resolveScopeRange(
+    scope,
+    scope === 'date' ? input.selectedDate : null,
+    now,
+    { year: input.year, month: input.month },
+  );
+  let out = items.filter((item) => {
+    const day = (item.dayIso || '').trim();
+    return Boolean(day) && day >= range.startIso && day <= range.endIso;
+  });
+  if (scope === 'soir') {
+    out = filterSoirItems(out, loadCultureData().programmeWithContext).filter(
+      (item) => isStillUpcomingSeance(item, now),
+    );
+  }
+  return out;
+}
+
+function callRecommend(
+  role: AgendaRecoTraceHit['role'],
+  scope: TimeScopeId,
+  pool: DayItem[],
+  profile: TasteProfile,
+  now: Date,
+  nouveauIds: ReadonlySet<string>,
+  demoteWorkIds: ReadonlySet<string>,
+) {
+  agendaRecoTrace?.push({ role, scope, demoteWorkIds });
+  return agendaRecommend.forProfile(
+    pool,
+    { signalsRecent: [], profile },
+    3,
+    { now, nouveauFilmIds: nouveauIds, demoteWorkIds },
+  );
+}
+
+function pickRecoItems(
+  scope: TimeScopeId,
+  windowPool: DayItem[],
+  profile: TasteProfile,
+  now: Date,
+  nouveauIds: ReadonlySet<string>,
+  demoteWorkIds: ReadonlySet<string>,
+  role: 'narrow' | 'window',
+): DayItem[] {
+  const paris = parisParts(now);
+  const pool =
+    scope === 'tous'
+      ? windowPool.filter((item) => (item.dayIso || '').trim() > paris.iso)
+      : windowPool;
+  const scored = callRecommend(
+    role,
+    scope,
+    pool,
+    profile,
+    now,
+    nouveauIds,
+    demoteWorkIds,
+  );
+  const preferred = scored.map((s) => s.item);
+  const fromPoolRaw = profileHasChipWeight(profile)
+    ? preferred
+    : mergeSlotPicks(preferred, pickSoonestPerSlot(pool));
+  const fromPool = fillEmptyCineSlot(
+    fromPoolRaw,
+    windowPool,
+    nouveauIds,
+    demoteWorkIds,
+  );
+  const haveSlots = new Set(
+    fromPool.map((item) => slotFormOfItem(item)).filter(Boolean),
+  );
+  // tous: missing FORM (not 0-overlap) from date>=today.
+  const pickedRaw =
+    scope === 'tous' && haveSlots.size < 3
+      ? mergeSlotPicks(
+          fromPool,
+          callRecommend(
+            'fallback',
+            scope,
+            windowPool,
+            profile,
+            now,
+            nouveauIds,
+            demoteWorkIds,
+          ).map((s) => s.item),
+        )
+      : fromPool;
+  return pickedRaw.filter((item) => isStillUpcomingSeance(item, now));
+}
+
+function retainedWorkIds(
+  scope: TimeScopeId,
+  input: AgendaQueryInput,
+  profile: TasteProfile,
+  now: Date,
+  ctx: DemoteCtx,
+): ReadonlySet<string> {
+  const key = demoteMemoKey(scope, profile);
+  const cached = ctx.retainedByKey.get(key);
+  if (cached) return cached;
+  const demote = demoteChainFor(scope, input, profile, now, ctx);
+  const pool = itemsInScope(ctx.windowPool, scope, input, now);
+  const picked = pickRecoItems(
+    scope,
+    pool,
+    profile,
+    now,
+    ctx.nouveauIds,
+    demote,
+    'narrow',
+  );
+  const ids = new Set<string>();
+  for (const item of picked) {
+    const id = workIdOf(item) || item.key || '';
+    if (id) ids.add(id);
+  }
+  ctx.retainedByKey.set(key, ids);
+  return ids;
+}
+
+/**
+ * Œuvres déjà retenues par les fenêtres plus étroites que `scope`.
+ * Recalcul serveur sur le même pool : queryAgenda ne voit qu'une fenêtre
+ * par appel, et l'état client n'est pas une source fiable.
+ * Mémoïsé par (scope, profil) le temps de la requête — `tous` ne recalcule
+ * pas `soir` trois fois.
+ */
+function demoteChainFor(
+  scope: TimeScopeId,
+  input: AgendaQueryInput,
+  profile: TasteProfile,
+  now: Date,
+  ctx: DemoteCtx,
+): ReadonlySet<string> {
+  const key = demoteMemoKey(scope, profile);
+  const cached = ctx.demoteByKey.get(key);
+  if (cached) return cached;
+  const preds = predecessorScopes(scope, now);
+  if (preds.length === 0) {
+    ctx.demoteByKey.set(key, EMPTY_WORK_IDS);
+    return EMPTY_WORK_IDS;
+  }
+  const ids = new Set<string>();
+  for (const pred of preds) {
+    for (const id of retainedWorkIds(pred, input, profile, now, ctx)) {
+      ids.add(id);
+    }
+  }
+  ctx.demoteByKey.set(key, ids);
+  return ids;
+}
 
 /**
  * Short-window list: default scope + commune, slim cards.
@@ -805,10 +1074,6 @@ export function queryAgenda(
     // Slots use séance day+time ≥ now Paris, never event.date_debut (saison 02/07).
     const upcoming = items.filter((item) => isStillUpcomingSeance(item, now));
     const windowPool = upcoming;
-    const pool =
-      input.scope === 'tous'
-        ? upcoming.filter((item) => (item.dayIso || '').trim() > paris.iso)
-        : windowPool;
     const profile = input.recoProfile ?? {
       cats: {},
       moods: {},
@@ -816,42 +1081,35 @@ export function queryAgenda(
       themes: {},
       communes: {},
     };
-    const scored = recommendForProfile(
-      pool,
-      { signalsRecent: [], profile },
-      3,
-      { now, nouveauFilmIds: nouveauFilmIds(data.programmeWithContext, now) },
-    );
-    const preferred = scored.map((s) => s.item);
-    const fromPoolRaw = profileHasChipWeight(profile)
-      ? preferred
-      : mergeSlotPicks(preferred, pickSoonestPerSlot(pool));
-    const fromPool = fillEmptyCineSlot(
-      fromPoolRaw,
+    const nouveauIds = nouveauFilmIds(data.programmeWithContext, now);
+    const demoteCtx: DemoteCtx = {
+      input,
+      profile,
+      now,
       windowPool,
-      nouveauFilmIds(data.programmeWithContext, now),
+      nouveauIds,
+      demoteByKey: new Map(),
+      retainedByKey: new Map(),
+    };
+    const demoteStarted = performance.now();
+    const demoteWorkIds = demoteChainFor(
+      input.scope,
+      input,
+      profile,
+      now,
+      demoteCtx,
     );
-    const haveSlots = new Set(
-      fromPool.map((item) => slotFormOfItem(item)).filter(Boolean),
-    );
-    // tous: missing FORM (not 0-overlap) from date>=today.
-    const pickedRaw =
-      input.scope === 'tous' && haveSlots.size < 3
-        ? mergeSlotPicks(
-            fromPool,
-            recommendForProfile(
-              windowPool,
-              { signalsRecent: [], profile },
-              3,
-              {
-                now,
-                nouveauFilmIds: nouveauFilmIds(data.programmeWithContext, now),
-              },
-            ).map((s) => s.item),
-          )
-        : fromPool;
+    lastDemoteChainMs = performance.now() - demoteStarted;
     // Reco never surfaces a seance before today Paris (26/08 and earlier).
-    const picked = pickedRaw.filter((item) => isStillUpcomingSeance(item, now));
+    const picked = pickRecoItems(
+      input.scope,
+      windowPool,
+      profile,
+      now,
+      nouveauIds,
+      demoteWorkIds,
+      'window',
+    );
     return {
       scope: input.scope,
       commune: input.commune,

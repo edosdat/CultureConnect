@@ -1403,11 +1403,14 @@ function mergeScoredSlots(
 /**
  * 1+1+1 fill-empty for cine: if the pool has ≥1 film, the cine slot must
  * fill (best fallback score, else earliest). Empty only when 0 films.
+ * demoteWorkIds (P2) : un film déjà retenu par une fenêtre plus étroite
+ * passe derrière les autres. S'il est le seul, il remplit quand même.
  */
 export function fillEmptyCineSlot(
   preferred: DayItem[],
   pool: DayItem[],
   nouveauIds: ReadonlySet<string> = new Set(),
+  demoteWorkIds?: ReadonlySet<string>,
 ): DayItem[] {
   const have = new Set(
     preferred.map((item) => slotFormOfItem(item)).filter(Boolean),
@@ -1415,11 +1418,19 @@ export function fillEmptyCineSlot(
   if (have.has('cine')) return preferred;
   const films = pool.filter((item) => slotFormOfItem(item) === 'cine');
   if (films.length === 0) return preferred;
-  const best = pickBestPerSlot(scoreFallbackPool(films, nouveauIds)).find(
-    (s) => slotFormOfItem(s.item) === 'cine',
-  );
+  const best = pickBestPerSlot(
+    scoreFallbackPool(films, nouveauIds),
+    demoteWorkIds,
+  ).find((s) => slotFormOfItem(s.item) === 'cine');
   if (best) return mergeSlotPicks(preferred, [best.item]);
-  return mergeSlotPicks(preferred, pickSoonestPerSlot(films));
+  let soonestFrom = films;
+  if (demoteWorkIds && demoteWorkIds.size > 0) {
+    const alternatives = films.filter(
+      (item) => !demoteWorkIds.has(rankWorkId(item)),
+    );
+    if (alternatives.length > 0) soonestFrom = alternatives;
+  }
+  return mergeSlotPicks(preferred, pickSoonestPerSlot(soonestFrom));
 }
 
 function itemClockKey(item: DayItem): string {
