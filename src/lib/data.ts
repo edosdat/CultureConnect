@@ -24,8 +24,7 @@ import type {
   ProgrammeItem,
   ProgrammeWithContext,
 } from './types';
-import { fillEmptyCineForm } from './formCine';
-import { buildFilmTagStore, fillEmptyWorkTags } from './filmTags';
+import { normalizeProgrammeRows } from './programmeRow';
 import { pressFieldDefaults } from './pressCitation';
 import { fillEmptyCatalogueImageUrl } from './sharePreviewImage';
 
@@ -108,33 +107,12 @@ export function loadFilms(): Film[] {
 }
 
 export function loadProgramme(): ProgrammeItem[] {
-  const raw = readCsv<ProgrammeItem>('programme.csv');
   // Official film_id from CSV only — do not invent from titre matching.
-  // Pass 1: films.csv, else one sibling source line. Pass 2: fill-empty.
-  const store = buildFilmTagStore(raw, loadFilms());
-  return raw.map((r) => {
-    const base: ProgrammeItem = {
-      ...r,
-      artiste_id: r.artiste_id ?? '',
-      film_id: r.film_id ?? '',
-      description_item: r.description_item ?? '',
-      image_url: r.image_url ?? '',
-      billetterie_url: r.billetterie_url ?? '',
-      duree_min: r.duree_min ?? '',
-      public_cible: r.public_cible ?? '',
-      langue: r.langue ?? '',
-      scraped_at: r.scraped_at ?? '',
-      form: fillEmptyCineForm(r.form, r.film_id),
-      moods: r.moods ?? '',
-      mood_source: r.mood_source ?? '',
-      mood_confiance: r.mood_confiance ?? '',
-      genres_mood: r.genres_mood ?? '',
-      themes: r.themes ?? '',
-      entities: r.entities ?? '',
-      ...pressFieldDefaults(r),
-    };
-    return fillEmptyWorkTags(base, store);
-  });
+  // T1/T2 fill-empty is normalizeProgrammeRows, shared with the reco bench.
+  return normalizeProgrammeRows(
+    readCsv<Record<string, string>>('programme.csv'),
+    loadFilms(),
+  );
 }
 
 export function loadGenresLegend(): GenreLegend[] {

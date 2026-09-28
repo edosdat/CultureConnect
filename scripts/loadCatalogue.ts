@@ -6,15 +6,13 @@
  * under plain `tsx`. Scoring still goes through `itemsForDay` /
  * `itemsForDateRange` + `recommendForProfile`. Read-only: never writes `data/`.
  *
- * Programme tags follow `loadProgramme`: films.csv, else the best sibling
- * séance (T1/T2 fill-empty). Without that, a banc from main would score the
- * pre-T1 catalogue.
+ * Programme rows go through `normalizeProgrammeRows`, the same function as
+ * `loadProgramme`. Tag fields cannot drift between the bench and production.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import Papa from 'papaparse';
-import { fillEmptyCineForm } from '../src/lib/formCine';
-import { buildFilmTagStore, fillEmptyWorkTags } from '../src/lib/filmTags';
+import { normalizeProgrammeRows } from '../src/lib/programmeRow';
 import { lastDateOfSeries } from '../src/lib/theatreUrgence';
 import type {
   Evenement,
@@ -103,30 +101,10 @@ function loadFilms(): Film[] {
 }
 
 function loadProgramme(): ProgrammeItem[] {
-  const raw = readCsv<ProgrammeItem>('programme.csv');
-  const store = buildFilmTagStore(raw, loadFilms());
-  return raw.map((r) => {
-    const base: ProgrammeItem = {
-      ...r,
-      artiste_id: r.artiste_id ?? '',
-      film_id: r.film_id ?? '',
-      description_item: r.description_item ?? '',
-      image_url: r.image_url ?? '',
-      billetterie_url: r.billetterie_url ?? '',
-      duree_min: r.duree_min ?? '',
-      public_cible: r.public_cible ?? '',
-      langue: r.langue ?? '',
-      scraped_at: r.scraped_at ?? '',
-      form: fillEmptyCineForm(r.form, r.film_id),
-      moods: r.moods ?? '',
-      mood_source: r.mood_source ?? '',
-      mood_confiance: r.mood_confiance ?? '',
-      genres_mood: r.genres_mood ?? '',
-      themes: r.themes ?? '',
-      entities: r.entities ?? '',
-    };
-    return fillEmptyWorkTags(base, store);
-  });
+  return normalizeProgrammeRows(
+    readCsv<Record<string, string>>('programme.csv'),
+    loadFilms(),
+  );
 }
 
 export type BenchCatalogue = {
