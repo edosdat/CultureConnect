@@ -36,15 +36,16 @@ export function slotsFilledOf(
  *
  * A recommended work **belongs** to a family when its `event_id` is one of
  * those parents (or is the parent card itself). This is membership, not
- * “still inheriting moods” — P0 stops inheritance; children can still be
- * recommended on their own tags / fallback.
+ * the mood-inheritance rule. Scoring does read parent moods on cinema
+ * rows; genres and themes stay on the film.
  */
 export const INHERITED_FAMILY_MIN_PARENT_MOODS = 8;
 
 export const INHERITED_FAMILY_DEFINITION =
   'Cinema parent event with ≥ 8 closed taste moods (season mega-tags). ' +
   'A recommended work belongs to the family when its event_id matches. ' +
-  'Membership ≠ mood inheritance (P0). Catalogue peers of E003/E003b/E006.';
+  'Membership ≠ mood inheritance. Scoring reads parent moods on cinema rows; ' +
+  'genres and themes stay on the film. Catalogue peers of E003/E003b/E006.';
 
 function isCinemaParent(form?: string, categorie?: string): boolean {
   const f = (form || '').trim().toLowerCase();

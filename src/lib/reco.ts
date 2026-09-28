@@ -1052,21 +1052,38 @@ export function resolvedFormOfItem(item: DayItem): string {
 }
 
 /**
- * Theatre / concert keep parent-event tags. Cinema séances (film_id or
- * slotForm cine) do not — season parents store the union of child-film moods.
+ * Theatre / concert keep parent genres and themes.
+ * Cinema séances do not — a season parent stores the union of sibling
+ * genres and themes, which must not stamp every film.
  */
 export function itemInheritsParentClosedTags(item: DayItem): boolean {
   const prog = item.kind === 'programme' ? item.programme : null;
   return !((prog?.film_id || '').trim() || slotFormOfItem(item) === 'cine');
 }
 
+/**
+ * Parent mood tags count for matching.
+ * Theatre / concert: unchanged.
+ * Cinema (film_id or slotForm cine): moods flow from the parent even when
+ * the séance row itself has no `leger` (or any other closed mood).
+ * Unknown slugs still die in CLOSED_VOCAB — this does not invent tags.
+ * Genres and themes stay behind `itemInheritsParentClosedTags`.
+ */
+export function itemInheritsParentMoods(item: DayItem): boolean {
+  if (itemInheritsParentClosedTags(item)) return true;
+  const prog = item.kind === 'programme' ? item.programme : null;
+  if (!prog) return false;
+  return Boolean((prog.film_id || '').trim() || slotFormOfItem(item) === 'cine');
+}
+
 function itemClosedSlugs(item: DayItem): string[] {
   const ev = item.evenement ?? null;
   const prog = item.kind === 'programme' ? item.programme : null;
   const inheritParent = itemInheritsParentClosedTags(item);
+  const inheritMoods = itemInheritsParentMoods(item);
   const raw = [
     ...splitTagSlugs(prog?.moods),
-    ...(inheritParent ? splitTagSlugs(ev?.moods) : []),
+    ...(inheritMoods ? splitTagSlugs(ev?.moods) : []),
     ...splitTagSlugs(prog?.genres_mood),
     ...(inheritParent ? splitTagSlugs(ev?.genres_mood) : []),
     ...splitTagSlugs(prog?.genre),

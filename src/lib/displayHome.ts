@@ -269,8 +269,9 @@ export function itemGenreSlugs(item: DayItem): string[] {
 
 /**
  * Moods / genres that may drive « parce que tu aimes … ».
- * Same P0 cine rule as scoring: no parent-event inheritance for film_id /
- * slotForm cine. Theatre and concert still concatenate programme + event.
+ * Cinema why-lines stay on the séance's own tags. Scoring is separate:
+ * cinema rows inherit parent mood tags (`itemInheritsParentMoods`).
+ * Theatre and concert still concatenate programme + event.
  */
 export function reasonTasteSlugsForItem(item: DayItem): string[] {
   const skipParent =

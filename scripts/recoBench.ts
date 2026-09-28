@@ -52,6 +52,8 @@ import { recoWhyForMood } from '../src/lib/displayHome';
 import {
   isTimeReachable,
   itemIdentity,
+  itemInheritsParentClosedTags,
+  itemInheritsParentMoods,
   recommendForProfile,
   resolvedFormOfItem,
   slotFormOfItem,
@@ -231,15 +233,15 @@ function splitTags(raw: string | string[] | undefined | null): string[] {
   return parts.map((s) => s.trim().toLowerCase()).filter(Boolean);
 }
 
-/** Closed goût slugs the engine sees (P0: cine skips parent event moods). */
+/** Closed goût slugs the engine sees (cinema inherits parent moods only). */
 function itemTasteMoods(item: DayItem): string[] {
   const ev = item.evenement ?? null;
   const prog = item.kind === 'programme' ? item.programme : null;
-  const inheritParent =
-    !((prog?.film_id || '').trim() || slotFormOfItem(item) === 'cine');
+  const inheritMoods = itemInheritsParentMoods(item);
+  const inheritParent = itemInheritsParentClosedTags(item);
   const raw = [
     ...splitTags(prog?.moods),
-    ...(inheritParent ? splitTags(ev?.moods) : []),
+    ...(inheritMoods ? splitTags(ev?.moods) : []),
     ...splitTags(prog?.genres_mood),
     ...(inheritParent ? splitTags(ev?.genres_mood) : []),
   ];
