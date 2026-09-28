@@ -1326,6 +1326,85 @@ export async function listShareRsvpsForAdmin(
   return [...byKey.values()];
 }
 
+/**
+ * Neon account actions for « Actifs 7 jours ».
+ * Partage = share_tokens.created_at. Envie / J’y vais = share_rsvps.updated_at.
+ * No visit list, no vid, no opens counter.
+ */
+export async function listShareAccountActionsForAdmin(notBeforeIso: string): Promise<{
+  shares: { sharerEmail: string; createdAt: string }[];
+  rsvps: { emailHash: string; kind: string; ts: string }[];
+}> {
+  const empty = { shares: [] as { sharerEmail: string; createdAt: string }[], rsvps: [] as { emailHash: string; kind: string; ts: string }[] };
+  const since = Date.parse(notBeforeIso);
+  if (!Number.isFinite(since)) return empty;
+  try {
+    const [tokenPg, rsvpPg] = await Promise.all([
+      ensureShareTokensTable(),
+      ensureShareRsvpsTable(),
+    ]);
+    const sinceParam = new Date(since).toISOString();
+    const shares: { sharerEmail: string; createdAt: string }[] = [];
+    const rsvps: { emailHash: string; kind: string; ts: string }[] = [];
+    if (tokenPg) {
+      const result = await tokenPg.query(
+        `SELECT lower(btrim(sharer_email)) AS sharer_email, created_at
+         FROM share_tokens
+         WHERE sharer_email IS NOT NULL
+           AND position('@' in sharer_email) > 0
+           AND created_at >= $1::timestamptz`,
+        [sinceParam],
+      );
+      for (const row of result.rows as Array<{
+        sharer_email?: unknown;
+        created_at?: Date | string | null;
+      }>) {
+        const sharerEmail =
+          typeof row.sharer_email === 'string' ? row.sharer_email.trim().toLowerCase() : '';
+        if (!sharerEmail.includes('@')) continue;
+        const createdAt =
+          row.created_at instanceof Date
+            ? row.created_at.toISOString()
+            : typeof row.created_at === 'string'
+              ? row.created_at
+              : '';
+        if (!createdAt) continue;
+        shares.push({ sharerEmail, createdAt });
+      }
+    }
+    if (rsvpPg) {
+      const result = await rsvpPg.query(
+        `SELECT lower(btrim(email_hash)) AS email_hash, kind, updated_at
+         FROM share_rsvps
+         WHERE kind IN ('envie', 'going')
+           AND updated_at >= $1::timestamptz`,
+        [sinceParam],
+      );
+      for (const row of result.rows as Array<{
+        email_hash?: unknown;
+        kind?: unknown;
+        updated_at?: Date | string | null;
+      }>) {
+        const emailHash =
+          typeof row.email_hash === 'string' ? row.email_hash.trim().toLowerCase() : '';
+        const kind = typeof row.kind === 'string' ? row.kind : '';
+        if (!emailHash || (kind !== 'envie' && kind !== 'going')) continue;
+        const ts =
+          row.updated_at instanceof Date
+            ? row.updated_at.toISOString()
+            : typeof row.updated_at === 'string'
+              ? row.updated_at
+              : '';
+        if (!ts) continue;
+        rsvps.push({ emailHash, kind, ts });
+      }
+    }
+    return { shares, rsvps };
+  } catch {
+    return empty;
+  }
+}
+
 export async function listShareTokensBySharerEmail(
   email: string,
 ): Promise<ShareTokenRecord[]> {

@@ -299,6 +299,108 @@ export function hashEmailKey(userKey: string): string {
   return createHash('sha256').update(userKey.trim().toLowerCase()).digest('hex').slice(0, 16);
 }
 
+/** Full sha256 hex — same bytes as `shareStore.emailHash`. Not the 16-char UI hash. */
+export function accountEmailSha256(email: string): string {
+  return createHash('sha256').update(email.trim().toLowerCase()).digest('hex');
+}
+
+export function normalizeGoogleAccountKey(userKey: string): string | null {
+  const key = userKey.trim().toLowerCase();
+  if (!key.includes('@')) return null;
+  return key;
+}
+
+/** COUNT DISTINCT lower(btrim(user_key)) on Neon `account_tastes`. */
+export function countDistinctGoogleAccounts(userKeys: readonly string[]): number {
+  const set = new Set<string>();
+  for (const raw of userKeys) {
+    const key = normalizeGoogleAccountKey(raw);
+    if (key) set.add(key);
+  }
+  return set.size;
+}
+
+/**
+ * Actifs 7 jours. `account_tastes` has no last_login / last_seen / session column.
+ * A stored Google account counts once when any Neon timestamp falls on a Paris
+ * day in `windowDays`:
+ * - `account_tastes.updated_at` (goûts or account-signal write)
+ * - `share_tokens.created_at` for that `sharer_email` (partage)
+ * - `share_rsvps.updated_at` where `email_hash = sha256(user_key)` and kind is
+ *   envie or going
+ * `share_tokens.opens` is an undated counter. KV visits and cc_vid are ignored.
+ */
+export function countActiveGoogleAccounts(opts: {
+  accounts: readonly { userKey: string; updatedAt?: string }[];
+  shares: readonly { sharerEmail: string | null; createdAt: string }[];
+  rsvps: readonly { emailHash: string; kind: string; ts: string }[];
+  windowDays: readonly string[];
+}): number {
+  const days = new Set(opts.windowDays);
+  const accounts = new Map<string, string | undefined>();
+  for (const row of opts.accounts) {
+    const key = normalizeGoogleAccountKey(row.userKey);
+    if (!key || accounts.has(key)) continue;
+    accounts.set(key, row.updatedAt);
+  }
+  const hashToKey = new Map<string, string>();
+  for (const key of accounts.keys()) {
+    hashToKey.set(accountEmailSha256(key), key);
+  }
+  const active = new Set<string>();
+  for (const [key, updatedAt] of accounts) {
+    if (updatedAt && inParisWindow(updatedAt, days)) active.add(key);
+  }
+  for (const share of opts.shares) {
+    const key = normalizeGoogleAccountKey(share.sharerEmail || '');
+    if (!key || !accounts.has(key)) continue;
+    if (inParisWindow(share.createdAt, days)) active.add(key);
+  }
+  for (const rsvp of opts.rsvps) {
+    if (rsvp.kind !== 'envie' && rsvp.kind !== 'going') continue;
+    if (!inParisWindow(rsvp.ts, days)) continue;
+    const key = hashToKey.get(rsvp.emailHash.trim().toLowerCase());
+    if (key) active.add(key);
+  }
+  return active.size;
+}
+
+export type LoginPopulationShare = {
+  guests: number;
+  connected: number | null;
+  guestPct: number | null;
+  connectedPct: number | null;
+  total: number | null;
+};
+
+/**
+ * Display base only: KPI 1 guest uniques + Actifs 7 jours.
+ * The two counts are independent populations. Nothing here joins vid to email.
+ * Both 0 → 0 / 0 and 0 %. One side 0 → 0 % and 100 %. Connected unread → null percents.
+ */
+export function loginPopulationShare(
+  guestUniques: number,
+  activeAccounts: number | null,
+): LoginPopulationShare {
+  const guests = Number.isFinite(guestUniques) && guestUniques > 0 ? Math.floor(guestUniques) : 0;
+  if (activeAccounts == null || !Number.isFinite(activeAccounts)) {
+    return { guests, connected: null, guestPct: null, connectedPct: null, total: null };
+  }
+  const connected = activeAccounts > 0 ? Math.floor(activeAccounts) : 0;
+  const total = guests + connected;
+  if (total === 0) {
+    return { guests: 0, connected: 0, guestPct: 0, connectedPct: 0, total: 0 };
+  }
+  const guestPct = Math.round((100 * guests) / total);
+  return {
+    guests,
+    connected,
+    guestPct,
+    connectedPct: 100 - guestPct,
+    total,
+  };
+}
+
 /** UI hash: sha256[:16]. Store RSVP hashes may already be full sha256. */
 export function displayEmailHash(hash: string): string {
   return hash.trim().toLowerCase().slice(0, 16);
