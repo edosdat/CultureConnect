@@ -91,6 +91,7 @@ import {
 import type { TasteEntry, TasteProfile } from './signals';
 import { normalizeDeepLinkId } from './deepLink';
 import { agendaListCacheKeyParts } from './agendaParams';
+import { createDayMemo } from './dayMemo';
 import {
   GUEST_BOOT_RECO_SSR_BUDGET_MS,
   guestBootPlace,
@@ -1138,6 +1139,77 @@ export function queryAgenda(
   return assembleListFromItems(items, input, now, { searching, rangeDays });
 }
 
+/**
+ * Densified pack counters (voir tout / admin), not the public créneau badge.
+ * One indexed pass per pack, then a day + item-set memo so a hard reload
+ * (`Cache-Control: no-cache` bypasses `unstable_cache`) does not densify again.
+ */
+const PACK_TOTALS_MEMO_MS = 300_000;
+
+type PackDensifiedTotals = {
+  densifiedTotal: number;
+  vivantTotal: number;
+  cineTotal: number;
+  theatreTotal: number;
+  musiqueTotal: number;
+  enfantsTotal: number;
+  expoTotal: number;
+};
+
+const packTotalsMemo = createDayMemo<PackDensifiedTotals>({
+  ttlMs: PACK_TOTALS_MEMO_MS,
+  max: 24,
+});
+let packTotalsComputes = 0;
+
+/** How many times pack totals were densified (cache misses). Tests only. */
+export function packTotalsComputeCountForTests(): number {
+  return packTotalsComputes;
+}
+
+function itemSetStamp(items: readonly DayItem[]): string {
+  let h = 2166136261;
+  for (const item of items) {
+    const k = item.key;
+    for (let i = 0; i < k.length; i++) {
+      h ^= k.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    h ^= 0x7c;
+  }
+  return `${items.length}:${h >>> 0}`;
+}
+
+function loadPackDensifiedTotals(
+  day: string,
+  items: DayItem[],
+  enfantsChip: boolean,
+  split: {
+    vivantAll: DayItem[];
+    cineAll: DayItem[];
+    theatreAll: DayItem[];
+    musiqueAll: DayItem[];
+    enfantsAll: DayItem[];
+    expoAll: DayItem[];
+  },
+): PackDensifiedTotals {
+  const key = `${day}|${enfantsChip ? 'enfants' : 'pack'}|${itemSetStamp(items)}`;
+  const hit = packTotalsMemo.get(key);
+  if (hit) return hit;
+  packTotalsComputes += 1;
+  const totals: PackDensifiedTotals = {
+    densifiedTotal: densifiedCardCount(items),
+    vivantTotal: densifiedCardCount(split.vivantAll),
+    cineTotal: densifiedCardCount(split.cineAll),
+    theatreTotal: densifiedCardCount(split.theatreAll),
+    musiqueTotal: densifiedCardCount(split.musiqueAll),
+    enfantsTotal: densifiedCardCount(split.enfantsAll),
+    expoTotal: densifiedCardCount(split.expoAll),
+  };
+  packTotalsMemo.set(key, totals);
+  return totals;
+}
+
 function assembleListFromItems(
   items: DayItem[],
   input: AgendaQueryInput,
@@ -1167,7 +1239,6 @@ function assembleListFromItems(
   );
 
   const total = items.length;
-  const densifiedTotal = densifiedCardCount(items);
   const offset = Math.max(0, input.offset ?? 0);
   const dayPage =
     input.scope === 'date' && Boolean((input.selectedDate || '').trim());
@@ -1212,12 +1283,23 @@ function assembleListFromItems(
           .filter((item, i, all) => all.findIndex((x) => x.key === item.key) === i)
           .map(slimWire)
       : [];
-  const vivantTotal = densifiedCardCount(vivantAll);
-  const cineTotal = densifiedCardCount(cineAll);
-  const theatreTotal = densifiedCardCount(theatreAll);
-  const musiqueTotal = densifiedCardCount(musiqueAll);
-  const enfantsTotal = densifiedCardCount(enfantsAll);
-  const expoTotal = densifiedCardCount(expoAll);
+  const enfantsChip = input.cats.includes('enfants_famille');
+  const {
+    densifiedTotal,
+    vivantTotal,
+    cineTotal,
+    theatreTotal,
+    musiqueTotal,
+    enfantsTotal,
+    expoTotal,
+  } = loadPackDensifiedTotals(paris.iso, items, enfantsChip, {
+    vivantAll,
+    cineAll,
+    theatreAll,
+    musiqueAll,
+    enfantsAll,
+    expoAll,
+  });
 
   let counts: Record<string, number> | undefined;
   if (input.includeCounts) {
@@ -1377,12 +1459,21 @@ function assembleHomeFirstPaint(
   ).map((item) =>
     slimDayItem(item, { keepFicheCopy: theatreHeroKeys.has(item.key) }),
   );
+  const totals = loadPackDensifiedTotals(paris.iso, items, false, {
+    vivantAll,
+    cineAll,
+    theatreAll,
+    musiqueAll,
+    enfantsAll,
+    expoAll,
+  });
+  const slots = sectionSlotTotals(items);
   return {
     scope: input.scope,
     commune: input.commune,
     items: page,
     total: items.length,
-    densifiedTotal: densifiedCardCount(items),
+    densifiedTotal: totals.densifiedTotal,
     ...csvRowCounts(),
     nouveautes: nouveautes.map((item) => slimDayItem(item)),
     communes: input.includeListMeta
@@ -1395,17 +1486,17 @@ function assembleHomeFirstPaint(
     genresLegend: input.includeListMeta ? data.genresLegend : [],
     nouveauFilmIds: Array.from(nouveauFilmIds(data.programmeWithContext, now)),
     vivantItems: theatrePage,
-    vivantTotal: densifiedCardCount(vivantAll),
-    cineTotal: densifiedCardCount(cineAll),
-    theatreTotal: densifiedCardCount(theatreAll),
-    musiqueTotal: densifiedCardCount(musiqueAll),
-    enfantsTotal: densifiedCardCount(enfantsAll),
-    expoTotal: densifiedCardCount(expoAll),
-    ...sectionSlotTotals(items),
+    vivantTotal: totals.vivantTotal,
+    cineTotal: totals.cineTotal,
+    theatreTotal: totals.theatreTotal,
+    musiqueTotal: totals.musiqueTotal,
+    enfantsTotal: totals.enfantsTotal,
+    expoTotal: totals.expoTotal,
+    ...slots,
   };
 }
 
-function computeHomeFirstPaint(now = new Date()): HomeWindow {
+export function computeHomeFirstPaint(now = new Date()): HomeWindow {
   const scope = bootTimeScope();
   const { year, month } = parisParts(now);
   const bootInput: AgendaQueryInput = {
@@ -1621,16 +1712,40 @@ export async function attachGuestBootReco(
   );
 }
 
-/** Slim first HTML: chips + cached guest Top 3 + cine + théâtre packs. */
+const homePayloadMemo = createDayMemo<HomeWindow>({
+  ttlMs: PACK_TOTALS_MEMO_MS,
+  max: 4,
+});
+const agendaListMemo = createDayMemo<AgendaListResponse>({
+  ttlMs: PACK_TOTALS_MEMO_MS,
+  max: 24,
+});
+
+export function clearHomePaintMemosForTests(): void {
+  packTotalsMemo.clear();
+  homePayloadMemo.clear();
+  agendaListMemo.clear();
+  packTotalsComputes = 0;
+}
+
+/**
+ * Slim first HTML: chips + cached guest Top 3 + cine + théâtre packs.
+ * The day memo is checked before `unstable_cache`. A hard reload bypasses
+ * the Next data cache and would otherwise rebuild this payload; the memo
+ * keeps the cards and the pack totals from the previous miss in this isolate.
+ */
 export async function loadHomeFirstPaint(
   now = new Date(),
 ): Promise<HomeWindow> {
   const day = parisParts(now).iso;
+  const remembered = homePayloadMemo.get(`first:${day}`);
+  if (remembered) return attachGuestBootReco(remembered, now);
   const boot = await unstable_cache(
     async () => computeHomeFirstPaint(new Date()),
     ['home-first-paint-v4', day],
     { revalidate: 300 },
   )();
+  homePayloadMemo.set(`first:${day}`, boot);
   return attachGuestBootReco(boot, now);
 }
 
@@ -1688,16 +1803,23 @@ function computeHomeWindow(now = new Date()): HomeWindow {
   };
 }
 
-/** Home boot: server cache 5 min, keyed by Paris calendar day (new key at midnight). */
+/**
+ * Home rail fill (`window=home`). Same day memo as first paint: a no-cache
+ * miss must not densify the Toulouse « tous » catalogue again.
+ */
 export async function loadHomeWindow(
   now = new Date(),
 ): Promise<HomeWindow> {
   const day = parisParts(now).iso;
-  return unstable_cache(
+  const remembered = homePayloadMemo.get(`window:${day}`);
+  if (remembered) return remembered;
+  const boot = await unstable_cache(
     async () => computeHomeWindow(new Date()),
     ['home-window-slim-v4', day],
     { revalidate: 300 },
   )();
+  homePayloadMemo.set(`window:${day}`, boot);
+  return boot;
 }
 
 /**
@@ -1944,22 +2066,28 @@ export async function queryAgendaListCached(
     return queryAgenda(input, now);
   }
   const day = parisParts(now).iso;
-  return unstable_cache(
+  const cacheParts = agendaListCacheKeyParts({
+    scope: input.scope,
+    selectedDate: input.selectedDate,
+    year: input.year,
+    month: input.month,
+    cats: input.cats,
+    commune: input.commune,
+    lieuId: input.lieuId,
+    genres: input.genres,
+    offset: input.offset,
+    limit: input.limit,
+    includeListMeta: input.includeListMeta,
+    parisDay: day,
+  });
+  const cacheKey = cacheParts.join('\u001f');
+  const remembered = agendaListMemo.get(cacheKey);
+  if (remembered) return remembered;
+  const result = await unstable_cache(
     async () => queryAgenda(input, new Date()),
-    agendaListCacheKeyParts({
-      scope: input.scope,
-      selectedDate: input.selectedDate,
-      year: input.year,
-      month: input.month,
-      cats: input.cats,
-      commune: input.commune,
-      lieuId: input.lieuId,
-      genres: input.genres,
-      offset: input.offset,
-      limit: input.limit,
-      includeListMeta: input.includeListMeta,
-      parisDay: day,
-    }),
+    cacheParts,
     { revalidate: 300 },
   )();
+  agendaListMemo.set(cacheKey, result);
+  return result;
 }
