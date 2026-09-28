@@ -5,6 +5,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DayItem, GenreLegend, Lieu } from '@/lib/types';
 import type { AgendaDetailResponse, AgendaListResponse } from '@/lib/slim';
 import { HOME_PACK_WIRE_CAP } from '@/lib/slim';
+import {
+  guestBootRecoPoolKey,
+  shouldPaintGuestBootReco,
+  shouldSkipGuestBootRecoPost,
+} from '@/lib/guestBootReco';
 import { profileHasChipWeight } from '@/lib/reco';
 import { extractMoods, profileHasZeroWeights } from '@/lib/signals';
 import { signIn, useSession } from 'next-auth/react';
@@ -167,8 +172,16 @@ type Props = {
   initialYear: number;
   initialMonth: number;
   initialNouveauFilmIds?: string[];
-  /** Guest 1+1+1 per date chip. Boot defers this — client POST reco=1 fills it. */
+  /**
+   * Guest 1+1+1 per date chip. Boot `tous` may already be filled from SSR
+   * (cached guest populaire). Empty slots still POST `/api/agenda?reco=1`.
+   */
   initialRecoByScope?: Partial<Record<TimeScopeId, DayItem[]>>;
+  /**
+   * Guest populaire for time scope `tous` with the city chip cleared
+   * (métropole). Hydrated so that switch does not POST when SSR had it.
+   */
+  initialGuestMetroTop3?: DayItem[];
   /** Toulouse list snapshot per date chip (items + window totals). */
   initialListByScope?: Partial<
     Record<
@@ -232,14 +245,19 @@ function hydrateRecoCache(
   byScope: Partial<Record<TimeScopeId, DayItem[]>> | undefined,
   parisIso: string,
   commune: string | null,
+  metroTop3?: DayItem[],
 ): Record<string, DayItem[]> {
   const out: Record<string, DayItem[]> = {};
-  if (!byScope) return out;
-  for (const [scope, items] of Object.entries(byScope)) {
-    // Empty boot slots are "not fetched yet" — do not flip recoReady.
-    if (!items?.length) continue;
-    const day = recoKeyDay(scope as TimeScopeId, null, parisIso);
-    out[recoPoolKey(scope as TimeScopeId, day, commune, 'guest')] = items;
+  if (byScope) {
+    for (const [scope, items] of Object.entries(byScope)) {
+      // Empty boot slots are "not fetched yet" — do not flip recoReady.
+      if (!items?.length) continue;
+      const day = recoKeyDay(scope as TimeScopeId, null, parisIso);
+      out[recoPoolKey(scope as TimeScopeId, day, commune, 'guest')] = items;
+    }
+  }
+  if (metroTop3?.length) {
+    out[guestBootRecoPoolKey('metro')] = metroTop3;
   }
   return out;
 }
@@ -332,6 +350,7 @@ export default function CultureConnectApp({
   initialMonth,
   initialNouveauFilmIds = [],
   initialRecoByScope,
+  initialGuestMetroTop3,
   initialListByScope,
   initialOpenKey = null,
   initialOpenItem = null,
@@ -403,7 +422,13 @@ export default function CultureConnectApp({
 
   const [listItems, setListItems] = useState<DayItem[]>(initialItems);
   const [recoPoolByKey, setRecoPoolByKey] = useState<Record<string, DayItem[]>>(
-    () => hydrateRecoCache(initialRecoByScope, initialParisIso, 'Toulouse'),
+    () =>
+      hydrateRecoCache(
+        initialRecoByScope,
+        initialParisIso,
+        'Toulouse',
+        initialGuestMetroTop3,
+      ),
   );
   const [nouveautesItems, setNouveautesItems] =
     useState<DayItem[]>(initialNouveautes);
@@ -831,7 +856,7 @@ export default function CultureConnectApp({
       !profileHasChipWeight(tasteState.profile),
   );
   recoWipedRef.current = recoWiped;
-  // Session known → profile immediately (never pending→guest). Loading → pending (skeleton / perso cache).
+  // Session known → profile immediately (never pending→guest). Loading stays pending until auth resolves.
   const recoKind: RecoKind = recoWiped
     ? 'wiped'
     : sessionStatus === 'authenticated'
@@ -853,7 +878,24 @@ export default function CultureConnectApp({
     selectedCommune,
     'profile',
   );
-  const visibleRecoKey = recoKind === 'guest' ? currentRecoKey : profileRecoKey;
+  const guestRecoKey = recoPoolKey(
+    timeScope,
+    currentRecoDay,
+    selectedCommune,
+    'guest',
+  );
+  const guestBootCached = Object.prototype.hasOwnProperty.call(
+    recoPoolByKey,
+    guestRecoKey,
+  );
+  // Loading used to point at the empty profile key and paint the skeleton
+  // even when SSR had already hydrated the guest trio.
+  const visibleRecoKey = shouldPaintGuestBootReco({
+    kind: recoKind,
+    guestCached: guestBootCached,
+  })
+    ? guestRecoKey
+    : profileRecoKey;
   const recoReady =
     !recoWiped &&
     Object.prototype.hasOwnProperty.call(recoPoolByKey, visibleRecoKey);
@@ -880,7 +922,15 @@ export default function CultureConnectApp({
           ? cineTotal
           : densifiedCardCount(listItems.filter(isCinemaDayItem)),
       );
-    if (recoKind === 'guest' && existing !== undefined && !staleCached) return;
+    if (
+      shouldSkipGuestBootRecoPost({
+        kind: recoKind,
+        cached: existing !== undefined,
+        stale: staleCached,
+      })
+    ) {
+      return;
+    }
     if (
       recoKind === 'profile' &&
       existing !== undefined &&

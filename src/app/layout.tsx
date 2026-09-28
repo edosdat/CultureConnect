@@ -3,7 +3,8 @@ import { DM_Sans, Fraunces } from 'next/font/google';
 import SiteNav from '@/components/SiteNav';
 import Providers from '@/components/Providers';
 import SiteFooter from '@/components/SiteFooter';
-import { isGoogleAuthConfigured } from '@/auth';
+import { auth, isGoogleAuthConfigured } from '@/auth';
+import type { Session } from 'next-auth';
 import { publicAppOrigin } from '@/lib/sharePreviewImage';
 import './globals.css';
 
@@ -43,15 +44,29 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+/**
+ * `null` = known guest, so Top 3 can paint on the server.
+ * `undefined` = auth failed; keep the client session fetch.
+ */
+async function layoutSession(): Promise<Session | null | undefined> {
+  try {
+    const session = await auth();
+    return session ?? null;
+  } catch {
+    return undefined;
+  }
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await layoutSession();
   return (
     <html lang="fr">
       <body className={`${sans.variable} ${display.variable} font-sans antialiased`}>
-        <Providers googleAuthEnabled={isGoogleAuthConfigured()}>
+        <Providers googleAuthEnabled={isGoogleAuthConfigured()} session={session}>
           <SiteNav />
           {children}
           <SiteFooter />
