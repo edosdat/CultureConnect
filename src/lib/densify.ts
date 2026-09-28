@@ -223,14 +223,6 @@ export function densifyGroupKey(item: DayItem): string {
   return visibleWorkKey(item);
 }
 
-function sameVisibleWork(a: DayItem, b: DayItem): boolean {
-  if (visibleWorkKey(a) === visibleWorkKey(b)) return true;
-  if (looksCinema(a) && looksCinema(b)) {
-    return cinemaStemsCompatible(cinemaDisplayStem(a), cinemaDisplayStem(b));
-  }
-  return false;
-}
-
 function lieuIdOf(item: DayItem): string {
   const fromLieu = (item.lieu?.lieu_id || '').trim();
   if (fromLieu) return fromLieu;
@@ -490,22 +482,97 @@ function toDenseRow(
   };
 }
 
-/** Last pass: never leave two visible cards for the same work. */
+function filmStemOfWorkKey(key: string): string {
+  return key.startsWith('film:w:') ? key.slice(7) : '';
+}
+
+/**
+ * Equal work keys, or two film cards whose stems are prefixes.
+ * Stems already sit in `film:w:…`, so this does not re-normalise titles.
+ */
+function workKeysMatch(a: string, b: string): boolean {
+  if (a === b) return true;
+  if (!a.startsWith('film:') || !b.startsWith('film:')) return false;
+  return cinemaStemsCompatible(filmStemOfWorkKey(a), filmStemOfWorkKey(b));
+}
+
+/**
+ * Last pass: never leave two visible cards for the same work.
+ * Non-film keys are a map lookup. Film prefix-stems only compare with
+ * other film cards (insertion order), not with every living-arts row.
+ */
 function hardUniqueRows(
   rows: DenseRow[],
   origin: GeoPos | null,
 ): DenseRow[] {
   const out: DenseRow[] = [];
+  const keyAt = new Map<string, number>();
+  const filmAt: number[] = [];
+  const filmKey: string[] = [];
+
+  const placeFilm = (hit: number, nextKey: string) => {
+    let i = 0;
+    while (i < filmAt.length && filmAt[i]! < hit) i++;
+    filmAt.splice(i, 0, hit);
+    filmKey.splice(i, 0, nextKey);
+  };
+
+  const retarget = (hit: number, prevKey: string, nextKey: string) => {
+    if (prevKey.startsWith('film:')) {
+      const filmPos = filmAt.indexOf(hit);
+      if (nextKey.startsWith('film:')) {
+        if (filmPos >= 0) filmKey[filmPos] = nextKey;
+        else placeFilm(hit, nextKey);
+        return;
+      }
+      if (filmPos >= 0) {
+        filmAt.splice(filmPos, 1);
+        filmKey.splice(filmPos, 1);
+      }
+      keyAt.set(nextKey, hit);
+      return;
+    }
+    if (keyAt.get(prevKey) === hit) keyAt.delete(prevKey);
+    if (nextKey.startsWith('film:')) {
+      placeFilm(hit, nextKey);
+      return;
+    }
+    keyAt.set(nextKey, hit);
+  };
+
   for (const row of rows) {
-    const hit = out.findIndex((keep) => sameVisibleWork(keep.item, row.item));
+    const key = visibleWorkKey(row.item);
+    let hit = -1;
+    if (key.startsWith('film:')) {
+      for (let i = 0; i < filmAt.length; i++) {
+        if (workKeysMatch(filmKey[i]!, key)) {
+          hit = filmAt[i]!;
+          break;
+        }
+      }
+    } else {
+      const found = keyAt.get(key);
+      if (found !== undefined) hit = found;
+    }
     if (hit < 0) {
+      const index = out.length;
       out.push(row);
+      if (key.startsWith('film:')) {
+        filmAt.push(index);
+        filmKey.push(key);
+      } else {
+        keyAt.set(key, index);
+      }
       continue;
     }
     const keep = out[hit]!;
+    const prevKey = visibleWorkKey(keep.item);
     const seances = [...keep.seances, ...row.seances];
     const flags = new Map<string, boolean>([[keep.groupKey, keep.isFilmGroup]]);
-    out[hit] = toDenseRow(keep.groupKey, seances, flags, origin);
+    const merged = toDenseRow(keep.groupKey, seances, flags, origin);
+    out[hit] = merged;
+    const nextKey = visibleWorkKey(merged.item);
+    if (nextKey !== prevKey) retarget(hit, prevKey, nextKey);
   }
   return out;
 }

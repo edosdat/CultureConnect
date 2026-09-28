@@ -596,3 +596,31 @@ describe('takeUniqueWorkItems', () => {
     assert.equal(unique[1]!.key, 'other-0');
   });
 });
+
+describe('densify large catalogue', () => {
+  it('counts 700 unique living-arts works without a quadratic scan', () => {
+    const items: DayItem[] = [];
+    for (let n = 0; n < 700; n++) {
+      items.push(
+        item({
+          key: `bulk-${n}`,
+          title: `Pièce unique ${n} au théâtre`,
+          cat: 'theatre',
+          eventId: `E-bulk-${n}`,
+          lieuId: `L${n % 40}`,
+          day: `2026-09-${String((n % 27) + 1).padStart(2, '0')}`,
+          heure: `${String(10 + (n % 10)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`,
+        }),
+      );
+    }
+    const started = performance.now();
+    const rows = densify(items);
+    const ms = performance.now() - started;
+    assert.equal(rows.length, 700);
+    assert.equal(densifiedCardCount(items), 700);
+    assert.ok(
+      ms < 200,
+      `densify of 700 unique works took ${ms.toFixed(0)}ms`,
+    );
+  });
+});
