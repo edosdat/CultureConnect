@@ -334,7 +334,7 @@ describe('guest boot reco wiring', () => {
     assert.match(query, /eager: true/);
     assert.match(query, /function demoteChainFor/);
     assert.match(query, /export async function queryAgendaReco/);
-    assert.match(query, /home-first-paint-v3/);
+    assert.match(query, /home-first-paint-v4/);
 
     const route = await readFile(
       new URL('../app/api/agenda/route.ts', import.meta.url),

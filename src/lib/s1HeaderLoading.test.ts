@@ -42,7 +42,7 @@ describe('S1 home loading — cine + theatre shells, never silent more', () => {
     );
     assert.match(query, /HOME_FIRST_PAINT_THEATRE_CAP/);
     assert.match(query, /vivantItems: theatrePage/);
-    assert.match(query, /home-first-paint-v3/);
+    assert.match(query, /home-first-paint-v4/);
     assert.equal(
       /function assembleHomeFirstPaint[\s\S]*?vivantItems: \[\]/.test(query),
       false,

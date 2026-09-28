@@ -75,6 +75,12 @@ export async function GET(req: Request) {
       musiqueTotal: boot.musiqueTotal,
       enfantsTotal: boot.enfantsTotal,
       expoTotal: boot.expoTotal,
+      cineSlotTotal: boot.cineSlotTotal,
+      theatreSlotTotal: boot.theatreSlotTotal,
+      musiqueSlotTotal: boot.musiqueSlotTotal,
+      enfantsSlotTotal: boot.enfantsSlotTotal,
+      expoSlotTotal: boot.expoSlotTotal,
+      autresSlotTotal: boot.autresSlotTotal,
     });
   }
   const id = (url.searchParams.get('id') || '').trim();

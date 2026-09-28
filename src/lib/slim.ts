@@ -399,6 +399,13 @@ export type AgendaListResponse = {
   musiqueTotal?: number;
   enfantsTotal?: number;
   expoTotal?: number;
+  /** Créneaux in the filtered inventory (not densified films, Top 3 included). */
+  cineSlotTotal?: number;
+  theatreSlotTotal?: number;
+  musiqueSlotTotal?: number;
+  enfantsSlotTotal?: number;
+  expoSlotTotal?: number;
+  autresSlotTotal?: number;
   /** Date-chip snapshots — boot scope omitted (already in items). */
   listByScope?: Partial<
     Record<
@@ -416,6 +423,12 @@ export type AgendaListResponse = {
         musiqueTotal?: number;
         enfantsTotal?: number;
         expoTotal?: number;
+        cineSlotTotal?: number;
+        theatreSlotTotal?: number;
+        musiqueSlotTotal?: number;
+        enfantsSlotTotal?: number;
+        expoSlotTotal?: number;
+        autresSlotTotal?: number;
       }
     >
   >;
