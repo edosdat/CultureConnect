@@ -70,8 +70,12 @@ export function listFetchShouldSkipBootGps(
   skipBootGps: boolean,
   scope: TimeScopeId,
   selectedCategoryCount: number,
+  titleQuery?: string | null,
 ): boolean {
   if (!skipBootGps) return false;
+  // A title search must refetch. Deny-GPS leaves this one-shot armed
+  // until the next list effect; swallowing that search leaves a blank list.
+  if ((titleQuery || '').trim()) return false;
   if (scope !== 'tous') return false;
   if (selectedCategoryCount > 0) return false;
   return true;

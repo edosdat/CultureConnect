@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { deleteAccountTaste } from '@/lib/accountTasteStore';
+import { deleteEventProposals } from '@/lib/eventProposalStore';
 
 export async function DELETE() {
   const session = await auth();
@@ -14,5 +15,6 @@ export async function DELETE() {
   }
 
   await deleteAccountTaste(email);
+  await deleteEventProposals(email);
   return NextResponse.json({ ok: true });
 }

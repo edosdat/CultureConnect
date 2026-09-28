@@ -145,6 +145,10 @@ describe('listFetchShouldSkipBoot', () => {
     // the one-shot stays armed until the next QUAND click.
     const armedAfterDeny = true;
     assert.equal(listFetchShouldSkipBootGps(armedAfterDeny, 'tous', 0), true);
+    assert.equal(
+      listFetchShouldSkipBootGps(armedAfterDeny, 'tous', 0, 'zzzzqxqqqq'),
+      false,
+    );
     for (const scope of [...dateChips, 'date'] as const) {
       assert.equal(listFetchShouldSkipBootGps(armedAfterDeny, scope, 0), false);
     }
