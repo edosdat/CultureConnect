@@ -15,8 +15,8 @@ export const GUEST_BOOT_RECO_SSR_BUDGET_MS = 200;
 /**
  * Cold fill waits this long before `recommendForProfile`.
  * That work is synchronous, so a timer cannot preempt it. Yielding past the
- * SSR budget lets homepage HTML return; the fill then finishes via `after`
- * or the guest POST. Cache hits do not run the fill.
+ * SSR budget lets homepage HTML return; the guest POST writes the cache.
+ * Cache hits do not run the fill.
  */
 export function guestBootRecoFillDelayMs(eager: boolean): number {
   return eager ? 0 : GUEST_BOOT_RECO_SSR_BUDGET_MS + 50;
@@ -24,6 +24,16 @@ export function guestBootRecoFillDelayMs(eager: boolean): number {
 
 /** Boot scope whose guest populaire Top 3 is cached. Profile reco stays live. */
 export const GUEST_BOOT_RECO_SCOPE = 'tous' as const;
+
+/** Browser hard reload (`Cache-Control: no-cache`) makes Next recompute `unstable_cache` and hold the document. */
+export function requestBypassesDataCache(header: {
+  cacheControl?: string | null;
+  pragma?: string | null;
+}): boolean {
+  const cacheControl = (header.cacheControl || '').toLowerCase();
+  const pragma = (header.pragma || '').toLowerCase();
+  return cacheControl.includes('no-cache') || pragma.includes('no-cache');
+}
 
 export function isGuestBootRecoRequest(input: {
   recoUpcoming?: boolean;
@@ -54,6 +64,10 @@ export function shouldSkipGuestBootRecoPost(opts: {
 /**
  * Resolve `work` if it settles first. Otherwise return `fallback` and leave
  * `work` running so a cache fill can finish.
+ *
+ * The fallback is deferred to `setImmediate`. Node runs expired timers before
+ * I/O, so a cache read that finished during a busy event loop must still beat
+ * a deadline that already expired.
  */
 export function withDeadline<T>(
   work: Promise<T>,
@@ -68,7 +82,11 @@ export function withDeadline<T>(
       clearTimeout(timer);
       resolve(value);
     };
-    const timer = setTimeout(() => finish(fallback), budgetMs);
+    const timer = setTimeout(() => {
+      setImmediate(() => {
+        if (!settled) finish(fallback);
+      });
+    }, budgetMs);
     work.then(
       (value) => finish(value),
       () => finish(fallback),

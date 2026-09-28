@@ -9,6 +9,7 @@ import {
   GUEST_BOOT_RECO_SSR_BUDGET_MS,
   guestBootRecoFillDelayMs,
   isGuestBootRecoRequest,
+  requestBypassesDataCache,
   shouldSkipGuestBootRecoPost,
   withDeadline,
 } from './guestBootReco';
@@ -16,6 +17,8 @@ import {
   computeGuestBootReco,
   deferredRecoByScope,
   mergeGuestBootReco,
+  readGuestBootMemo,
+  rememberGuestBootMemo,
   stopAgendaRecoTraceForTests,
   traceAgendaRecoForTests,
 } from './agendaQuery';
@@ -154,6 +157,17 @@ describe('guest boot reco SSR budget', () => {
     assert.equal(finished, true);
   });
 
+  it('keeps a cache hit that settles after the deadline timer but before the fallback', async () => {
+    const hit = await withDeadline(
+      new Promise<string>((resolve) => {
+        setImmediate(() => resolve('hit'));
+      }),
+      0,
+      'empty',
+    );
+    assert.equal(hit, 'hit');
+  });
+
   it('turns a rejected fill into the fallback', async () => {
     const value = await withDeadline(
       Promise.reject(new Error('cache down')),
@@ -161,6 +175,34 @@ describe('guest boot reco SSR budget', () => {
       'empty',
     );
     assert.equal(value, 'empty');
+  });
+});
+
+describe('guest boot reco hard reload', () => {
+  it('treats Cache-Control / Pragma no-cache as a data-cache bypass', () => {
+    assert.equal(
+      requestBypassesDataCache({ cacheControl: 'no-cache', pragma: null }),
+      true,
+    );
+    assert.equal(
+      requestBypassesDataCache({ cacheControl: null, pragma: 'no-cache' }),
+      true,
+    );
+    assert.equal(
+      requestBypassesDataCache({ cacheControl: 'max-age=0', pragma: null }),
+      false,
+    );
+  });
+
+  it('remembers guest Top 3 on the isolate for a later hard reload', () => {
+    const day = '2099-01-02';
+    const card = { key: 'p:memo' } as DayItem;
+    assert.equal(readGuestBootMemo(day), null);
+    rememberGuestBootMemo(day, [card]);
+    assert.equal(readGuestBootMemo(day)?.[0], card);
+    assert.equal(readGuestBootMemo('2099-01-03'), null);
+    rememberGuestBootMemo(day, []);
+    assert.equal(readGuestBootMemo(day)?.[0], card);
   });
 });
 
@@ -212,7 +254,9 @@ describe('guest boot reco wiring', () => {
     assert.match(page, /initialRecoByScope=\{boot\.recoByScope\}/);
 
     const query = await readFile(new URL('./agendaQuery.ts', import.meta.url), 'utf8');
-    assert.match(query, /guest-boot-reco-v1/);
+    assert.match(query, /guest-boot-reco-v2/);
+    assert.match(query, /readGuestBootMemo/);
+    assert.match(query, /hardReloadBypassesRecoCache/);
     assert.match(query, /attachGuestBootReco/);
     assert.match(query, /GUEST_BOOT_RECO_SSR_BUDGET_MS/);
     assert.match(query, /guestBootRecoFillDelayMs/);

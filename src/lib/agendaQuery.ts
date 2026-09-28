@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { unstable_cache } from 'next/cache';
+import { headers } from 'next/headers';
 import type {
   Artiste,
   CategoryBucket,
@@ -93,6 +94,7 @@ import {
   GUEST_BOOT_RECO_SSR_BUDGET_MS,
   guestBootRecoFillDelayMs,
   isGuestBootRecoRequest,
+  requestBypassesDataCache,
   withDeadline,
 } from './guestBootReco';
 
@@ -1436,6 +1438,33 @@ export function computeGuestBootReco(now = new Date()): AgendaListResponse {
 
 const guestBootRecoInflight = new Map<string, Promise<AgendaListResponse>>();
 
+const GUEST_BOOT_MEMO_MS = 300_000;
+let guestBootMemo: { day: string; items: DayItem[]; at: number } | null = null;
+
+/** Same-isolate copy so a hard reload can paint Top 3 without touching `unstable_cache`. */
+export function rememberGuestBootMemo(day: string, items: DayItem[]): void {
+  if (!day || items.length === 0) return;
+  guestBootMemo = { day, items, at: Date.now() };
+}
+
+export function readGuestBootMemo(day: string, nowMs = Date.now()): DayItem[] | null {
+  if (!guestBootMemo || guestBootMemo.day !== day) return null;
+  if (nowMs - guestBootMemo.at > GUEST_BOOT_MEMO_MS) return null;
+  return guestBootMemo.items;
+}
+
+async function hardReloadBypassesRecoCache(): Promise<boolean> {
+  try {
+    const h = await headers();
+    return requestBypassesDataCache({
+      cacheControl: h.get('cache-control'),
+      pragma: h.get('pragma'),
+    });
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Short TTL, Paris day + boot scope + Toulouse + empty profile.
  * In-flight calls share one compute so an SSR budget miss and the guest POST
@@ -1460,15 +1489,20 @@ export function loadGuestBootReco(
         }
         return computeGuestBootReco(new Date());
       },
-      ['guest-boot-reco-v1', day, 'tous', 'Toulouse'],
+      ['guest-boot-reco-v2', day, 'tous', 'Toulouse'],
       { revalidate: 300 },
     )();
   } catch (err) {
     return Promise.reject(err);
   }
-  const tracked = work.finally(() => {
-    guestBootRecoInflight.delete(day);
-  });
+  const tracked = work
+    .then((res) => {
+      rememberGuestBootMemo(day, res.items);
+      return res;
+    })
+    .finally(() => {
+      guestBootRecoInflight.delete(day);
+    });
   guestBootRecoInflight.set(day, tracked);
   return tracked;
 }
@@ -1487,32 +1521,24 @@ export function mergeGuestBootReco<T extends { recoByScope: RecoByScope }>(
   };
 }
 
-/** Keep a cold fill running after HTML is sent. No-op outside a request. */
-function keepGuestBootRecoAlive(work: Promise<unknown>): void {
-  void import('next/server')
-    .then(({ after }) => {
-      try {
-        after(() => work);
-      } catch {
-        /* no request scope (tests, scripts) */
-      }
-    })
-    .catch(() => {
-      /* optional */
-    });
-}
-
 /**
  * Attach cached guest Top 3 onto an already-built first paint.
  * Cache hit: cards land in the RSC payload. Cache miss: the fill yields
- * past `budgetMs` (sync reco cannot be preempted), HTML returns without
- * Top 3, and `after` / the guest POST finish the cache write.
+ * past `budgetMs` (sync reco cannot be preempted) and HTML returns without
+ * Top 3. The in-flight fill still writes the cache when the isolate stays
+ * up; otherwise the guest POST (`eager`) writes it. Do not `after()` the
+ * fill — that holds the document open until recommendForProfile finishes.
  */
 export async function attachGuestBootReco(
   boot: HomeWindow,
   now = new Date(),
   budgetMs = GUEST_BOOT_RECO_SSR_BUDGET_MS,
 ): Promise<HomeWindow> {
+  const day = parisParts(now).iso;
+  const remembered = readGuestBootMemo(day);
+  if (remembered) return mergeGuestBootReco(boot, remembered);
+  // Hard reload bypasses the data cache and waits out the recompute.
+  if (await hardReloadBypassesRecoCache()) return boot;
   const pending = loadGuestBootReco(now)
     .then((res) => res.items)
     .catch((err: unknown) => {
@@ -1520,7 +1546,7 @@ export async function attachGuestBootReco(
       return [] as DayItem[];
     });
   const items = await withDeadline(pending, budgetMs, [] as DayItem[]);
-  if (items.length === 0) keepGuestBootRecoAlive(pending);
+  if (items.length > 0) rememberGuestBootMemo(day, items);
   return mergeGuestBootReco(boot, items);
 }
 
