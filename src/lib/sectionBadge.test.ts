@@ -274,7 +274,7 @@ describe('section badge wording', () => {
     assert.equal(line.includes('sorties'), false);
   });
 
-  it('wires the public header to slot totals, not densified « sorties »', () => {
+  it('wires every public section, with séance only on Ciné', () => {
     const app = fs.readFileSync(
       path.join(process.cwd(), 'src/components/CultureConnectApp.tsx'),
       'utf8',
@@ -283,10 +283,22 @@ describe('section badge wording', () => {
       path.join(process.cwd(), 'src/components/HomeSection.tsx'),
       'utf8',
     );
-    assert.match(app, /cineSlotTotal/);
-    assert.match(app, /unit: 'seance'/);
-    assert.match(app, /badge=\{cineBadge\}/);
-    assert.match(app, /badge=\{theatreBadge\}/);
+    const sections = [
+      ['cine', 'seance', 'cineSlotTotal'],
+      ['theatre', 'sortie', 'theatreSlotTotal'],
+      ['musique', 'sortie', 'musiqueSlotTotal'],
+      ['enfants', 'sortie', 'enfantsSlotTotal'],
+      ['expo', 'sortie', 'expoSlotTotal'],
+      ['autres', 'sortie', 'autresSlotTotal'],
+    ] as const;
+    for (const [name, unit, total] of sections) {
+      assert.match(app, new RegExp(`const ${name}Badge = formatSectionBadge\\(`));
+      assert.match(app, new RegExp(`count: visibleSlotCount\\(${total}\\)`));
+      assert.match(app, new RegExp(`unit: '${unit}'`));
+      assert.match(app, new RegExp(`badge=\\{${name}Badge\\}`));
+    }
+    assert.equal(app.match(/unit: 'seance'/g)?.length, 1);
+    assert.equal(app.match(/unit: 'sortie'/g)?.length, 5);
     assert.equal(app.includes('hideCount'), false);
     assert.match(section, /data-section-badge/);
     assert.equal(section.includes('sorties'), false);
