@@ -17,6 +17,26 @@ export {
 export function dailyVidUniquesKey(parisIso: string): string {
   return `cc:vu:${parisIso}`;
 }
+
+export type ClientSignalPostMode = 'buffer' | 'account' | 'guest';
+
+/**
+ * Where a client signal may be posted.
+ * `loading` is not a guest: next-auth stays there through the first session
+ * fetch and again while `update()` runs, including for an already signed-in
+ * user. Posting then mints a new `cc_vid` and appends `cc:vs:*` (KPI1).
+ * Buffer until the status is clearly unauthenticated (guest) or authenticated
+ * (account / Neon only).
+ */
+export function clientSignalPostMode(
+  status: 'loading' | 'authenticated' | 'unauthenticated',
+  hasUser: boolean,
+): ClientSignalPostMode {
+  if (status === 'authenticated' && hasUser) return 'account';
+  if (status === 'unauthenticated') return 'guest';
+  return 'buffer';
+}
+
 export const GUEST_SIGNAL_FIFO_CAP = 200;
 export const GUEST_RATE_LIMIT_PER_HOUR = 60;
 export const IP_RATE_LIMIT_PER_HOUR = 120;

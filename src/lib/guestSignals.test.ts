@@ -1,5 +1,6 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import {
   COHORT_COOKIE,
   GUEST_RATE_LIMIT_PER_HOUR,
@@ -7,6 +8,7 @@ import {
   IP_RATE_LIMIT_PER_HOUR,
   SIGNAL_PAYLOAD_MAX_BYTES,
   VID_COOKIE,
+  clientSignalPostMode,
   dailyVidUniquesKey,
   assertNoVidAccountJoin,
   buildGuestAppendLine,
@@ -308,5 +310,45 @@ describe('commitGuestSignals — append-only, no account path', () => {
     } finally {
       console.log = orig;
     }
+  });
+});
+
+describe('clientSignalPostMode — loading must not append cc_vid', () => {
+  it('buffers while session status is loading', () => {
+    assert.equal(clientSignalPostMode('loading', false), 'buffer');
+    assert.equal(clientSignalPostMode('loading', true), 'buffer');
+  });
+
+  it('posts on the account path only when authenticated with a user', () => {
+    assert.equal(clientSignalPostMode('authenticated', true), 'account');
+    assert.equal(clientSignalPostMode('authenticated', false), 'buffer');
+  });
+
+  it('posts a guest append only when clearly unauthenticated', () => {
+    assert.equal(clientSignalPostMode('unauthenticated', false), 'guest');
+  });
+
+  it('SignalsProvider does not guest-append from the loading branch', async () => {
+    const src = await readFile(
+      new URL('../components/SignalsProvider.tsx', import.meta.url),
+      'utf8',
+    );
+    const enqueue = src.slice(
+      src.indexOf('const enqueueOrSend'),
+      src.indexOf('// Flush only after status leaves'),
+    );
+    const bufferAt = enqueue.indexOf("mode === 'buffer'");
+    const guestAt = enqueue.indexOf('commitGuestSignal');
+    assert.ok(bufferAt >= 0 && guestAt > bufferAt);
+    assert.match(enqueue, /pendingSignalsRef\.current\.push\(signal\)/);
+    assert.equal(enqueue.includes('postGuestSignal'), false);
+
+    const track = src.slice(
+      src.indexOf('const track = useCallback'),
+      src.indexOf('const rememberItem'),
+    );
+    assert.match(track, /enqueueOrSend\(makeSignal\(payload\)\)/);
+    assert.equal(track.includes('postGuestSignal'), false);
+    assert.equal(track.includes('appendGuestSignal'), false);
   });
 });
