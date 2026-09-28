@@ -1,11 +1,17 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import {
   AGENDA_HTTP_CACHE_CONTROL,
   agendaListCacheKeyParts,
   buildAgendaParams,
+  dateChipListGate,
   listFetchShouldSkipBoot,
+  listFetchShouldSkipBootGps,
 } from './agendaParams';
+import { homePackShellVisible } from './displayHome';
+import type { TimeScopeId } from './timeScope';
+import { nearMeFromBoot } from './nearMe';
 import {
   filterSeancesForActiveFilters,
   listDisplayFilter,
@@ -95,12 +101,166 @@ describe('listFetchShouldSkipBoot', () => {
   it('skips the boot tous snapshot only', () => {
     assert.equal(listFetchShouldSkipBoot(true, 'tous', null), true);
     assert.equal(listFetchShouldSkipBoot(false, 'tous', null), false);
+    assert.equal(listFetchShouldSkipBoot(true, 'tous', null, 'tous'), true);
   });
 
   it('never skips a selected calendar day', () => {
     assert.equal(listFetchShouldSkipBoot(true, 'date', '2026-09-19'), false);
     assert.equal(listFetchShouldSkipBoot(false, 'date', '2026-09-19'), false);
   });
+
+  const dateChips = ['soir', 'aujourdhui', 'weekend', 'semaine'] as const;
+
+  it('never skips a date chip when skip was armed for tous', () => {
+    for (const scope of dateChips) {
+      assert.equal(listFetchShouldSkipBoot(true, scope, null, 'tous'), false);
+      assert.equal(
+        listFetchShouldSkipBoot(true, scope, '2026-09-28', 'tous'),
+        false,
+      );
+      assert.equal(listFetchShouldSkipBoot(true, scope, null, null), false);
+      assert.equal(listFetchShouldSkipBoot(true, scope, null), false);
+      assert.equal(listFetchShouldSkipBoot(true, scope, null, scope), true);
+      assert.equal(listFetchShouldSkipBoot(false, scope, null, 'tous'), false);
+    }
+  });
+
+  it('restore tous then Ce soir still requests soir', () => {
+    let skip = true;
+    let armed: TimeScopeId | null = 'tous';
+    assert.equal(listFetchShouldSkipBoot(skip, 'tous', null, armed), true);
+    skip = true;
+    armed = 'tous';
+    assert.equal(
+      listFetchShouldSkipBoot(skip, 'soir', '2026-09-28', armed),
+      false,
+    );
+  });
+
+  it('denied geolocation keeps Toulouse and does not swallow the first Ce soir', () => {
+    const denied = nearMeFromBoot({ ok: false, reason: 'denied' });
+    assert.equal(denied.commune, 'Toulouse');
+    assert.equal(denied.active, false);
+    // Deny does not change commune, so the list effect does not re-run and
+    // the one-shot stays armed until the next QUAND click.
+    const armedAfterDeny = true;
+    assert.equal(listFetchShouldSkipBootGps(armedAfterDeny, 'tous', 0), true);
+    for (const scope of [...dateChips, 'date'] as const) {
+      assert.equal(listFetchShouldSkipBootGps(armedAfterDeny, scope, 0), false);
+    }
+    assert.equal(listFetchShouldSkipBootGps(true, 'tous', 1), false);
+    assert.equal(listFetchShouldSkipBootGps(false, 'tous', 0), false);
+  });
+
+  it('home wires armed skip, pending totals, and a failed GET', async () => {
+    const app = await readFile(
+      new URL('../components/CultureConnectApp.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(app, /skipListFetchScope/);
+    assert.match(app, /listFetchShouldSkipBootGps/);
+    assert.match(app, /beginDateChipFetch\(scope\)/);
+    assert.match(
+      app,
+      /function beginDateChipFetch\(scope: TimeScopeId\) \{\n\s+releaseBootListSkip\(\);\n\s+skipListFetchBootGps\.current = false;/,
+    );
+    assert.match(app, /markDateChipListPending\(timeScope\)/);
+    assert.match(app, /packTotal: dateChipPending \? 0 : cineTotal/);
+    assert.equal(app.includes('keep previous window'), false);
+  });
+});
+
+describe('dateChipListGate', () => {
+  it('Ce soir without a snapshot stays pending and drops the stale cine total', () => {
+    const gate = dateChipListGate({
+      scope: 'soir',
+      hasSnapshot: false,
+      listSettled: false,
+    });
+    assert.deepEqual(gate, {
+      cataloguePending: true,
+      clearStalePackTotals: true,
+    });
+    const packTotal = gate.clearStalePackTotals ? 0 : 48;
+    assert.equal(
+      homePackShellVisible({
+        sectionAllowed: true,
+        rowCount: 0,
+        packTotal,
+        cataloguePending: gate.cataloguePending,
+      }),
+      true,
+    );
+    assert.equal(
+      homePackShellVisible({
+        sectionAllowed: true,
+        rowCount: 0,
+        packTotal: 48,
+        cataloguePending: false,
+      }),
+      true,
+    );
+  });
+
+  it('applyList empty soir closes the cine shell', () => {
+    const gate = dateChipListGate({
+      scope: 'soir',
+      hasSnapshot: false,
+      listSettled: true,
+    });
+    assert.equal(gate.cataloguePending, false);
+    assert.equal(gate.clearStalePackTotals, false);
+    assert.equal(
+      homePackShellVisible({
+        sectionAllowed: true,
+        rowCount: 0,
+        packTotal: 0,
+        cataloguePending: false,
+      }),
+      false,
+    );
+  });
+
+  it('failed GET stays pending instead of keeping the daytime total', () => {
+    const gate = dateChipListGate({
+      scope: 'soir',
+      hasSnapshot: false,
+      listSettled: false,
+    });
+    assert.equal(gate.cataloguePending, true);
+    assert.equal(gate.clearStalePackTotals, true);
+  });
+
+  it('a same-chip snapshot does not clear totals', () => {
+    assert.deepEqual(
+      dateChipListGate({
+        scope: 'soir',
+        hasSnapshot: true,
+        listSettled: false,
+      }),
+      { cataloguePending: false, clearStalePackTotals: false },
+    );
+  });
+
+  it('tous restore is not a date-chip pending gate', () => {
+    assert.deepEqual(
+      dateChipListGate({
+        scope: 'tous',
+        hasSnapshot: false,
+        listSettled: false,
+      }),
+      { cataloguePending: false, clearStalePackTotals: false },
+    );
+  });
+
+  for (const scope of ['aujourdhui', 'weekend', 'semaine', 'date'] as const) {
+    it(`${scope} without a snapshot clears stale pack totals`, () => {
+      assert.deepEqual(
+        dateChipListGate({ scope, hasSnapshot: false, listSettled: false }),
+        { cataloguePending: true, clearStalePackTotals: true },
+      );
+    });
+  }
 });
 
 describe('buildAgendaParams date chip', () => {

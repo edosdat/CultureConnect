@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { DayItem } from '@/lib/types';
+import { catalogueImageSrc } from '@/lib/catalogueImage';
 import VisualFallback from './VisualFallback';
 
 type Props = {
@@ -26,11 +27,12 @@ export default function FilmPoster({
   blurBackdrop = true,
   priority = false,
 }: Props) {
+  const safe = catalogueImageSrc(src);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     setFailed(false);
-  }, [src]);
-  const showPhoto = Boolean(src.trim()) && !failed;
+  }, [safe]);
+  const showPhoto = Boolean(safe) && !failed;
   const fallback = item ? (
     <div className="absolute inset-0">
       <VisualFallback item={item} />
@@ -52,7 +54,7 @@ export default function FilmPoster({
             // eslint-disable-next-line @next/next/no-img-element
             <img
               className="cine-hero-blur"
-              src={src}
+              src={safe}
               alt=""
               aria-hidden
               decoding="async"
@@ -65,7 +67,7 @@ export default function FilmPoster({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             className="cine-hero-poster"
-            src={src}
+            src={safe}
             alt=""
             decoding="async"
             loading={priority ? 'eager' : 'lazy'}

@@ -5,6 +5,7 @@
 
 import type { DayItem, GenreLegend } from './types';
 import { clipListPitch } from './slim';
+import { catalogueImageSrc } from './catalogueImage';
 import type { AccountTasteState } from './signals';
 import {
   cinemaDisplayStem,
@@ -131,12 +132,12 @@ export function itemPitch(item: DayItem): string {
 
 export function itemImageUrl(item: DayItem): string {
   if (item.kind === 'programme') {
-    return (
+    return catalogueImageSrc(
       (item.programme.image_url || '').trim() ||
-      (item.evenement?.image_url || '').trim()
+        (item.evenement?.image_url || '').trim(),
     );
   }
-  return (item.evenement.image_url || '').trim();
+  return catalogueImageSrc((item.evenement.image_url || '').trim());
 }
 
 export function itemHeure(item: DayItem): string {

@@ -121,7 +121,9 @@ import {
 import { peekPrefetchedAgendaItem } from '@/lib/agendaItemPrefetch';
 import {
   buildAgendaParams,
+  dateChipListGate,
   listFetchShouldSkipBoot,
+  listFetchShouldSkipBootGps,
 } from '@/lib/agendaParams';
 import {
   requestBrowserPosition,
@@ -565,6 +567,8 @@ export default function CultureConnectApp({
   }, [narrowHome, cineExpanded]);
 
   const skipListFetch = useRef(true);
+  /** Scope that armed skipListFetch. Date chips must not inherit « tous ». */
+  const skipListFetchScope = useRef<TimeScopeId | null>(initialScope);
   const skipListFetchBootGps = useRef(false);
   const bootFiltersRef = useRef({
     timeScope: initialScope,
@@ -762,6 +766,7 @@ export default function CultureConnectApp({
 
   function applyScopeFromSearch(scope: TimeScopeId, dateIso: string | null) {
     setTimeScope(scope);
+    if (scope !== 'tous') beginDateChipFetch(scope);
     if (scope === 'date') {
       if (dateIso) {
         setSelectedDay(dateIso);
@@ -1219,20 +1224,67 @@ export default function CultureConnectApp({
     });
   }, [sessionStatus]);
 
+  const markDateChipListPending = useCallback((scope: TimeScopeId) => {
+    const gate = dateChipListGate({
+      scope,
+      hasSnapshot: false,
+      listSettled: false,
+    });
+    if (!gate.cataloguePending) return;
+    setCatalogueReady(false);
+    if (!gate.clearStalePackTotals) return;
+    setVivantTotal(0);
+    setCineTotal(0);
+    setTheatreTotal(0);
+    setMusiqueTotal(0);
+    setEnfantsTotal(0);
+    setExpoTotal(0);
+  }, []);
+
+  function releaseBootListSkip() {
+    skipListFetch.current = false;
+    skipListFetchScope.current = null;
+  }
+
+  function armBootListSkip(scope: TimeScopeId) {
+    skipListFetch.current = true;
+    skipListFetchScope.current = scope;
+  }
+
+  /** Chip without an embedded snapshot. Denied boot GPS stays armed when
+   * commune does not change — that one-shot must not swallow this GET. */
+  function beginDateChipFetch(scope: TimeScopeId) {
+    releaseBootListSkip();
+    skipListFetchBootGps.current = false;
+    listFetchGen.current += 1;
+    markDateChipListPending(scope);
+  }
 
   useEffect(() => {
     if (
-      listFetchShouldSkipBoot(skipListFetch.current, timeScope, selectedDay)
+      listFetchShouldSkipBoot(
+        skipListFetch.current,
+        timeScope,
+        selectedDay,
+        skipListFetchScope.current,
+      )
     ) {
       skipListFetch.current = false;
+      skipListFetchScope.current = null;
       return;
     }
     if (skipListFetchBootGps.current) {
+      const swallow = listFetchShouldSkipBootGps(
+        true,
+        timeScope,
+        selectedCategories.length,
+      );
       skipListFetchBootGps.current = false;
       // Boot GPS must not cancel a QUOI fetch — genre chips need that response.
-      if (selectedCategories.length === 0) return;
+      if (swallow) return;
     }
     skipListFetch.current = false;
+    skipListFetchScope.current = null;
     const gen = ++listFetchGen.current;
     const keyAtStart = genreOptionsKey;
     const delay = 0;
@@ -1257,12 +1309,18 @@ export default function CultureConnectApp({
       void (async () => {
         try {
           const res = await fetch(`/api/agenda?${params.toString()}`);
-          if (!res.ok) return;
+          if (cancelled || gen !== listFetchGen.current) return;
+          if (!res.ok) {
+            markDateChipListPending(timeScope);
+            return;
+          }
           const data = (await res.json()) as AgendaListResponse;
           if (cancelled || gen !== listFetchGen.current) return;
           applyList(data);
         } catch {
-          /* keep previous window */
+          if (cancelled || gen !== listFetchGen.current) return;
+          // Date chips stay pending. « tous » keeps the previous window.
+          markDateChipListPending(timeScope);
         } finally {
           stopListSlowWatch(gen);
           if (!cancelled && gen === listFetchGen.current) {
@@ -1289,6 +1347,7 @@ export default function CultureConnectApp({
     phraseMode,
     phraseTags,
     genreOptionsKey,
+    markDateChipListPending,
   ]);
 
   // Month badges: own request so a day click never waits on countItemsByDay.
@@ -1643,6 +1702,11 @@ export default function CultureConnectApp({
 
   /** Densified cards on the Ciné strip (voir tout). The public badge uses cineSlotTotal. */
   const cineCount = allCineRows.length;
+  const dateChipPending = dateChipListGate({
+    scope: timeScope,
+    hasSnapshot: false,
+    listSettled: catalogueReady,
+  }).cataloguePending;
 
   useEffect(() => {
     if (recoKind !== 'profile') return;
@@ -1672,15 +1736,15 @@ export default function CultureConnectApp({
   const showCineBlock = homePackShellVisible({
     sectionAllowed: sectionVis.cine,
     rowCount: visibleCineRows.length,
-    packTotal: cineTotal,
-    cataloguePending: !catalogueReady,
+    packTotal: dateChipPending ? 0 : cineTotal,
+    cataloguePending: dateChipPending || !catalogueReady,
     phraseDateClash,
   });
   const showTheatreBlock = homePackShellVisible({
     sectionAllowed: sectionVis.theatre,
     rowCount: visibleTheatreRows.length,
-    packTotal: theatreTotal,
-    cataloguePending: !catalogueReady,
+    packTotal: dateChipPending ? 0 : theatreTotal,
+    cataloguePending: dateChipPending || !catalogueReady,
     phraseDateClash,
   });
   const showMusiqueBlock =
@@ -2116,7 +2180,8 @@ export default function CultureConnectApp({
         setTotal(snap.total);
         setDensifiedTotalApi(snap.densifiedTotal);
         setVenueOptions(snap.venues ?? []);
-        skipListFetch.current = true;
+        armBootListSkip(scope);
+        setCatalogueReady(true);
         return true;
       }
       return false;
@@ -2152,7 +2217,8 @@ export default function CultureConnectApp({
         setTotal(initialTotal);
         setDensifiedTotalApi(initialDensifiedTotal);
         setVenueOptions(initialVenues);
-        skipListFetch.current = true;
+        armBootListSkip('tous');
+        setCatalogueReady(true);
       }
       return;
     }
@@ -2160,9 +2226,10 @@ export default function CultureConnectApp({
       listFetchGen.current += 1;
       setVisibleCount(AGENDA_PAGE_SIZE);
       applySnapshot();
+    } else {
+      beginDateChipFetch(scope);
     }
     if (scope === 'date') {
-      skipListFetch.current = false;
       const day = selectedDay || initialParisIso;
       setSelectedDay(day);
       syncMonthFromIso(day);
@@ -2180,6 +2247,7 @@ export default function CultureConnectApp({
   function goPrevMonth() {
     const nextYear = month === 1 ? year - 1 : year;
     const nextMonth = month === 1 ? 12 : month - 1;
+    beginDateChipFetch('date');
     setTimeScope('date');
     setSelectedDay(null);
     setSelectedItemKey(null);
@@ -2191,6 +2259,7 @@ export default function CultureConnectApp({
   function goNextMonth() {
     const nextYear = month === 12 ? year + 1 : year;
     const nextMonth = month === 12 ? 1 : month + 1;
+    beginDateChipFetch('date');
     setTimeScope('date');
     setSelectedDay(null);
     setSelectedItemKey(null);
@@ -2200,7 +2269,7 @@ export default function CultureConnectApp({
   }
 
   function handleSelectDay(iso: string) {
-    skipListFetch.current = false;
+    beginDateChipFetch('date');
     searchDrivenRef.current.scope = false;
     setTimeScope('date');
     setSelectedDay(iso);
@@ -2297,6 +2366,7 @@ export default function CultureConnectApp({
   }
 
   function fallbackToWeekend() {
+    beginDateChipFetch('weekend');
     setTimeScope('weekend');
     setSelectedItemKey(null);
     const next = resolveScopeRange('weekend', null);

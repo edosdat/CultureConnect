@@ -26,15 +26,84 @@ export type AgendaParamsInput = {
   phraseMode?: boolean;
 };
 
-/** Boot snapshot is tous/upcoming — never skip a selected calendar day. */
+/**
+ * Date chips are not in the boot snapshot. A skip armed for another
+ * scope (boot / restore « tous ») must not swallow their list GET.
+ * Same-scope snapshot may still skip.
+ */
+const BOOT_SKIP_DATE_CHIPS: readonly TimeScopeId[] = [
+  'aujourdhui',
+  'soir',
+  'weekend',
+  'semaine',
+];
+
+export function isBootSkipDateChip(scope: TimeScopeId): boolean {
+  return (BOOT_SKIP_DATE_CHIPS as readonly string[]).includes(scope);
+}
+
+/**
+ * Boot snapshot is tous/upcoming — never skip a selected calendar day,
+ * and never skip soir|aujourdhui|weekend|semaine unless this exact chip
+ * armed the flag (embedded snapshot). `armedScope` omitted means the
+ * flag is a leftover boolean from another scope.
+ */
 export function listFetchShouldSkipBoot(
   skip: boolean,
   scope: TimeScopeId,
   selectedDate: string | null,
+  armedScope?: TimeScopeId | null,
 ): boolean {
   if (!skip) return false;
   if (scope === 'date' && selectedDate) return false;
+  if (isBootSkipDateChip(scope)) return armedScope === scope;
+  if (armedScope != null && armedScope !== scope) return false;
   return true;
+}
+
+/**
+ * Landing GPS must not refetch the painted « tous » list when the
+ * commune stays put. It must not swallow soir|aujourdhui|weekend|semaine
+ * or a calendar month — those chips have no boot rows of their own.
+ */
+export function listFetchShouldSkipBootGps(
+  skipBootGps: boolean,
+  scope: TimeScopeId,
+  selectedCategoryCount: number,
+): boolean {
+  if (!skipBootGps) return false;
+  if (scope !== 'tous') return false;
+  if (selectedCategoryCount > 0) return false;
+  return true;
+}
+
+/**
+ * Date chip with no embedded snapshot: the previous cineTotal (often
+ * « tous ») must not hold PackRailSkeleton. Stay pending, with pack
+ * totals cleared, until applyList. A failed GET stays on this gate
+ * (`listSettled: false`) instead of keeping the daytime window.
+ */
+export function dateChipListGate(opts: {
+  scope: TimeScopeId;
+  hasSnapshot: boolean;
+  listSettled: boolean;
+}): { cataloguePending: boolean; clearStalePackTotals: boolean } {
+  const chip = opts.scope === 'date' || isBootSkipDateChip(opts.scope);
+  if (!chip || opts.hasSnapshot || opts.listSettled) {
+    return { cataloguePending: false, clearStalePackTotals: false };
+  }
+  return { cataloguePending: true, clearStalePackTotals: true };
+}
+
+/**
+ * GET /api/agenda with no window, id, or scope runs the full « tous »
+ * catalogue (multi-second cold). Clients must pass one of those.
+ */
+export function agendaGetIsAddressed(params: URLSearchParams): boolean {
+  if ((params.get('window') || '').trim() === 'home') return true;
+  if ((params.get('id') || '').trim()) return true;
+  if ((params.get('scope') || '').trim()) return true;
+  return false;
 }
 
 export function buildAgendaParams(opts: AgendaParamsInput): URLSearchParams {

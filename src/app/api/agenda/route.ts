@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
-import { AGENDA_HTTP_CACHE_CONTROL } from '@/lib/agendaParams';
+import {
+  AGENDA_HTTP_CACHE_CONTROL,
+  agendaGetIsAddressed,
+} from '@/lib/agendaParams';
 import {
   loadHomeWindow,
   parseCsvParam,
@@ -121,6 +124,10 @@ export async function GET(req: Request) {
   const rawGenres = parseCsvParam(url.searchParams.get('genres'));
   // Phrase mode: genres = tag slugs (funk, humour…), skip exact chip filter.
   // Title q is ignored when phrase params are present (tag-to-tag).
+  if (!agendaGetIsAddressed(url.searchParams)) {
+    return agendaJson({ error: 'Use window=home, id, or scope' }, 400);
+  }
+
   const recoUpcoming = url.searchParams.get('reco') === '1';
   const result = await queryAgendaListCached({
     scope: parseTimeScope(url.searchParams.get('scope')),

@@ -70,6 +70,7 @@ describe('S1 home loading — cine + theatre shells, never silent more', () => {
     assert.match(shell, /cc-s1-ph-theatre/);
     assert.match(shell, /cc-s1-skel/);
     assert.match(shell, /HOME_PACK_MORE_ELLIPSIS/);
+    assert.equal(/<img/.test(shell), false);
 
     const app = await readFile(
       new URL('../components/CultureConnectApp.tsx', import.meta.url),
