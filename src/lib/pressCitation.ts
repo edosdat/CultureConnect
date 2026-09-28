@@ -90,12 +90,12 @@ const EMPTY_PRESS_FIELDS: Record<string, string> = {
 };
 
 /** CSV load: keep known press aliases as strings even when the column is absent. */
-export function pressFieldDefaults(
-  row: Record<string, string | undefined>,
-): Record<string, string> {
+/** Press string cells only. The row may also carry non-string fields such as tags_v2. */
+export function pressFieldDefaults(row: object): Record<string, string> {
+  const src = row as Record<string, unknown>;
   const out = { ...EMPTY_PRESS_FIELDS };
   for (const key of Object.keys(EMPTY_PRESS_FIELDS)) {
-    out[key] = str(row[key]);
+    out[key] = str(src[key]);
   }
   return out;
 }

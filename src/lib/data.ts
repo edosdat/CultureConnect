@@ -17,6 +17,7 @@ import type {
   CategoryBucket,
   CultureData,
   Evenement,
+  EventTagsV2,
   EventWithDetails,
   Film,
   GenreLegend,
@@ -24,11 +25,13 @@ import type {
   ProgrammeItem,
   ProgrammeWithContext,
 } from './types';
+import { attachEventTags, indexEventTags } from './eventTags';
 import { normalizeProgrammeRows } from './programmeRow';
 import { pressFieldDefaults } from './pressCitation';
 import { fillEmptyCatalogueImageUrl } from './sharePreviewImage';
 
-function readCsv<T extends Record<string, string>>(filename: string): T[] {
+/** CSV cells are strings. The row type may also carry fields joined after parse. */
+function readCsv<T extends object>(filename: string): T[] {
   const filePath = path.join(process.cwd(), 'data', filename);
   const text = fs.readFileSync(filePath, 'utf-8');
   const parsed = Papa.parse<T>(text, {
@@ -58,6 +61,19 @@ export function loadLieux(): Lieu[] {
     lat: r.lat ?? '',
     lng: r.lng ?? '',
   }));
+}
+
+const TAGS_EVENEMENTS_FILE = 'tags_evenements.csv';
+
+/**
+ * V2 tags keyed by event_id. Missing file → empty map, no throw.
+ * Headers only → empty map. Does not read evenements.csv.
+ */
+export function loadEventTagsById(
+  filename = TAGS_EVENEMENTS_FILE,
+): Map<string, EventTagsV2> {
+  if (!csvExists(filename)) return indexEventTags(null);
+  return indexEventTags(readCsv<Record<string, string>>(filename));
 }
 
 export function loadEvenements(): Evenement[] {
@@ -136,6 +152,8 @@ let cachedCulture: CultureData | null = null;
 function buildCultureData(): CultureData {
   const lieux = loadLieux();
   const evenements = loadEvenements();
+  // Join on event_id only. Empty / missing tags file leaves moods (v1) untouched.
+  attachEventTags(evenements, loadEventTagsById());
   const films = loadFilms();
   const programme = loadProgramme();
   const genresLegend = loadGenresLegend();

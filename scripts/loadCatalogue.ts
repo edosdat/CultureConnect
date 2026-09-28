@@ -1,10 +1,12 @@
 /**
  * Dev-only catalogue loader for the reco bench.
  *
- * Mirrors `src/lib/data.ts` CSV join (lieux + evenements + programme) without
- * importing that module — `data.ts` starts with `server-only`, which throws
- * under plain `tsx`. Scoring still goes through `itemsForDay` /
- * `itemsForDateRange` + `recommendForProfile`. Read-only: never writes `data/`.
+ * Mirrors `src/lib/data.ts` CSV join (lieux + evenements + programme, plus
+ * tags_evenements.csv on event_id) without importing that module — `data.ts`
+ * starts with `server-only`, which throws under plain `tsx`. Scoring still
+ * goes through `itemsForDay` / `itemsForDateRange` + `recommendForProfile`.
+ * V2 tags hang off `evenement.tags_v2` and do not replace v1 `moods`.
+ * Read-only: never writes `data/`.
  *
  * Programme rows go through `normalizeProgrammeRows`, the same function as
  * `loadProgramme`. Tag fields cannot drift between the bench and production.
@@ -12,6 +14,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import Papa from 'papaparse';
+import { attachEventTags, indexEventTags } from '../src/lib/eventTags';
 import { normalizeProgrammeRows } from '../src/lib/programmeRow';
 import { lastDateOfSeries } from '../src/lib/theatreUrgence';
 import type {
@@ -23,7 +26,8 @@ import type {
   ProgrammeWithContext,
 } from '../src/lib/types';
 
-function readCsv<T extends Record<string, string>>(filename: string): T[] {
+/** CSV cells are strings. The row type may also carry fields joined after parse. */
+function readCsv<T extends object>(filename: string): T[] {
   const filePath = path.join(process.cwd(), 'data', filename);
   const text = fs.readFileSync(filePath, 'utf-8');
   const parsed = Papa.parse<T>(text, {
@@ -119,6 +123,12 @@ export type BenchCatalogue = {
 export function loadBenchCatalogue(): BenchCatalogue {
   const lieux = loadLieux();
   const evenements = loadEvenements();
+  attachEventTags(
+    evenements,
+    csvExists('tags_evenements.csv')
+      ? indexEventTags(readCsv<Record<string, string>>('tags_evenements.csv'))
+      : indexEventTags(null),
+  );
   const programme = loadProgramme();
 
   const lieuxById = new Map(lieux.map((l) => [l.lieu_id, l]));
