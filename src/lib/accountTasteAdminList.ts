@@ -115,3 +115,64 @@ export async function listAccountTastesForAdmin(
     return [];
   }
 }
+
+/**
+ * Total comptes Google.
+ * `SELECT COUNT(DISTINCT lower(btrim(user_key))) FROM account_tastes`
+ * where the key contains `@`. null = Neon unread (not a true zero).
+ */
+export const GOOGLE_ACCOUNTS_COUNT_SQL = `
+  SELECT COUNT(DISTINCT lower(btrim(user_key)))::int AS n
+  FROM account_tastes
+  WHERE user_key IS NOT NULL
+    AND position('@' in user_key) > 0
+`;
+
+export async function countGoogleAccountsNeon(): Promise<number | null> {
+  try {
+    const pg = await ensureAccountTastesTable();
+    if (!pg) return null;
+    const result = await pg.query(GOOGLE_ACCOUNTS_COUNT_SQL);
+    const row = result.rows[0] as { n?: unknown } | undefined;
+    if (!row) return 0;
+    const num = typeof row.n === 'number' ? row.n : Number(row.n);
+    if (!Number.isFinite(num) || num < 0) return null;
+    return Math.floor(num);
+  } catch {
+    return null;
+  }
+}
+
+/** user_key + updated_at only. No state JSON, no vid. null = Neon unread. */
+export async function listAccountActivityClocks(): Promise<
+  { userKey: string; updatedAt?: string }[] | null
+> {
+  try {
+    const pg = await ensureAccountTastesTable();
+    if (!pg) return null;
+    const result = await pg.query(
+      `SELECT lower(btrim(user_key)) AS user_key, updated_at
+       FROM account_tastes
+       WHERE user_key IS NOT NULL
+         AND position('@' in user_key) > 0`,
+    );
+    const out: { userKey: string; updatedAt?: string }[] = [];
+    for (const row of result.rows as Array<{
+      user_key?: unknown;
+      updated_at?: Date | string | null;
+    }>) {
+      const userKey = typeof row.user_key === 'string' ? row.user_key.trim().toLowerCase() : '';
+      if (!userKey.includes('@')) continue;
+      const updatedAt =
+        row.updated_at instanceof Date
+          ? row.updated_at.toISOString()
+          : row.updated_at
+            ? String(row.updated_at)
+            : undefined;
+      out.push({ userKey, updatedAt });
+    }
+    return out;
+  } catch {
+    return null;
+  }
+}

@@ -205,6 +205,10 @@ export default function AuthButtons() {
                 href="/admin/analytics"
                 role="menuitem"
                 data-account-control="admin-analytics"
+                onPointerDown={holdMenu}
+                onClick={() => {
+                  window.setTimeout(() => setMenuOpen(false), 0);
+                }}
                 className="block w-full px-3 py-2 text-left text-[13px] text-culture-ink hover:bg-culture-cream"
               >
                 Analytics / Admin

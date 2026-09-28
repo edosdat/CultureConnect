@@ -1,5 +1,5 @@
 /**
- * Assemble KPI 1–18 from existing Neon / KV / catalogue stores.
+ * Assemble KPI 1–19 from existing Neon / KV / catalogue stores.
  * Admin-only caller. Never joins cc_vid with account identity.
  */
 import 'server-only';
@@ -14,6 +14,7 @@ import {
   buildRsvpTableRows,
   buildTokenTableRows,
   buildVisitsAgg,
+  countActiveGoogleAccounts,
   emptyTagDistribution,
   formatRsvpExportCsv,
   formatTasteExportCsv,
@@ -44,8 +45,11 @@ import {
   type TasteExportRow,
   type TopTag,
 } from '@/lib/adminAnalytics';
-import { readGoogleLoginCounts } from '@/lib/adminCounters';
-import { listAccountTastesForAdmin } from '@/lib/accountTasteStore';
+import {
+  countGoogleAccountsNeon,
+  listAccountActivityClocks,
+  listAccountTastesForAdmin,
+} from '@/lib/accountTasteStore';
 import { loadCultureData } from '@/lib/data';
 import { normalizeDeepLinkId } from '@/lib/deepLink';
 import { normalizeCommune } from '@/lib/commune';
@@ -61,7 +65,9 @@ import {
   isKnownSignalKind,
   mappedCategorie,
 } from '@/lib/signals';
+import { addDaysIso } from '@/lib/timeScope';
 import {
+  listShareAccountActionsForAdmin,
   listShareRsvpsForAdmin,
   listShareTokensForAdmin,
 } from '@/lib/shareStore';
@@ -284,8 +290,10 @@ export type AdminAnalyticsSnapshot = {
     distinctSharers: number;
   };
   compte: {
-    googleLogins: number;
-    googleLoginsPerDay: { day: string; count: number }[];
+    /** COUNT DISTINCT account_tastes.user_key. null = Neon unread. */
+    googleAccounts: number | null;
+    /** Subset with a Neon action in the Paris 7-day window. null = Neon unread. */
+    active7d: number | null;
     guestAppends: number;
   };
   mix: {
@@ -327,13 +335,17 @@ export async function loadAdminAnalytics(
   const daySet = new Set(windowDays);
   const notes: string[] = [];
 
-  const [guestLines, loginCounts, tokens, rsvps, accounts] = await Promise.all([
-    listGuestAppendLines(),
-    readGoogleLoginCounts(windowDays),
-    listShareTokensForAdmin(ADMIN_TOKENS_CAP),
-    listShareRsvpsForAdmin(ADMIN_RSVPS_CAP),
-    listAccountTastesForAdmin(ADMIN_TASTES_CAP),
-  ]);
+  const notBefore = `${addDaysIso(windowDays[0] || '1970-01-01', -2)}T00:00:00.000Z`;
+  const [guestLines, tokens, rsvps, accounts, googleAccounts, clocks, shareActions] =
+    await Promise.all([
+      listGuestAppendLines(),
+      listShareTokensForAdmin(ADMIN_TOKENS_CAP),
+      listShareRsvpsForAdmin(ADMIN_RSVPS_CAP),
+      listAccountTastesForAdmin(ADMIN_TASTES_CAP),
+      countGoogleAccountsNeon(),
+      listAccountActivityClocks(),
+      listShareAccountActionsForAdmin(notBefore),
+    ]);
 
   // Mesure LOCK: KPI 1–2 from KV cc:vs:* lines only (not cc:vu daily index).
   const vidDays = new Map<string, Set<string>>();
@@ -402,16 +414,15 @@ export async function loadAdminAnalytics(
       .filter((e): e is string => Boolean(e && e.includes('@'))),
   );
 
-  const googleLoginsPerDay = windowDays.map((day) => ({
-    day,
-    count: loginCounts.get(day) || 0,
-  }));
-  const googleLogins = googleLoginsPerDay.reduce((n, r) => n + r.count, 0);
-  if (googleLogins === 0) {
-    notes.push(
-      'KPI 9 : compteur KV `cc:login:YYYY-MM-DD` posé au sign-in NextAuth (à partir de ce déploiement). Historique antérieur non stocké.',
-    );
-  }
+  const active7d =
+    clocks == null
+      ? null
+      : countActiveGoogleAccounts({
+          accounts: clocks,
+          shares: shareActions.shares,
+          rsvps: shareActions.rsvps,
+          windowDays,
+        });
 
   const tagDistribution = emptyTagDistribution();
   let withTastes = 0;
@@ -508,8 +519,8 @@ export async function loadAdminAnalytics(
       distinctSharers: sharers.size,
     },
     compte: {
-      googleLogins,
-      googleLoginsPerDay,
+      googleAccounts,
+      active7d,
       guestAppends: windowGuest.length,
     },
     mix,

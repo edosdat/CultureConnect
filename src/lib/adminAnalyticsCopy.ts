@@ -3,8 +3,6 @@
  * Aggregations stay in adminAnalytics / adminAnalyticsLoad.
  */
 
-export const KPI9_LOGIN_HINT = 'Logins = depuis le deploy du 15/09';
-
 export const SECTION_COPY = {
   trafic: { title: 'Trafic' },
   funnel: { title: 'Funnel agenda' },
@@ -92,10 +90,9 @@ export const KPI_COPY: Record<string, KpiCopy> = {
       'Comptes distincts ayant créé un lien de partage sur 7 jours. 0 est normal s’il n’y a pas eu de partage cette semaine.',
   },
   '9': {
-    title: 'Connexions Google',
+    title: 'Comptes Google',
     glossary:
-      'Nombre de connexions Google comptées depuis ce déploiement. 0 est normal : le compteur démarre au 15/09, pas d’historique avant.',
-    hint: KPI9_LOGIN_HINT,
+      'Total des comptes Google distincts enregistrés dans Neon depuis le début. 0 = vraiment aucun compte, pas un compteur qui démarre plus tard. Si Neon ne répond pas, la carte affiche —.',
   },
   '10': {
     title: 'Actions des visiteurs non connectés',
@@ -141,6 +138,16 @@ export const KPI_COPY: Record<string, KpiCopy> = {
     title: 'Export CSV des profils goûts',
     glossary:
       'Téléchargement interne de tous les comptes avec goûts (e-mail masqué, pas de liste nominative). 0 profil est normal s’il n’y a pas encore de goûts enregistrés.',
+  },
+  '19': {
+    title: 'Actifs 7 jours',
+    glossary:
+      'Comptes Google avec au moins une action Neon sur les 7 jours calendaires de Paris : enregistrement des goûts ou des signaux du compte, création d’un lien de partage, ou réponse Envie / J’y vais. Il n’y a pas de date de dernière connexion, donc un simple login n’est pas compté. Les ouvertures de lien ne sont pas rattachées à un compte. 0 = aucun compte dans ce cas. Si Neon ne répond pas, la carte affiche —.',
+  },
+  '20': {
+    title: 'Connectés et non connectés',
+    glossary:
+      'Sur 7 jours Paris, deux populations indépendantes additionnées seulement comme base d’affichage : non connectés = visiteurs distincts sans compte (le même chiffre que les visiteurs distincts), connectés = comptes actifs 7 jours. Ce ne sont pas les mêmes personnes rapprochées. Base = non connectés + connectés. 0 et 0 donnent 0 / 0 (0 %). Si Neon ne répond pas, les pourcentages ne s’affichent pas.',
   },
 };
 
