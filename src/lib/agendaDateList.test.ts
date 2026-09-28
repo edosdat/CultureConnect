@@ -11,6 +11,7 @@ import {
 } from './agendaParams';
 import { homePackShellVisible } from './displayHome';
 import type { TimeScopeId } from './timeScope';
+import { nearMeFromBoot } from './nearMe';
 import {
   filterSeancesForActiveFilters,
   listDisplayFilter,
@@ -136,12 +137,17 @@ describe('listFetchShouldSkipBoot', () => {
     );
   });
 
-  it('boot GPS skip does not swallow date chips', () => {
-    for (const scope of dateChips) {
-      assert.equal(listFetchShouldSkipBootGps(true, scope, 0), false);
+  it('denied geolocation keeps Toulouse and does not swallow the first Ce soir', () => {
+    const denied = nearMeFromBoot({ ok: false, reason: 'denied' });
+    assert.equal(denied.commune, 'Toulouse');
+    assert.equal(denied.active, false);
+    // Deny does not change commune, so the list effect does not re-run and
+    // the one-shot stays armed until the next QUAND click.
+    const armedAfterDeny = true;
+    assert.equal(listFetchShouldSkipBootGps(armedAfterDeny, 'tous', 0), true);
+    for (const scope of [...dateChips, 'date'] as const) {
+      assert.equal(listFetchShouldSkipBootGps(armedAfterDeny, scope, 0), false);
     }
-    assert.equal(listFetchShouldSkipBootGps(true, 'date', 0), false);
-    assert.equal(listFetchShouldSkipBootGps(true, 'tous', 0), true);
     assert.equal(listFetchShouldSkipBootGps(true, 'tous', 1), false);
     assert.equal(listFetchShouldSkipBootGps(false, 'tous', 0), false);
   });
@@ -154,6 +160,10 @@ describe('listFetchShouldSkipBoot', () => {
     assert.match(app, /skipListFetchScope/);
     assert.match(app, /listFetchShouldSkipBootGps/);
     assert.match(app, /beginDateChipFetch\(scope\)/);
+    assert.match(
+      app,
+      /function beginDateChipFetch\(scope: TimeScopeId\) \{\n\s+releaseBootListSkip\(\);\n\s+skipListFetchBootGps\.current = false;/,
+    );
     assert.match(app, /markDateChipListPending\(timeScope\)/);
     assert.match(app, /packTotal: dateChipPending \? 0 : cineTotal/);
     assert.equal(app.includes('keep previous window'), false);

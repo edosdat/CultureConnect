@@ -1251,9 +1251,11 @@ export default function CultureConnectApp({
     skipListFetchScope.current = scope;
   }
 
-  /** Chip without an embedded snapshot: GET, and do not keep « tous » totals. */
+  /** Chip without an embedded snapshot. Denied boot GPS stays armed when
+   * commune does not change — that one-shot must not swallow this GET. */
   function beginDateChipFetch(scope: TimeScopeId) {
     releaseBootListSkip();
+    skipListFetchBootGps.current = false;
     listFetchGen.current += 1;
     markDateChipListPending(scope);
   }
