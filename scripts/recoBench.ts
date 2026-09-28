@@ -31,6 +31,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { gitCommitShort } from './catalogueStamp';
 import {
   ELOI_PROFILES_META,
   loadBenchProfileSet,
@@ -176,6 +177,7 @@ type BenchJson = {
       evenements: number;
       programme: number;
       programmeSha256: string;
+      commitSha: string;
       maxIso: string;
     };
     vivantRule: string;
@@ -774,6 +776,7 @@ function runBench(set: BenchProfileSet): BenchJson {
         evenements: catalogue.evenements.length,
         programme: catalogue.programme.length,
         programmeSha256: sha256File('data/programme.csv'),
+        commitSha: gitCommitShort(),
         maxIso: catalogue.maxIso,
       },
       vivantRule:
@@ -961,6 +964,7 @@ function readableDump(result: BenchJson, profiles: BenchProfile[]): string {
   lines.push(
     `programme.csv sha256 : \`${result.meta.catalogue.programmeSha256}\``,
   );
+  lines.push(`commit : \`${result.meta.catalogue.commitSha}\``);
   lines.push(
     `profils : ${profiles.length} · source : \`${result.meta.profilesSource}\``,
   );

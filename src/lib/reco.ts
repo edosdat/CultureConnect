@@ -1076,21 +1076,7 @@ export function itemInheritsParentMoods(item: DayItem): boolean {
   return Boolean((prog.film_id || '').trim() || slotFormOfItem(item) === 'cine');
 }
 
-function itemClosedSlugs(item: DayItem): string[] {
-  const ev = item.evenement ?? null;
-  const prog = item.kind === 'programme' ? item.programme : null;
-  const inheritParent = itemInheritsParentClosedTags(item);
-  const inheritMoods = itemInheritsParentMoods(item);
-  const raw = [
-    ...splitTagSlugs(prog?.moods),
-    ...(inheritMoods ? splitTagSlugs(ev?.moods) : []),
-    ...splitTagSlugs(prog?.genres_mood),
-    ...(inheritParent ? splitTagSlugs(ev?.genres_mood) : []),
-    ...splitTagSlugs(prog?.genre),
-    ...(inheritParent ? splitTagSlugs(ev?.genre) : []),
-    ...splitTagSlugs(prog?.themes),
-    ...(inheritParent ? splitTagSlugs(ev?.themes) : []),
-  ];
+function closedSlugsFrom(raw: readonly string[]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const slug of raw) {
@@ -1099,6 +1085,42 @@ function itemClosedSlugs(item: DayItem): string[] {
     out.push(slug);
   }
   return out;
+}
+
+/**
+ * Slugs fermés portés par la séance elle-même (moods, genres_mood, themes,
+ * genre), après alias. Pas d'héritage parent : la couverture catalogue
+ * mesure les tags visibles sur la ligne (T1/T2), pas le scoring du parent.
+ */
+export function scorableSlugsOnProgrammeRow(row: {
+  moods?: string | null;
+  genres_mood?: string | null;
+  themes?: string | null;
+  genre?: string | null;
+}): string[] {
+  return closedSlugsFrom([
+    ...splitTagSlugs(row.moods),
+    ...splitTagSlugs(row.genres_mood),
+    ...splitTagSlugs(row.themes),
+    ...splitTagSlugs(row.genre),
+  ]);
+}
+
+function itemClosedSlugs(item: DayItem): string[] {
+  const ev = item.evenement ?? null;
+  const prog = item.kind === 'programme' ? item.programme : null;
+  const inheritParent = itemInheritsParentClosedTags(item);
+  const inheritMoods = itemInheritsParentMoods(item);
+  return closedSlugsFrom([
+    ...splitTagSlugs(prog?.moods),
+    ...(inheritMoods ? splitTagSlugs(ev?.moods) : []),
+    ...splitTagSlugs(prog?.genres_mood),
+    ...(inheritParent ? splitTagSlugs(ev?.genres_mood) : []),
+    ...splitTagSlugs(prog?.genre),
+    ...(inheritParent ? splitTagSlugs(ev?.genre) : []),
+    ...splitTagSlugs(prog?.themes),
+    ...(inheritParent ? splitTagSlugs(ev?.themes) : []),
+  ]);
 }
 
 function bucketOfSlug(slug: string): 'mood' | 'theme' | 'genre' | null {
