@@ -1289,6 +1289,7 @@ export default function CultureConnectApp({
         true,
         timeScope,
         selectedCategories.length,
+        titleLeftover,
       );
       skipListFetchBootGps.current = false;
       // Boot GPS must not cancel a QUOI fetch — genre chips need that response.
