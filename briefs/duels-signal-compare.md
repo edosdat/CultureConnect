@@ -57,7 +57,7 @@ Hors périmètre de ce brief (voir §10) : les profils types (clustering), le «
 - Conséquence déjà gérée par la reco : `inverseMoodWeights` met l'IDF d'une ambiance à **0** quand elle couvre ≥ 75 % d'un créneau (commentaire : « theatre ≈ 82 % rigolo → 0 »). **Un duel dont la seule différence est une ambiance à IDF 0 n'apprend rien d'utile à la reco : ne pas le tirer.**
 - Doublons réels dans le catalogue (même spectacle en 2 lignes) : `Xandria + Seven Spires + Tulip` / `… (metal)`, `DJ Pone - 30 ans de Platines` / `… (hip-hop|rap)`, `Primal Fear` / `… (metal)`, `HYPNO5E & HIPPOTRAKTOR` / `… (metal|post-metal)`. Des titres ne sont qu'une date : `Vendredi 02 octobre 2026 - 20H30` (La Comédie de Toulouse). **Ne jamais faire un duel entre deux lignes du même spectacle.**
 - Tags douteux repérés : `Lio Kuokman / Nelson Goerner` (concert classique) est tagué `rigolo`. D'où la règle de confiance au §5.1.
-- **Prérequis qualité** : la variété des tags conditionne tout ce brief. Voir `briefs/tagging-methode-v2.md` (2 à 3 ambiances ordonnées, `rigolo` / `festif` jamais seuls, confiance stricte, script `tagAudit`). Les duels peuvent être codés avant ce retagging, mais ils ne donneront leur plein effet qu'après.
+- **Prérequis qualité** : la variété des tags conditionne tout ce brief. Voir `briefs/tags-v2-evenements-et-profils.md` (2 à 3 ambiances ordonnées, `rigolo` / `festif` jamais seuls, confiance stricte, script `tagAudit`). Les duels peuvent être codés avant ce retagging, mais ils ne donneront leur plein effet qu'après.
 - Les prix sont souvent vides ou en texte libre (`Tarif unique : 28€`, `28–35€`, `à partir de 39€`, `entrée libre 5 euros conseillés`, `gratuit`).
 
 ---
@@ -276,7 +276,7 @@ Chaque PR : `npm run lint`, `npm test`, `npm run build` verts avant push.
 
 - **« Je n'aime pas »** : aujourd'hui un poids ne descend pas sous 0 (§2, invariant 1). Représenter une aversion demanderait un nouveau bucket (ex. `profile.avoid`) et une pénalité dans `scoreOverlapHit` (`reco.ts` ~l. 1267, qui ignore tout `pct <= 0`). À traiter dans un brief dédié, après mesure.
 - **Profils types (clustering)** et **« les gens comme toi »** : nouvelle finalité de traitement ; nécessite une mise à jour de `/confidentialite`, uniquement pour les comptes connectés. Brief séparé.
-- **Nettoyage et méthode de tagging** : voir `briefs/tagging-methode-v2.md`. Les duels s'en protègent déjà via §5.1 et §5.4.
+- **Nettoyage et méthode de tagging** : voir `briefs/tags-v2-evenements-et-profils.md`. Les duels s'en protègent déjà via §5.1 et §5.4.
 - Cinéma dans les duels.
 - Mobile natif.
 

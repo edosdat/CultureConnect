@@ -1,3 +1,5 @@
+> **⚠ Remplacé** par `briefs/tags-v2-evenements-et-profils.md` (28/09/2026), qui reprend ce diagnostic et ajoute 6 axes de tags et les familles de profils. Ne plus utiliser ce fichier comme référence.
+
 # Tagging des ambiances — méthode v2 (plus varié, plus fiable)
 
 Brief pour l'agent de code et pour quiconque produit les colonnes `moods` / `mood_source` / `mood_confiance` des CSV. Rédigé le 28/09/2026, chiffres mesurés sur `data/evenements.csv` (lignes `theatre_danse` + `musique`, n = 1 271).
