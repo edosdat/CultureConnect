@@ -5,9 +5,9 @@ import {
   parseCsvParam,
   parseRecoProfile,
   parseTimeScope,
-  queryAgenda,
   queryAgendaDetail,
   queryAgendaListCached,
+  queryAgendaReco,
 } from '@/lib/agendaQuery';
 
 function agendaJson(data: unknown, status = 200) {
@@ -168,7 +168,7 @@ export async function POST(req: Request) {
   const year = Number.isFinite(yearRaw) && yearRaw >= 2000 ? yearRaw : 2026;
   const month =
     Number.isFinite(monthRaw) && monthRaw >= 1 && monthRaw <= 12 ? monthRaw : 8;
-  const result = queryAgenda({
+  const result = await queryAgendaReco({
     scope: parseTimeScope(
       typeof body.scope === 'string' ? body.scope : url.searchParams.get('scope'),
     ),

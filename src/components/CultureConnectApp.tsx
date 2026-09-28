@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DayItem, GenreLegend, Lieu } from '@/lib/types';
 import type { AgendaDetailResponse, AgendaListResponse } from '@/lib/slim';
 import { HOME_PACK_WIRE_CAP } from '@/lib/slim';
+import { shouldSkipGuestBootRecoPost } from '@/lib/guestBootReco';
 import { profileHasChipWeight } from '@/lib/reco';
 import { extractMoods, profileHasZeroWeights } from '@/lib/signals';
 import { signIn, useSession } from 'next-auth/react';
@@ -167,7 +168,10 @@ type Props = {
   initialYear: number;
   initialMonth: number;
   initialNouveauFilmIds?: string[];
-  /** Guest 1+1+1 per date chip. Boot defers this — client POST reco=1 fills it. */
+  /**
+   * Guest 1+1+1 per date chip. Boot `tous` may already be filled from SSR
+   * (cached guest populaire). Empty slots still POST `/api/agenda?reco=1`.
+   */
   initialRecoByScope?: Partial<Record<TimeScopeId, DayItem[]>>;
   /** Toulouse list snapshot per date chip (items + window totals). */
   initialListByScope?: Partial<
@@ -880,7 +884,15 @@ export default function CultureConnectApp({
           ? cineTotal
           : densifiedCardCount(listItems.filter(isCinemaDayItem)),
       );
-    if (recoKind === 'guest' && existing !== undefined && !staleCached) return;
+    if (
+      shouldSkipGuestBootRecoPost({
+        kind: recoKind,
+        cached: existing !== undefined,
+        stale: staleCached,
+      })
+    ) {
+      return;
+    }
     if (
       recoKind === 'profile' &&
       existing !== undefined &&

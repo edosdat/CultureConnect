@@ -189,6 +189,7 @@ async function HomePageApp({
         initialYear={Number(boot.parisIso.slice(0, 4))}
         initialMonth={Number(boot.parisIso.slice(5, 7))}
         initialNouveauFilmIds={boot.nouveauFilmIds ?? []}
+        initialRecoByScope={boot.recoByScope}
         initialOpenKey={initialOpenKey}
         initialOpenItem={openDetail?.item ?? null}
         initialRelatedItems={openDetail?.relatedItems}

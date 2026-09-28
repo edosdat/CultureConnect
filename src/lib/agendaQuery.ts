@@ -89,6 +89,11 @@ import {
 import type { TasteEntry, TasteProfile } from './signals';
 import { normalizeDeepLinkId } from './deepLink';
 import { agendaListCacheKeyParts } from './agendaParams';
+import {
+  GUEST_BOOT_RECO_SSR_BUDGET_MS,
+  isGuestBootRecoRequest,
+  withDeadline,
+} from './guestBootReco';
 
 export const AGENDA_PAGE_MAX = 50;
 /** Single calendar day: show the day's matching séances, not the upcoming-50 cap. */
@@ -1291,7 +1296,12 @@ export type HomeWindow = AgendaListResponse & {
   listByScope: ListByScope;
 };
 
-/** Empty guest reco — SSR first paint must not wait on recommendForProfile. */
+/**
+ * Empty reco slots. Profile and non-boot scopes stay empty on SSR.
+ * Guest boot `tous` is attached afterwards when the short-TTL cache hits
+ * inside `GUEST_BOOT_RECO_SSR_BUDGET_MS`. A cold recommendForProfile must
+ * not stall first paint — `demoteChainFor` itself is unchanged.
+ */
 export function deferredRecoByScope(): RecoByScope {
   const empty: DayItem[] = [];
   return {
@@ -1400,16 +1410,142 @@ function computeHomeFirstPaint(now = new Date()): HomeWindow {
   };
 }
 
-/** Slim first HTML: chips + Top 3 shell + cine + théâtre packs. */
+/** Guest populaire Top 3 for the homepage boot scope. Same path as a guest POST. */
+export function guestBootRecoInput(now = new Date()): AgendaQueryInput {
+  const { year, month } = parisParts(now);
+  return {
+    scope: 'tous',
+    commune: 'Toulouse',
+    q: '',
+    cats: [],
+    genres: [],
+    lieuId: null,
+    selectedDate: null,
+    year,
+    month,
+    recoUpcoming: true,
+    recoProfile: null,
+  };
+}
+
+/** Live guest boot reco (populaire + N1 demote). Not cached. */
+export function computeGuestBootReco(now = new Date()): AgendaListResponse {
+  return queryAgenda(guestBootRecoInput(now), now);
+}
+
+const guestBootRecoInflight = new Map<string, Promise<AgendaListResponse>>();
+
+/**
+ * Short TTL, Paris day + boot scope + Toulouse + empty profile.
+ * In-flight calls share one compute so an SSR budget miss and the guest POST
+ * do not run recommendForProfile twice on the same isolate.
+ */
+export function loadGuestBootReco(
+  now = new Date(),
+): Promise<AgendaListResponse> {
+  const day = parisParts(now).iso;
+  const pending = guestBootRecoInflight.get(day);
+  if (pending) return pending;
+  let work: Promise<AgendaListResponse>;
+  try {
+    work = unstable_cache(
+      async () => computeGuestBootReco(new Date()),
+      ['guest-boot-reco-v1', day, 'tous', 'Toulouse'],
+      { revalidate: 300 },
+    )();
+  } catch (err) {
+    return Promise.reject(err);
+  }
+  const tracked = work.finally(() => {
+    guestBootRecoInflight.delete(day);
+  });
+  guestBootRecoInflight.set(day, tracked);
+  return tracked;
+}
+
+export function mergeGuestBootReco<T extends { recoByScope: RecoByScope }>(
+  boot: T,
+  items: DayItem[],
+): T {
+  if (items.length === 0) return boot;
+  return {
+    ...boot,
+    recoByScope: {
+      ...boot.recoByScope,
+      tous: items,
+    },
+  };
+}
+
+/** Keep a cold fill running after HTML is sent. No-op outside a request. */
+function keepGuestBootRecoAlive(work: Promise<unknown>): void {
+  void import('next/server')
+    .then(({ after }) => {
+      try {
+        after(() => work);
+      } catch {
+        /* no request scope (tests, scripts) */
+      }
+    })
+    .catch(() => {
+      /* optional */
+    });
+}
+
+/**
+ * Attach cached guest Top 3 onto an already-built first paint.
+ * Cache hit: cards land in the RSC payload. Cache miss: return within
+ * `budgetMs` and let the fill finish via `after` / the guest POST.
+ */
+export async function attachGuestBootReco(
+  boot: HomeWindow,
+  now = new Date(),
+  budgetMs = GUEST_BOOT_RECO_SSR_BUDGET_MS,
+): Promise<HomeWindow> {
+  const pending = loadGuestBootReco(now)
+    .then((res) => res.items)
+    .catch((err: unknown) => {
+      console.error('[guest-boot-reco]', err);
+      return [] as DayItem[];
+    });
+  const items = await withDeadline(pending, budgetMs, [] as DayItem[]);
+  if (items.length === 0) keepGuestBootRecoAlive(pending);
+  return mergeGuestBootReco(boot, items);
+}
+
+/** Slim first HTML: chips + cached guest Top 3 + cine + théâtre packs. */
 export async function loadHomeFirstPaint(
   now = new Date(),
 ): Promise<HomeWindow> {
   const day = parisParts(now).iso;
-  return unstable_cache(
+  const boot = await unstable_cache(
     async () => computeHomeFirstPaint(new Date()),
     ['home-first-paint-v3', day],
     { revalidate: 300 },
   )();
+  return attachGuestBootReco(boot, now);
+}
+
+/**
+ * Guest boot Top 3 reads the short-TTL cache. A profile (or any other
+ * window) still runs `queryAgenda` live, including `demoteChainFor`.
+ */
+export async function queryAgendaReco(
+  input: AgendaQueryInput,
+  now = new Date(),
+): Promise<AgendaListResponse> {
+  if (
+    isGuestBootRecoRequest({
+      recoUpcoming: Boolean(input.recoUpcoming),
+      hasProfile: profileHasChipWeight(input.recoProfile),
+      scope: input.scope,
+      commune: input.commune,
+      selectedDate: input.selectedDate,
+    })
+  ) {
+    return loadGuestBootReco(now);
+  }
+  return queryAgenda(input, now);
 }
 
 function computeHomeWindow(now = new Date()): HomeWindow {
@@ -1680,14 +1816,21 @@ export function parseCsvParam(raw: string | null): string[] {
 }
 
 
-/** First-page list cache: scope + cat + commune + Paris day. Skip search / phrase / reco. */
+/**
+ * First-page list cache: scope + cat + commune + Paris day.
+ * Search, phrase, and counts stay live. Guest boot reco uses its own
+ * short-TTL cache; other reco windows stay live.
+ */
 export async function queryAgendaListCached(
   input: AgendaQueryInput,
   now = new Date(),
 ): Promise<AgendaListResponse> {
   const searching = Boolean((input.q || '').trim());
   const phrase = hasPhraseFilters(input);
-  if (searching || phrase || input.recoUpcoming || input.includeCounts) {
+  if (input.recoUpcoming) {
+    return queryAgendaReco(input, now);
+  }
+  if (searching || phrase || input.includeCounts) {
     return queryAgenda(input, now);
   }
   const day = parisParts(now).iso;
