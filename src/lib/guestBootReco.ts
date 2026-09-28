@@ -1,5 +1,6 @@
 /**
- * Guest boot Top 3 (scope `tous`, Toulouse, no taste profile).
+ * Guest boot Top 3 (time scope `tous`, empty profile).
+ * Two pools: the Toulouse city chip, and no city chip (métropole).
  * Client-safe predicates. The server cache lives in `agendaQuery.ts`.
  */
 import { normalizeCommune } from './commune';
@@ -25,6 +26,25 @@ export function guestBootRecoFillDelayMs(eager: boolean): number {
 /** Boot scope whose guest populaire Top 3 is cached. Profile reco stays live. */
 export const GUEST_BOOT_RECO_SCOPE = 'tous' as const;
 
+/** Toulouse city chip, or no city chip (whole métropole). Other communes stay live. */
+export type GuestBootPlace = 'toulouse' | 'metro';
+
+export function guestBootPlace(
+  commune: string | null | undefined,
+): GuestBootPlace | null {
+  if (commune == null || commune.trim() === '') return 'metro';
+  if (normalizeCommune(commune) === 'toulouse') return 'toulouse';
+  return null;
+}
+
+/**
+ * Client reco pool key for a guest boot place.
+ * `tous` has no day segment. Metro is an empty commune (`tous|||guest`).
+ */
+export function guestBootRecoPoolKey(place: GuestBootPlace): string {
+  return place === 'metro' ? 'tous|||guest' : 'tous||toulouse|guest';
+}
+
 /** Browser hard reload (`Cache-Control: no-cache`) makes Next recompute `unstable_cache` and hold the document. */
 export function requestBypassesDataCache(header: {
   cacheControl?: string | null;
@@ -46,7 +66,19 @@ export function isGuestBootRecoRequest(input: {
   if (input.hasProfile) return false;
   if (input.scope !== GUEST_BOOT_RECO_SCOPE) return false;
   if ((input.selectedDate || '').trim()) return false;
-  return normalizeCommune(input.commune) === 'toulouse';
+  return guestBootPlace(input.commune) != null;
+}
+
+/**
+ * Paint hydrated guest cards on the server and on the first client render.
+ * Session loading used to force the skeleton even when `initialRecoByScope`
+ * already held the trio. Profile reco stays on its own key.
+ */
+export function shouldPaintGuestBootReco(opts: {
+  kind: string;
+  guestCached: boolean;
+}): boolean {
+  return opts.kind === 'guest' || (opts.kind === 'pending' && opts.guestCached);
 }
 
 /**

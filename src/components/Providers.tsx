@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import type { Session } from 'next-auth';
 import { SessionProvider } from 'next-auth/react';
 import SignalsProvider from './SignalsProvider';
 import ShareVisitProvider from './ShareVisitProvider';
@@ -48,9 +49,15 @@ export function useTastesUi() {
 type Props = {
   children: ReactNode;
   googleAuthEnabled: boolean;
+  /** `null` = known guest. Omit when `auth()` failed so the client can refetch. */
+  session?: Session | null;
 };
 
-export default function Providers({ children, googleAuthEnabled }: Props) {
+export default function Providers({
+  children,
+  googleAuthEnabled,
+  session,
+}: Props) {
   // Overlay visibility is owned by TastesOverlayHost (CultureConnectApp /
   // SiteNav), not by this tree and never by the avatar menu.
   const [tastesOpen, setTastesOpen] = useState(false);
@@ -82,7 +89,7 @@ export default function Providers({ children, googleAuthEnabled }: Props) {
   );
 
   return (
-    <SessionProvider>
+    <SessionProvider session={session}>
       <SignalsProvider>
         <ShareVisitProvider>
           <FavoritesProvider>

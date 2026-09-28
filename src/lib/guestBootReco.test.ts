@@ -7,15 +7,19 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import {
   GUEST_BOOT_RECO_SSR_BUDGET_MS,
+  guestBootPlace,
   guestBootRecoFillDelayMs,
+  guestBootRecoPoolKey,
   isGuestBootRecoRequest,
   requestBypassesDataCache,
+  shouldPaintGuestBootReco,
   shouldSkipGuestBootRecoPost,
   withDeadline,
 } from './guestBootReco';
 import {
   computeGuestBootReco,
   deferredRecoByScope,
+  guestBootRecoInput,
   mergeGuestBootReco,
   readGuestBootMemo,
   rememberGuestBootMemo,
@@ -29,7 +33,7 @@ import type { DayItem } from './types';
 const MONDAY = new Date('2026-09-28T08:00:00.000Z');
 
 describe('guest boot reco predicates', () => {
-  it('matches only guest populaire on boot scope Toulouse', () => {
+  it('matches guest populaire for Toulouse and for no city chip', () => {
     assert.equal(
       isGuestBootRecoRequest({
         recoUpcoming: true,
@@ -67,6 +71,24 @@ describe('guest boot reco predicates', () => {
         commune: 'Toulouse',
       }),
       false,
+    );
+    assert.equal(
+      isGuestBootRecoRequest({
+        recoUpcoming: true,
+        hasProfile: false,
+        scope: 'tous',
+        commune: null,
+      }),
+      true,
+    );
+    assert.equal(
+      isGuestBootRecoRequest({
+        recoUpcoming: true,
+        hasProfile: false,
+        scope: 'tous',
+        commune: '   ',
+      }),
+      true,
     );
     assert.equal(
       isGuestBootRecoRequest({
@@ -117,6 +139,39 @@ describe('guest boot reco predicates', () => {
     );
     assert.equal(
       shouldSkipGuestBootRecoPost({ kind: 'pending', cached: true, stale: false }),
+      false,
+    );
+  });
+
+  it('keys Toulouse and the no-city métropole as different guest pools', () => {
+    assert.equal(guestBootPlace('Toulouse'), 'toulouse');
+    assert.equal(guestBootPlace('  toulouse '), 'toulouse');
+    assert.equal(guestBootPlace(null), 'metro');
+    assert.equal(guestBootPlace(''), 'metro');
+    assert.equal(guestBootPlace('Blagnac'), null);
+    assert.equal(guestBootRecoPoolKey('toulouse'), 'tous||toulouse|guest');
+    assert.equal(guestBootRecoPoolKey('metro'), 'tous|||guest');
+  });
+
+  it('paints hydrated guest cards while session is still loading', () => {
+    assert.equal(
+      shouldPaintGuestBootReco({ kind: 'guest', guestCached: true }),
+      true,
+    );
+    assert.equal(
+      shouldPaintGuestBootReco({ kind: 'guest', guestCached: false }),
+      true,
+    );
+    assert.equal(
+      shouldPaintGuestBootReco({ kind: 'pending', guestCached: true }),
+      true,
+    );
+    assert.equal(
+      shouldPaintGuestBootReco({ kind: 'pending', guestCached: false }),
+      false,
+    );
+    assert.equal(
+      shouldPaintGuestBootReco({ kind: 'profile', guestCached: true }),
       false,
     );
   });
@@ -197,17 +252,21 @@ describe('guest boot reco hard reload', () => {
   it('remembers guest Top 3 on the isolate for a later hard reload', () => {
     const day = '2099-01-02';
     const card = { key: 'p:memo' } as DayItem;
+    const metro = { key: 'p:metro' } as DayItem;
     assert.equal(readGuestBootMemo(day), null);
     rememberGuestBootMemo(day, [card]);
     assert.equal(readGuestBootMemo(day)?.[0], card);
     assert.equal(readGuestBootMemo('2099-01-03'), null);
     rememberGuestBootMemo(day, []);
     assert.equal(readGuestBootMemo(day)?.[0], card);
+    rememberGuestBootMemo(day, [metro], 'metro');
+    assert.equal(readGuestBootMemo(day, Date.now(), 'metro')?.[0], metro);
+    assert.equal(readGuestBootMemo(day, Date.now(), 'toulouse')?.[0], card);
   });
 });
 
 describe('guest boot reco merge', () => {
-  it('fills only boot scope tous and leaves a cold payload untouched', () => {
+  it('fills boot scope tous and keeps the no-city pool separate', () => {
     const cold = { recoByScope: deferredRecoByScope() };
     assert.equal(mergeGuestBootReco(cold, []), cold);
     const card = { key: 'p:guest' } as DayItem;
@@ -216,6 +275,16 @@ describe('guest boot reco merge', () => {
     assert.equal(warm.recoByScope.soir.length, 0);
     assert.equal(warm.recoByScope.aujourdhui.length, 0);
     assert.equal(cold.recoByScope.tous.length, 0);
+    const metroCard = { key: 'p:metro' } as DayItem;
+    const metro = mergeGuestBootReco(warm, [metroCard], 'metro');
+    assert.equal(metro.guestMetroTop3?.[0], metroCard);
+    assert.equal(metro.recoByScope.tous[0], card);
+    const input = guestBootRecoInput(MONDAY, 'metro');
+    assert.equal(input.scope, 'tous');
+    assert.equal(input.commune, null);
+    assert.equal(input.recoProfile, null);
+    assert.equal(input.recoUpcoming, true);
+    assert.equal(guestBootRecoInput(MONDAY).commune, 'Toulouse');
   });
 });
 
@@ -252,9 +321,11 @@ describe('guest boot reco wiring', () => {
   it('SSR payload, POST cache, and the client skip share the guest boot path', async () => {
     const page = await readFile(new URL('../app/page.tsx', import.meta.url), 'utf8');
     assert.match(page, /initialRecoByScope=\{boot\.recoByScope\}/);
+    assert.match(page, /initialGuestMetroTop3=\{boot\.guestMetroTop3\}/);
 
     const query = await readFile(new URL('./agendaQuery.ts', import.meta.url), 'utf8');
     assert.match(query, /guest-boot-reco-v2/);
+    assert.match(query, /place === 'metro' \? 'metro' : 'Toulouse'/);
     assert.match(query, /readGuestBootMemo/);
     assert.match(query, /hardReloadBypassesRecoCache/);
     assert.match(query, /attachGuestBootReco/);
@@ -276,6 +347,21 @@ describe('guest boot reco wiring', () => {
       'utf8',
     );
     assert.match(app, /shouldSkipGuestBootRecoPost/);
-    assert.match(app, /hydrateRecoCache\(initialRecoByScope/);
+    assert.match(app, /shouldPaintGuestBootReco/);
+    assert.match(app, /guestBootRecoPoolKey\('metro'\)/);
+    assert.match(app, /hydrateRecoCache\(/);
+    assert.match(app, /initialGuestMetroTop3/);
+
+    const layout = await readFile(
+      new URL('../app/layout.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(layout, /await auth\(\)/);
+    assert.match(layout, /session=\{session\}/);
+    const providers = await readFile(
+      new URL('../components/Providers.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(providers, /<SessionProvider session=\{session\}>/);
   });
 });

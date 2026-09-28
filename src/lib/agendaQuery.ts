@@ -92,10 +92,12 @@ import { normalizeDeepLinkId } from './deepLink';
 import { agendaListCacheKeyParts } from './agendaParams';
 import {
   GUEST_BOOT_RECO_SSR_BUDGET_MS,
+  guestBootPlace,
   guestBootRecoFillDelayMs,
   isGuestBootRecoRequest,
   requestBypassesDataCache,
   withDeadline,
+  type GuestBootPlace,
 } from './guestBootReco';
 
 export const AGENDA_PAGE_MAX = 50;
@@ -1297,6 +1299,8 @@ export type ListByScope = Partial<Record<RecoBootScope, ScopeListSnapshot>>;
 export type HomeWindow = AgendaListResponse & {
   recoByScope: RecoByScope;
   listByScope: ListByScope;
+  /** Guest populaire for scope `tous` with the city chip cleared (métropole). */
+  guestMetroTop3?: DayItem[];
 };
 
 /**
@@ -1414,11 +1418,14 @@ function computeHomeFirstPaint(now = new Date()): HomeWindow {
 }
 
 /** Guest populaire Top 3 for the homepage boot scope. Same path as a guest POST. */
-export function guestBootRecoInput(now = new Date()): AgendaQueryInput {
+export function guestBootRecoInput(
+  now = new Date(),
+  place: GuestBootPlace = 'toulouse',
+): AgendaQueryInput {
   const { year, month } = parisParts(now);
   return {
     scope: 'tous',
-    commune: 'Toulouse',
+    commune: place === 'metro' ? null : 'Toulouse',
     q: '',
     cats: [],
     genres: [],
@@ -1432,25 +1439,41 @@ export function guestBootRecoInput(now = new Date()): AgendaQueryInput {
 }
 
 /** Live guest boot reco (populaire + N1 demote). Not cached. */
-export function computeGuestBootReco(now = new Date()): AgendaListResponse {
-  return queryAgenda(guestBootRecoInput(now), now);
+export function computeGuestBootReco(
+  now = new Date(),
+  place: GuestBootPlace = 'toulouse',
+): AgendaListResponse {
+  return queryAgenda(guestBootRecoInput(now, place), now);
 }
 
 const guestBootRecoInflight = new Map<string, Promise<AgendaListResponse>>();
 
 const GUEST_BOOT_MEMO_MS = 300_000;
-let guestBootMemo: { day: string; items: DayItem[]; at: number } | null = null;
+const guestBootMemos = new Map<string, { items: DayItem[]; at: number }>();
 
-/** Same-isolate copy so a hard reload can paint Top 3 without touching `unstable_cache`. */
-export function rememberGuestBootMemo(day: string, items: DayItem[]): void {
-  if (!day || items.length === 0) return;
-  guestBootMemo = { day, items, at: Date.now() };
+function guestBootMemoKey(day: string, place: GuestBootPlace): string {
+  return `${day}|${place}`;
 }
 
-export function readGuestBootMemo(day: string, nowMs = Date.now()): DayItem[] | null {
-  if (!guestBootMemo || guestBootMemo.day !== day) return null;
-  if (nowMs - guestBootMemo.at > GUEST_BOOT_MEMO_MS) return null;
-  return guestBootMemo.items;
+/** Same-isolate copy so a hard reload can paint Top 3 without touching `unstable_cache`. */
+export function rememberGuestBootMemo(
+  day: string,
+  items: DayItem[],
+  place: GuestBootPlace = 'toulouse',
+): void {
+  if (!day || items.length === 0) return;
+  guestBootMemos.set(guestBootMemoKey(day, place), { items, at: Date.now() });
+}
+
+export function readGuestBootMemo(
+  day: string,
+  nowMs = Date.now(),
+  place: GuestBootPlace = 'toulouse',
+): DayItem[] | null {
+  const memo = guestBootMemos.get(guestBootMemoKey(day, place));
+  if (!memo) return null;
+  if (nowMs - memo.at > GUEST_BOOT_MEMO_MS) return null;
+  return memo.items;
 }
 
 async function hardReloadBypassesRecoCache(): Promise<boolean> {
@@ -1466,20 +1489,25 @@ async function hardReloadBypassesRecoCache(): Promise<boolean> {
 }
 
 /**
- * Short TTL, Paris day + boot scope + Toulouse + empty profile.
- * In-flight calls share one compute so an SSR budget miss and the guest POST
- * do not run recommendForProfile twice on the same isolate.
+ * Short TTL, Paris day + boot scope + place + empty profile.
+ * `Toulouse` is the city chip. `metro` is no city chip.
+ * In-flight calls for the same place share one compute so an SSR budget
+ * miss and the guest POST do not run recommendForProfile twice.
  */
 export function loadGuestBootReco(
   now = new Date(),
-  opts?: { eager?: boolean },
+  opts?: { eager?: boolean; place?: GuestBootPlace },
 ): Promise<AgendaListResponse> {
+  const place = opts?.place ?? 'toulouse';
   const day = parisParts(now).iso;
-  const pending = guestBootRecoInflight.get(day);
+  const inflightKey = guestBootMemoKey(day, place);
+  const pending = guestBootRecoInflight.get(inflightKey);
   if (pending) return pending;
   // Captured per call. SSR stays non-eager so a miss yields past the budget.
   // The guest POST passes eager and computes immediately.
+  // City key stays `Toulouse` so an already-warm cache still hits.
   const delayMs = guestBootRecoFillDelayMs(Boolean(opts?.eager));
+  const cachePlace = place === 'metro' ? 'metro' : 'Toulouse';
   let work: Promise<AgendaListResponse>;
   try {
     work = unstable_cache(
@@ -1487,9 +1515,9 @@ export function loadGuestBootReco(
         if (delayMs > 0) {
           await new Promise((resolve) => setTimeout(resolve, delayMs));
         }
-        return computeGuestBootReco(new Date());
+        return computeGuestBootReco(new Date(), place);
       },
-      ['guest-boot-reco-v2', day, 'tous', 'Toulouse'],
+      ['guest-boot-reco-v2', day, 'tous', cachePlace],
       { revalidate: 300 },
     )();
   } catch (err) {
@@ -1497,21 +1525,23 @@ export function loadGuestBootReco(
   }
   const tracked = work
     .then((res) => {
-      rememberGuestBootMemo(day, res.items);
+      rememberGuestBootMemo(day, res.items, place);
       return res;
     })
     .finally(() => {
-      guestBootRecoInflight.delete(day);
+      guestBootRecoInflight.delete(inflightKey);
     });
-  guestBootRecoInflight.set(day, tracked);
+  guestBootRecoInflight.set(inflightKey, tracked);
   return tracked;
 }
 
-export function mergeGuestBootReco<T extends { recoByScope: RecoByScope }>(
-  boot: T,
-  items: DayItem[],
-): T {
+export function mergeGuestBootReco<
+  T extends { recoByScope: RecoByScope; guestMetroTop3?: DayItem[] },
+>(boot: T, items: DayItem[], place: GuestBootPlace = 'toulouse'): T {
   if (items.length === 0) return boot;
+  if (place === 'metro') {
+    return { ...boot, guestMetroTop3: items };
+  }
   return {
     ...boot,
     recoByScope: {
@@ -1521,11 +1551,34 @@ export function mergeGuestBootReco<T extends { recoByScope: RecoByScope }>(
   };
 }
 
+async function guestBootItemsForPlace(
+  day: string,
+  now: Date,
+  place: GuestBootPlace,
+  bypass: boolean,
+  budgetMs: number,
+): Promise<DayItem[]> {
+  const remembered = readGuestBootMemo(day, Date.now(), place);
+  if (remembered) return remembered;
+  // Hard reload bypasses the data cache and waits out the recompute.
+  if (bypass) return [];
+  const pending = loadGuestBootReco(now, { place })
+    .then((res) => res.items)
+    .catch((err: unknown) => {
+      console.error('[guest-boot-reco]', place, err);
+      return [] as DayItem[];
+    });
+  const items = await withDeadline(pending, budgetMs, [] as DayItem[]);
+  if (items.length > 0) rememberGuestBootMemo(day, items, place);
+  return items;
+}
+
 /**
  * Attach cached guest Top 3 onto an already-built first paint.
+ * City chip → `recoByScope.tous`. No city chip → `guestMetroTop3`.
  * Cache hit: cards land in the RSC payload. Cache miss: the fill yields
  * past `budgetMs` (sync reco cannot be preempted) and HTML returns without
- * Top 3. The in-flight fill still writes the cache when the isolate stays
+ * that pool. The in-flight fill still writes the cache when the isolate stays
  * up; otherwise the guest POST (`eager`) writes it. Do not `after()` the
  * fill — that holds the document open until recommendForProfile finishes.
  */
@@ -1535,19 +1588,25 @@ export async function attachGuestBootReco(
   budgetMs = GUEST_BOOT_RECO_SSR_BUDGET_MS,
 ): Promise<HomeWindow> {
   const day = parisParts(now).iso;
-  const remembered = readGuestBootMemo(day);
-  if (remembered) return mergeGuestBootReco(boot, remembered);
-  // Hard reload bypasses the data cache and waits out the recompute.
-  if (await hardReloadBypassesRecoCache()) return boot;
-  const pending = loadGuestBootReco(now)
-    .then((res) => res.items)
-    .catch((err: unknown) => {
-      console.error('[guest-boot-reco]', err);
-      return [] as DayItem[];
-    });
-  const items = await withDeadline(pending, budgetMs, [] as DayItem[]);
-  if (items.length > 0) rememberGuestBootMemo(day, items);
-  return mergeGuestBootReco(boot, items);
+  const toulouseMemo = readGuestBootMemo(day, Date.now(), 'toulouse');
+  const metroMemo = readGuestBootMemo(day, Date.now(), 'metro');
+  if (toulouseMemo && metroMemo) {
+    return mergeGuestBootReco(
+      mergeGuestBootReco(boot, toulouseMemo, 'toulouse'),
+      metroMemo,
+      'metro',
+    );
+  }
+  const bypass = await hardReloadBypassesRecoCache();
+  const [toulouse, metro] = await Promise.all([
+    guestBootItemsForPlace(day, now, 'toulouse', bypass, budgetMs),
+    guestBootItemsForPlace(day, now, 'metro', bypass, budgetMs),
+  ]);
+  return mergeGuestBootReco(
+    mergeGuestBootReco(boot, toulouse, 'toulouse'),
+    metro,
+    'metro',
+  );
 }
 
 /** Slim first HTML: chips + cached guest Top 3 + cine + théâtre packs. */
@@ -1571,7 +1630,9 @@ export async function queryAgendaReco(
   input: AgendaQueryInput,
   now = new Date(),
 ): Promise<AgendaListResponse> {
+  const place = guestBootPlace(input.commune);
   if (
+    place &&
     isGuestBootRecoRequest({
       recoUpcoming: Boolean(input.recoUpcoming),
       hasProfile: profileHasChipWeight(input.recoProfile),
@@ -1580,7 +1641,7 @@ export async function queryAgendaReco(
       selectedDate: input.selectedDate,
     })
   ) {
-    return loadGuestBootReco(now, { eager: true });
+    return loadGuestBootReco(now, { eager: true, place });
   }
   return queryAgenda(input, now);
 }
