@@ -1,8 +1,9 @@
 /**
- * Admin analytics MVP — KPI 1–18 helpers (pure).
+ * Admin analytics MVP — KPI 1–21 helpers (pure).
  * Sources are assembled in adminAnalyticsLoad.ts (Neon / KV / catalogue).
  * RGPD: no cc_vid ↔ email join; export 18 hashes emails and omits full payloads.
  * P1 tables: hash only, 0 prénom, 0 vid list. CSV tastes = all scorable.
+ * KPI 19 / 21 share `parisAuthActivityDays` (Neon only). No last_seen ledger.
  */
 import { createHash } from 'crypto';
 import { dailyVidUniquesKey } from '@/lib/guestSignals';
@@ -320,49 +321,132 @@ export function countDistinctGoogleAccounts(userKeys: readonly string[]): number
   return set.size;
 }
 
-/**
- * Actifs 7 jours. `account_tastes` has no last_login / last_seen / session column.
- * A stored Google account counts once when any Neon timestamp falls on a Paris
- * day in `windowDays`:
- * - `account_tastes.updated_at` (goûts or account-signal write)
- * - `share_tokens.created_at` for that `sharer_email` (partage)
- * - `share_rsvps.updated_at` where `email_hash = sha256(user_key)` and kind is
- *   envie or going
- * `share_tokens.opens` is an undated counter. KV visits and cc_vid are ignored.
- */
-export function countActiveGoogleAccounts(opts: {
-  accounts: readonly { userKey: string; updatedAt?: string }[];
+/** FIFO cap on `account_tastes.state.signalsRecent` — known minorant. */
+export const ACCOUNT_SIGNAL_TS_CAP = 40;
+
+export type GoogleAccountActivityInput = {
+  userKey: string;
+  updatedAt?: string;
+  /** `signalsRecent[].ts`, chronological. Only the last `ACCOUNT_SIGNAL_TS_CAP` count. */
+  signalTs?: readonly string[];
+};
+
+export type GoogleAccountActivityOpts = {
+  accounts: readonly GoogleAccountActivityInput[];
   shares: readonly { sharerEmail: string | null; createdAt: string }[];
   rsvps: readonly { emailHash: string; kind: string; ts: string }[];
   windowDays: readonly string[];
-}): number {
-  const days = new Set(opts.windowDays);
-  const accounts = new Map<string, string | undefined>();
+};
+
+/**
+ * Paris calendar days in `windowDays` for one Google account.
+ * Union of Neon clocks only (no KV, no cc_vid):
+ * 1. `signalsRecent[].ts` (last 40)
+ * 2. `account_tastes.updated_at`
+ * 3. share `created_at`s
+ * 4. RSVP `updated_at`s (envie | going already filtered by the caller)
+ * Login alone does not appear here.
+ */
+export function parisAuthActivityDays(opts: {
+  updatedAt?: string;
+  signalTs?: readonly string[];
+  shareCreatedAts?: readonly string[];
+  rsvpUpdatedAts?: readonly string[];
+  windowDays: ReadonlySet<string>;
+}): Set<string> {
+  const days = new Set<string>();
+  const add = (ts: string | undefined) => {
+    if (!ts) return;
+    const day = parisDayOfIso(ts);
+    if (day && opts.windowDays.has(day)) days.add(day);
+  };
+  const signals = opts.signalTs ?? [];
+  const capped =
+    signals.length > ACCOUNT_SIGNAL_TS_CAP
+      ? signals.slice(-ACCOUNT_SIGNAL_TS_CAP)
+      : signals;
+  for (const ts of capped) add(ts);
+  add(opts.updatedAt);
+  for (const ts of opts.shareCreatedAts ?? []) add(ts);
+  for (const ts of opts.rsvpUpdatedAts ?? []) add(ts);
+  return days;
+}
+
+/**
+ * Per `user_key` (email-like, universe = rows passed in — callers use `@` keys).
+ * Shares and RSVPs for emails outside that universe are ignored.
+ * RSVP match is `email_hash = sha256(user_key)`, kind envie | going.
+ */
+export function googleAccountActivityDaySets(
+  opts: GoogleAccountActivityOpts,
+): Map<string, Set<string>> {
+  const windowDays = new Set(opts.windowDays);
+  const accounts = new Map<string, GoogleAccountActivityInput>();
   for (const row of opts.accounts) {
     const key = normalizeGoogleAccountKey(row.userKey);
     if (!key || accounts.has(key)) continue;
-    accounts.set(key, row.updatedAt);
+    accounts.set(key, row);
   }
   const hashToKey = new Map<string, string>();
   for (const key of accounts.keys()) {
     hashToKey.set(accountEmailSha256(key), key);
   }
-  const active = new Set<string>();
-  for (const [key, updatedAt] of accounts) {
-    if (updatedAt && inParisWindow(updatedAt, days)) active.add(key);
-  }
+  const sharesByKey = new Map<string, string[]>();
   for (const share of opts.shares) {
     const key = normalizeGoogleAccountKey(share.sharerEmail || '');
     if (!key || !accounts.has(key)) continue;
-    if (inParisWindow(share.createdAt, days)) active.add(key);
+    const list = sharesByKey.get(key) ?? [];
+    list.push(share.createdAt);
+    sharesByKey.set(key, list);
   }
+  const rsvpsByKey = new Map<string, string[]>();
   for (const rsvp of opts.rsvps) {
     if (rsvp.kind !== 'envie' && rsvp.kind !== 'going') continue;
-    if (!inParisWindow(rsvp.ts, days)) continue;
     const key = hashToKey.get(rsvp.emailHash.trim().toLowerCase());
-    if (key) active.add(key);
+    if (!key) continue;
+    const list = rsvpsByKey.get(key) ?? [];
+    list.push(rsvp.ts);
+    rsvpsByKey.set(key, list);
   }
-  return active.size;
+  const out = new Map<string, Set<string>>();
+  for (const [key, row] of accounts) {
+    out.set(
+      key,
+      parisAuthActivityDays({
+        updatedAt: row.updatedAt,
+        signalTs: row.signalTs,
+        shareCreatedAts: sharesByKey.get(key),
+        rsvpUpdatedAts: rsvpsByKey.get(key),
+        windowDays,
+      }),
+    );
+  }
+  return out;
+}
+
+function countAccountsWithMinDays(opts: GoogleAccountActivityOpts, minDays: number): number {
+  let n = 0;
+  for (const days of googleAccountActivityDaySets(opts).values()) {
+    if (days.size >= minDays) n += 1;
+  }
+  return n;
+}
+
+/**
+ * Actifs 7 jours. Same Neon day set as Comptes de retour (`parisAuthActivityDays`).
+ * Counts when |days| ≥ 1. `account_tastes` has no last_login / last_seen.
+ * `share_tokens.opens` is an undated counter. KV visits and cc_vid are ignored.
+ */
+export function countActiveGoogleAccounts(opts: GoogleAccountActivityOpts): number {
+  return countAccountsWithMinDays(opts, 1);
+}
+
+/**
+ * Comptes de retour. Same day set as Actifs ; counts when |days| ≥ 2.
+ * Proxy / minorant: signal FIFO cap 40, login alone invisible in Neon.
+ */
+export function countReturningGoogleAccounts(opts: GoogleAccountActivityOpts): number {
+  return countAccountsWithMinDays(opts, 2);
 }
 
 export type LoginPopulationShare = {
