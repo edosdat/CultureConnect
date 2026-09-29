@@ -43,6 +43,7 @@ import {
   rememberGuestItemTags,
   wipeGuestProfileKey,
 } from '@/lib/signalsStore';
+import { clientSignalPostMode } from '@/lib/guestSignals';
 import { notifyTasteCookieOnce, notifyVidCookiePosed } from './TasteCookieNotice';
 import { writeAccountProfileCache } from '@/lib/tastesCache';
 
@@ -109,18 +110,21 @@ async function postSignals(body: unknown): Promise<{
   }
 }
 
-/** Fire-and-forget guest append. Network failure must not break UX. */
-function postGuestSignal(signal: Signal): void {
+/**
+ * Guest append (`cc:vs:*` + `cc_vid`). Only call once status is unauthenticated.
+ * Network failure must not break UX.
+ */
+function postGuestSignal(signal: Signal): Promise<void> {
   notifyVidCookiePosed();
-  void fetch('/api/signals', {
+  return fetch('/api/signals', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'same-origin',
     keepalive: true,
     body: JSON.stringify({ signal }),
-  }).catch(() => {
-    /* ignore */
-  });
+  })
+    .then(() => undefined)
+    .catch(() => undefined);
 }
 
 export default function SignalsProvider({ children }: { children: ReactNode }) {
@@ -128,6 +132,11 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
   const [guestStore, setGuestStore] = useState<GuestSignalsStore>(emptyGuestStore);
   const [dismissed, setDismissed] = useState(true);
   const mergedRef = useRef(false);
+  const pendingSignalsRef = useRef<Signal[]>([]);
+  const statusRef = useRef(status);
+  const sessionUserRef = useRef(session?.user);
+  statusRef.current = status;
+  sessionUserRef.current = session?.user;
 
   useEffect(() => {
     persistCohortFromLocation();
@@ -213,23 +222,65 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
     [update],
   );
 
-  const track = useCallback(
-    (payload: TrackPayload) => {
-      const signal = makeSignal(payload);
-      if (status === 'authenticated' && session?.user) {
-        void (async () => {
-          const data = await postSignals({ signal });
-          await applyAccountTaste(data);
-        })();
+  const postAccountSignal = useCallback(
+    async (signal: Signal) => {
+      const data = await postSignals({ signal });
+      await applyAccountTaste(data);
+    },
+    [applyAccountTaste],
+  );
+
+  const commitGuestSignal = useCallback((signal: Signal) => {
+    const next = appendGuestSignal(signal);
+    setGuestStore(next);
+    notifySignalsChanged();
+    notifyTasteCookieOnce();
+    return postGuestSignal(signal);
+  }, []);
+
+  const enqueueOrSend = useCallback(
+    (signal: Signal) => {
+      const mode = clientSignalPostMode(
+        statusRef.current,
+        Boolean(sessionUserRef.current),
+      );
+      if (mode === 'buffer') {
+        pendingSignalsRef.current.push(signal);
         return;
       }
-      const next = appendGuestSignal(signal);
-      setGuestStore(next);
-      notifySignalsChanged();
-      notifyTasteCookieOnce();
-      postGuestSignal(signal);
+      if (mode === 'account') {
+        void postAccountSignal(signal);
+        return;
+      }
+      void commitGuestSignal(signal);
     },
-    [applyAccountTaste, session?.user, status],
+    [commitGuestSignal, postAccountSignal],
+  );
+
+  // Flush only after status leaves `loading`. Authenticated → account POST
+  // (no `{ ok, vid }`). Unauthenticated → one guest append.
+  useEffect(() => {
+    const mode = clientSignalPostMode(status, Boolean(session?.user));
+    if (mode === 'buffer') return;
+    if (pendingSignalsRef.current.length === 0) return;
+    const queued = pendingSignalsRef.current;
+    pendingSignalsRef.current = [];
+    if (mode === 'guest') {
+      void (async () => {
+        for (const signal of queued) await commitGuestSignal(signal);
+      })();
+      return;
+    }
+    void (async () => {
+      for (const signal of queued) await postAccountSignal(signal);
+    })();
+  }, [status, session?.user, commitGuestSignal, postAccountSignal]);
+
+  const track = useCallback(
+    (payload: TrackPayload) => {
+      enqueueOrSend(makeSignal(payload));
+    },
+    [enqueueOrSend],
   );
 
   const rememberItem = useCallback(
