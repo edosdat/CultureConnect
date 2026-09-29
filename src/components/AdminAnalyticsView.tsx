@@ -3,6 +3,7 @@ import type { AdminAnalyticsSnapshot } from '@/lib/adminAnalyticsLoad';
 import AdminDataTables from '@/components/AdminDataTables';
 import { adminCsvFilename, loginPopulationShare } from '@/lib/adminAnalytics';
 import {
+  COMPTE_VS_INVITE_GLOSSARY,
   KPI_COPY,
   SECTION_COPY,
   signalKindLabel,
@@ -20,7 +21,11 @@ function pct(part: number, total: number): string {
   return `${Math.round((100 * part) / total)} %`;
 }
 
-/** Mesure: guest KV SCAN / FIFO — lower bound, not exact. KPI 1–2, 10, 16. */
+/**
+ * Lower bound, not exact.
+ * KPI 1–2, 10, 16: guest KV SCAN / FIFO.
+ * KPI 21: Neon proxy (signalsRecent cap 40, no last_seen).
+ */
 export const APPROX_MINORANT_LABEL = 'approx. / minorant';
 
 function ApproxBadge() {
@@ -183,7 +188,7 @@ export default function AdminAnalyticsView({
         {snap.sources.kv ? 'ok' : 'off'}. 0 GA / PostHog.
       </p>
 
-      <SectionBlock title={SECTION_COPY.trafic.title}>
+      <SectionBlock title={SECTION_COPY.trafic.title} intro={SECTION_COPY.trafic.intro}>
         <div className="mt-2 grid gap-3 sm:grid-cols-2">
           <Card kpi="1" value={fmt(snap.traffic.distinct7j)} approx>
             <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
@@ -234,16 +239,31 @@ export default function AdminAnalyticsView({
         </div>
       </SectionBlock>
 
-      <SectionBlock title={SECTION_COPY.compte.title}>
+      <SectionBlock title={SECTION_COPY.compte.title} intro={SECTION_COPY.compte.intro}>
         <div className="mt-2 grid gap-3 sm:grid-cols-2">
-          <Card
-            kpi="9"
-            value={snap.compte.googleAccounts == null ? '—' : fmt(snap.compte.googleAccounts)}
-          />
+          <div className="sm:col-span-2">
+            <Card
+              kpi="9"
+              value={snap.compte.googleAccounts == null ? '—' : fmt(snap.compte.googleAccounts)}
+            />
+          </div>
           <Card
             kpi="19"
             value={snap.compte.active7d == null ? '—' : fmt(snap.compte.active7d)}
           />
+          <Card
+            kpi="21"
+            approx
+            value={snap.compte.returning7d == null ? '—' : fmt(snap.compte.returning7d)}
+          >
+            {snap.compte.returning7d != null &&
+            snap.compte.active7d != null &&
+            snap.compte.active7d > 0 ? (
+              <p className="mt-1 text-xs text-culture-muted">
+                {pct(snap.compte.returning7d, snap.compte.active7d)} des actifs 7 jours
+              </p>
+            ) : null}
+          </Card>
           <div className="sm:col-span-2">
             <LoginShareCard
               guests={snap.traffic.distinct7j}
@@ -252,6 +272,14 @@ export default function AdminAnalyticsView({
           </div>
           <Card kpi="10" value={fmt(snap.compte.guestAppends)} approx />
         </div>
+        <dl className="mt-3 space-y-1 text-xs text-culture-muted">
+          {COMPTE_VS_INVITE_GLOSSARY.map((row) => (
+            <div key={row.term} className="flex flex-wrap gap-x-2">
+              <dt className="font-medium text-culture-ink">{row.term}</dt>
+              <dd>{row.def}</dd>
+            </div>
+          ))}
+        </dl>
       </SectionBlock>
 
       <SectionBlock title={SECTION_COPY.mix.title}>

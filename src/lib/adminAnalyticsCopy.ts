@@ -4,10 +4,17 @@
  */
 
 export const SECTION_COPY = {
-  trafic: { title: 'Trafic' },
+  trafic: {
+    title: 'Trafic',
+    intro: 'Invités (cookie) — pas les comptes Google.',
+  },
   funnel: { title: 'Funnel agenda' },
   partage: { title: 'Partage' },
-  compte: { title: 'Compte' },
+  compte: {
+    title: 'Compte',
+    intro:
+      'Comptes Google (Neon). Les visiteurs invités (cookie) ne sont pas joints à ces comptes.',
+  },
   mix: { title: 'Mix' },
   activite: { title: 'Activité visiteurs' },
   goutsComptes: {
@@ -55,9 +62,9 @@ export const KPI_COPY: Record<string, KpiCopy> = {
       'Visiteurs différents ayant consulté le site sur 7 jours (détail par jour Paris ci-dessous). 0 un jour = personne ce jour-là, ou nav privée / multi-device — chiffre minorant.',
   },
   '2': {
-    title: 'Visiteurs de retour',
+    title: 'Visiteurs de retour (invités)',
     glossary:
-      'Visiteurs vus au moins 2 jours distincts sur 7. 0 est normal si tout le monde est nouveau, ou en tout début d’usage.',
+      'Visiteurs sans compte (cookie) vus au moins 2 jours Paris distincts sur 7. Minorant. Ce n’est pas les comptes Google connectés.',
   },
   '3': {
     title: 'Fiches ouvertes',
@@ -142,7 +149,12 @@ export const KPI_COPY: Record<string, KpiCopy> = {
   '19': {
     title: 'Actifs 7 jours',
     glossary:
-      'Comptes Google avec au moins une action Neon sur les 7 jours calendaires de Paris : enregistrement des goûts ou des signaux du compte, création d’un lien de partage, ou réponse Envie / J’y vais. Il n’y a pas de date de dernière connexion, donc un simple login n’est pas compté. Les ouvertures de lien ne sont pas rattachées à un compte. 0 = aucun compte dans ce cas. Si Neon ne répond pas, la carte affiche —.',
+      'Comptes Google avec au moins une action Neon sur les 7 jours calendaires de Paris : enregistrement des goûts ou des signaux du compte, création d’un lien de partage, ou réponse Envie / J’y vais. Il n’y a pas de date de dernière connexion, donc un simple login n’est pas compté. Les ouvertures de lien ne sont pas rattachées à un compte. Même horloge que Comptes de retour, y compris les horodatages des signaux récents (plafond 40). 0 = aucun compte dans ce cas. Si Neon ne répond pas, la carte affiche —.',
+  },
+  '21': {
+    title: 'Comptes de retour',
+    glossary:
+      'Comptes Google avec une action Neon sur au moins 2 jours Paris distincts dans la fenêtre 7 jours (goûts / signaux, partage, Envie / J’y vais). Login seul non compté. Proxy / minorant (pas d’historique de connexion en base ; signaux récents plafonnés). Différent des visiteurs invités. 0 = aucun compte dans ce cas. Neon indisponible → —.',
   },
   '20': {
     title: 'Connectés et non connectés',
@@ -150,6 +162,18 @@ export const KPI_COPY: Record<string, KpiCopy> = {
       'Sur 7 jours Paris, deux populations indépendantes additionnées seulement comme base d’affichage : non connectés = visiteurs distincts sans compte (le même chiffre que les visiteurs distincts), connectés = comptes actifs 7 jours. Ce ne sont pas les mêmes personnes rapprochées. Base = non connectés + connectés. 0 et 0 donnent 0 / 0 (0 %). Si Neon ne répond pas, les pourcentages ne s’affichent pas.',
   },
 };
+
+/** Compte vs invité — shown under the Compte cards. Never a vid↔email join. */
+export const COMPTE_VS_INVITE_GLOSSARY = [
+  { term: 'Compte Google', def: 'Identité Neon (account_tastes).' },
+  { term: 'Invité', def: 'Cookie cc_vid + KV ; jamais joint à un e-mail.' },
+  { term: 'Actifs 7 jours', def: 'Compte avec ≥1 jour d’action Neon.' },
+  { term: 'Comptes de retour', def: 'Compte avec ≥2 jours d’action Neon.' },
+  {
+    term: 'Visiteurs de retour (invités)',
+    def: 'Cookie avec ≥2 jours.',
+  },
+] as const;
 
 /** Display labels for guest action kinds — data keys unchanged. */
 export const SIGNAL_KIND_LABELS: Record<string, string> = {

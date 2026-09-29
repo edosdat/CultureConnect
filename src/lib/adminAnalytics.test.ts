@@ -17,9 +17,13 @@ import {
   formatTasteExportCsv,
   formatTokenExportCsv,
   formatVisitsAggExportCsv,
+  ACCOUNT_SIGNAL_TS_CAP,
   accountEmailSha256,
   countActiveGoogleAccounts,
   countDistinctGoogleAccounts,
+  countReturningGoogleAccounts,
+  googleAccountActivityDaySets,
+  parisAuthActivityDays,
   loginPopulationShare,
   googleLoginCountKey,
   hashEmailKey,
@@ -40,6 +44,7 @@ import {
   usefulTasteTags,
 } from './adminAnalytics';
 import {
+  COMPTE_VS_INVITE_GLOSSARY,
   KPI_COPY,
   SECTION_COPY,
   signalKindLabel,
@@ -357,7 +362,7 @@ describe('UX admin — allowlist + menu', () => {
 });
 
 describe('Mesure — approx. / minorant on guest KV KPIs', () => {
-  it('labels KPI 1–2, 10, 16 only', () => {
+  it('labels KPI 1–2, 10, 16 and 21 as minorant', () => {
     const view = readFileSync(
       new URL('../components/AdminAnalyticsView.tsx', import.meta.url),
       'utf8',
@@ -369,7 +374,7 @@ describe('Mesure — approx. / minorant on guest KV KPIs', () => {
       .map((block) => block.match(/kpi="(\d+)"/)?.[1])
       .filter((k): k is string => Boolean(k))
       .sort((a, b) => Number(a) - Number(b));
-    assert.deepEqual(approxKpis, ['1', '2', '10', '16']);
+    assert.deepEqual(approxKpis, ['1', '2', '10', '16', '21']);
     assert.equal(cards.some((b) => /kpi="5"/.test(b) && /\bapprox\b/.test(b)), false);
     assert.equal(cards.some((b) => /kpi="18"/.test(b) && /\bapprox\b/.test(b)), false);
   });
@@ -383,11 +388,15 @@ describe('UX admin — labels FR + glossaire + sections', () => {
       assert.ok(copy, `KPI ${id} copy`);
       assert.ok(copy.title.trim().length > 0);
       assert.ok(copy.glossary.trim().length > 0);
-      assert.match(copy.glossary, /0/);
+      if (id !== '2') assert.match(copy.glossary, /0/);
       assert.equal(/\btoken\b/i.test(copy.title), false, `KPI ${id} title jargon`);
       assert.equal(/\bopen_card\b/i.test(copy.title), false);
       assert.equal(/\bcc_vid\b/i.test(copy.title), false);
     }
+    assert.equal(KPI_COPY['2']?.title, 'Visiteurs de retour (invités)');
+    assert.match(KPI_COPY['2']?.glossary ?? '', /sans compte/);
+    assert.match(KPI_COPY['2']?.glossary ?? '', /Minorant/);
+    assert.match(KPI_COPY['2']?.glossary ?? '', /pas les comptes Google connectés/);
     assert.equal(KPI_COPY['15']?.title, 'Top tags catalogue Toulouse');
     assert.match(KPI_COPY['15']?.glossary ?? '', /≠/);
     assert.match(KPI_COPY['15']?.glossary ?? '', /pas ce que les gens aiment/i);
@@ -399,7 +408,21 @@ describe('UX admin — labels FR + glossaire + sections', () => {
     assert.match(KPI_COPY['19']?.glossary ?? '', /0/);
     assert.match(KPI_COPY['19']?.glossary ?? '', /Envie/);
     assert.match(KPI_COPY['19']?.glossary ?? '', /dernière connexion/);
+    assert.match(KPI_COPY['19']?.glossary ?? '', /plafond 40/);
     assert.equal(/15\/09|cc_vid|KV/.test(KPI_COPY['19']?.glossary ?? ''), false);
+    assert.equal(KPI_COPY['21']?.title, 'Comptes de retour');
+    assert.match(KPI_COPY['21']?.glossary ?? '', /0/);
+    assert.match(KPI_COPY['21']?.glossary ?? '', /au moins 2 jours/);
+    assert.match(KPI_COPY['21']?.glossary ?? '', /Login seul non compté/);
+    assert.match(KPI_COPY['21']?.glossary ?? '', /Proxy \/ minorant/);
+    assert.match(KPI_COPY['21']?.glossary ?? '', /visiteurs invités/);
+    assert.match(KPI_COPY['21']?.glossary ?? '', /—/);
+    assert.equal(/\bcc_vid\b/.test(KPI_COPY['21']?.glossary ?? ''), false);
+    assert.equal(SECTION_COPY.trafic.intro, 'Invités (cookie) — pas les comptes Google.');
+    assert.equal(
+      COMPTE_VS_INVITE_GLOSSARY.map((row) => row.term).join('|'),
+      'Compte Google|Invité|Actifs 7 jours|Comptes de retour|Visiteurs de retour (invités)',
+    );
     assert.equal(KPI_COPY['20']?.title, 'Connectés et non connectés');
     assert.match(KPI_COPY['20']?.glossary ?? '', /indépendantes/);
     assert.match(KPI_COPY['20']?.glossary ?? '', /additionnées/);
@@ -426,17 +449,29 @@ describe('UX admin — labels FR + glossaire + sections', () => {
     assert.match(view, /SECTION_COPY\.tagsCatalogue/);
     assert.match(view, /kpi="9"/);
     assert.match(view, /kpi="19"/);
+    assert.match(view, /kpi="21"/);
     assert.match(view, /googleAccounts/);
     assert.match(view, /active7d/);
+    assert.match(view, /returning7d/);
+    assert.match(view, /COMPTE_VS_INVITE_GLOSSARY/);
+    assert.match(view, /snap\.traffic\.returners/);
     assert.equal(view.includes('googleLogins'), false);
     assert.equal(view.includes('Connexions Google'), false);
     const compteIdx = view.indexOf('SECTION_COPY.compte');
     const mixIdx = view.indexOf('SECTION_COPY.mix');
     const kpi9 = view.indexOf('kpi="9"');
     const kpi19 = view.indexOf('kpi="19"');
+    const kpi21 = view.indexOf('kpi="21"');
     const shareCard = view.indexOf('<LoginShareCard');
     const kpi10 = view.indexOf('kpi="10"');
-    assert.ok(compteIdx > 0 && kpi9 > compteIdx && kpi19 > kpi9 && shareCard > kpi19 && kpi10 > shareCard);
+    assert.ok(
+      compteIdx > 0 &&
+        kpi9 > compteIdx &&
+        kpi19 > kpi9 &&
+        kpi21 > kpi19 &&
+        shareCard > kpi21 &&
+        kpi10 > shareCard,
+    );
     assert.ok(mixIdx > kpi10);
     assert.match(view, /function LoginShareCard[\s\S]*kpi="20"/);
     assert.match(view, /guests=\{snap\.traffic\.distinct7j\}/);
@@ -674,6 +709,24 @@ describe('Compte KPIs — Neon comptes, not the login counter', () => {
     });
     assert.equal(countDistinctGoogleAccounts(accounts.map((a) => a.userKey)), 4);
     assert.equal(active, 3);
+    assert.equal(countReturningGoogleAccounts({
+      accounts,
+      shares: [
+        { sharerEmail: 'a@gmail.com', createdAt: '2026-09-12T12:00:00.000Z' },
+        { sharerEmail: 'a@gmail.com', createdAt: '2026-09-13T12:00:00.000Z' },
+        { sharerEmail: 'stranger@gmail.com', createdAt: '2026-09-12T12:00:00.000Z' },
+      ],
+      rsvps: [
+        { emailHash: emailHash('c@gmail.com'), kind: 'envie', ts: '2026-09-14T08:00:00.000Z' },
+        { emailHash: emailHash('c@gmail.com'), kind: 'going', ts: '2026-09-14T09:00:00.000Z' },
+        { emailHash: emailHash('guest@gmail.com'), kind: 'going', ts: '2026-09-14T09:00:00.000Z' },
+        { emailHash: emailHash('d@gmail.com'), kind: 'envie', ts: '2026-09-01T09:00:00.000Z' },
+        { emailHash: emailHash('b@gmail.com'), kind: 'other', ts: '2026-09-14T09:00:00.000Z' },
+      ],
+      windowDays,
+    }), 1);
+    const google = countDistinctGoogleAccounts(accounts.map((a) => a.userKey));
+    assert.ok(1 <= active && active <= google);
     assert.equal(
       countActiveGoogleAccounts({
         accounts: [{ userKey: 'quiet@gmail.com', updatedAt: '2026-01-01T00:00:00.000Z' }],
@@ -696,7 +749,17 @@ describe('Compte KPIs — Neon comptes, not the login counter', () => {
     assert.equal(countSql.includes('cc:vs'), false);
     assert.match(load, /countGoogleAccountsNeon/);
     assert.match(load, /countActiveGoogleAccounts/);
+    assert.match(load, /countReturningGoogleAccounts/);
+    assert.match(load, /returning7d/);
     assert.match(load, /listShareAccountActionsForAdmin/);
+    assert.match(load, /uniquesAndReturns/);
+    assert.match(list, /ACCOUNT_ACTIVITY_SIGNAL_TS_SQL/);
+    assert.match(list, /signalsRecent/);
+    assert.match(list, /LIMIT 40/);
+    const signalSql = list.slice(list.indexOf('ACCOUNT_ACTIVITY_SIGNAL_TS_SQL'));
+    assert.equal(signalSql.includes('cc_vid'), false);
+    assert.equal(signalSql.includes('cc:vs'), false);
+    assert.equal(signalSql.includes('cc:login'), false);
     assert.equal(load.includes('googleLogins'), false);
     assert.equal(load.includes('cc:login'), false);
     assert.equal(load.includes('readGoogleLoginCounts'), false);
@@ -709,6 +772,112 @@ describe('Compte KPIs — Neon comptes, not the login counter', () => {
     assert.equal(actionFn.includes('opens'), false);
     assert.equal(actionFn.includes('cc_vid'), false);
     assert.equal(actionFn.includes('share:visits'), false);
+  });
+
+  it('counts Comptes de retour from signalsRecent days, not a single updated_at', () => {
+    const windowDays = [
+      '2026-09-09',
+      '2026-09-10',
+      '2026-09-11',
+      '2026-09-12',
+      '2026-09-13',
+      '2026-09-14',
+      '2026-09-15',
+    ];
+    const windowSet = new Set(windowDays);
+    const twoDays = parisAuthActivityDays({
+      updatedAt: '2026-08-01T10:00:00.000Z',
+      signalTs: ['2026-09-12T08:00:00+02:00', '2026-09-14T18:00:00+02:00'],
+      windowDays: windowSet,
+    });
+    assert.deepEqual([...twoDays].sort(), ['2026-09-12', '2026-09-14']);
+
+    const signalOnly = {
+      accounts: [
+        {
+          userKey: 'Sig@Gmail.com',
+          updatedAt: '2026-08-01T10:00:00.000Z',
+          signalTs: ['2026-09-12T08:00:00+02:00', '2026-09-14T18:00:00+02:00'],
+        },
+      ],
+      shares: [] as { sharerEmail: string | null; createdAt: string }[],
+      rsvps: [] as { emailHash: string; kind: string; ts: string }[],
+      windowDays,
+    };
+    assert.equal(countReturningGoogleAccounts(signalOnly), 1);
+    assert.equal(countActiveGoogleAccounts(signalOnly), 1);
+    const days = googleAccountActivityDaySets(signalOnly).get('sig@gmail.com');
+    assert.deepEqual([...(days ?? [])].sort(), ['2026-09-12', '2026-09-14']);
+
+    const oneClock = {
+      accounts: [
+        {
+          userKey: 'once@gmail.com',
+          updatedAt: '2026-09-15T10:00:00.000Z',
+          signalTs: ['2026-09-15T09:00:00.000Z'],
+        },
+      ],
+      shares: [],
+      rsvps: [],
+      windowDays,
+    };
+    assert.equal(countReturningGoogleAccounts(oneClock), 0);
+    assert.equal(countActiveGoogleAccounts(oneClock), 1);
+
+    const loginAlone = {
+      accounts: [{ userKey: 'login@gmail.com', updatedAt: '2026-01-01T00:00:00.000Z' }],
+      shares: [],
+      rsvps: [],
+      windowDays,
+    };
+    assert.equal(countReturningGoogleAccounts(loginAlone), 0);
+    assert.equal(countActiveGoogleAccounts(loginAlone), 0);
+
+    const oldSignal = '2026-09-09T10:00:00+02:00';
+    const newest = '2026-09-15T10:00:00+02:00';
+    const overflow = [oldSignal, ...Array.from({ length: ACCOUNT_SIGNAL_TS_CAP }, () => newest)];
+    assert.equal(overflow.length, ACCOUNT_SIGNAL_TS_CAP + 1);
+    const capped = parisAuthActivityDays({ signalTs: overflow, windowDays: windowSet });
+    assert.deepEqual([...capped], ['2026-09-15']);
+
+    const mixed = {
+      accounts: [
+        {
+          userKey: 'retour@gmail.com',
+          updatedAt: '2026-08-01T00:00:00.000Z',
+          signalTs: ['2026-09-10T10:00:00+02:00'],
+        },
+        {
+          userKey: 'actif@gmail.com',
+          updatedAt: '2026-09-15T10:00:00.000Z',
+        },
+        {
+          userKey: 'quiet@gmail.com',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+      shares: [{ sharerEmail: 'retour@gmail.com', createdAt: '2026-09-11T12:00:00.000Z' }],
+      rsvps: [
+        { emailHash: emailHash('actif@gmail.com'), kind: 'envie', ts: '2026-09-15T11:00:00.000Z' },
+        { emailHash: emailHash('nope@gmail.com'), kind: 'going', ts: '2026-09-14T11:00:00.000Z' },
+      ],
+      windowDays,
+    };
+    const retours = countReturningGoogleAccounts(mixed);
+    const actifs = countActiveGoogleAccounts(mixed);
+    const comptes = countDistinctGoogleAccounts(mixed.accounts.map((a) => a.userKey));
+    assert.equal(retours, 1);
+    assert.equal(actifs, 2);
+    assert.ok(retours <= actifs && actifs <= comptes);
+
+    const view = readFileSync(
+      new URL('../components/AdminAnalyticsView.tsx', import.meta.url),
+      'utf8',
+    );
+    const kpi2 = view.slice(view.indexOf('kpi="2"'), view.indexOf('kpi="3"'));
+    assert.match(kpi2, /snap\.traffic\.returners/);
+    assert.equal(kpi2.includes('returning7d'), false);
+    assert.match(view, /returning7d == null \? '—'/);
   });
 });
 

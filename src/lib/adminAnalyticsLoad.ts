@@ -1,5 +1,5 @@
 /**
- * Assemble KPI 1–19 from existing Neon / KV / catalogue stores.
+ * Assemble KPI 1–21 from existing Neon / KV / catalogue stores.
  * Admin-only caller. Never joins cc_vid with account identity.
  */
 import 'server-only';
@@ -15,6 +15,7 @@ import {
   buildTokenTableRows,
   buildVisitsAgg,
   countActiveGoogleAccounts,
+  countReturningGoogleAccounts,
   emptyTagDistribution,
   formatRsvpExportCsv,
   formatTasteExportCsv,
@@ -294,6 +295,11 @@ export type AdminAnalyticsSnapshot = {
     googleAccounts: number | null;
     /** Subset with a Neon action in the Paris 7-day window. null = Neon unread. */
     active7d: number | null;
+    /**
+     * Same Neon day set as active7d, |days| ≥ 2. null = Neon unread.
+     * Proxy / minorant — no last_seen ledger.
+     */
+    returning7d: number | null;
     guestAppends: number;
   };
   mix: {
@@ -414,15 +420,21 @@ export async function loadAdminAnalytics(
       .filter((e): e is string => Boolean(e && e.includes('@'))),
   );
 
-  const active7d =
+  const activityOpts =
     clocks == null
       ? null
-      : countActiveGoogleAccounts({
+      : {
           accounts: clocks,
           shares: shareActions.shares,
           rsvps: shareActions.rsvps,
           windowDays,
-        });
+        };
+  const active7d = activityOpts == null ? null : countActiveGoogleAccounts(activityOpts);
+  const returning7d =
+    activityOpts == null ? null : countReturningGoogleAccounts(activityOpts);
+  notes.push(
+    'KPI 19 / 21 : même horloge Neon (signaux récents plafonnés à 40, updated_at, partages, Envie / J’y vais). Comptes de retour = ≥2 jours Paris. Proxy / minorant — pas de last_seen. Login seul non compté. 0 jointure cc_vid.',
+  );
 
   const tagDistribution = emptyTagDistribution();
   let withTastes = 0;
@@ -521,6 +533,7 @@ export async function loadAdminAnalytics(
     compte: {
       googleAccounts,
       active7d,
+      returning7d,
       guestAppends: windowGuest.length,
     },
     mix,

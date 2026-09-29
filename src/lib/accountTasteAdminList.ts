@@ -143,23 +143,63 @@ export async function countGoogleAccountsNeon(): Promise<number | null> {
   }
 }
 
-/** user_key + updated_at only. No state JSON, no vid. null = Neon unread. */
+/**
+ * Last 40 `signalsRecent[].ts` in array order (FIFO tail).
+ * jsonb_agg ORDER BY ord keeps chronology so a JS tail-slice stays the newest.
+ */
+export const ACCOUNT_ACTIVITY_SIGNAL_TS_SQL = `
+  SELECT lower(btrim(user_key)) AS user_key,
+         updated_at,
+         (
+           SELECT COALESCE(jsonb_agg(capped.ts ORDER BY capped.ord), '[]'::jsonb)
+           FROM (
+             SELECT elem->>'ts' AS ts, ord
+             FROM jsonb_array_elements(
+               CASE
+                 WHEN jsonb_typeof(COALESCE(state, '{}'::jsonb)->'signalsRecent') = 'array'
+                 THEN COALESCE(state, '{}'::jsonb)->'signalsRecent'
+                 ELSE '[]'::jsonb
+               END
+             ) WITH ORDINALITY AS t(elem, ord)
+             ORDER BY ord DESC
+             LIMIT 40
+           ) capped
+         ) AS signal_ts
+  FROM account_tastes
+  WHERE user_key IS NOT NULL
+    AND position('@' in user_key) > 0
+`;
+
+function signalTimestampsFromRow(raw: unknown): string[] {
+  let value = raw;
+  if (typeof value === 'string') {
+    try {
+      value = JSON.parse(value) as unknown;
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(value)) return [];
+  const ts = value.filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
+  return ts.length > 40 ? ts.slice(-40) : ts;
+}
+
+/**
+ * user_key + updated_at + signalsRecent timestamps (cap 40).
+ * No full state payload, no vid. null = Neon unread.
+ */
 export async function listAccountActivityClocks(): Promise<
-  { userKey: string; updatedAt?: string }[] | null
+  { userKey: string; updatedAt?: string; signalTs: string[] }[] | null
 > {
   try {
     const pg = await ensureAccountTastesTable();
     if (!pg) return null;
-    const result = await pg.query(
-      `SELECT lower(btrim(user_key)) AS user_key, updated_at
-       FROM account_tastes
-       WHERE user_key IS NOT NULL
-         AND position('@' in user_key) > 0`,
-    );
-    const out: { userKey: string; updatedAt?: string }[] = [];
+    const result = await pg.query(ACCOUNT_ACTIVITY_SIGNAL_TS_SQL);
+    const out: { userKey: string; updatedAt?: string; signalTs: string[] }[] = [];
     for (const row of result.rows as Array<{
       user_key?: unknown;
       updated_at?: Date | string | null;
+      signal_ts?: unknown;
     }>) {
       const userKey = typeof row.user_key === 'string' ? row.user_key.trim().toLowerCase() : '';
       if (!userKey.includes('@')) continue;
@@ -169,7 +209,11 @@ export async function listAccountActivityClocks(): Promise<
           : row.updated_at
             ? String(row.updated_at)
             : undefined;
-      out.push({ userKey, updatedAt });
+      out.push({
+        userKey,
+        updatedAt,
+        signalTs: signalTimestampsFromRow(row.signal_ts),
+      });
     }
     return out;
   } catch {
