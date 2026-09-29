@@ -46,7 +46,7 @@ import {
 import type { RecoSlotForm } from './reco';
 import {
   fillEmptyCineSlot,
-  itemInheritsParentClosedTags,
+  itemInheritsParentMoods,
   slotFormOfItem,
 } from './reco';
 import { parseSearchChips, type SearchChipParse } from './parseSearchChips';
@@ -270,13 +270,13 @@ export function itemGenreSlugs(item: DayItem): string[] {
 
 /**
  * Moods / genres that may drive « parce que tu aimes … ».
- * Cinema why-lines stay on the séance's own tags. Scoring is separate:
- * cinema rows inherit parent mood tags (`itemInheritsParentMoods`).
+ * Same L2 / P0 cine rule as scoring: no parent-event inheritance for
+ * film_id / slotForm cine (`itemInheritsParentMoods` ≡ closed tags).
  * Theatre and concert still concatenate programme + event.
  */
 export function reasonTasteSlugsForItem(item: DayItem): string[] {
   const skipParent =
-    item.kind === 'programme' && !itemInheritsParentClosedTags(item);
+    item.kind === 'programme' && !itemInheritsParentMoods(item);
   const moods = skipParent
     ? splitTagField(item.programme.moods || '')
     : itemMoods(item);
