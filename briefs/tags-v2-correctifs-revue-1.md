@@ -26,7 +26,7 @@ Ce qui est conforme et ne doit pas bouger : jointure sur `event_id` (stabilité 
 
 **À faire** : en `--strict`, code de sortie non nul dès qu'une ligne **taguée v2** a une erreur bloquante (`hors_enum`, `hors_bornes`, `rigolo_seul`, `festif_seul_concert`, `rigolo_principal_sans_humour`, `preuve_introuvable`, `doublon`, `v1_v2_incoherent`). Les erreurs sur les lignes encore en v1 restent dans le rapport, sans bloquer. `titre_date` bloque aussi pour une ligne v2. Tests : une fixture v2 par type d'erreur → exit ≠ 0 ; mêmes erreurs en v1 seulement → exit 0.
 
-## 4. Seuil de 35 % mesuré sur les lignes taguées
+## 4. ~~Seuil de 35 % mesuré sur les lignes taguées~~ (retiré, voir `briefs/feuille-de-route-tags-reco.md` §2)
 
 **Constat** : la part d'une ambiance est calculée sur tout le créneau, lignes non taguées comprises (rigolo : 36,5 % du créneau, mais 57,4 % des lignes taguées). Moins on tague, plus on passe le seuil.
 
