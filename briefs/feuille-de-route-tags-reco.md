@@ -67,3 +67,7 @@ Une branche et une PR par ligne. Chaque PR : `npm run audit` et `npm run tags:au
 2. Relire et corriger les 60 lignes du gold set (C1).
 3. Décider pour `hors_enum` : alias ou suppression, sans nouvelle valeur d'enum.
 4. Donner à l'agent une clé `OPENAI_API_KEY` pour `--eval-gold` et le tagging, ou lancer ces commandes soi-même.
+
+## 5. Nouveau nom : Plan C (29/09)
+
+Le produit s'appelle **Plan C**. Toute copie, couleur ou libellé produit nouveau suit `docs/ton-plan-c.md` (règles d'écriture, lexique, familles renommées, palette nuit). Les noms de familles et badges de §B2/§B3 du brief tags v2 sont remplacés là où la charte le précise. La migration du site (métadonnées, OG, e-mails, tokens `planc`) est une PR dédiée, après L1 et L2.
