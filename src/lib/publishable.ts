@@ -2,6 +2,8 @@
  * Filter out scrape junk / cancelled / non-events before they appear in the UI.
  */
 
+import { isJunkTitle } from './junkTitle';
+
 const EXCLUDED_STATUTS = new Set(
   ['ferme', 'annulé', 'annule', 'cancel'].map((s) =>
     s
@@ -103,6 +105,8 @@ export function isPublishableEvent(ev: {
 
   if (isCinemaPeriodAggregate(ev)) return false;
 
+  if (isJunkTitle(ev.titre)) return false;
+
   if (hasJunkInFields(ev.titre, ev.description_courte, ev.notes)) {
     return false;
   }
@@ -115,6 +119,7 @@ export function isPublishableProgrammeName(
   nom: string,
   extra?: { notes?: string; description?: string },
 ): boolean {
+  if (isJunkTitle(nom)) return false;
   if (hasJunkInFields(nom, extra?.notes, extra?.description)) return false;
   return true;
 }

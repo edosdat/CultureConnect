@@ -31,6 +31,7 @@ import path from 'node:path';
 import Papa from 'papaparse';
 import { mainFromCategorie } from '../src/lib/categories';
 import { TASTE_MOODS, isTasteMood } from '../src/lib/phraseTags';
+import { junkTitleReason } from '../src/lib/junkTitle';
 
 export const TAGS_V2_FILE = 'tags_evenements.csv';
 export const GOLD_FILE = path.join('scripts', 'fixtures', 'tag-gold.json');
@@ -106,11 +107,6 @@ const AXIS_BOUNDS: Record<(typeof AXIS_FIELDS)[number], { min: number; max: numb
 
 const HUMOR_CUE =
   /humou?r|rire|drole|comedie|hilar|stand|sketch|burlesque|clown|cabaret|impro|comique/i;
-
-const DATE_TITLE =
-  /^(?:(?:lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\s+)?\d{1,2}\s+(?:janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)\s+\d{4}(?:\s*-\s*\d{1,2}\s*h(?:\s*\d{2})?)?$/;
-
-const ISO_DATE_TITLE = /^\d{4}-\d{2}-\d{2}(?:[ t]\d{2}:\d{2})?$/;
 
 export type AuditSlot = 'theatre' | 'concert';
 
@@ -359,10 +355,8 @@ export function hasHumorCue(text: string): boolean {
   return HUMOR_CUE.test(foldText(text));
 }
 
-export function isDateOnlyTitle(title: string): boolean {
-  const t = squash(title);
-  return DATE_TITLE.test(t) || ISO_DATE_TITLE.test(t);
-}
+/** Re-export — single definition lives in `src/lib/junkTitle` (L1). */
+export { isDateOnlyTitle } from '../src/lib/junkTitle';
 
 export function normalizeTitle(title: string): string {
   return foldText(title)
@@ -1013,7 +1007,7 @@ export function auditTags(input: AuditInput): TagAuditReport {
         detail: v1Raw.trim(),
       });
     }
-    if (isDateOnlyTitle(row.ev.titre)) {
+    if (junkTitleReason(row.ev.titre) === 'date_only') {
       pushError(errors, 'titre_date', row, 'le titre ne contient qu’une date');
     }
     if (row.layer === 'v2' && row.v2) {

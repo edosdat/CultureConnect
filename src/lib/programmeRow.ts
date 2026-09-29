@@ -11,6 +11,7 @@ import {
   type WorkTags,
 } from './filmTags';
 import { pressFieldDefaults } from './pressCitation';
+import { isJunkTitle } from './junkTitle';
 import type { ProgrammeItem } from './types';
 
 function cell(raw: Record<string, string | undefined>, key: string): string {
@@ -72,5 +73,7 @@ export function normalizeProgrammeRows(
   films: readonly FilmTagRecord[] = [],
 ): ProgrammeItem[] {
   const store = buildFilmTagStore(rawRows, films);
-  return rawRows.map((raw) => normalizeProgrammeRow(raw, store));
+  return rawRows
+    .map((raw) => normalizeProgrammeRow(raw, store))
+    .filter((row) => !isJunkTitle(row.nom_item));
 }

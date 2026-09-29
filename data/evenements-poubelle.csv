@@ -1,0 +1,97 @@
+event_id,titre,lieu_id,categorie,date_debut,nb_seances,url_source,reason
+E9136,Évènements,L150,theatre_danse,2026-10-06,8,https://kiwiramonville-arto.fr/evenements/liste/?tribe-bar-date=2026-10-01,bare_category
+E9143,Évènements,L056,theatre_danse,2026-09-15,1,https://theatredupave.org/events/photo/?pagename=saison&shortcode=5c70bc0d&eventDisplay=past,bare_category
+E9194,CONCERT,L153,musique,2026-10-09,1,https://foyerrurallasserrepradere.fr/agenda/agenda-culturel-le-buvart/concert-3670624,bare_category
+T900586,Musiques,L062,theatre_danse,2026-10-07,2,/spectacles/musiques/leglise-lopera-tout-public,bare_category
+T900587,Cirque,L062,theatre_danse,2026-10-15,4,/spectacles/cirque/hourvari-tout-public,bare_category
+T900589,Théâtre,L062,theatre_danse,2026-11-05,8,/spectacles/theatre/silence-tout-public,bare_category
+T900590,Danse,L062,theatre_danse,2026-11-06,2,/spectacles/danse/murmures-scolaire,bare_category
+T900594,Musiques,L136,theatre_danse,2026-10-07,2,/spectacles/musiques/leglise-lopera-tout-public,bare_category
+T900595,Cirque,L136,theatre_danse,2026-10-15,4,/spectacles/cirque/hourvari-tout-public,bare_category
+T900597,Théâtre,L136,theatre_danse,2026-11-05,8,/spectacles/theatre/silence-tout-public,bare_category
+T900598,Danse,L136,theatre_danse,2026-11-06,2,/spectacles/danse/murmures-scolaire,bare_category
+T900602,Musiques,L094,musique,2026-10-07,2,/spectacles/musiques/leglise-lopera-tout-public,bare_category
+T900603,Cirque,L094,musique,2026-10-15,4,/spectacles/cirque/hourvari-tout-public,bare_category
+T900605,Théâtre,L094,musique,2026-11-05,8,/spectacles/theatre/silence-tout-public,bare_category
+T900606,Danse,L094,musique,2026-11-06,2,/spectacles/danse/murmures-scolaire,bare_category
+T900734,Évènements,L056,theatre_danse,2026-09-01,1,https://theatredupave.org/events/photo/?pagename=saison&shortcode=5c70bc0d&eventDisplay=past,bare_category
+T900774,CONCERT,L153,musique,2026-09-18,1,https://foyerrurallasserrepradere.fr/agenda/agenda-culturel-le-buvart/concert-1351729,bare_category
+TMP0555,Évènements,L056,theatre_danse,2026-09-28,1,https://theatredupave.org/events/photo/?pagename=saison&shortcode=5c70bc0d&eventDisplay=past,bare_category
+TMP0563,Évènements,L056,theatre_danse,2026-09-27,1,https://theatredupave.org/events/photo/?pagename=saison&shortcode=5c70bc0d&eventDisplay=past,bare_category
+TMP0656,Évènements,L056,theatre_danse,2026-09-07,1,https://theatredupave.org/events/photo/?pagename=saison&shortcode=5c70bc0d&eventDisplay=past,bare_category
+E064,Vendredi 23 octobre 2026 - 20H30,L048,theatre_danse,2026-10-23,0,https://www.lacomediedetoulouse.com/fr/programmation/anne-depetrini-a-cote/,date_only
+E065,Jeudi 10 juin 2027 - 20H30,L048,theatre_danse,2027-06-10,0,https://www.lacomediedetoulouse.com/fr/programmation/antek-fripon/,date_only
+E066,Jeudi 24 septembre 2026 - 20H30,L048,theatre_danse,2026-09-24,0,https://www.lacomediedetoulouse.com/fr/programmation/anthony-joubert-a-quel-moment-ca-a-merde/,date_only
+E067,Jeudi 29 avril 2027 - 20H30,L048,theatre_danse,2027-04-29,0,https://www.lacomediedetoulouse.com/fr/programmation/antoine-magyar-auto-romance/,date_only
+E068,Samedi 24 octobre 2026 - 20H30,L048,theatre_danse,2026-10-24,0,https://www.lacomediedetoulouse.com/fr/programmation/arnaud-gidoin-55-ans/,date_only
+E070,Samedi 21 novembre 2026 - 20H30,L048,theatre_danse,2026-11-21,0,https://www.lacomediedetoulouse.com/fr/programmation/benedicte-bousquet-bienveillante/,date_only
+E071,Jeudi 08 octobre 2026 - 20H30,L048,theatre_danse,2026-10-08,0,https://www.lacomediedetoulouse.com/fr/programmation/benjamin-verrecchia-plein-phare/,date_only
+E072,Samedi 19 septembre 2026 - 20H30,L048,theatre_danse,2026-09-19,0,https://www.lacomediedetoulouse.com/fr/programmation/berengere-krief-sexe/,date_only
+E073,Vendredi 29 janvier 2027 - 20H30,L048,theatre_danse,2027-01-29,0,https://www.lacomediedetoulouse.com/fr/programmation/bernard-mabille-se-devoile/,date_only
+E074,Vendredi 18 septembre 2026 - 20H30,L048,theatre_danse,2026-09-18,0,https://www.lacomediedetoulouse.com/fr/programmation/burlesk-les-demoiselles-du-k-barre/,date_only
+E075,Jeudi 25 mars 2027 - 20H30,L048,theatre_danse,2027-03-25,0,https://www.lacomediedetoulouse.com/fr/programmation/camille-fievez/,date_only
+E077,Jeudi 13 mai 2027 - 20H30,L048,theatre_danse,2027-05-13,0,https://www.lacomediedetoulouse.com/fr/programmation/cedric-salaun/,date_only
+E078,Jeudi 07 janvier 2027 - 20H30,L048,theatre_danse,2027-01-07,0,https://www.lacomediedetoulouse.com/fr/programmation/celia-pelluet-les-particules-hesitent-aussi/,date_only
+E079,Samedi 17 octobre 2026 - 20H30,L048,theatre_danse,2026-10-17,0,https://www.lacomediedetoulouse.com/fr/programmation/charlotte-boisselier-singuliere/,date_only
+E082,Mercredi 20 janvier 2027 - 20H30,L048,theatre_danse,2027-01-20,0,https://www.lacomediedetoulouse.com/fr/programmation/david-azria-paye-pour-voir/,date_only
+E087,Samedi 20 mars 2027 - 20H30,L048,theatre_danse,2027-03-20,0,https://www.lacomediedetoulouse.com/fr/programmation/festival-burlesque-de-toulouse-2027/,date_only
+E089,Vendredi 20 novembre 2026 - 20H30,L048,theatre_danse,2026-11-20,0,https://www.lacomediedetoulouse.com/fr/programmation/greg-petras-nouveau-spectacle/,date_only
+E090,Jeudi 22 avril 2027 - 20H30,L048,theatre_danse,2027-04-22,0,https://www.lacomediedetoulouse.com/fr/programmation/guigui-pop-full-contact/,date_only
+E093,Mercredi 21 octobre 2026 - 20H30,L048,theatre_danse,2026-10-21,0,https://www.lacomediedetoulouse.com/fr/programmation/isabelle-bonadei-isabelle-s-accroche/,date_only
+E094,Samedi 03 avril 2027 - 19H30,L048,theatre_danse,2027-04-03,0,https://www.lacomediedetoulouse.com/fr/programmation/jeremy-charbonnel-seul-tout/,date_only
+E095,Samedi 26 septembre 2026 - 20H30,L048,theatre_danse,2026-09-26,0,https://www.lacomediedetoulouse.com/fr/programmation/justin-alors-la/,date_only
+E096,Vendredi 16 octobre 2026 - 20H30,L048,theatre_danse,2026-10-16,0,https://www.lacomediedetoulouse.com/fr/programmation/karine-dubernet-carabistouilles/,date_only
+E097,Vendredi 19 mars 2027 - 20H30,L048,theatre_danse,2027-03-19,0,https://www.lacomediedetoulouse.com/fr/programmation/la-therapie-de-l-amour/,date_only
+E099,Jeudi 28 janvier 2027 - 20H30,L048,theatre_danse,2027-01-28,0,https://www.lacomediedetoulouse.com/fr/programmation/leandre/,date_only
+E116,Samedi 28 novembre 2026 - 20H30,L048,theatre_danse,2026-11-28,0,https://www.lacomediedetoulouse.com/fr/programmation/les-normales-se-font-des-films/,date_only
+E117,Samedi 31 octobre 2026 - 20H30,L048,theatre_danse,2026-10-31,0,https://www.lacomediedetoulouse.com/fr/programmation/lucie-carbone-ca-va-trop-vite/,date_only
+E120,Samedi 03 octobre 2026 - 20H30,L048,theatre_danse,2026-10-03,0,https://www.lacomediedetoulouse.com/fr/programmation/maria-moreno/,date_only
+E121,Vendredi 09 octobre 2026 - 20H30,L048,theatre_danse,2026-10-09,0,https://www.lacomediedetoulouse.com/fr/programmation/marianne-content-schnecke/,date_only
+E123,Jeudi 05 novembre 2026 - 20H30,L048,theatre_danse,2026-11-05,0,https://www.lacomediedetoulouse.com/fr/programmation/nadim-fraicheur-de-vivre/,date_only
+E125,Vendredi 13 novembre 2026 - 20H30,L048,theatre_danse,2026-11-13,0,https://www.lacomediedetoulouse.com/fr/programmation/olivia-moore-oui-je-sais/,date_only
+E126,Vendredi 15 janvier 2027 - 20H30,L048,theatre_danse,2027-01-15,0,https://www.lacomediedetoulouse.com/fr/programmation/olympe-premier-spectacle/,date_only
+E127,Jeudi 04 mars 2027 - 20H30,L048,theatre_danse,2027-03-04,0,https://www.lacomediedetoulouse.com/fr/programmation/patrick-piard-genant/,date_only
+E128,Vendredi 25 septembre 2026 - 20H30,L048,theatre_danse,2026-09-25,0,https://www.lacomediedetoulouse.com/fr/programmation/perrine-deza-sois-polie-dis-merci/,date_only
+E130,Vendredi 08 janvier 2027 - 20H30,L048,theatre_danse,2027-01-08,0,https://www.lacomediedetoulouse.com/fr/programmation/roman-doduik-premiere-dame/,date_only
+E136,Samedi 10 octobre 2026 - 20H30,L048,theatre_danse,2026-10-10,0,https://www.lacomediedetoulouse.com/fr/programmation/thomas-croisiere-la-comedie-contre-attaque/,date_only
+E138,Jeudi 15 octobre 2026 - 20H30,L048,theatre_danse,2026-10-15,0,https://www.lacomediedetoulouse.com/fr/programmation/trio-d-impro-special-peur-bleue/,date_only
+E141,Vendredi 02 octobre 2026 - 20H30,L048,theatre_danse,2026-10-02,0,https://www.lacomediedetoulouse.com/fr/programmation/un-grand-cri-d-amour-une-piece-de-josiane-balasko/,date_only
+E142,Mercredi 25 novembre 2026 - 20H00,L048,theatre_danse,2026-11-25,0,https://www.lacomediedetoulouse.com/fr/programmation/urbain-en-rodage/,date_only
+E144,Jeudi 22 octobre 2026 - 20H00,L048,theatre_danse,2026-10-22,0,https://www.lacomediedetoulouse.com/fr/programmation/willem-fait-le-comique/,date_only
+E145,Vendredi 27 novembre 2026 - 20H30,L048,theatre_danse,2026-11-27,0,https://www.lacomediedetoulouse.com/fr/programmation/william-pilet-normal-n-existe-pas/,date_only
+E146,Vendredi 30 octobre 2026 - 20H30,L048,theatre_danse,2026-10-30,0,https://www.lacomediedetoulouse.com/fr/programmation/willy-rovelli-heureux/,date_only
+E9130,1 évènement 12,L150,theatre_danse,2026-10-06,1,https://kiwiramonville-arto.fr/evenements/2026-10-12/,event_count
+E9131,2 évènements 13,L150,theatre_danse,2026-10-06,1,https://kiwiramonville-arto.fr/evenements/2026-10-13/,event_count
+E9132,1 évènement 14,L150,theatre_danse,2026-10-06,1,https://kiwiramonville-arto.fr/evenements/2026-10-14/,event_count
+E9133,1 évènement 15,L150,theatre_danse,2026-10-06,1,https://kiwiramonville-arto.fr/evenements/2026-10-15/,event_count
+E9134,2 évènements 16,L150,theatre_danse,2026-10-06,2,https://kiwiramonville-arto.fr/evenements/2026-10-16/,event_count
+E9135,4 évènements 17,L150,theatre_danse,2026-10-06,3,https://kiwiramonville-arto.fr/evenements/2026-10-17/,event_count
+TMP0432,1 évènement 11,L150,theatre_danse,2026-09-28,0,https://kiwiramonville-arto.fr/evenements/2026-09-11/,event_count
+TMP0437,1 évènement 11,L150,theatre_danse,2026-09-27,0,https://kiwiramonville-arto.fr/evenements/2026-09-11/,event_count
+TMP0476,1 évènement 11,L150,theatre_danse,2026-09-15,21,https://kiwiramonville-arto.fr/evenements/2026-09-11/,event_count
+TMP0477,1 évènement 6,L150,theatre_danse,2026-09-28,35,https://kiwiramonville-arto.fr/evenements/2026-10-06/,event_count
+TMP0479,1 évènement 7,L150,theatre_danse,2026-10-06,1,https://kiwiramonville-arto.fr/evenements/2026-10-07/,event_count
+TMP0480,2 évènements 8,L150,theatre_danse,2026-10-06,1,https://kiwiramonville-arto.fr/evenements/2026-10-08/,event_count
+TMP0481,1 évènement 9,L150,theatre_danse,2026-10-06,1,https://kiwiramonville-arto.fr/evenements/2026-10-09/,event_count
+TMP0482,1 évènement 10,L150,theatre_danse,2026-10-06,1,https://kiwiramonville-arto.fr/evenements/2026-10-10/,event_count
+TMP0489,4 évènements 18,L150,theatre_danse,2026-10-06,2,https://kiwiramonville-arto.fr/evenements/2026-10-18/,event_count
+TMP0490,1 évènement 28,L150,theatre_danse,2026-10-28,1,https://kiwiramonville-arto.fr/evenements/2026-10-28/,event_count
+TMP0492,1 évènement 29,L150,theatre_danse,2026-10-28,1,https://kiwiramonville-arto.fr/evenements/2026-10-29/,event_count
+TMP0493,1 évènement 30,L150,theatre_danse,2026-10-28,1,https://kiwiramonville-arto.fr/evenements/2026-10-30/,event_count
+E9145,pagination,L124,expo_visite,2026-09-19,3,https://quaidessavoirs.toulouse-metropole.fr/tu-viens-a-ma-boum-parents-enfants/,pagination
+E9199,pagination,L124,expo_visite,2026-09-29,6,https://quaidessavoirs.toulouse-metropole.fr/environnement-a-quelles-conditions-faire-leconomie-du-plastique/,pagination
+E9200,pagination,L072,musique,2026-10-09,2,http://conservatoire.toulouse.fr/ma-solitude-is-not-killing-me-bureau-des-projets-cosmiques/,pagination
+E9201,pagination,L122,musique,2026-10-09,2,http://conservatoire.toulouse.fr/ma-solitude-is-not-killing-me-bureau-des-projets-cosmiques/,pagination
+T900621,pagination,L040,theatre_danse,2026-09-22,12,https://opera.toulouse.fr/medee-5427762/,pagination
+TMP0689,pagination,L124,expo_visite,2026-09-14,11,https://quaidessavoirs.toulouse-metropole.fr/stage-avec-le-quai-des-curieux/,pagination
+TMP0690,pagination,L072,musique,2026-09-25,22,http://conservatoire.toulouse.fr/presentation-de-saison-suivie-du-conte-dhiver-de-w-shakespeare/,pagination
+TMP0691,pagination,L122,musique,2026-09-25,22,http://conservatoire.toulouse.fr/presentation-de-saison-suivie-du-conte-dhiver-de-w-shakespeare/,pagination
+E9128,Complet,L083,musique,2026-09-19,1,https://lebikini.com/2026/09/19/visites-guidees-du-bikini,placeholder
+T900437,Complet,L093,musique,2026-09-28,1,https://lebikini.com/2026/09/28/fat-freddy-s-drop,placeholder
+T900452,Complet,L132,festival,2026-09-28,1,https://lebikini.com/2026/09/28/fat-freddy-s-drop,placeholder
+TMP0417,Complet,L083,musique,2026-09-28,1,https://lebikini.com/2026/09/28/fat-freddy-s-drop,placeholder
+TMP0422,Complet,L093,musique,2026-09-19,1,https://lebikini.com/2026/09/19/visites-guidees-du-bikini,placeholder
+TMP0430,Complet,L132,festival,2026-09-19,1,https://lebikini.com/2026/09/19/visites-guidees-du-bikini,placeholder
+TMP0436,Les infos pratiques,L055,theatre_danse,2026-09-30,0,https://theatredepochetoulouse.fr/la-programmation-2/,placeholder
+TMP0475,Les infos pratiques,L055,theatre_danse,2026-09-18,0,https://theatredepochetoulouse.fr/la-programmation-2/,placeholder
+TMP0488,Les infos pratiques,L055,theatre_danse,2026-09-09,9,https://theatredepochetoulouse.fr/la-programmation-2/,placeholder
