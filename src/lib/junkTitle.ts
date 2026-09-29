@@ -3,8 +3,27 @@
  * Single definition for app loaders and scripts (tagAudit `titre_date`, L1 CSV).
  */
 
-const DATE_TITLE =
-  /^(?:(?:lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\s+)?\d{1,2}\s+(?:janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)\s+\d{4}(?:\s*-\s*\d{1,2}\s*h(?:\s*\d{2})?)?$/;
+/** Folded month names — shared by DATE_TITLE, bare_month, month_time (one list). */
+const MONTH_NAMES = [
+  'janvier',
+  'fevrier',
+  'mars',
+  'avril',
+  'mai',
+  'juin',
+  'juillet',
+  'aout',
+  'septembre',
+  'octobre',
+  'novembre',
+  'decembre',
+] as const;
+
+const MONTH_ALT = MONTH_NAMES.join('|');
+
+const DATE_TITLE = new RegExp(
+  `^(?:(?:lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\\s+)?\\d{1,2}\\s+(?:${MONTH_ALT})\\s+\\d{4}(?:\\s*-\\s*\\d{1,2}\\s*h(?:\\s*\\d{2})?)?$`,
+);
 
 const ISO_DATE_TITLE = /^\d{4}-\d{2}-\d{2}(?:[ t]\d{2}:\d{2})?$/;
 
@@ -25,6 +44,18 @@ const BARE_CATEGORIES = new Set([
   'evenements',
 ]);
 
+/** Exact normalised title ∈ bare month name (e.g. scrape leftover « septembre »). */
+const BARE_MONTHS = new Set<string>(MONTH_NAMES);
+
+/**
+ * Month-led placeholders: « octobre à 19h et », « OCTOBRE au BUV'ART ».
+ * Anchored at start of normalised title — never substring (keeps real ateliers
+ * like « Atelier … 29 septembre - 18h30 »).
+ */
+const MONTH_THEN_A = new RegExp(`^(?:${MONTH_ALT})\\s+(?:a|au)\\b`);
+const MONTH_AT_START = new RegExp(`^(?:${MONTH_ALT})\\b`);
+const TIME_IN_TITLE = /\d{1,2}\s?h(?:\d{2})?/;
+
 /** Exact normalised placeholders (not substring). « Bord de scène » is a real catalogue series — not junk. */
 const PLACEHOLDERS = new Set([
   'complet',
@@ -39,7 +70,10 @@ export type JunkTitleReason =
   | 'pagination'
   | 'event_count'
   | 'bare_category'
-  | 'placeholder';
+  | 'placeholder'
+  | 'bare_month'
+  | 'month_time'
+  | 'empty_title';
 
 function foldText(raw: string): string {
   return raw
@@ -70,15 +104,22 @@ export function isDateOnlyTitle(title: string): boolean {
   return DATE_TITLE.test(t) || ISO_DATE_TITLE.test(t);
 }
 
+function isMonthTimeTitle(norm: string): boolean {
+  if (MONTH_THEN_A.test(norm)) return true;
+  return MONTH_AT_START.test(norm) && TIME_IN_TITLE.test(norm);
+}
+
 /** Why this title is junk, or null if it looks like a real work title. */
 export function junkTitleReason(title: string): JunkTitleReason | null {
   if (isDateOnlyTitle(title)) return 'date_only';
   const norm = normalizeJunkTitle(title);
-  if (!norm) return null;
+  if (!norm) return 'empty_title';
   if (norm.includes('pagination')) return 'pagination';
   if (EVENT_COUNT_TITLE.test(norm)) return 'event_count';
   if (BARE_CATEGORIES.has(norm)) return 'bare_category';
   if (PLACEHOLDERS.has(norm)) return 'placeholder';
+  if (BARE_MONTHS.has(norm)) return 'bare_month';
+  if (isMonthTimeTitle(norm)) return 'month_time';
   return null;
 }
 
