@@ -1,0 +1,1725 @@
+[
+  {
+    "event_id": "T900640",
+    "titre": "Quand on dort on n’a pas faim",
+    "categorie": "theatre_danse",
+    "moods": [
+      "poetique",
+      "cerveau",
+      "critique"
+    ],
+    "sortie": [
+      "interessante",
+      "evasion"
+    ],
+    "energie": 2,
+    "exigence": 2,
+    "format_scene": [
+      "seul_en_scene"
+    ],
+    "ideal_pour": [
+      "solo",
+      "amis"
+    ],
+    "notoriete": "emergent",
+    "tag_confiance": "haute",
+    "tag_preuve": "conte médiéval afro queer",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "TMP0516",
+    "titre": "HISTOIRE DU UKULÉLÉ avec Ukulelezaza",
+    "categorie": "theatre_danse",
+    "moods": [
+      "contemplatif",
+      "leger",
+      "cerveau"
+    ],
+    "sortie": [
+      "interessante",
+      "agreable"
+    ],
+    "energie": 2,
+    "exigence": 1,
+    "format_scene": [
+      "seul_en_scene",
+      "lecture"
+    ],
+    "ideal_pour": [
+      "solo",
+      "amis"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "haute",
+    "tag_preuve": "conférence musicale, Ukulelezaza retrace l’histoire",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "E9089",
+    "titre": "Nadia Richard, Pourquoi j’attire les connards ?",
+    "categorie": "theatre_danse",
+    "moods": [
+      "rigolo",
+      "tendre",
+      "intimiste"
+    ],
+    "sortie": [
+      "agreable"
+    ],
+    "energie": 3,
+    "exigence": 1,
+    "format_scene": [
+      "seul_en_scene"
+    ],
+    "ideal_pour": [
+      "amis",
+      "couple"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "haute",
+    "tag_preuve": "mêle émotion et humour avec justesse",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "TMP0332",
+    "titre": "Il y a eu un rêve",
+    "categorie": "theatre_danse",
+    "moods": [
+      "poetique",
+      "leger",
+      "dansant"
+    ],
+    "sortie": [
+      "partage",
+      "agreable"
+    ],
+    "energie": 3,
+    "exigence": 1,
+    "format_scene": [
+      "troupe",
+      "sans_paroles"
+    ],
+    "ideal_pour": [
+      "famille",
+      "amis"
+    ],
+    "notoriete": "emergent",
+    "tag_confiance": "haute",
+    "tag_preuve": "Entre poésie, émotion et humour",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "BAR0119",
+    "titre": "Présentation de Saison 2026-2027",
+    "categorie": "theatre_danse",
+    "moods": [
+      "festif",
+      "dansant",
+      "intimiste"
+    ],
+    "sortie": [
+      "agreable",
+      "partage"
+    ],
+    "energie": 3,
+    "exigence": 1,
+    "format_scene": [
+      "troupe"
+    ],
+    "ideal_pour": [
+      "amis"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "moyenne",
+    "tag_preuve": "panaché de tout ce qui va se passer cette année",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "E513",
+    "titre": "Cabaret iconiq’ de Noël",
+    "categorie": "theatre_danse",
+    "moods": [
+      "festif",
+      "poetique",
+      "critique"
+    ],
+    "sortie": [
+      "partage",
+      "agreable"
+    ],
+    "energie": 4,
+    "exigence": 2,
+    "format_scene": [
+      "troupe"
+    ],
+    "ideal_pour": [
+      "amis"
+    ],
+    "notoriete": "emergent",
+    "tag_confiance": "haute",
+    "tag_preuve": "joyeux, impertinent, poétique et politique",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "T900758",
+    "titre": "Cantade",
+    "categorie": "theatre_danse",
+    "moods": [
+      "festif",
+      "intimiste",
+      "tendre"
+    ],
+    "sortie": [
+      "partage"
+    ],
+    "energie": 3,
+    "exigence": 1,
+    "format_scene": [
+      "participatif",
+      "scene_ouverte"
+    ],
+    "ideal_pour": [
+      "solo",
+      "amis",
+      "famille"
+    ],
+    "notoriete": "scene_ouverte",
+    "tag_confiance": "haute",
+    "tag_preuve": "rencontres conviviales et participatives",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "E9062",
+    "titre": "La Moustache",
+    "categorie": "theatre_danse",
+    "moods": [
+      "rigolo",
+      "leger",
+      "absurde"
+    ],
+    "sortie": [
+      "agreable"
+    ],
+    "energie": 3,
+    "exigence": 1,
+    "format_scene": [
+      "troupe"
+    ],
+    "ideal_pour": [
+      "amis",
+      "famille"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "haute",
+    "tag_preuve": "tornade de gags, des situations hilarantes",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "TMP0163",
+    "titre": "LA DOULEUR de Marguerite Duras",
+    "categorie": "theatre_danse",
+    "moods": [
+      "sombre",
+      "intense",
+      "angoissant"
+    ],
+    "sortie": [
+      "interessante"
+    ],
+    "energie": 1,
+    "exigence": 2,
+    "format_scene": [
+      "seul_en_scene",
+      "lecture"
+    ],
+    "ideal_pour": [
+      "solo",
+      "couple"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "haute",
+    "tag_preuve": "attente interminable du retour de Robert L. déporté à Dachau",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "T900632",
+    "titre": "La Timidité des cimes",
+    "categorie": "theatre_danse",
+    "moods": [
+      "contemplatif",
+      "poetique",
+      "sombre"
+    ],
+    "sortie": [
+      "interessante",
+      "evasion"
+    ],
+    "energie": 2,
+    "exigence": 2,
+    "format_scene": [
+      "duo"
+    ],
+    "ideal_pour": [
+      "couple",
+      "solo"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "moyenne",
+    "tag_preuve": "résilience du vivant",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "TMP0074",
+    "titre": "Aimé Rauzier",
+    "categorie": "theatre_danse",
+    "moods": [
+      "tendre",
+      "poetique",
+      "sombre"
+    ],
+    "sortie": [
+      "interessante",
+      "evasion"
+    ],
+    "energie": 2,
+    "exigence": 2,
+    "format_scene": [
+      "duo",
+      "sans_paroles"
+    ],
+    "ideal_pour": [
+      "couple",
+      "solo"
+    ],
+    "notoriete": "emergent",
+    "tag_confiance": "haute",
+    "tag_preuve": "dialogue avec les disparu·es",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "E160",
+    "titre": "Les Lancers de Fil : La crotte sur le coeur",
+    "categorie": "theatre_danse",
+    "moods": [
+      "absurde",
+      "tendre",
+      "rigolo"
+    ],
+    "sortie": [
+      "interessante",
+      "agreable"
+    ],
+    "energie": 3,
+    "exigence": 1,
+    "format_scene": [
+      "participatif",
+      "troupe"
+    ],
+    "ideal_pour": [
+      "amis"
+    ],
+    "notoriete": "emergent",
+    "tag_confiance": "haute",
+    "tag_preuve": "protocole scientifique décalé et rituel absurde",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "TMP0087",
+    "titre": "Gabriel Sparti",
+    "categorie": "theatre_danse",
+    "moods": [
+      "absurde",
+      "critique",
+      "sombre"
+    ],
+    "sortie": [
+      "interessante"
+    ],
+    "energie": 2,
+    "exigence": 3,
+    "format_scene": [
+      "troupe"
+    ],
+    "ideal_pour": [
+      "amis",
+      "solo"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "haute",
+    "tag_preuve": "plongée absurde et incisive dans les mécaniques du fascisme",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "BAR0123",
+    "titre": "Maudite Répétition",
+    "categorie": "theatre_danse",
+    "moods": [
+      "rigolo",
+      "absurde",
+      "leger"
+    ],
+    "sortie": [
+      "agreable"
+    ],
+    "energie": 4,
+    "exigence": 1,
+    "format_scene": [
+      "troupe"
+    ],
+    "ideal_pour": [
+      "amis"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "haute",
+    "tag_preuve": "le chaos s’installe",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "E9130",
+    "titre": "1 évènement 12",
+    "categorie": "theatre_danse",
+    "moods": [
+      "contemplatif",
+      "poetique",
+      "cerveau"
+    ],
+    "sortie": [
+      "partage",
+      "interessante"
+    ],
+    "energie": 2,
+    "exigence": 1,
+    "format_scene": [
+      "participatif"
+    ],
+    "ideal_pour": [
+      "famille",
+      "amis"
+    ],
+    "notoriete": "emergent",
+    "tag_confiance": "moyenne",
+    "tag_preuve": "des habitant·e·s ont photographié, dessiné, découpé, collé",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "TMP0084",
+    "titre": "Andrea Givanovitch",
+    "categorie": "theatre_danse",
+    "moods": [
+      "intense",
+      "critique",
+      "cerveau"
+    ],
+    "sortie": [
+      "interessante"
+    ],
+    "energie": 2,
+    "exigence": 3,
+    "format_scene": [
+      "troupe",
+      "sans_paroles"
+    ],
+    "ideal_pour": [
+      "amis",
+      "solo"
+    ],
+    "notoriete": "emergent",
+    "tag_confiance": "haute",
+    "tag_preuve": "le corps cherche à se défaire de ses carcans sociaux",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "TMP0133",
+    "titre": "Fusées",
+    "categorie": "theatre_danse",
+    "moods": [
+      "rigolo",
+      "poetique",
+      "absurde"
+    ],
+    "sortie": [
+      "evasion",
+      "agreable"
+    ],
+    "energie": 3,
+    "exigence": 1,
+    "format_scene": [
+      "troupe"
+    ],
+    "ideal_pour": [
+      "amis",
+      "famille"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "haute",
+    "tag_preuve": "la comédie électrique",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "TMP0159",
+    "titre": "LES 24h DE L’ACCORDÉON 2026",
+    "categorie": "theatre_danse",
+    "moods": [
+      "dansant",
+      "festif",
+      "epique"
+    ],
+    "sortie": [
+      "partage"
+    ],
+    "energie": 5,
+    "exigence": 1,
+    "format_scene": [
+      "participatif",
+      "orchestre"
+    ],
+    "ideal_pour": [
+      "amis",
+      "famille"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "haute",
+    "tag_preuve": "pour danser au gré des notes des accordéons",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "T900661",
+    "titre": "Le Premier Sexe ou la grosse arnaque de la virilité",
+    "categorie": "theatre_danse",
+    "moods": [
+      "critique",
+      "rigolo",
+      "cerveau"
+    ],
+    "sortie": [
+      "interessante",
+      "agreable"
+    ],
+    "energie": 3,
+    "exigence": 2,
+    "format_scene": [
+      "seul_en_scene"
+    ],
+    "ideal_pour": [
+      "amis"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "moyenne",
+    "tag_preuve": "offre le fruit de sa réflexion",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "BAR0120",
+    "titre": "Maudite Répétition",
+    "categorie": "theatre_danse",
+    "moods": [
+      "rigolo",
+      "absurde",
+      "leger"
+    ],
+    "sortie": [
+      "agreable"
+    ],
+    "energie": 4,
+    "exigence": 1,
+    "format_scene": [
+      "troupe"
+    ],
+    "ideal_pour": [
+      "amis"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "haute",
+    "tag_preuve": "rien ne se passe comme prévu",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "BAR0121",
+    "titre": "WILLKOMMEN MES AMOURS",
+    "categorie": "theatre_danse",
+    "moods": [
+      "festif",
+      "dansant",
+      "leger"
+    ],
+    "sortie": [
+      "agreable",
+      "partage"
+    ],
+    "energie": 4,
+    "exigence": 1,
+    "format_scene": [
+      "troupe"
+    ],
+    "ideal_pour": [
+      "amis",
+      "couple"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "haute",
+    "tag_preuve": "on chante, on danse, on joue avec les codes",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "BAR0122",
+    "titre": "SEULE 2",
+    "categorie": "theatre_danse",
+    "moods": [
+      "absurde",
+      "critique",
+      "festif"
+    ],
+    "sortie": [
+      "interessante",
+      "agreable"
+    ],
+    "energie": 3,
+    "exigence": 2,
+    "format_scene": [
+      "seul_en_scene"
+    ],
+    "ideal_pour": [
+      "amis"
+    ],
+    "notoriete": "emergent",
+    "tag_confiance": "moyenne",
+    "tag_preuve": "croisée de l’art contemporain et du drag",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "TMP0341",
+    "titre": "Mes nouvelles chaussures",
+    "categorie": "theatre_danse",
+    "moods": [
+      "poetique",
+      "tendre",
+      "leger"
+    ],
+    "sortie": [
+      "evasion",
+      "agreable"
+    ],
+    "energie": 2,
+    "exigence": 1,
+    "format_scene": [
+      "jeune_public",
+      "sans_paroles"
+    ],
+    "ideal_pour": [
+      "famille"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "haute",
+    "tag_preuve": "théâtre d'objets qui parle avec simplicité et poésie",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "E505",
+    "titre": "Le sens de la fête",
+    "categorie": "theatre_danse",
+    "moods": [
+      "rigolo",
+      "leger",
+      "absurde"
+    ],
+    "sortie": [
+      "agreable"
+    ],
+    "energie": 3,
+    "exigence": 1,
+    "format_scene": [
+      "troupe"
+    ],
+    "ideal_pour": [
+      "amis",
+      "famille"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "moyenne",
+    "tag_preuve": "malgré le chaos, les engueulades et les égos, la magie opère",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "TMP0384",
+    "titre": "Poup et Barbichette",
+    "categorie": "theatre_danse",
+    "moods": [
+      "angoissant",
+      "sombre",
+      "tendre"
+    ],
+    "sortie": [
+      "interessante",
+      "agreable"
+    ],
+    "energie": 2,
+    "exigence": 1,
+    "format_scene": [
+      "jeune_public",
+      "troupe"
+    ],
+    "ideal_pour": [
+      "famille"
+    ],
+    "notoriete": "emergent",
+    "tag_confiance": "haute",
+    "tag_preuve": "Il fait tout noir ici, ça fait peur",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "TMP0697",
+    "titre": "42e Salon d’automne",
+    "categorie": "theatre_danse",
+    "moods": [
+      "contemplatif",
+      "leger",
+      "tendre"
+    ],
+    "sortie": [
+      "agreable",
+      "interessante"
+    ],
+    "energie": 1,
+    "exigence": 1,
+    "format_scene": [
+      "scene_ouverte"
+    ],
+    "ideal_pour": [
+      "famille",
+      "amis",
+      "solo"
+    ],
+    "notoriete": "scene_ouverte",
+    "tag_confiance": "moyenne",
+    "tag_preuve": "l’art s’invite au Kiwi pour quinze jours de bonheur",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "BAR0147",
+    "titre": "WILLKOMMEN MES AMOURS",
+    "categorie": "theatre_danse",
+    "moods": [
+      "festif",
+      "dansant",
+      "leger"
+    ],
+    "sortie": [
+      "agreable",
+      "partage"
+    ],
+    "energie": 4,
+    "exigence": 1,
+    "format_scene": [
+      "troupe"
+    ],
+    "ideal_pour": [
+      "amis",
+      "couple"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "haute",
+    "tag_preuve": "cabaret à l’ancienne, mais avec ses névroses d’aujourd’hui",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "E573",
+    "titre": "ArmageTongs",
+    "categorie": "theatre_danse",
+    "moods": [
+      "poetique",
+      "absurde",
+      "contemplatif"
+    ],
+    "sortie": [
+      "evasion",
+      "interessante"
+    ],
+    "energie": 3,
+    "exigence": 2,
+    "format_scene": [
+      "sans_paroles",
+      "troupe"
+    ],
+    "ideal_pour": [
+      "amis",
+      "couple"
+    ],
+    "notoriete": "emergent",
+    "tag_confiance": "haute",
+    "tag_preuve": "Pièce chorégraphique et onirique",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "TMP0076",
+    "titre": "Stéphanie Aflalo",
+    "categorie": "theatre_danse",
+    "moods": [
+      "intimiste",
+      "cerveau",
+      "rigolo"
+    ],
+    "sortie": [
+      "interessante",
+      "agreable"
+    ],
+    "energie": 2,
+    "exigence": 2,
+    "format_scene": [
+      "seul_en_scene"
+    ],
+    "ideal_pour": [
+      "solo",
+      "couple"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "haute",
+    "tag_preuve": "dialogue intime et teinté d’humour",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "BAR0013",
+    "titre": "Jam jazz manouche",
+    "categorie": "musique",
+    "moods": [
+      "festif",
+      "intimiste"
+    ],
+    "sortie": [
+      "partage"
+    ],
+    "energie": 3,
+    "exigence": 2,
+    "format_scene": [
+      "scene_ouverte"
+    ],
+    "ideal_pour": [
+      "solo",
+      "amis"
+    ],
+    "notoriete": "scene_ouverte",
+    "tag_confiance": "haute",
+    "tag_preuve": "scène ouverte jazz manouche",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "E407",
+    "titre": "A6EL",
+    "categorie": "musique",
+    "moods": [
+      "intimiste",
+      "sombre",
+      "poetique"
+    ],
+    "sortie": [
+      "evasion",
+      "interessante"
+    ],
+    "energie": 3,
+    "exigence": 1,
+    "format_scene": [
+      "groupe"
+    ],
+    "ideal_pour": [
+      "amis",
+      "solo"
+    ],
+    "notoriete": "emergent",
+    "tag_confiance": "haute",
+    "tag_preuve": "textes introspectifs et mélancoliques",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "E424",
+    "titre": "63OG",
+    "categorie": "musique",
+    "moods": [
+      "festif",
+      "dansant",
+      "intense"
+    ],
+    "sortie": [
+      "partage",
+      "evasion"
+    ],
+    "energie": 5,
+    "exigence": 1,
+    "format_scene": [
+      "groupe"
+    ],
+    "ideal_pour": [
+      "amis"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "moyenne",
+    "tag_preuve": "spécialiste du DMV flow bilingue",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "E459",
+    "titre": "Pierre-Emmanuel Barré",
+    "categorie": "musique",
+    "moods": [
+      "rigolo",
+      "critique",
+      "cerveau"
+    ],
+    "sortie": [
+      "agreable",
+      "interessante"
+    ],
+    "energie": 3,
+    "exigence": 1,
+    "format_scene": [
+      "seul_en_scene"
+    ],
+    "ideal_pour": [
+      "amis"
+    ],
+    "notoriete": "tete_affiche",
+    "tag_confiance": "haute",
+    "tag_preuve": "il décide de créer un nouveau spectacle. Humour",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "E477",
+    "titre": "Chœur Accentus — Insula Orchestra — Laurence Equilbey",
+    "categorie": "musique",
+    "moods": [
+      "contemplatif",
+      "epique",
+      "poetique"
+    ],
+    "sortie": [
+      "evasion"
+    ],
+    "energie": 1,
+    "exigence": 2,
+    "format_scene": [
+      "orchestre"
+    ],
+    "ideal_pour": [
+      "couple",
+      "solo"
+    ],
+    "notoriete": "tete_affiche",
+    "tag_confiance": "haute",
+    "tag_preuve": "soirée lumineuse au cœur du baroque",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "E412",
+    "titre": "Mispyrming & Owls Woods Graves & Profanation & Gorrch",
+    "categorie": "musique",
+    "moods": [
+      "brutal",
+      "sombre",
+      "intense"
+    ],
+    "sortie": [
+      "evasion"
+    ],
+    "energie": 5,
+    "exigence": 3,
+    "format_scene": [
+      "groupe"
+    ],
+    "ideal_pour": [
+      "amis",
+      "solo"
+    ],
+    "notoriete": "emergent",
+    "tag_confiance": "haute",
+    "tag_preuve": "Black metal expérimental",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "BAR0018",
+    "titre": "La Roda Dominicale de La Casa De Choro",
+    "categorie": "musique",
+    "moods": [
+      "festif",
+      "tendre",
+      "intimiste"
+    ],
+    "sortie": [
+      "partage",
+      "agreable"
+    ],
+    "energie": 3,
+    "exigence": 1,
+    "format_scene": [
+      "groupe",
+      "participatif"
+    ],
+    "ideal_pour": [
+      "amis",
+      "famille",
+      "solo"
+    ],
+    "notoriete": "emergent",
+    "tag_confiance": "haute",
+    "tag_preuve": "ambiance spontanée et chaleureuse",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "E408",
+    "titre": "Monolord & Dopelord",
+    "categorie": "musique",
+    "moods": [
+      "brutal",
+      "intense",
+      "sombre"
+    ],
+    "sortie": [
+      "evasion"
+    ],
+    "energie": 5,
+    "exigence": 2,
+    "format_scene": [
+      "groupe"
+    ],
+    "ideal_pour": [
+      "amis"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "haute",
+    "tag_preuve": "Doom/stoner occulte",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "PRIO0028",
+    "titre": "Goûter-concert #4",
+    "categorie": "musique",
+    "moods": [
+      "tendre",
+      "leger",
+      "dansant"
+    ],
+    "sortie": [
+      "partage",
+      "agreable"
+    ],
+    "energie": 3,
+    "exigence": 1,
+    "format_scene": [
+      "groupe",
+      "jeune_public"
+    ],
+    "ideal_pour": [
+      "famille"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "haute",
+    "tag_preuve": "moment musical aussi convivial qu’inoubliable",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "PRIO0039",
+    "titre": "Gérald Toto + Leïla Martial & friends",
+    "categorie": "musique",
+    "moods": [
+      "intimiste",
+      "poetique",
+      "contemplatif"
+    ],
+    "sortie": [
+      "evasion",
+      "interessante"
+    ],
+    "energie": 2,
+    "exigence": 3,
+    "format_scene": [
+      "groupe",
+      "duo"
+    ],
+    "ideal_pour": [
+      "solo",
+      "couple",
+      "amis"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "haute",
+    "tag_preuve": "échanges musicaux intimistes",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "E9094",
+    "titre": "BLACK CAT BONES",
+    "categorie": "musique",
+    "moods": [
+      "intense",
+      "dansant",
+      "brutal"
+    ],
+    "sortie": [
+      "agreable",
+      "partage"
+    ],
+    "energie": 4,
+    "exigence": 1,
+    "format_scene": [
+      "groupe"
+    ],
+    "ideal_pour": [
+      "amis"
+    ],
+    "notoriete": "scene_ouverte",
+    "tag_confiance": "haute",
+    "tag_preuve": "énergique, brut de décoffrage",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "E9097",
+    "titre": "CARINA BANDITA",
+    "categorie": "musique",
+    "moods": [
+      "dansant",
+      "epique",
+      "brutal"
+    ],
+    "sortie": [
+      "partage",
+      "agreable"
+    ],
+    "energie": 4,
+    "exigence": 1,
+    "format_scene": [
+      "groupe"
+    ],
+    "ideal_pour": [
+      "amis"
+    ],
+    "notoriete": "emergent",
+    "tag_confiance": "haute",
+    "tag_preuve": "énergie brute qui dépasse les frontières",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "E580",
+    "titre": "In Limbo",
+    "categorie": "musique",
+    "moods": [
+      "intense",
+      "tendre",
+      "critique"
+    ],
+    "sortie": [
+      "interessante",
+      "agreable"
+    ],
+    "energie": 3,
+    "exigence": 1,
+    "format_scene": [
+      "troupe",
+      "groupe"
+    ],
+    "ideal_pour": [
+      "amis",
+      "famille"
+    ],
+    "notoriete": "emergent",
+    "tag_confiance": "haute",
+    "tag_preuve": "univers tumultueux de l’adolescence",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "E471",
+    "titre": "Concert étudiants",
+    "categorie": "musique",
+    "moods": [
+      "contemplatif",
+      "epique",
+      "poetique"
+    ],
+    "sortie": [
+      "evasion"
+    ],
+    "energie": 1,
+    "exigence": 2,
+    "format_scene": [
+      "orchestre"
+    ],
+    "ideal_pour": [
+      "couple",
+      "solo",
+      "amis"
+    ],
+    "notoriete": "tete_affiche",
+    "tag_confiance": "moyenne",
+    "tag_preuve": "Boléro de Ravel",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "E429",
+    "titre": "Rosa Crux + Malefino + Gaouta",
+    "categorie": "musique",
+    "moods": [
+      "critique",
+      "intense",
+      "poetique"
+    ],
+    "sortie": [
+      "interessante",
+      "evasion"
+    ],
+    "energie": 4,
+    "exigence": 2,
+    "format_scene": [
+      "groupe"
+    ],
+    "ideal_pour": [
+      "amis"
+    ],
+    "notoriete": "emergent",
+    "tag_confiance": "haute",
+    "tag_preuve": "emo contestataire",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "BAR0019",
+    "titre": "La Roda Dominicale de La Casa De Choro",
+    "categorie": "musique",
+    "moods": [
+      "festif",
+      "tendre",
+      "intimiste"
+    ],
+    "sortie": [
+      "partage",
+      "agreable"
+    ],
+    "energie": 3,
+    "exigence": 1,
+    "format_scene": [
+      "groupe",
+      "participatif"
+    ],
+    "ideal_pour": [
+      "amis",
+      "famille",
+      "solo"
+    ],
+    "notoriete": "emergent",
+    "tag_confiance": "haute",
+    "tag_preuve": "sonorités du choro, une musique populaire brésilienne",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "BAR0020",
+    "titre": "Lluis Coloma — Jazz Blues & Boogie-Woogie",
+    "categorie": "musique",
+    "moods": [
+      "dansant",
+      "leger",
+      "epique"
+    ],
+    "sortie": [
+      "agreable"
+    ],
+    "energie": 3,
+    "exigence": 1,
+    "format_scene": [
+      "seul_en_scene"
+    ],
+    "ideal_pour": [
+      "couple",
+      "amis"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "moyenne",
+    "tag_preuve": "Piano jazz blues boogie-woogie",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "E425",
+    "titre": "Spike and the Gimme Gimmes",
+    "categorie": "musique",
+    "moods": [
+      "rigolo",
+      "absurde",
+      "dansant"
+    ],
+    "sortie": [
+      "agreable",
+      "partage"
+    ],
+    "energie": 5,
+    "exigence": 1,
+    "format_scene": [
+      "groupe"
+    ],
+    "ideal_pour": [
+      "amis"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "haute",
+    "tag_preuve": "punk déjanté",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "BAR0061",
+    "titre": "Radio fit",
+    "categorie": "musique",
+    "moods": [
+      "dansant",
+      "leger",
+      "festif"
+    ],
+    "sortie": [
+      "agreable"
+    ],
+    "energie": 4,
+    "exigence": 1,
+    "format_scene": [
+      "groupe"
+    ],
+    "ideal_pour": [
+      "amis"
+    ],
+    "notoriete": "scene_ouverte",
+    "tag_confiance": "moyenne",
+    "tag_preuve": "groupe de reprises Pop - Rock",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "PRIO0036",
+    "titre": "Myrath",
+    "categorie": "musique",
+    "moods": [
+      "epique",
+      "intense",
+      "brutal"
+    ],
+    "sortie": [
+      "evasion"
+    ],
+    "energie": 5,
+    "exigence": 2,
+    "format_scene": [
+      "groupe"
+    ],
+    "ideal_pour": [
+      "amis"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "haute",
+    "tag_preuve": "voyage musical intense",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "BAR0021",
+    "titre": "Mississippi Jazz Band — Jazz New Orleans",
+    "categorie": "musique",
+    "moods": [
+      "dansant",
+      "leger",
+      "tendre"
+    ],
+    "sortie": [
+      "agreable",
+      "partage"
+    ],
+    "energie": 3,
+    "exigence": 1,
+    "format_scene": [
+      "groupe"
+    ],
+    "ideal_pour": [
+      "couple",
+      "amis"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "moyenne",
+    "tag_preuve": "Jazz New Orleans",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "BAR0022",
+    "titre": "Gead Mulheran Quintet — Sinatra & les grands crooners",
+    "categorie": "musique",
+    "moods": [
+      "tendre",
+      "intimiste",
+      "leger"
+    ],
+    "sortie": [
+      "agreable"
+    ],
+    "energie": 2,
+    "exigence": 1,
+    "format_scene": [
+      "groupe"
+    ],
+    "ideal_pour": [
+      "couple",
+      "amis"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "moyenne",
+    "tag_preuve": "Sinatra et les grands crooners",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "BAR0051",
+    "titre": "Astrojam",
+    "categorie": "musique",
+    "moods": [
+      "festif",
+      "dansant",
+      "intimiste"
+    ],
+    "sortie": [
+      "partage"
+    ],
+    "energie": 4,
+    "exigence": 2,
+    "format_scene": [
+      "scene_ouverte"
+    ],
+    "ideal_pour": [
+      "solo",
+      "amis"
+    ],
+    "notoriete": "scene_ouverte",
+    "tag_confiance": "haute",
+    "tag_preuve": "jam multistyle",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "E619",
+    "titre": "Peau de cigale",
+    "categorie": "musique",
+    "moods": [
+      "poetique",
+      "intimiste",
+      "tendre"
+    ],
+    "sortie": [
+      "partage",
+      "evasion"
+    ],
+    "energie": 3,
+    "exigence": 2,
+    "format_scene": [
+      "troupe",
+      "sans_paroles"
+    ],
+    "ideal_pour": [
+      "famille",
+      "amis"
+    ],
+    "notoriete": "emergent",
+    "tag_confiance": "haute",
+    "tag_preuve": "lecture sensible et poétique",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "PRIO0032",
+    "titre": "Mariam",
+    "categorie": "musique",
+    "moods": [
+      "tendre",
+      "poetique",
+      "intimiste"
+    ],
+    "sortie": [
+      "evasion",
+      "agreable"
+    ],
+    "energie": 3,
+    "exigence": 1,
+    "format_scene": [
+      "groupe"
+    ],
+    "ideal_pour": [
+      "amis",
+      "couple",
+      "famille"
+    ],
+    "notoriete": "tete_affiche",
+    "tag_confiance": "moyenne",
+    "tag_preuve": "portant les mélodies qui ont fait le succès du couple",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "E627",
+    "titre": "Musique sans frontrières",
+    "categorie": "musique",
+    "moods": [
+      "tendre",
+      "poetique",
+      "leger"
+    ],
+    "sortie": [
+      "partage",
+      "interessante"
+    ],
+    "energie": 3,
+    "exigence": 1,
+    "format_scene": [
+      "groupe",
+      "participatif"
+    ],
+    "ideal_pour": [
+      "famille",
+      "amis"
+    ],
+    "notoriete": "emergent",
+    "tag_confiance": "moyenne",
+    "tag_preuve": "favoriser la cohésion sociale",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "E468",
+    "titre": "Alexander Soddy / Stefan Dohr",
+    "categorie": "musique",
+    "moods": [
+      "contemplatif",
+      "epique",
+      "tendre"
+    ],
+    "sortie": [
+      "evasion"
+    ],
+    "energie": 1,
+    "exigence": 2,
+    "format_scene": [
+      "orchestre"
+    ],
+    "ideal_pour": [
+      "couple",
+      "solo"
+    ],
+    "notoriete": "tete_affiche",
+    "tag_confiance": "moyenne",
+    "tag_preuve": "Symphonie n° 5 de Franz Schubert",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "BAR0058",
+    "titre": "Paint It Blues",
+    "categorie": "musique",
+    "moods": [
+      "dansant",
+      "tendre",
+      "festif"
+    ],
+    "sortie": [
+      "partage",
+      "agreable"
+    ],
+    "energie": 3,
+    "exigence": 1,
+    "format_scene": [
+      "groupe"
+    ],
+    "ideal_pour": [
+      "amis",
+      "couple"
+    ],
+    "notoriete": "emergent",
+    "tag_confiance": "moyenne",
+    "tag_preuve": "fascinés par le Blues, la Soul, le Rhythm and Blues",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "BAR0059",
+    "titre": "Funk.It",
+    "categorie": "musique",
+    "moods": [
+      "dansant",
+      "festif",
+      "leger"
+    ],
+    "sortie": [
+      "partage"
+    ],
+    "energie": 4,
+    "exigence": 1,
+    "format_scene": [
+      "groupe"
+    ],
+    "ideal_pour": [
+      "amis"
+    ],
+    "notoriete": "emergent",
+    "tag_confiance": "moyenne",
+    "tag_preuve": "style Funk/Soul",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "BAR0060",
+    "titre": "Avou Acoustic",
+    "categorie": "musique",
+    "moods": [
+      "dansant",
+      "leger",
+      "festif"
+    ],
+    "sortie": [
+      "agreable",
+      "partage"
+    ],
+    "energie": 3,
+    "exigence": 1,
+    "format_scene": [
+      "groupe"
+    ],
+    "ideal_pour": [
+      "amis",
+      "couple"
+    ],
+    "notoriete": "emergent",
+    "tag_confiance": "moyenne",
+    "tag_preuve": "reprises Jazz - Rock - Pop - Funck - Blues",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  },
+  {
+    "event_id": "BAR0124",
+    "titre": "Amazones",
+    "categorie": "theatre_danse",
+    "moods": [
+      "epique",
+      "festif",
+      "intense"
+    ],
+    "sortie": [
+      "evasion",
+      "agreable"
+    ],
+    "energie": 4,
+    "exigence": 1,
+    "format_scene": [
+      "troupe"
+    ],
+    "ideal_pour": [
+      "amis",
+      "couple",
+      "famille"
+    ],
+    "notoriete": "confirme",
+    "tag_confiance": "haute",
+    "tag_preuve": "danse, des effets techniques visuels & des performances aériennes",
+    "tag_version": "v2",
+    "tagged_by": "agent",
+    "skip": false
+  }
+]
