@@ -21,16 +21,23 @@
  * Sans `--limit` ni `--event`, une passe hors gold est refusée : le passage
  * sur tout le catalogue est le lot suivant (PR5).
  *
- * Prompt système : §A4, repris tel quel. Few-shot : exactement 4 exemples §A5
- * variés (TOM, Lio Kuokman / Nelson Goerner, FAT FREDDY'S DROP, Toc Toc),
- * dont les deux cas où la v1 posait `rigolo` à tort. Un court préambule
- * utilisateur (pas de nouvelle valeur d'enum) rappelle l'expérience du
- * spectateur, les 2 ou 3 ambiances, rigolo jamais seul, festif jamais seul
- * sur un concert, la preuve comme sous-chaîne exacte, et l'interdit de poser
+ * Prompt système : §A4, repris tel quel. Few-shot : les 4 exemples §A5
+ * déjà en place (TOM, Lio Kuokman / Nelson Goerner, FAT FREDDY'S DROP, Toc Toc),
+ * dont les deux cas où la v1 posait `rigolo` à tort, plus 4 ancrages d'ordre
+ * (HYPNO5E & HIPPOTRAKTOR, Superpêche, Camping sauvage (quartet), Jeanne Candel).
+ * Un court préambule utilisateur (pas de nouvelle valeur d'enum) rappelle
+ * l'expérience du spectateur, les 2 ou 3 ambiances, rigolo jamais seul,
+ * festif jamais seul sur un concert, l'ordre dansant avant festif, rigolo
+ * en tête seulement si le rire est le but, contemplatif / poetique / intimiste,
+ * tendre sur un concert doux, brutal avant intense quand la violence sonore
+ * est le cœur, la preuve comme sous-chaîne exacte, et l'interdit de poser
  * `rigolo` sur un théâtre sombre ou intense ou sur un récital classique.
  * Validation : enum, cardinalité, rigolo, festif sur un concert, preuve
  * (sous-chaîne normalisée), confiance haute sans preuve. Un rejet, un
  * réessai, puis la ligne est ignorée et loguée.
+ *
+ * Éval gold : le Manager espace déjà les appels. Indice de throttle, en
+ * commentaire seulement : MIN_GAP_MS ≥ 3200. Le script ne l'applique pas.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -99,8 +106,10 @@ export const FESTIF_COMPANY = [
 
 /**
  * Les 12 spectacles de référence §A5.
- * Le few-shot n'en retient que 4 (TOM, Lio Kuokman, Fat Freddy's Drop, Toc Toc).
- * Kevin Levy et Superpêche restent ici pour les tests, pas dans le prompt.
+ * Le few-shot en reprend 6 (TOM, Lio Kuokman, Fat Freddy's Drop, Toc Toc,
+ * HYPNO5E & HIPPOTRAKTOR, Superpêche) et ajoute deux lignes gold hors §A5
+ * (Camping sauvage, Jeanne Candel). Kevin Levy reste ici pour les tests,
+ * pas dans le prompt.
  */
 export const A5_REFERENCE_TITLES = [
   'Kevin Levy : Cocu',
@@ -235,15 +244,24 @@ export const USER_PREAMBLE = [
   "- Décris l'expérience vécue par le spectateur. Ne pose pas rigolo parce que le titre ou le genre dit comédie ou humour.",
   '- Toujours 2 ou 3 ambiances, la principale en premier.',
   "- rigolo n'est jamais seul : ajoute le type de rire (absurde, critique, tendre, leger, cerveau, sombre ou intimiste). Sur un concert, festif n'est jamais seul (ajoute dansant, intense, brutal, epique, poetique, intimiste ou contemplatif).",
+  '- Concert danse, groove, swing, boogie, bal ou marathon dansant : `dansant` avant `festif`. `festif` en premier seulement si la fête, le participatif ou la fanfare dominent la danse.',
+  "- Si le but du spectateur est le rire (comédie, stand-up, cabaret, « hilarant », rire) : `rigolo` en premier. Sinon, `rigolo` n'est jamais en premier.",
+  '- Distingue `contemplatif` (écoute calme, silence, impro lente, récital, chœur, nature ou temps long), `poetique` (images, langue, onirique) et `intimiste` (proximité, petit format).',
+  '- Concert doux, goûter, ballade ou hommage : ne laisse pas `festif` ni `poetique` écraser `tendre`.',
+  '- Metal extrême, industriel, sludge, post-metal ou grind : quand la violence sonore est le cœur, `brutal` avant `intense`.',
   '- preuve : citation exacte, sous-chaîne du texte du spectacle fourni, moins de 120 caractères.',
   "- Un théâtre sombre ou intense n'est pas rigolo par défaut. Un récital ou un concert classique n'est pas rigolo.",
   '- Réponds {"skip": true} seulement si le texte utile fait moins de 80 caractères.',
 ].join('\n');
 
 /**
- * Quatre exemples §A5, théâtre et musique, dont deux erreurs v1 (`rigolo`).
+ * Huit exemples, théâtre et musique. Les quatre premiers sont les §A5 déjà
+ * en place (dont deux erreurs v1 `rigolo`). Les quatre suivants ancrent
+ * l'ordre d'ambiance : brutal, contemplatif, dansant, rigolo.
  * Textes repris de `data/evenements.csv` (description longue, sinon courte).
  * Toc Toc : la longue n'est que l'accroche salle ; le pitch (courte) porte l'expérience.
+ * HYPNO5E, Camping sauvage et Jeanne Candel : moods et axes du gold / §A5.
+ * Superpêche : moods et axes §A5.
  */
 const FEW_SHOTS: readonly FewShot[] = [
   {
@@ -318,6 +336,78 @@ const FEW_SHOTS: readonly FewShot[] = [
     },
     assistant:
       '{"moods":["rigolo","absurde","leger"],"sortie":["agreable"],"energie":3,"exigence":1,"format_scene":["troupe"],"ideal_pour":["amis","famille"],"notoriete":"confirme","confiance":"haute","preuve":"un huit-clos surprenant et totalement hilarant"}',
+  },
+  {
+    title: 'HYPNO5E & HIPPOTRAKTOR',
+    input: {
+      event_id: 'E406',
+      titre: 'HYPNO5E & HIPPOTRAKTOR',
+      categorie: 'musique',
+      genre: 'rock_metal_punk',
+      description:
+        'Quintet belge de Malines (Pelagic Records) : entre le martèlement polyrhythmique de Meshuggah et le poids atmosphérique de Gojira. Deuxième album Stasis (juin 2024), en co-plateau avec Hypno5e.',
+      citation: 'It\'s bold, complex, thoughtful and often malicious, and as a second stroke of genius for this exciting prog metal outfit, a fantastic sign of things to come.',
+      casting: '',
+      lieu_nom: 'Le Rex',
+      lieu_type: 'salle_concert',
+      prix: '25,80 € Prévente',
+    },
+    assistant:
+      '{"moods":["brutal","intense","sombre"],"sortie":["evasion"],"energie":5,"exigence":3,"format_scene":["groupe"],"ideal_pour":["amis","solo"],"notoriete":"emergent","confiance":"haute","preuve":"martèlement polyrhythmique"}',
+  },
+  {
+    title: 'Superpêche',
+    input: {
+      event_id: 'E499',
+      titre: 'Superpêche',
+      categorie: 'musique',
+      genre: 'jazz_blues',
+      description:
+        'Superpêche réunit Laure Fischer (saxophone baryton) et Alexis Thépot (violoncelle à cordes sympathiques). En acoustique et sans filet, le duo improvise une musique sensible et inventive où timbres, voix et écoute nourrissent un dialogue vivant en perpétuelle évolution. Partenariat Un pavé dans le jazz.',
+      citation: '',
+      casting: '',
+      lieu_nom: 'Théâtre du Pavé',
+      lieu_type: 'theatre',
+      prix: '',
+    },
+    assistant:
+      '{"moods":["contemplatif","poetique","cerveau"],"sortie":["evasion","interessante"],"energie":1,"exigence":3,"format_scene":["duo"],"ideal_pour":["solo","couple"],"notoriete":"emergent","confiance":"moyenne","preuve":"timbres, voix et écoute nourrissent un dialogue vivant"}',
+  },
+  {
+    title: 'Camping sauvage (quartet)',
+    input: {
+      event_id: 'BAR0014',
+      titre: 'Camping sauvage (quartet)',
+      categorie: 'musique',
+      genre: '',
+      description:
+        'Un swing vocal et du scatt délicieusement indiscipliné, parfumé de jazz manouche, et des solos de guitare qui prennent la clé des champs. Convivial et entraînant au point de finir en swing sauvage…',
+      citation: '',
+      casting: '',
+      lieu_nom: 'Maison Blanche',
+      lieu_type: 'bar',
+      prix: 'entrée libre 5 euros conseillés',
+    },
+    assistant:
+      '{"moods":["dansant","leger","festif"],"sortie":["partage","agreable"],"energie":4,"exigence":1,"format_scene":["groupe"],"ideal_pour":["amis"],"notoriete":"emergent","confiance":"haute","preuve":"finir en swing sauvage"}',
+  },
+  {
+    title: 'Jeanne Candel',
+    input: {
+      event_id: 'TMP0093',
+      titre: 'Jeanne Candel',
+      categorie: 'theatre_danse',
+      genre: '',
+      description:
+        'Spectacle co-accueilli avec et au Théâtre de la Cité Évoquer la conquête de l’espace et la création du monde avec quatre interprètes, un piano désossé, quelques cartons et objets détournés : tel est le réjouissant exploit accompli par ce spectacle artisanal et musical, aussi hilarant que poétique. Présenté à Garonne à sa création en 2024, puis au Festival d’Avignon en 2025, Fusées est de retour à Toulouse, au Théâtre de la Cité. L’histoire est simple : deux hommes perdus dans le cosmos. L’un sombre dans sa mélancolie, l’autre jouit de sa puissance. Plus l’un est fort, plus l’autre est faible, c’est l’électricité́́, le plus et le moins, la comédie électrique. On les voit vivre, survivre dans ces contrées lointaines, en apesanteur.',
+      citation: '',
+      casting: '',
+      lieu_nom: 'Théâtre Garonne',
+      lieu_type: 'theatre',
+      prix: '',
+    },
+    assistant:
+      '{"moods":["rigolo","poetique","absurde"],"sortie":["evasion","agreable"],"energie":3,"exigence":1,"format_scene":["troupe"],"ideal_pour":["amis","famille"],"notoriete":"confirme","confiance":"haute","preuve":"aussi hilarant que poétique"}',
   },
 ];
 

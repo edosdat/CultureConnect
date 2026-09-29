@@ -86,7 +86,7 @@ describe('system prompt and few-shot', () => {
     assert.equal(messages[0].content, SYSTEM_PROMPT);
   });
 
-  it('sends exactly the 4 varied §A5 examples, not Kevin Levy or Superpêche', () => {
+  it('keeps the 4 §A5 examples and adds four mood-order anchors', () => {
     const shots = fewShots();
     const titles = shots.map((shot) => shot.title);
     assert.deepEqual(titles, [
@@ -94,22 +94,96 @@ describe('system prompt and few-shot', () => {
       'Lio Kuokman / Nelson Goerner',
       "FAT FREDDY'S DROP",
       'Toc Toc',
+      'HYPNO5E & HIPPOTRAKTOR',
+      'Superpêche',
+      'Camping sauvage (quartet)',
+      'Jeanne Candel',
     ]);
-    for (const title of titles) assert.ok(A5_REFERENCE_TITLES.includes(title as (typeof A5_REFERENCE_TITLES)[number]));
+    const fromA5 = titles.filter((title) => title !== 'Camping sauvage (quartet)' && title !== 'Jeanne Candel');
+    for (const title of fromA5) assert.ok(A5_REFERENCE_TITLES.includes(title as (typeof A5_REFERENCE_TITLES)[number]));
     assert.ok(A5_REFERENCE_TITLES.includes('Kevin Levy : Cocu'));
-    assert.ok(A5_REFERENCE_TITLES.includes('Superpêche'));
     assert.equal(titles.includes('Kevin Levy : Cocu'), false);
-    assert.equal(titles.includes('Superpêche'), false);
     const cats = new Set(shots.map((shot) => shot.input.categorie));
     assert.ok(cats.has('theatre_danse'));
     assert.ok(cats.has('musique'));
-    const expected: Record<string, { moods: string[]; sortie: string[]; energie: number }> = {
-      TOM: { moods: ['intense', 'tendre'], sortie: ['interessante'], energie: 2 },
-      'Lio Kuokman / Nelson Goerner': { moods: ['contemplatif', 'epique'], sortie: ['evasion'], energie: 1 },
-      "FAT FREDDY'S DROP": { moods: ['dansant', 'festif'], sortie: ['partage'], energie: 5 },
-      'Toc Toc': { moods: ['rigolo', 'absurde', 'leger'], sortie: ['agreable'], energie: 3 },
+    const expected: Record<
+      string,
+      { moods: string[]; sortie: string[]; energie: number; exigence: number; format_scene: string[]; ideal_pour: string[]; notoriete: string }
+    > = {
+      TOM: {
+        moods: ['intense', 'tendre'],
+        sortie: ['interessante'],
+        energie: 2,
+        exigence: 2,
+        format_scene: ['troupe'],
+        ideal_pour: ['couple', 'solo'],
+        notoriete: 'confirme',
+      },
+      'Lio Kuokman / Nelson Goerner': {
+        moods: ['contemplatif', 'epique'],
+        sortie: ['evasion'],
+        energie: 1,
+        exigence: 2,
+        format_scene: ['orchestre'],
+        ideal_pour: ['couple', 'solo'],
+        notoriete: 'tete_affiche',
+      },
+      "FAT FREDDY'S DROP": {
+        moods: ['dansant', 'festif'],
+        sortie: ['partage'],
+        energie: 5,
+        exigence: 1,
+        format_scene: ['groupe'],
+        ideal_pour: ['amis'],
+        notoriete: 'tete_affiche',
+      },
+      'Toc Toc': {
+        moods: ['rigolo', 'absurde', 'leger'],
+        sortie: ['agreable'],
+        energie: 3,
+        exigence: 1,
+        format_scene: ['troupe'],
+        ideal_pour: ['amis', 'famille'],
+        notoriete: 'confirme',
+      },
+      'HYPNO5E & HIPPOTRAKTOR': {
+        moods: ['brutal', 'intense', 'sombre'],
+        sortie: ['evasion'],
+        energie: 5,
+        exigence: 3,
+        format_scene: ['groupe'],
+        ideal_pour: ['amis', 'solo'],
+        notoriete: 'emergent',
+      },
+      Superpêche: {
+        moods: ['contemplatif', 'poetique', 'cerveau'],
+        sortie: ['evasion', 'interessante'],
+        energie: 1,
+        exigence: 3,
+        format_scene: ['duo'],
+        ideal_pour: ['solo', 'couple'],
+        notoriete: 'emergent',
+      },
+      'Camping sauvage (quartet)': {
+        moods: ['dansant', 'leger', 'festif'],
+        sortie: ['partage', 'agreable'],
+        energie: 4,
+        exigence: 1,
+        format_scene: ['groupe'],
+        ideal_pour: ['amis'],
+        notoriete: 'emergent',
+      },
+      'Jeanne Candel': {
+        moods: ['rigolo', 'poetique', 'absurde'],
+        sortie: ['evasion', 'agreable'],
+        energie: 3,
+        exigence: 1,
+        format_scene: ['troupe'],
+        ideal_pour: ['amis', 'famille'],
+        notoriete: 'confirme',
+      },
     };
-    const catalogue = new Map(loadTagCatalogue().inputs.map((input) => [input.titre, input]));
+    const catalogue = new Map(loadTagCatalogue().inputs.map((input) => [input.event_id, input]));
     for (const shot of shots) {
       const result = validateTagOutput(shot.assistant, {
         sourceText: sourceTextOfInput(shot.input),
@@ -121,10 +195,14 @@ describe('system prompt and few-shot', () => {
       assert.deepEqual(result.value.moods, want.moods);
       assert.deepEqual(result.value.sortie, want.sortie);
       assert.equal(result.value.energie, want.energie);
+      assert.equal(result.value.exigence, want.exigence);
+      assert.deepEqual(result.value.format_scene, want.format_scene);
+      assert.deepEqual(result.value.ideal_pour, want.ideal_pour);
+      assert.equal(result.value.notoriete, want.notoriete);
       assert.equal(userMessage(shot.input).startsWith(USER_PREAMBLE), false);
-      const live = catalogue.get(shot.title);
+      const live = catalogue.get(shot.input.event_id);
       assert.ok(live, shot.title);
-      assert.equal(shot.input.event_id, live.event_id);
+      assert.equal(shot.input.titre, live.titre);
       assert.equal(shot.input.categorie, live.categorie);
       assert.equal(shot.input.genre, live.genre);
       assert.equal(shot.input.lieu_nom, live.lieu_nom);
@@ -136,6 +214,7 @@ describe('system prompt and few-shot', () => {
         assert.equal(shot.input.description, live.description);
         assert.equal(shot.input.citation, live.citation);
         assert.equal(shot.input.prix, live.prix);
+        assert.equal(shot.input.casting, live.casting);
       }
     }
   });
@@ -150,6 +229,15 @@ describe('system prompt and few-shot', () => {
     assert.match(target.content, /2 ou 3 ambiances/);
     assert.match(target.content, /rigolo n'est jamais seul/);
     assert.match(target.content, /festif n'est jamais seul/);
+    assert.match(target.content, /`dansant` avant `festif`/);
+    assert.match(target.content, /fanfare dominent la danse/);
+    assert.match(target.content, /`rigolo` en premier/);
+    assert.match(target.content, /`rigolo` n'est jamais en premier/);
+    assert.match(target.content, /`contemplatif` \(écoute calme/);
+    assert.match(target.content, /`poetique` \(images, langue, onirique\)/);
+    assert.match(target.content, /`intimiste` \(proximité, petit format\)/);
+    assert.match(target.content, /écraser `tendre`/);
+    assert.match(target.content, /`brutal` avant `intense`/);
     assert.match(target.content, /sous-chaîne du texte/);
     assert.match(target.content, /théâtre sombre ou intense/);
     assert.match(target.content, /récital ou un concert classique/);
