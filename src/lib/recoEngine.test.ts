@@ -12,7 +12,9 @@ import {
   recommendSlice,
   slotFormOfItem,
   workIdOf,
+  type ScoredDayItem,
 } from './reco';
+import { reasonTasteSlugsForItem } from './displayHome';
 import { emptyProfile, emptyTasteState, type AccountTasteState, type TasteProfile } from './signals';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 
@@ -337,7 +339,7 @@ function cineSeanceSplitTags(opts: {
   };
 }
 
-describe('recoEngine — cinema films inherit parent mood tags', () => {
+describe('recoEngine — P0/L2 cine does not inherit parent season moods', () => {
   const vivantRigolo = item({
     key: 'th-own-rigolo',
     cat: 'theatre',
@@ -353,7 +355,7 @@ describe('recoEngine — cinema films inherit parent mood tags', () => {
     titre: 'Club own',
   });
 
-  it('scores leger from the parent when the séance has no mood of its own', () => {
+  it('does not score a film_id séance from empty prog.moods + parent mega-moods', () => {
     const cine = cineSeanceSplitTags({
       key: 'fleurs',
       filmId: 'F043',
@@ -362,10 +364,13 @@ describe('recoEngine — cinema films inherit parent mood tags', () => {
       evThemes: 'famille|histoire|guerre',
       titre: 'Des Fleurs pour Tokyo',
     });
-    assert.equal(itemInheritsParentMoods(cine), true);
+    assert.equal(itemInheritsParentMoods(cine), false);
     assert.equal(itemInheritsParentClosedTags(cine), false);
     const st = state({
-      profile: profile({ moods: { leger: { weight: 10, pct: 100 } } }),
+      profile: profile({
+        moods: { rigolo: { weight: 10, pct: 100 }, leger: { weight: 10, pct: 100 } },
+        themes: { famille: { weight: 10, pct: 100 } },
+      }),
     });
     const out = recommendForProfile(
       [cine, vivantRigolo, concertFestif],
@@ -375,49 +380,12 @@ describe('recoEngine — cinema films inherit parent mood tags', () => {
     );
     const cineRow = out.find((row) => slotFormOfItem(row.item) === 'cine');
     assert.ok(cineRow, 'cine slot still fills');
-    assert.equal(cineRow.reason?.source, 'profile');
-    assert.equal(cineRow.reason?.mood, 'leger');
+    assert.notEqual(cineRow.reason?.source, 'profile');
+    assert.notEqual(cineRow.reason?.mood, 'rigolo');
+    assert.notEqual(cineRow.reason?.mood, 'leger');
   });
 
-  it('does not score a parent theme or a slug outside the closed library', () => {
-    const junk = cineSeanceSplitTags({
-      key: 'fleurs-junk',
-      filmId: 'F043b',
-      progMoods: '',
-      evMoods: 'joyeux',
-      evThemes: 'famille|histoire|guerre',
-      titre: 'Hors bibliothèque',
-    });
-    const leger = state({
-      profile: profile({ moods: { leger: { weight: 10, pct: 100 } } }),
-    });
-    const fromJunk = recommendForProfile(
-      [junk, vivantRigolo, concertFestif],
-      leger,
-      3,
-      { now: NOW },
-    );
-    const junkCine = fromJunk.find((row) => slotFormOfItem(row.item) === 'cine');
-    assert.ok(junkCine);
-    assert.notEqual(junkCine.reason?.source, 'profile');
-    assert.notEqual(junkCine.reason?.mood, 'joyeux');
-    assert.notEqual(junkCine.reason?.mood, 'leger');
-
-    const themeOnly = state({
-      profile: profile({ themes: { famille: { weight: 10, pct: 100 } } }),
-    });
-    const fromTheme = recommendForProfile(
-      [junk, vivantRigolo, concertFestif],
-      themeOnly,
-      3,
-      { now: NOW },
-    );
-    const themeCine = fromTheme.find((row) => slotFormOfItem(row.item) === 'cine');
-    assert.ok(themeCine);
-    assert.notEqual(themeCine.reason?.source, 'profile');
-  });
-
-  it('scores a séance from its own programme moods and from parent moods', () => {
+  it('still scores a séance from its own programme moods, not parent extras', () => {
     const cine = cineSeanceSplitTags({
       key: 'chasse',
       filmId: 'F317',
@@ -436,8 +404,8 @@ describe('recoEngine — cinema films inherit parent mood tags', () => {
     );
     const parentCine = fromParent.find((row) => slotFormOfItem(row.item) === 'cine');
     assert.ok(parentCine);
-    assert.equal(parentCine.reason?.source, 'profile');
-    assert.equal(parentCine.reason?.mood, 'intimiste');
+    assert.notEqual(parentCine.reason?.mood, 'intimiste');
+    assert.notEqual(parentCine.reason?.source, 'profile');
 
     const own = state({
       profile: profile({ moods: { intense: { weight: 10, pct: 100 } } }),
@@ -454,7 +422,7 @@ describe('recoEngine — cinema films inherit parent mood tags', () => {
     assert.equal(ownCine.reason?.mood, 'intense');
   });
 
-  it('inherits parent moods when slotForm is cine even without film_id', () => {
+  it('excludes parent moods when slotForm is cine even without film_id', () => {
     const cine = cineSeanceSplitTags({
       key: 'saison-card',
       form: 'cine',
@@ -473,8 +441,7 @@ describe('recoEngine — cinema films inherit parent mood tags', () => {
     );
     const cineRow = out.find((row) => slotFormOfItem(row.item) === 'cine');
     assert.ok(cineRow);
-    assert.equal(cineRow.reason?.source, 'profile');
-    assert.equal(cineRow.reason?.mood, 'rigolo');
+    assert.notEqual(cineRow.reason?.source, 'profile');
   });
 
   it('keeps parent-event moods on theatre (vivant inheritance unchanged)', () => {
@@ -521,5 +488,129 @@ describe('recoEngine — cinema films inherit parent mood tags', () => {
     assert.ok(thRow);
     assert.equal(thRow.reason?.source, 'profile');
     assert.equal(thRow.reason?.mood, 'rigolo');
+  });
+});
+
+/**
+ * L2 property: displayed why-mood ⊆ reasonTasteSlugsForItem (same source as scoring).
+ * Fails if scoring reintroduces parent-only cinema moods without aligning why-lines.
+ */
+describe('recoEngine — L2 reason.mood ∈ reasonTasteSlugsForItem', () => {
+  function assertReasonMoodsOnItem(rows: ScoredDayItem[]) {
+    for (const row of rows) {
+      const mood = row.reason?.mood;
+      if (!mood) continue;
+      const allowed = reasonTasteSlugsForItem(row.item);
+      assert.ok(
+        allowed.includes(mood),
+        `reason.mood=${mood} not in reasonTasteSlugsForItem=[${allowed.join(',')}] ` +
+          `for ${row.item.key} (source=${row.reason?.source})`,
+      );
+    }
+  }
+
+  const vivantRigolo = item({
+    key: 'th-l2-rigolo',
+    cat: 'theatre',
+    moods: 'rigolo',
+    genre: 'humour_standup',
+    titre: 'Stand-up L2',
+  });
+  const concertFestif = item({
+    key: 'co-l2-festif',
+    cat: 'musique',
+    moods: 'festif',
+    genre: 'electro',
+    titre: 'Club L2',
+  });
+  const cineOwn = cineSeanceSplitTags({
+    key: 'cine-l2-own',
+    filmId: 'F-L2-OWN',
+    progMoods: 'leger|intense',
+    evMoods: 'rigolo|tendre|festif|critique|epique|sombre|intimiste|dansant',
+    titre: 'Film tagged itself',
+  });
+  const cineParentOnly = cineSeanceSplitTags({
+    key: 'cine-l2-parent',
+    filmId: 'F-L2-PARENT',
+    progMoods: '',
+    evMoods: 'rigolo|cerveau|epique|tendre|festif|critique|leger|intense',
+    titre: 'Film parent mega only',
+  });
+  const theatreInherited = (() => {
+    const day = '2026-09-02';
+    const evenement = ev({
+      event_id: 'E-TH-L2',
+      categorie: 'theatre',
+      titre: 'Festival L2 parent',
+      moods: 'intimiste',
+      date_debut: day,
+      date_fin: day,
+    });
+    const programme = prog({
+      programme_id: 'p-th-l2',
+      event_id: 'E-TH-L2',
+      nom_item: 'Sketch L2',
+      date: day,
+      moods: '',
+    });
+    return {
+      kind: 'programme' as const,
+      key: 'th-l2-inherited',
+      dayIso: day,
+      programme,
+      evenement,
+      lieu: lieu(),
+    };
+  })();
+
+  const pool = [cineOwn, cineParentOnly, vivantRigolo, concertFestif, theatreInherited];
+
+  it('holds on recommendForProfile for profiles that hit own / parent / fallback paths', () => {
+    const profiles = [
+      state({ profile: profile({ moods: { leger: { weight: 10, pct: 100 } } }) }),
+      state({ profile: profile({ moods: { rigolo: { weight: 10, pct: 100 } } }) }),
+      state({ profile: profile({ moods: { intimiste: { weight: 10, pct: 100 } } }) }),
+      state({ profile: profile({ moods: { festif: { weight: 10, pct: 100 } } }) }),
+      state({ profile: profile({ moods: { intense: { weight: 10, pct: 100 } } }) }),
+      state({}),
+    ];
+    for (const st of profiles) {
+      const out = recommendForProfile(pool, st, 3, { now: NOW });
+      assertReasonMoodsOnItem(out);
+    }
+  });
+
+  it('holds on recommendSlice (no false parent-only cinema mood)', () => {
+    const st = state({
+      profile: profile({
+        moods: {
+          leger: { weight: 10, pct: 100 },
+          rigolo: { weight: 8, pct: 80 },
+          festif: { weight: 6, pct: 60 },
+        },
+      }),
+    });
+    const top = recommendForProfile(pool, st, 3, { now: NOW });
+    const slice = recommendSlice(pool, st, top.map((r) => r.item), 6, { now: NOW });
+    assertReasonMoodsOnItem(top);
+    assertReasonMoodsOnItem(slice);
+  });
+
+  it('cine parent-only mega moods never appear as reason.mood', () => {
+    const st = state({
+      profile: profile({ moods: { leger: { weight: 10, pct: 100 } } }),
+    });
+    const out = recommendForProfile(
+      [cineParentOnly, vivantRigolo, concertFestif],
+      st,
+      3,
+      { now: NOW },
+    );
+    assertReasonMoodsOnItem(out);
+    const cineRow = out.find((row) => row.item.key === 'cine-l2-parent');
+    assert.ok(cineRow);
+    assert.notEqual(cineRow.reason?.mood, 'leger');
+    assert.equal(reasonTasteSlugsForItem(cineParentOnly).includes('leger'), false);
   });
 });
