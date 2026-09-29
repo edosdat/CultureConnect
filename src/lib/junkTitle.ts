@@ -25,10 +25,9 @@ const BARE_CATEGORIES = new Set([
   'evenements',
 ]);
 
-/** Exact normalised placeholders (not substring — « Bord de scène en LSF » stays). */
+/** Exact normalised placeholders (not substring). « Bord de scène » is a real catalogue series — not junk. */
 const PLACEHOLDERS = new Set([
   'complet',
-  'bord de scene',
   'les infos pratiques',
 ]);
 

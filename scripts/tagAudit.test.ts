@@ -512,7 +512,11 @@ describe('catalogue smoke', () => {
     assert.ok((report.slots.find((slot) => slot.id === 'concert')?.rows ?? 0) > 100);
     assert.ok(report.errors.some((error) => error.kind === 'rigolo_seul'));
     assert.ok(report.errors.some((error) => error.kind === 'festif_seul_concert'));
-    assert.ok(report.errors.some((error) => error.kind === 'titre_date'));
+    // L1 purged date-only / junk titles from the catalogue CSVs.
+    assert.equal(
+      report.errors.some((error) => error.kind === 'titre_date'),
+      false,
+    );
     const md = renderReport(report);
     assert.match(md, /avant \(v1\)/);
     assert.match(md, /evenements\.moods/);

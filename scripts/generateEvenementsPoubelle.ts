@@ -1,5 +1,5 @@
 /**
- * L1 — write data/evenements-poubelle.csv for human review (no catalogue purge).
+ * L1 — write data/evenements-poubelle.csv (review + purge input).
  * Usage: npx tsx scripts/generateEvenementsPoubelle.ts
  */
 import fs from 'node:fs';

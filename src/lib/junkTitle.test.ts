@@ -55,8 +55,13 @@ describe('isJunkTitle', () => {
 
   it('flags known placeholders as exact titles', () => {
     assert.equal(junkTitleReason('Complet'), 'placeholder');
-    assert.equal(junkTitleReason('Bord de scène'), 'placeholder');
     assert.equal(junkTitleReason('Les infos pratiques'), 'placeholder');
+  });
+
+  it('keeps Bord de scène (live catalogue series, not a placeholder)', () => {
+    assert.equal(isJunkTitle('Bord de scène'), false);
+    assert.equal(junkTitleReason('Bord de scène'), null);
+    assert.equal(isJunkTitle('Bord de scene'), false);
     assert.equal(isJunkTitle('Bord de scène en LSF'), false);
   });
 
