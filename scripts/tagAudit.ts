@@ -32,6 +32,7 @@ import Papa from 'papaparse';
 import { mainFromCategorie } from '../src/lib/categories';
 import { TASTE_MOODS, isTasteMood } from '../src/lib/phraseTags';
 import { junkTitleReason } from '../src/lib/junkTitle';
+import { assertGoldIsManuel, parseGoldFixture } from './tagGold';
 
 export const TAGS_V2_FILE = 'tags_evenements.csv';
 export const GOLD_FILE = path.join('scripts', 'fixtures', 'tag-gold.json');
@@ -278,6 +279,9 @@ export type TagAuditReport = {
   anomalies: Anomaly[];
   gold: {
     filePresent: boolean;
+    /** C1 : gold pas encore entièrement `manuel` — aucun score calculé. */
+    refusedNonManuel: boolean;
+    refuseMessage: string | null;
     compared: number;
     missing: number;
     principalMood: number | null;
@@ -304,6 +308,8 @@ export type AuditInput = {
   events: AuditEvent[];
   v2: { present: boolean; headers: string[]; rows: AuditTagsV2[] };
   gold?: GoldTags[] | null;
+  /** Message C1 si le gold n'est pas manuel — bloque le calcul des scores. */
+  goldRefuseMessage?: string | null;
   generatedAt?: string;
   evenementsSha256?: string | null;
 };
@@ -433,6 +439,8 @@ export function scoreGold(pairs: Array<{ gold: GoldTags; got: GoldTags }>): TagA
   if (pairs.length === 0) {
     return {
       filePresent: true,
+      refusedNonManuel: false,
+      refuseMessage: null,
       compared: 0,
       missing: 0,
       principalMood: null,
@@ -467,6 +475,8 @@ export function scoreGold(pairs: Array<{ gold: GoldTags; got: GoldTags }>): TagA
   }
   return {
     filePresent: true,
+    refusedNonManuel: false,
+    refuseMessage: null,
     compared: pairs.length,
     missing: 0,
     principalMood: moodHits / pairs.length,
@@ -928,6 +938,15 @@ function goldThresholds(gold: TagAuditReport['gold']): ThresholdRow[] {
     value: number | null,
     min: number,
   ): ThresholdRow => {
+    if (gold.refusedNonManuel) {
+      return {
+        id,
+        label,
+        target,
+        measure: 'refusé (gold non manuel)',
+        status: 'na',
+      };
+    }
     if (!gold.filePresent || gold.compared === 0 || value == null) {
       return {
         id,
@@ -1092,7 +1111,7 @@ export function auditTags(input: AuditInput): TagAuditReport {
     tagConfianceBasse: slots.reduce((sum, slot) => sum + slot.tagConfiance.basse, 0),
   };
 
-  const gold = scoreAgainstGold(prepared, input.gold);
+  const gold = scoreAgainstGold(prepared, input.gold, input.goldRefuseMessage);
   const fromV2 = prepared.filter((row) => row.layer === 'v2').length;
   const fromV1Tagged = prepared.filter((row) => row.layer === 'v1' && row.taste.length > 0).length;
   const baseline: TagAuditReport['meta']['baseline'] =
@@ -1119,17 +1138,39 @@ export function auditTags(input: AuditInput): TagAuditReport {
   };
 }
 
-function scoreAgainstGold(rows: Prepared[], gold: GoldTags[] | null | undefined): TagAuditReport['gold'] {
+function emptyGoldScores(partial: {
+  filePresent: boolean;
+  refusedNonManuel?: boolean;
+  refuseMessage?: string | null;
+  missing?: number;
+}): TagAuditReport['gold'] {
+  return {
+    filePresent: partial.filePresent,
+    refusedNonManuel: partial.refusedNonManuel === true,
+    refuseMessage: partial.refuseMessage ?? null,
+    compared: 0,
+    missing: partial.missing ?? 0,
+    principalMood: null,
+    meanJaccard: null,
+    principalSortie: null,
+    energieWithin1: null,
+  };
+}
+
+function scoreAgainstGold(
+  rows: Prepared[],
+  gold: GoldTags[] | null | undefined,
+  goldRefuseMessage?: string | null,
+): TagAuditReport['gold'] {
+  if (goldRefuseMessage) {
+    return emptyGoldScores({
+      filePresent: true,
+      refusedNonManuel: true,
+      refuseMessage: goldRefuseMessage,
+    });
+  }
   if (!gold || gold.length === 0) {
-    return {
-      filePresent: false,
-      compared: 0,
-      missing: 0,
-      principalMood: null,
-      meanJaccard: null,
-      principalSortie: null,
-      energieWithin1: null,
-    };
+    return emptyGoldScores({ filePresent: false });
   }
   const byId = new Map(rows.map((row) => [row.ev.event_id, row]));
   const pairs: Array<{ gold: GoldTags; got: GoldTags }> = [];
@@ -1153,7 +1194,13 @@ function scoreAgainstGold(rows: Prepared[], gold: GoldTags[] | null | undefined)
     });
   }
   const scored = scoreGold(pairs);
-  return { ...scored, filePresent: true, missing };
+  return {
+    ...scored,
+    filePresent: true,
+    refusedNonManuel: false,
+    refuseMessage: null,
+    missing,
+  };
 }
 
 export function snapshotOf(report: TagAuditReport): TagAuditSnapshot {
@@ -1507,7 +1554,12 @@ export function renderReport(
 
   lines.push('## Gold set');
   lines.push('');
-  if (!report.gold.filePresent) {
+  if (report.gold.refusedNonManuel) {
+    lines.push(
+      report.gold.refuseMessage ??
+        'Gold set non manuel : aucun score gold n’est calculé. Corrigez le CSV de revue puis `npm run tags:gold-import`.',
+    );
+  } else if (!report.gold.filePresent) {
     lines.push(
       `\`scripts/fixtures/tag-gold.json\` est absent. Le gold set (60 spectacles, tagué à la main) n'est pas dans ce lot. Pas de mesure d'accord.`,
     );
@@ -1638,14 +1690,23 @@ export function loadAuditInputs(cwd = process.cwd()): AuditInput & { evenementsP
   }
   const goldPath = path.join(cwd, GOLD_FILE);
   let gold: GoldTags[] | null = null;
+  let goldRefuseMessage: string | null = null;
   if (fs.existsSync(goldPath)) {
     const parsed = JSON.parse(fs.readFileSync(goldPath, 'utf-8')) as unknown;
-    gold = normalizeGold(parsed);
+    const fixture = parseGoldFixture(parsed);
+    const gate = assertGoldIsManuel(fixture);
+    if (!gate.ok) {
+      goldRefuseMessage = gate.message;
+      gold = [];
+    } else {
+      gold = normalizeGold(parsed);
+    }
   }
   return {
     events,
     v2,
     gold,
+    goldRefuseMessage,
     evenementsSha256: crypto.createHash('sha256').update(fs.readFileSync(evenementsPath)).digest('hex'),
     evenementsPath,
     v2Path,
