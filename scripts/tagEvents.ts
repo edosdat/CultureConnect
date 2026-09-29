@@ -5,6 +5,9 @@
  * `OPENAI_API_KEY`, sinon `XAI_API_KEY`), valide la sortie, et n'écrit que
  * dans `data/tags_evenements.csv`. Jamais `evenements.csv` ni `programme.csv`.
  *
+ * Modèle OpenAI par défaut : `gpt-4o`. `OPENAI_MODEL` le remplace quand elle
+ * est non vide. (`XAI_MODEL` reste sur `grok-2-latest`.)
+ *
  *   npm run tags:events -- --limit 12 --only-missing
  *   npm run tags:events -- --event E485 --dry-run
  *   npm run tags:events -- --eval-gold
@@ -18,7 +21,13 @@
  * Sans `--limit` ni `--event`, une passe hors gold est refusée : le passage
  * sur tout le catalogue est le lot suivant (PR5).
  *
- * Prompt système : §A4, repris tel quel. Few-shot : 4 des 12 exemples §A5.
+ * Prompt système : §A4, repris tel quel. Few-shot : exactement 4 exemples §A5
+ * variés (TOM, Lio Kuokman / Nelson Goerner, FAT FREDDY'S DROP, Toc Toc),
+ * dont les deux cas où la v1 posait `rigolo` à tort. Un court préambule
+ * utilisateur (pas de nouvelle valeur d'enum) rappelle l'expérience du
+ * spectateur, les 2 ou 3 ambiances, rigolo jamais seul, festif jamais seul
+ * sur un concert, la preuve comme sous-chaîne exacte, et l'interdit de poser
+ * `rigolo` sur un théâtre sombre ou intense ou sur un récital classique.
  * Validation : enum, cardinalité, rigolo, festif sur un concert, preuve
  * (sous-chaîne normalisée), confiance haute sans preuve. Un rejet, un
  * réessai, puis la ligne est ignorée et loguée.
@@ -88,7 +97,11 @@ export const FESTIF_COMPANY = [
   'contemplatif',
 ] as const;
 
-/** Les 12 spectacles de référence §A5. Le few-shot en retient 4, variés. */
+/**
+ * Les 12 spectacles de référence §A5.
+ * Le few-shot n'en retient que 4 (TOM, Lio Kuokman, Fat Freddy's Drop, Toc Toc).
+ * Kevin Levy et Superpêche restent ici pour les tests, pas dans le prompt.
+ */
 export const A5_REFERENCE_TITLES = [
   'Kevin Levy : Cocu',
   'Toc Toc',
@@ -212,25 +225,27 @@ export type GoldReport = {
 
 type FewShot = { title: string; input: TagInput; assistant: string };
 
+/**
+ * Rappel collé au message utilisateur de l'événement à taguer.
+ * Le prompt système reste le §A4 verbatim : ce texte n'ajoute aucune valeur d'enum.
+ * Il n'est pas une source de `preuve` (citation du seul bloc spectacle).
+ */
+export const USER_PREAMBLE = [
+  "Rappel (consigne, pas le texte du spectacle — n'en cite rien dans preuve) :",
+  "- Décris l'expérience vécue par le spectateur. Ne pose pas rigolo parce que le titre ou le genre dit comédie ou humour.",
+  '- Toujours 2 ou 3 ambiances, la principale en premier.',
+  "- rigolo n'est jamais seul : ajoute le type de rire (absurde, critique, tendre, leger, cerveau, sombre ou intimiste). Sur un concert, festif n'est jamais seul (ajoute dansant, intense, brutal, epique, poetique, intimiste ou contemplatif).",
+  '- preuve : citation exacte, sous-chaîne du texte du spectacle fourni, moins de 120 caractères.',
+  "- Un théâtre sombre ou intense n'est pas rigolo par défaut. Un récital ou un concert classique n'est pas rigolo.",
+  '- Réponds {"skip": true} seulement si le texte utile fait moins de 80 caractères.',
+].join('\n');
+
+/**
+ * Quatre exemples §A5, théâtre et musique, dont deux erreurs v1 (`rigolo`).
+ * Textes repris de `data/evenements.csv` (description longue, sinon courte).
+ * Toc Toc : la longue n'est que l'accroche salle ; le pitch (courte) porte l'expérience.
+ */
 const FEW_SHOTS: readonly FewShot[] = [
-  {
-    title: 'Kevin Levy : Cocu',
-    input: {
-      event_id: 'E666',
-      titre: 'Kevin Levy : Cocu',
-      categorie: 'theatre_danse',
-      genre: 'humour_standup',
-      description:
-        'Après avoir assuré 7 ans en duo avec Tom Leeb, Kevin Levy se lance en solo avec son spectacle "Cocu". Piquant, tordant, foncez le découvrir sur scène ! Entre sketch, stand up, danse, musique et impro, Kevin Levy a tout pour vous faire pleurer de rire !',
-      citation: '',
-      casting: '',
-      lieu_nom: 'Théâtre Les 3 T',
-      lieu_type: 'theatre',
-      prix: 'Tarif unique : 28€',
-    },
-    assistant:
-      '{"moods":["rigolo","intimiste","tendre"],"sortie":["agreable"],"energie":3,"exigence":1,"format_scene":["seul_en_scene"],"ideal_pour":["amis","couple"],"notoriete":"confirme","confiance":"haute","preuve":"Kevin Levy a tout pour vous faire pleurer de rire"}',
-  },
   {
     title: 'TOM',
     input: {
@@ -248,6 +263,24 @@ const FEW_SHOTS: readonly FewShot[] = [
     },
     assistant:
       '{"moods":["intense","tendre"],"sortie":["interessante"],"energie":2,"exigence":2,"format_scene":["troupe"],"ideal_pour":["couple","solo"],"notoriete":"confirme","confiance":"moyenne","preuve":"l’épidémie de SIDA fait des ravages"}',
+  },
+  {
+    title: 'Lio Kuokman / Nelson Goerner',
+    input: {
+      event_id: 'E460',
+      titre: 'Lio Kuokman / Nelson Goerner',
+      categorie: 'musique',
+      genre: 'classique_lyrique',
+      description:
+        'Lio Kuokman dirige l’Orchestre national du Capitole, Nelson Goerner au piano. Au programme : Grand Bazaar de Fazil Say, Burlesque de Richard Strauss, et Shéhérazade de Nikolaï Rimski-Korsakov.',
+      citation: '',
+      casting: '',
+      lieu_nom: 'Halle aux Grains',
+      lieu_type: 'salle_concert',
+      prix: '',
+    },
+    assistant:
+      '{"moods":["contemplatif","epique"],"sortie":["evasion"],"energie":1,"exigence":2,"format_scene":["orchestre"],"ideal_pour":["couple","solo"],"notoriete":"tete_affiche","confiance":"moyenne","preuve":"Nelson Goerner au piano"}',
   },
   {
     title: "FAT FREDDY'S DROP",
@@ -268,22 +301,23 @@ const FEW_SHOTS: readonly FewShot[] = [
       '{"moods":["dansant","festif"],"sortie":["partage"],"energie":5,"exigence":1,"format_scene":["groupe"],"ideal_pour":["amis"],"notoriete":"tete_affiche","confiance":"moyenne","preuve":"reggae, soul, dub, funk et groove électronique"}',
   },
   {
-    title: 'Superpêche',
+    title: 'Toc Toc',
     input: {
-      event_id: 'E499',
-      titre: 'Superpêche',
-      categorie: 'musique',
-      genre: 'jazz_blues',
+      event_id: 'E667',
+      titre: 'Toc Toc',
+      categorie: 'theatre_danse',
+      genre: 'humour_standup',
       description:
-        'Superpêche réunit Laure Fischer (saxophone baryton) et Alexis Thépot (violoncelle à cordes sympathiques). En acoustique et sans filet, le duo improvise une musique sensible et inventive où timbres, voix et écoute nourrissent un dialogue vivant en perpétuelle évolution. Partenariat Un pavé dans le jazz.',
+        'Prenez six patients atteints de TOC différents, une salle d’attente, un médecin qui n’arrive jamais, une secrétaire dépassée et vous obtenez, sans aucun doute, un huit-clos surprenant et totalement hilarant ! 93% des personnes interrogées avouent avoir au moins un TOC, et vous ?',
       citation: '',
-      casting: '',
-      lieu_nom: 'Théâtre du Pavé',
+      casting:
+        'Julien Roullé Neuville, Pascale Legrand, Adeline Hocdet alternance Camille Dintrans, Marcel Grange, Elodie Ménadier alternance Justine Balalas, Clément Cadinot alternance Hugo Laubies, Sarah Sahafi al',
+      lieu_nom: 'Théâtre Les 3 T',
       lieu_type: 'theatre',
-      prix: '',
+      prix: 'Plein : 28€ / Réduit (1) : 25€ / Abonné : 24€',
     },
     assistant:
-      '{"moods":["contemplatif","poetique","cerveau"],"sortie":["evasion","interessante"],"energie":1,"exigence":3,"format_scene":["duo"],"ideal_pour":["solo","couple"],"notoriete":"emergent","confiance":"moyenne","preuve":"le duo improvise une musique sensible et inventive"}',
+      '{"moods":["rigolo","absurde","leger"],"sortie":["agreable"],"energie":3,"exigence":1,"format_scene":["troupe"],"ideal_pour":["amis","famille"],"notoriete":"confirme","confiance":"haute","preuve":"un huit-clos surprenant et totalement hilarant"}',
   },
 ];
 
@@ -294,6 +328,7 @@ export function fewShots(): readonly FewShot[] {
 /**
  * Same key order as `aiEnv` in src/lib/phraseAi.ts.
  * OpenAI wins when `OPENAI_API_KEY` is non-empty after trim.
+ * Default OpenAI model is `gpt-4o`; a non-empty `OPENAI_MODEL` overrides it.
  */
 export function llmEnv(env: NodeJS.ProcessEnv = process.env): LlmEnv | null {
   const openai = (env.OPENAI_API_KEY || '').trim();
@@ -301,7 +336,7 @@ export function llmEnv(env: NodeJS.ProcessEnv = process.env): LlmEnv | null {
     return {
       url: 'https://api.openai.com/v1/chat/completions',
       key: openai,
-      model: env.OPENAI_MODEL || 'gpt-4o-mini',
+      model: (env.OPENAI_MODEL || '').trim() || 'gpt-4o',
     };
   }
   const xai = env.XAI_API_KEY;
@@ -374,7 +409,7 @@ export function messagesFor(
     messages.push({ role: 'user', content: userMessage(shot.input) });
     messages.push({ role: 'assistant', content: shot.assistant });
   }
-  messages.push({ role: 'user', content: userMessage(input) });
+  messages.push({ role: 'user', content: `${USER_PREAMBLE}\n\n${userMessage(input)}` });
   if (retry) {
     if (retry.previous.trim()) {
       messages.push({ role: 'assistant', content: retry.previous });

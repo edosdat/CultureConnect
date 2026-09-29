@@ -8,6 +8,7 @@ import {
   A5_REFERENCE_TITLES,
   GOLD_SEED,
   SYSTEM_PROMPT,
+  USER_PREAMBLE,
   assertTagsCsvPath,
   blocksFullCatalogue,
   buildGoldReport,
@@ -85,22 +86,76 @@ describe('system prompt and few-shot', () => {
     assert.equal(messages[0].content, SYSTEM_PROMPT);
   });
 
-  it('sends 4 varied §A5 examples and no fifth', () => {
+  it('sends exactly the 4 varied §A5 examples, not Kevin Levy or Superpêche', () => {
     const shots = fewShots();
-    assert.equal(shots.length, 4);
     const titles = shots.map((shot) => shot.title);
-    assert.equal(new Set(titles).size, 4);
+    assert.deepEqual(titles, [
+      'TOM',
+      'Lio Kuokman / Nelson Goerner',
+      "FAT FREDDY'S DROP",
+      'Toc Toc',
+    ]);
     for (const title of titles) assert.ok(A5_REFERENCE_TITLES.includes(title as (typeof A5_REFERENCE_TITLES)[number]));
+    assert.ok(A5_REFERENCE_TITLES.includes('Kevin Levy : Cocu'));
+    assert.ok(A5_REFERENCE_TITLES.includes('Superpêche'));
+    assert.equal(titles.includes('Kevin Levy : Cocu'), false);
+    assert.equal(titles.includes('Superpêche'), false);
     const cats = new Set(shots.map((shot) => shot.input.categorie));
     assert.ok(cats.has('theatre_danse'));
     assert.ok(cats.has('musique'));
+    const expected: Record<string, { moods: string[]; sortie: string[]; energie: number }> = {
+      TOM: { moods: ['intense', 'tendre'], sortie: ['interessante'], energie: 2 },
+      'Lio Kuokman / Nelson Goerner': { moods: ['contemplatif', 'epique'], sortie: ['evasion'], energie: 1 },
+      "FAT FREDDY'S DROP": { moods: ['dansant', 'festif'], sortie: ['partage'], energie: 5 },
+      'Toc Toc': { moods: ['rigolo', 'absurde', 'leger'], sortie: ['agreable'], energie: 3 },
+    };
+    const catalogue = new Map(loadTagCatalogue().inputs.map((input) => [input.titre, input]));
     for (const shot of shots) {
       const result = validateTagOutput(shot.assistant, {
         sourceText: sourceTextOfInput(shot.input),
         concert: shot.input.categorie === 'musique',
       });
       assert.equal(result.ok, true, shot.title);
+      if (!result.ok || 'skip' in result.value) continue;
+      const want = expected[shot.title];
+      assert.deepEqual(result.value.moods, want.moods);
+      assert.deepEqual(result.value.sortie, want.sortie);
+      assert.equal(result.value.energie, want.energie);
+      assert.equal(userMessage(shot.input).startsWith(USER_PREAMBLE), false);
+      const live = catalogue.get(shot.title);
+      assert.ok(live, shot.title);
+      assert.equal(shot.input.event_id, live.event_id);
+      assert.equal(shot.input.categorie, live.categorie);
+      assert.equal(shot.input.genre, live.genre);
+      assert.equal(shot.input.lieu_nom, live.lieu_nom);
+      assert.equal(shot.input.lieu_type, live.lieu_type);
+      if (shot.title === 'Toc Toc') {
+        assert.match(shot.input.description, /totalement hilarant/);
+        assert.equal(live.description.includes('totalement hilarant'), false);
+      } else {
+        assert.equal(shot.input.description, live.description);
+        assert.equal(shot.input.citation, live.citation);
+        assert.equal(shot.input.prix, live.prix);
+      }
     }
+  });
+
+  it('prefixes the event to tag with the spectator-experience preamble', () => {
+    const sample = fewShots()[0].input;
+    const messages = messagesFor(sample);
+    const target = messages.filter((message) => message.role === 'user').at(-1);
+    assert.ok(target);
+    assert.ok(target.content.startsWith(USER_PREAMBLE));
+    assert.match(target.content, /expérience vécue par le spectateur/);
+    assert.match(target.content, /2 ou 3 ambiances/);
+    assert.match(target.content, /rigolo n'est jamais seul/);
+    assert.match(target.content, /festif n'est jamais seul/);
+    assert.match(target.content, /sous-chaîne du texte/);
+    assert.match(target.content, /théâtre sombre ou intense/);
+    assert.match(target.content, /récital ou un concert classique/);
+    assert.match(target.content, /^titre: /m);
+    assert.equal(SYSTEM_PROMPT.includes(USER_PREAMBLE), false);
+    assert.equal(messages[0].content, SYSTEM_PROMPT);
   });
 });
 
@@ -327,6 +382,10 @@ describe('csv and cli guards', () => {
     assert.equal(xai?.url, 'https://api.x.ai/v1/chat/completions');
     assert.equal(xai?.model, 'grok-2-latest');
     assert.equal(xai?.key, 'xai-key');
+    const fallback = llmEnv({ OPENAI_API_KEY: 'sk' });
+    assert.equal(fallback?.model, 'gpt-4o');
+    const blankOverride = llmEnv({ OPENAI_API_KEY: 'sk', OPENAI_MODEL: '  ' });
+    assert.equal(blankOverride?.model, 'gpt-4o');
   });
 });
 
