@@ -44,6 +44,38 @@ export type PressCatalogueFields = {
   note_telerama?: string;
 };
 
+/**
+ * Tags v2 for one work, joined from `data/tags_evenements.csv` on `event_id`.
+ * Every axis is optional: a missing file, a missing row, or an empty cell
+ * leaves the field unset. Multi-value cells are split on `|`.
+ * `budget` and `jauge` are calculated in `eventTags.ts`, never stored here.
+ */
+export type EventTagsV2 = {
+  /** Locked moods, principal first. */
+  moods?: string[];
+  /** `interessante` | `agreable` | `partage` | `evasion`, principal first. */
+  sortie?: string[];
+  /** `'1'` (seated, quiet) through `'5'` (standing, dancing). */
+  energie?: string;
+  /** `'1'` grand public, `'2'` a bit of curiosity, `'3'` for initiates. */
+  exigence?: string;
+  /** Scene format, 1–2 values. */
+  format_scene?: string[];
+  /** `solo` | `couple` | `amis` | `famille`. */
+  ideal_pour?: string[];
+  /** `tete_affiche` | `confirme` | `emergent` | `scene_ouverte`. */
+  notoriete?: string;
+  /** `haute` | `moyenne` | `basse`. */
+  tag_confiance?: string;
+  /** Short source quote. Never shown in the product. */
+  tag_preuve?: string;
+  /** Expected `v2`. */
+  tag_version?: string;
+  tagged_at?: string;
+  /** `llm` | `manuel`. */
+  tagged_by?: string;
+};
+
 export type Evenement = {
   event_id: string;
   lieu_id: string;
@@ -88,6 +120,13 @@ export type Evenement = {
   genres_mood?: string;
   themes?: string;
   entities?: string;
+  /**
+   * Joined from tags_evenements.csv on event_id only.
+   * Absent when that file is missing or has no row for this event.
+   * Programme séances do not store a copy; they read the parent event.
+   * Reco still scores `moods` (v1) until a later change.
+   */
+  tags_v2?: EventTagsV2;
 } & PressCatalogueFields;
 
 export type ProgrammeItem = {
