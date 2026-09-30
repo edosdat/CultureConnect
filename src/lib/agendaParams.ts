@@ -95,6 +95,32 @@ export function parseAvecEnfantsFlag(raw: unknown): boolean {
 }
 
 /**
+ * A list generation that will not leave `/api/agenda` in flight must
+ * release the pack skeleton and sync `genreOptionsReadyKey`.
+ *
+ * Boot / GPS skip still does not GET — but a dependent genre facet that
+ * lands here used to leave « Chargement Cinéma » up with no request.
+ * Cleanup cancel does not write a stale key; the successor settles.
+ * A gen bumped before `fetch()` (load-more, or a superseded timeout)
+ * settles, because this generation will not send the GET.
+ * The finished generation settles only while it is still current.
+ */
+export function listGenerationShouldSettle(opts: {
+  skipped: boolean;
+  cancelled: boolean;
+  requestStarted: boolean;
+  requestFinished: boolean;
+  gen: number;
+  currentGen: number;
+}): boolean {
+  if (opts.skipped) return true;
+  if (opts.cancelled) return false;
+  if (opts.requestFinished) return opts.gen === opts.currentGen;
+  if (opts.gen !== opts.currentGen && !opts.requestStarted) return true;
+  return false;
+}
+
+/**
  * Date chip with no embedded snapshot: the previous cineTotal (often
  * « tous ») must not hold PackRailSkeleton. Stay pending, with pack
  * totals cleared, until applyList. A failed GET stays on this gate

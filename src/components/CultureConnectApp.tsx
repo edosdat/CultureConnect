@@ -55,6 +55,7 @@ import {
   findDayItemByKey,
   leftoverSectionVisible,
   homePackShellVisible,
+  packRailPaint,
   homeSectionsVisible,
   proposeSpectaclePlacement,
   searchPackVisible,
@@ -96,7 +97,7 @@ import HomeSection from './HomeSection';
 import ListImpressionProbe from './ListImpressionProbe';
 import { impressionItemKey } from '@/lib/impressions';
 import HomeAccroche from './HomeAccroche';
-import PackRailSkeleton from './PackRailSkeleton';
+import PackRailSkeleton, { PackRailEmpty } from './PackRailSkeleton';
 import {
   ProposeEmptyCard,
   ProposeListFooter,
@@ -136,6 +137,7 @@ import {
   dateChipListGate,
   listFetchShouldSkipBoot,
   listFetchShouldSkipBootGps,
+  listGenerationShouldSettle,
 } from '@/lib/agendaParams';
 import {
   requestBrowserPosition,
@@ -702,6 +704,8 @@ export default function CultureConnectApp({
   const recoFetchedKeysRef = useRef<Set<string>>(new Set());
   const listLoadingRef = useRef(false);
   const detailFetchGen = useRef(0);
+  /** True only while a list generation's `/api/agenda` GET is in flight. */
+  const [listFetchInFlight, setListFetchInFlight] = useState(false);
   const [listSlowWhere, setListSlowWhere] = useState<
     null | 'top' | 'bottom'
   >(null);
@@ -730,6 +734,12 @@ export default function CultureConnectApp({
       listSlowTimerRef.current = null;
     }
     setListSlowWhere(null);
+  }
+
+  /** Genre chips + pack skeleton settle together when no list GET remains. */
+  function releaseListTransition(key: string) {
+    setGenreOptionsReadyKey(key);
+    setListFetchInFlight(false);
   }
 
   const titleLeftover = committedTitle;
@@ -1284,9 +1294,31 @@ export default function CultureConnectApp({
     skipListFetchBootGps.current = false;
     listFetchGen.current += 1;
     markDateChipListPending(scope);
+    setListFetchInFlight(true);
   }
 
   useEffect(() => {
+    const settle = (opts: {
+      skipped: boolean;
+      cancelled: boolean;
+      requestStarted: boolean;
+      requestFinished: boolean;
+      gen: number;
+      key: string;
+    }) => {
+      if (
+        listGenerationShouldSettle({
+          skipped: opts.skipped,
+          cancelled: opts.cancelled,
+          requestStarted: opts.requestStarted,
+          requestFinished: opts.requestFinished,
+          gen: opts.gen,
+          currentGen: listFetchGen.current,
+        })
+      ) {
+        releaseListTransition(opts.key);
+      }
+    };
     const skipBootList = listFetchShouldSkipBoot(
       skipListFetch.current,
       timeScope,
@@ -1297,7 +1329,18 @@ export default function CultureConnectApp({
       skipListFetch.current = false;
       skipListFetchScope.current = null;
       // Painted « tous » is not the kids list. A mode toggle must still GET.
-      if (!avecEnfants) return;
+      if (!avecEnfants) {
+        // Snapshot skip still has to drop a genre-facet skeleton.
+        settle({
+          skipped: true,
+          cancelled: false,
+          requestStarted: false,
+          requestFinished: false,
+          gen: listFetchGen.current,
+          key: genreOptionsKey,
+        });
+        return;
+      }
     }
     if (skipListFetchBootGps.current) {
       const swallow = listFetchShouldSkipBootGps(
@@ -1309,7 +1352,17 @@ export default function CultureConnectApp({
       );
       skipListFetchBootGps.current = false;
       // Boot GPS must not cancel a QUOI fetch — genre chips need that response.
-      if (swallow) return;
+      if (swallow) {
+        settle({
+          skipped: true,
+          cancelled: false,
+          requestStarted: false,
+          requestFinished: false,
+          gen: listFetchGen.current,
+          key: genreOptionsKey,
+        });
+        return;
+      }
     }
     skipListFetch.current = false;
     skipListFetchScope.current = null;
@@ -1317,8 +1370,23 @@ export default function CultureConnectApp({
     const keyAtStart = genreOptionsKey;
     const delay = 0;
     let cancelled = false;
+    let requestStarted = false;
+    setListFetchInFlight(true);
     const id = window.setTimeout(() => {
-      if (cancelled || gen !== listFetchGen.current) return;
+      if (cancelled || gen !== listFetchGen.current) {
+        // Cleared before send, or a newer gen owns the GET. If this gen
+        // is no longer current and never started, nothing is pending.
+        settle({
+          skipped: false,
+          cancelled,
+          requestStarted,
+          requestFinished: false,
+          gen,
+          key: keyAtStart,
+        });
+        return;
+      }
+      requestStarted = true;
       const params = buildAgendaParams({
         scope: timeScope,
         commune: selectedCommune,
@@ -1354,9 +1422,14 @@ export default function CultureConnectApp({
           setSettledSearchQ(titleLeftover.trim());
         } finally {
           stopListSlowWatch(gen);
-          if (!cancelled && gen === listFetchGen.current) {
-            setGenreOptionsReadyKey(keyAtStart);
-          }
+          settle({
+            skipped: false,
+            cancelled,
+            requestStarted: true,
+            requestFinished: true,
+            gen,
+            key: keyAtStart,
+          });
         }
       })();
     }, delay);
@@ -1843,6 +1916,16 @@ export default function CultureConnectApp({
     sectionVis.expo &&
     visibleExpoRows.length > 0 &&
     !phraseDateClash;
+  const cineRailPaint = packRailPaint({
+    shellVisible: showCineBlock,
+    rowCount: visibleCineRows.length,
+    listInFlight: listFetchInFlight,
+  });
+  const theatreRailPaint = packRailPaint({
+    shellVisible: showTheatreBlock,
+    rowCount: visibleTheatreRows.length,
+    listInFlight: listFetchInFlight,
+  });
   const leftoverRows = useMemo(() => {
     const anyPackVisible =
       showCineBlock ||
@@ -2055,7 +2138,7 @@ export default function CultureConnectApp({
         if (gen === listFetchGen.current) {
           listLoadingRef.current = false;
           setPackMorePending((prev) => ({ ...prev, cine: false }));
-          setGenreOptionsReadyKey(genreOptionsKeyRef.current);
+          releaseListTransition(genreOptionsKeyRef.current);
         }
         stopListSlowWatch(gen);
       });
@@ -2463,6 +2546,7 @@ export default function CultureConnectApp({
   function handleCategoriesChange(next: string[]) {
     searchDrivenRef.current.cat = false;
     const added = next.filter((c) => !selectedCategories.includes(c));
+    setListFetchInFlight(true);
     setSelectedCategories(next);
     if (next.length === 0) {
       setSelectedGenres([]);
@@ -2475,6 +2559,9 @@ export default function CultureConnectApp({
 
   function handleGenresChange(next: string[]) {
     const added = next.filter((g) => !selectedGenres.includes(g));
+    // Paint the rail as in-flight on this commit. A skipped or
+    // superseded GET still releases via releaseListTransition.
+    setListFetchInFlight(true);
     setSelectedGenres(next);
     for (const chip of added) {
       track({ kind: 'chip_genre', chip, genres: [chip], moods: extractMoods(chip) });
@@ -2941,8 +3028,7 @@ export default function CultureConnectApp({
           </div>
         ) : null}
 
-        {showHomeRails && showCineBlock ? (
-          visibleCineRows.length > 0 ? (
+        {showHomeRails && cineRailPaint === 'rows' ? (
           <HomeSection
             id="cine"
             title="Ciné"
@@ -2996,9 +3082,10 @@ export default function CultureConnectApp({
               origin={gpsOrigin}
             />
           </HomeSection>
-          ) : (
-            <PackRailSkeleton id="cine" title="Cinéma" showMore={false} />
-          )
+        ) : showHomeRails && cineRailPaint === 'skeleton' ? (
+          <PackRailSkeleton id="cine" title="Cinéma" showMore={false} />
+        ) : showHomeRails && cineRailPaint === 'empty' ? (
+          <PackRailEmpty id="cine" title="Cinéma" />
         ) : null}
 
         {showHomeRails && (showTheatreBlock || showMusiqueBlock) ? (
@@ -3007,8 +3094,7 @@ export default function CultureConnectApp({
             aria-label="En live"
             className="space-y-2.5 sm:space-y-4"
           >
-            {showTheatreBlock ? (
-              visibleTheatreRows.length > 0 ? (
+            {theatreRailPaint === 'rows' ? (
               <HomeSection
                 id="theatre"
                 title="Théâtre & spectacle vivant"
@@ -3057,9 +3143,10 @@ export default function CultureConnectApp({
                   origin={gpsOrigin}
                 />
               </HomeSection>
-              ) : (
-                <PackRailSkeleton id="theatre" title="Théâtre" />
-              )
+            ) : theatreRailPaint === 'skeleton' ? (
+              <PackRailSkeleton id="theatre" title="Théâtre" />
+            ) : theatreRailPaint === 'empty' ? (
+              <PackRailEmpty id="theatre" title="Théâtre" />
             ) : null}
 
             {showMusiqueBlock ? (

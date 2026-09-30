@@ -24,6 +24,7 @@ import {
   expoRows,
   leftoverSectionVisible,
   homePackShellVisible,
+  packRailPaint,
   homeSectionsVisible,
   musiqueRows,
   deepLinkBootState,
@@ -244,6 +245,49 @@ describe('homeSectionsVisible', () => {
         phraseDateClash: true,
       }),
       false,
+    );
+  });
+
+  it('idle empty rows are a bounded empty rail, not Chargement', () => {
+    // Stale cineTotal keeps the shell after a genre facet, with no GET.
+    const shell = homePackShellVisible({
+      sectionAllowed: true,
+      rowCount: 0,
+      packTotal: 30,
+      cataloguePending: false,
+    });
+    assert.equal(shell, true);
+    assert.equal(
+      packRailPaint({
+        shellVisible: shell,
+        rowCount: 0,
+        listInFlight: false,
+      }),
+      'empty',
+    );
+    assert.equal(
+      packRailPaint({
+        shellVisible: shell,
+        rowCount: 0,
+        listInFlight: true,
+      }),
+      'skeleton',
+    );
+    assert.equal(
+      packRailPaint({
+        shellVisible: true,
+        rowCount: 4,
+        listInFlight: true,
+      }),
+      'rows',
+    );
+    assert.equal(
+      packRailPaint({
+        shellVisible: false,
+        rowCount: 0,
+        listInFlight: true,
+      }),
+      'hidden',
     );
   });
 
