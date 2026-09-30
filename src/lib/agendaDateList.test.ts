@@ -8,8 +8,9 @@ import {
   dateChipListGate,
   listFetchShouldSkipBoot,
   listFetchShouldSkipBootGps,
+  listGenerationShouldSettle,
 } from './agendaParams';
-import { homePackShellVisible } from './displayHome';
+import { homePackShellVisible, packRailPaint } from './displayHome';
 import type { TimeScopeId } from './timeScope';
 import { nearMeFromBoot } from './nearMe';
 import {
@@ -172,6 +173,127 @@ describe('listFetchShouldSkipBoot', () => {
     assert.match(app, /markDateChipListPending\(timeScope\)/);
     assert.match(app, /packTotal: dateChipPending \? 0 : cineTotal/);
     assert.equal(app.includes('keep previous window'), false);
+  });
+});
+
+describe('listGenerationShouldSettle', () => {
+  it('boot or GPS skip releases the genre gate and does not GET', () => {
+    assert.equal(
+      listGenerationShouldSettle({
+        skipped: true,
+        cancelled: false,
+        requestStarted: false,
+        requestFinished: false,
+        gen: 3,
+        currentGen: 3,
+      }),
+      true,
+    );
+  });
+
+  it('a cancelled generation does not write a stale genre key', () => {
+    assert.equal(
+      listGenerationShouldSettle({
+        skipped: false,
+        cancelled: true,
+        requestStarted: true,
+        requestFinished: true,
+        gen: 4,
+        currentGen: 5,
+      }),
+      false,
+    );
+    assert.equal(
+      listGenerationShouldSettle({
+        skipped: false,
+        cancelled: true,
+        requestStarted: false,
+        requestFinished: false,
+        gen: 4,
+        currentGen: 4,
+      }),
+      false,
+    );
+  });
+
+  it('a genre facet superseded before fetch still settles with no pending GET', () => {
+    assert.equal(
+      listGenerationShouldSettle({
+        skipped: false,
+        cancelled: false,
+        requestStarted: false,
+        requestFinished: false,
+        gen: 8,
+        currentGen: 9,
+      }),
+      true,
+    );
+    const shell = homePackShellVisible({
+      sectionAllowed: true,
+      rowCount: 0,
+      packTotal: 30,
+      cataloguePending: false,
+    });
+    assert.equal(
+      packRailPaint({
+        shellVisible: shell,
+        rowCount: 0,
+        listInFlight: false,
+      }),
+      'empty',
+    );
+  });
+
+  it('the in-flight generation stays loading until it finishes current', () => {
+    assert.equal(
+      listGenerationShouldSettle({
+        skipped: false,
+        cancelled: false,
+        requestStarted: true,
+        requestFinished: false,
+        gen: 5,
+        currentGen: 5,
+      }),
+      false,
+    );
+    assert.equal(
+      listGenerationShouldSettle({
+        skipped: false,
+        cancelled: false,
+        requestStarted: true,
+        requestFinished: true,
+        gen: 5,
+        currentGen: 5,
+      }),
+      true,
+    );
+    assert.equal(
+      listGenerationShouldSettle({
+        skipped: false,
+        cancelled: false,
+        requestStarted: true,
+        requestFinished: true,
+        gen: 5,
+        currentGen: 6,
+      }),
+      false,
+    );
+  });
+
+  it('home releases the cine skeleton when the list generation is idle', async () => {
+    const app = await readFile(
+      new URL('../components/CultureConnectApp.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(app, /packRailPaint/);
+    assert.match(app, /listGenerationShouldSettle/);
+    assert.match(app, /releaseListTransition/);
+    assert.match(app, /skipped: true/);
+    assert.match(app, /setListFetchInFlight\(true\)/);
+    assert.match(app, /PackRailEmpty id="cine"/);
+    assert.match(app, /PackRailSkeleton id="cine" title="Cinéma"/);
+    const skips = app.match(/skipped: true/g) ?? [];
+    assert.ok(skips.length >= 2, 'boot skip and GPS skip both settle');
   });
 });
 

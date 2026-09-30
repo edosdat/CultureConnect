@@ -853,6 +853,26 @@ export function homePackShellVisible(opts: {
   return (opts.packTotal ?? 0) > 0;
 }
 
+export type PackRailPaint = 'rows' | 'skeleton' | 'empty' | 'hidden';
+
+/**
+ * Ciné / théâtre rail. Empty rows are « Chargement » only while that
+ * list generation's GET is actually in flight. Idle + no rows is a
+ * bounded empty state — a stale packTotal must not spin forever.
+ * Rows already on screen stay up during the refetch (date → Ciné →
+ * Enfants stays on the cards).
+ */
+export function packRailPaint(opts: {
+  shellVisible: boolean;
+  rowCount: number;
+  listInFlight: boolean;
+}): PackRailPaint {
+  if (opts.rowCount > 0) return 'rows';
+  if (!opts.shellVisible) return 'hidden';
+  if (opts.listInFlight) return 'skeleton';
+  return 'empty';
+}
+
 /**
  * Title search: a pack shows only when it has matching cards.
  * Home-pack skeletons (pending shell / stale totals) stay on the unqueried home.

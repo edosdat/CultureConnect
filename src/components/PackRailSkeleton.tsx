@@ -61,3 +61,34 @@ export default function PackRailSkeleton({
     </section>
   );
 }
+
+/** Idle pack: the list generation finished (or never started) with no rows. */
+export function PackRailEmpty({
+  id,
+  title,
+}: {
+  id: 'cine' | 'theatre';
+  title: string;
+}) {
+  const cine = id === 'cine';
+  return (
+    <section
+      id={id}
+      data-pack-empty={id}
+      aria-label={`Aucun résultat — ${title}`}
+      className="scroll-mt-16"
+    >
+      <p
+        className={
+          'mb-1.5 text-[11px] font-bold uppercase tracking-[0.04em] ' +
+          (cine ? 'text-[color:var(--cat-cine)]' : 'text-[color:var(--cat-theatre)]')
+        }
+      >
+        {title}
+      </p>
+      <p className="rounded-[10px] border border-dashed border-culture-line bg-culture-surface px-4 py-6 text-center text-sm text-culture-muted">
+        Rien pour ce filtre
+      </p>
+    </section>
+  );
+}
