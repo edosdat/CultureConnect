@@ -1,6 +1,13 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { isTasteMood, TASTE_MOODS } from './phraseTags';
+import {
+  isProfileExcludedTheme,
+  isTasteMood,
+  PROFILE_EXCLUDED_THEMES,
+  TASTE_MOODS,
+  THEME_SLUGS,
+} from './phraseTags';
+import { CLOSED_THEMES } from './reco';
 import {
   applySignalToProfile,
   emptyProfile,
@@ -14,6 +21,7 @@ import {
   sanitizeTasteProfile,
   shouldMapTasteIngest,
   TASTE_GENRE_SLUGS,
+  themesFromDayItem,
 } from './signals';
 import type { DayItem, Evenement, Lieu, ProgrammeItem } from './types';
 
@@ -74,6 +82,7 @@ function item(opts: {
   moods?: string;
   genre?: string;
   genresMood?: string;
+  themes?: string;
   titre?: string;
 }): DayItem {
   const evenement = ev({
@@ -83,6 +92,7 @@ function item(opts: {
     genre: opts.genre ?? '',
     moods: opts.moods,
     genres_mood: opts.genresMood,
+    themes: opts.themes,
   });
   const programme = prog({
     programme_id: `p-${opts.key}`,
@@ -91,6 +101,7 @@ function item(opts: {
     genre: opts.genre ?? '',
     moods: opts.moods,
     genres_mood: opts.genresMood,
+    themes: opts.themes,
   });
   return {
     kind: 'programme',
@@ -516,5 +527,67 @@ describe('taste profile — one-shot migrate of stored mood keys', () => {
     assert.deepEqual(Object.keys(rebuilt.profile.moods), ['rigolo']);
     assert.equal(rebuilt.profile.moods.tendre, undefined);
     assert.equal(rebuilt.profile.genres.comedie, undefined);
+  });
+});
+
+
+describe('P7 — Art.9 themes stay out of profile.themes', () => {
+  for (const slug of PROFILE_EXCLUDED_THEMES) {
+    it(`click/ingest item tagged ${slug} adds nothing to profile.themes`, () => {
+      const day = item({
+        key: `e-${slug}`,
+        cat: 'cinema',
+        moods: 'poetique',
+        genre: 'drame',
+        themes: slug,
+      });
+      assert.ok(themesFromDayItem(day).includes(slug), 'content tag present');
+      const payload = payloadFromDayItem(day, 'open_card');
+      assert.ok((payload.themes ?? []).includes(slug), 'signal carries content theme');
+      const signal = makeSignal(payload);
+      const p = profileOf(signal);
+      assert.equal(p.themes[slug], undefined, `${slug} must not land in profile.themes`);
+      assert.equal(
+        Object.keys(p.themes).some((k) => isProfileExcludedTheme(k)),
+        false,
+      );
+      // Non-sensitive tastes from the same click still apply
+      assert.ok((p.moods.poetique?.weight ?? 0) > 0 || (p.genres.drame?.weight ?? 0) > 0);
+    });
+  }
+
+  it('sanitizeTasteProfile strips leftover Art.9 keys from stored profiles', () => {
+    const dirty = {
+      ...emptyProfile(),
+      themes: {
+        lgbt: { weight: 4, pct: 40 },
+        religion: { weight: 3, pct: 30 },
+        politique: { weight: 3, pct: 30 },
+        famille: { weight: 5, pct: 0 },
+      },
+    };
+    const clean = sanitizeTasteProfile(dirty);
+    assert.equal(clean.themes.lgbt, undefined);
+    assert.equal(clean.themes.religion, undefined);
+    assert.equal(clean.themes.politique, undefined);
+    assert.ok((clean.themes.famille?.weight ?? 0) > 0);
+  });
+
+  it('lgbt / religion / politique remain CLOSED_THEMES + THEME_SLUGS content vocab', () => {
+    for (const slug of PROFILE_EXCLUDED_THEMES) {
+      assert.ok(CLOSED_THEMES.has(slug), `${slug} in CLOSED_THEMES`);
+      assert.ok((THEME_SLUGS as readonly string[]).includes(slug), `${slug} in THEME_SLUGS`);
+      assert.equal(isProfileExcludedTheme(slug), true);
+    }
+    // Safe theme still writes
+    const p = profileOf(
+      makeSignal({
+        kind: 'open_card',
+        genres: ['drame'],
+        moods: ['poetique'],
+        themes: ['famille'],
+      }),
+    );
+    assert.ok((p.themes.famille?.weight ?? 0) > 0);
   });
 });

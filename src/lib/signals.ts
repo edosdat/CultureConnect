@@ -9,6 +9,7 @@ import {
 } from '@/lib/categories';
 import {
   canonicalTasteMood,
+  isProfileExcludedTheme,
   isTasteMood,
   parsePhraseRules,
   TASTE_MOODS,
@@ -720,7 +721,10 @@ export function unzeroKeysTouchedBySignal(
     if (!isTasteMood(m)) continue;
     next = unzeroProfileKey(next, 'moods', m);
   }
-  for (const th of signal.themes ?? []) next = unzeroProfileKey(next, 'themes', th);
+  for (const th of signal.themes ?? []) {
+    if (isProfileExcludedTheme(th)) continue;
+    next = unzeroProfileKey(next, 'themes', th);
+  }
   return next;
 }
 
@@ -973,6 +977,8 @@ export function applySignalToProfile(profile: TasteProfile, signal: Signal): voi
   }
   for (const th of signal.themes ?? []) {
     if (isCatTasteKey(th)) continue;
+    // P7: never persist Art.9 themes into profile.themes
+    if (isProfileExcludedTheme(th)) continue;
     addWeight(profile.themes, th, w);
   }
   if (signal.commune) addCommuneWeight(profile.communes, signal.commune.trim(), w);
@@ -1023,6 +1029,10 @@ export function sanitizeTasteProfile(profile: TasteProfile): TasteProfile {
     for (const key of Object.keys(p[bucket])) {
       if (isCatTasteKey(key)) delete p[bucket][key];
     }
+  }
+  // P7: strip Art.9 themes from any stored profile (ingest / cookie / account / export paths)
+  for (const key of Object.keys(p.themes)) {
+    if (isProfileExcludedTheme(key)) delete p.themes[key];
   }
   return recomputeProfilePcts(p);
 }
@@ -1711,7 +1721,8 @@ export function hasScorableState(state: AccountTasteState | null | undefined): b
     ([k, e]) => !isCatTasteKey(k) && entryWeight(e) > 0,
   );
   const themeHit = Object.entries(p.themes ?? {}).some(
-    ([k, e]) => !isCatTasteKey(k) && entryWeight(e) > 0,
+    ([k, e]) =>
+      !isCatTasteKey(k) && !isProfileExcludedTheme(k) && entryWeight(e) > 0,
   );
   return moodHit || genreHit || themeHit || hasPositiveWeights(p.communes);
 }

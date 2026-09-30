@@ -136,3 +136,27 @@ describe('buildReal30Export', () => {
     assert.equal(raw.profile.moods.poetique?.weight, 12.5);
   });
 });
+
+describe('P7 — clone strips Art.9 themes from export profile', () => {
+  it('cloneTasteStateAsIs drops lgbt / religion / politique from profile.themes', () => {
+    const raw: AccountTasteState = {
+      ...emptyTasteState(),
+      profile: {
+        ...emptyProfile(),
+        themes: {
+          lgbt: { weight: 2, pct: 20 },
+          religion: { weight: 3, pct: 30 },
+          politique: { weight: 1, pct: 10 },
+          famille: { weight: 4, pct: 40 },
+        },
+      },
+    };
+    const clone = cloneTasteStateAsIs(raw);
+    assert.equal(clone.profile.themes.lgbt, undefined);
+    assert.equal(clone.profile.themes.religion, undefined);
+    assert.equal(clone.profile.themes.politique, undefined);
+    assert.equal(clone.profile.themes.famille?.weight, 4);
+    // Source unchanged (clone only)
+    assert.equal(raw.profile.themes.lgbt?.weight, 2);
+  });
+});

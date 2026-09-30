@@ -6,6 +6,7 @@
  * Never writes `data/`. Never emits a clear email or prénom.
  */
 import { hashEmailKey } from './adminAnalytics';
+import { isProfileExcludedTheme } from './phraseTags';
 import { hasScorableState, type AccountTasteState, type TasteProfile } from './signals';
 import { addDaysIso, parisParts } from './timeScope';
 
@@ -56,9 +57,15 @@ export type Real30Eligibility = {
   reason: Real30EligibilityReason;
 };
 
-/** Deep-copy AccountTasteState without touching weights or pcts. */
+/** Deep-copy AccountTasteState without touching weights or pcts.
+ * P7: strip Art.9 themes from profile.themes even though weights/pcts stay as-is.
+ */
 export function cloneTasteStateAsIs(raw: AccountTasteState): AccountTasteState {
   const profile = (raw.profile ?? {}) as Partial<TasteProfile>;
+  const themesRaw = structuredClone(profile.themes ?? {}) as TasteProfile['themes'];
+  for (const key of Object.keys(themesRaw)) {
+    if (isProfileExcludedTheme(key)) delete themesRaw[key];
+  }
   const state: AccountTasteState = {
     signalsRecent: Array.isArray(raw.signalsRecent)
       ? structuredClone(raw.signalsRecent)
@@ -67,7 +74,7 @@ export function cloneTasteStateAsIs(raw: AccountTasteState): AccountTasteState {
       cats: structuredClone(profile.cats ?? {}),
       moods: structuredClone(profile.moods ?? {}),
       genres: structuredClone(profile.genres ?? {}),
-      themes: structuredClone(profile.themes ?? {}),
+      themes: themesRaw,
       communes: structuredClone(profile.communes ?? {}),
     },
   };
