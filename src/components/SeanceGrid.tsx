@@ -43,6 +43,11 @@ type Props = {
   reasonFor?: (item: DayItem) => string | null;
   /** Tab-only GPS origin. Sort + « 2,3 km » when venue coords exist. */
   origin?: GeoPos | null;
+  /**
+   * One card per séance, in the given order.
+   * The kids mode must not collapse a work's retained screening into the œuvre.
+   */
+  oneCardPerSeance?: boolean;
 };
 
 export { densifiedCardCount };
@@ -201,7 +206,23 @@ export default function SeanceGrid({
   variant,
   reasonFor,
   origin,
+  oneCardPerSeance = false,
 }: Props) {
+  if (oneCardPerSeance) {
+    return (
+      <SeancePerRow
+        items={items}
+        showDate={showDate}
+        onSelectItem={onSelectItem}
+        onSelectVenue={onSelectVenue}
+        nouveauFilmIds={nouveauFilmIds}
+        variant={variant}
+        reasonFor={reasonFor}
+        origin={origin}
+      />
+    );
+  }
+
   if (fixedSlots) {
     return (
       <FixedSlotsGrid
@@ -231,6 +252,37 @@ export default function SeanceGrid({
       reasonFor={reasonFor}
       origin={origin}
     />
+  );
+}
+
+function SeancePerRow({
+  items,
+  showDate = false,
+  onSelectItem,
+  onSelectVenue,
+  nouveauFilmIds,
+  variant,
+  reasonFor,
+  origin,
+}: Omit<Props, 'fixedSlots' | 'oneCardPerSeance' | 'visibleCount' | 'onLoadMore' | 'hasMoreRemote' | 'empty'>) {
+  if (items.length === 0) return null;
+  return (
+    <ul className={GRID_CLASS}>
+      {items.map((item) => (
+        <li key={item.key} className="min-w-0">
+          <SeanceCard
+            item={item}
+            showDate={showDate}
+            onSelect={onSelectItem}
+            onSelectVenue={onSelectVenue}
+            nouveau={cardNouveau(item, nouveauFilmIds)}
+            variant={variant}
+            reason={reasonFor?.(item) ?? null}
+            distanceKm={origin ? itemKmLabel(item, origin) : null}
+          />
+        </li>
+      ))}
+    </ul>
   );
 }
 

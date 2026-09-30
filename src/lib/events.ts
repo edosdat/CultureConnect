@@ -583,12 +583,13 @@ export function countItemsByDay(
   categories: string[] = [],
   lieuIds: string[] = [],
   genres: string[] = [],
+  itemOk?: (item: DayItem) => boolean,
 ): Map<string, number> {
   const counts = new Map<string, number>();
   const daysInMonth = new Date(year, month, 0).getDate();
   for (let d = 1; d <= daysInMonth; d++) {
     const iso = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    const items = itemsForDay(
+    const dayItems = itemsForDay(
       programme,
       events,
       iso,
@@ -597,7 +598,8 @@ export function countItemsByDay(
       genres,
       false,
     );
-    const n = densifiedCardCount(items);
+    const items = itemOk ? dayItems.filter(itemOk) : dayItems;
+    const n = itemOk ? items.length : densifiedCardCount(items);
     if (n > 0) counts.set(iso, n);
   }
   return counts;

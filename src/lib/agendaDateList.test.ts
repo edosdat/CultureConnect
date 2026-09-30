@@ -154,6 +154,7 @@ describe('listFetchShouldSkipBoot', () => {
     }
     assert.equal(listFetchShouldSkipBootGps(true, 'tous', 1), false);
     assert.equal(listFetchShouldSkipBootGps(false, 'tous', 0), false);
+    assert.equal(listFetchShouldSkipBootGps(true, 'tous', 0, '', true), false);
   });
 
   it('home wires armed skip, pending totals, and a failed GET', async () => {
