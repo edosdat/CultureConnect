@@ -197,9 +197,9 @@ describe('P2 — storage + consent guards (source)', () => {
     assert.match(app, /ListImpressionProbe/);
     assert.match(app, /surface="top3"/);
     assert.match(app, /surface="section"/);
-    assert.match(app, /surface="slice"/);
-    assert.match(app, /recommendSlice/);
-    assert.match(app, /HOME_SLICE_LIMIT/);
+    // Home slice section intentionally not rendered (hide-home-slice tip).
+    assert.equal(app.includes('surface="slice"'), false);
+    assert.equal(app.includes('data-slice'), false);
     assert.match(app, /visibleTop3Items\(pourToiFilled\)/);
     assert.match(app, /reasonFor=\{reasonFor\}/);
   });
