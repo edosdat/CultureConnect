@@ -129,6 +129,16 @@ export default function ConfidentialitePage() {
           signal, pas au chargement. HttpOnly, SameSite=Lax, Secure. On ne le
           relie jamais à Google ni à Neon.
         </p>
+
+        <p>
+          <span className="font-medium">Journal d&apos;impressions</span> : une
+          ligne par liste vue (Top&nbsp;3, sections) avec les positions des
+          cartes — finalité mesure catalogue (taux d&apos;ouverture, items
+          jamais ouverts). Même consentement que le traceur goûts
+          («&nbsp;Accepter tout&nbsp;»). Stockage serveur TTL&nbsp;21&nbsp;j ;
+          pas d&apos;e-mail, pas Neon, pas de goûts. Les indicateurs admin sont
+          des approximations (ouvertures signalées ÷ slots rendus).
+        </p>
         <p>
           <span className="font-medium">Durées (synthèse).</span> Traceur goûts
           ≤&nbsp;13&nbsp;mois non renouvelable (ici 14&nbsp;j) ; audience
@@ -209,6 +219,14 @@ export default function ConfidentialitePage() {
                     Intérêt légitime / exemption audience
                   </td>
                   <td className="py-2">14&nbsp;j (≤&nbsp;25&nbsp;mois)</td>
+                </tr>
+                <tr className="border-b border-culture-line/70">
+                  <td className="py-2 pr-3">Journal d&apos;impressions (listes)</td>
+                  <td className="py-2 pr-3">
+                    Mesure catalogue : listes vues / positions (admin)
+                  </td>
+                  <td className="py-2 pr-3">Consentement (même porte P8)</td>
+                  <td className="py-2">TTL&nbsp;21&nbsp;j serveur</td>
                 </tr>
                 <tr>
                   <td className="py-2 pr-3">Choix de consentement</td>
