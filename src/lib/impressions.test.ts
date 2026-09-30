@@ -197,6 +197,11 @@ describe('P2 — storage + consent guards (source)', () => {
     assert.match(app, /ListImpressionProbe/);
     assert.match(app, /surface="top3"/);
     assert.match(app, /surface="section"/);
+    assert.match(app, /surface="slice"/);
+    assert.match(app, /recommendSlice/);
+    assert.match(app, /HOME_SLICE_LIMIT/);
+    assert.match(app, /visibleTop3Items\(pourToiFilled\)/);
+    assert.match(app, /reasonFor=\{reasonFor\}/);
   });
 
   it('admin surfaces P2 KPIs and never public fiche counters', async () => {

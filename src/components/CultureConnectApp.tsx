@@ -10,8 +10,12 @@ import {
   shouldPaintGuestBootReco,
   shouldSkipGuestBootRecoPost,
 } from '@/lib/guestBootReco';
-import { profileHasChipWeight } from '@/lib/reco';
-import { extractMoods, profileHasZeroWeights } from '@/lib/signals';
+import { profileHasChipWeight, recommendSlice } from '@/lib/reco';
+import {
+  emptyTasteState,
+  extractMoods,
+  profileHasZeroWeights,
+} from '@/lib/signals';
 import { signIn, useSession } from 'next-auth/react';
 import {
   formatHomeEventsCounter,
@@ -65,7 +69,9 @@ import {
   HOME_SECTION_TITLE_CLASS,
   HOME_SECTION_TITLE_RULE_CLASS,
   homeSectionAccentStyle,
+  HOME_SLICE_LIMIT,
   TOP3_SECTION_CLASS,
+  sliceHeading,
   top3Heading,
   top3PaintMode,
   theatreRows,
@@ -1512,11 +1518,64 @@ export default function CultureConnectApp({
     [top3Cards],
   );
 
+  /**
+   * P1 — recommendSlice×5. Pool = catalogue under the same date/commune
+   * filters as Top 3 (cats never filter this surface). exclude =
+   * visibleTop3Items (displayed slots only — empty slots must not exclude).
+   */
+  const slicePool = useMemo(() => {
+    return filterSeancesForActiveFilters(
+      listItems,
+      timeScope === 'tous'
+        ? {
+            commune: selectedCommune,
+            lieuId: selectedLieuId,
+            skipDateWindow: true,
+            genres: selectedGenres,
+          }
+        : { ...activeFilter, categories: [] },
+    );
+  }, [
+    listItems,
+    timeScope,
+    selectedCommune,
+    selectedLieuId,
+    selectedGenres,
+    activeFilter,
+  ]);
+
+  const sliceCards = useMemo(() => {
+    if (recoWiped || !recoReady) return [];
+    const state = tasteState ?? emptyTasteState();
+    // Brief: exclude = visibleTop3Items(top3), limit 5 — not raw reco array.
+    const scored = recommendSlice(
+      slicePool,
+      state,
+      visibleTop3Items(pourToiFilled),
+      HOME_SLICE_LIMIT,
+      { now: new Date(), nouveauFilmIds: nouveauFilmIdSet },
+    );
+    return scored.map((row) => row.item);
+  }, [
+    slicePool,
+    tasteState,
+    pourToiFilled,
+    recoWiped,
+    recoReady,
+    nouveauFilmIdSet,
+  ]);
+
+  const sliceImpressionKeys = useMemo(
+    () => sliceCards.map(impressionItemKey).filter(Boolean),
+    [sliceCards],
+  );
+
   useEffect(() => {
     for (const item of top3Cards) rememberItem(item);
     for (const item of pourToiFilled) rememberItem(item);
+    for (const item of sliceCards) rememberItem(item);
     if (detailItem) rememberItem(detailItem);
-  }, [top3Cards, pourToiFilled, detailItem, rememberItem]);
+  }, [top3Cards, pourToiFilled, sliceCards, detailItem, rememberItem]);
   const top3Mode = top3PaintMode({
     ready: recoReady,
     wiped: recoWiped,
@@ -1526,6 +1585,8 @@ export default function CultureConnectApp({
     phraseActive: phraseMode,
   });
   const showTop3Section = top3Mode !== 'hidden';
+  const showSliceSection =
+    top3Mode === 'cards' && sliceCards.length > 0;
   const pourToiKeys = useMemo(
     () => new Set(pourToiFilled.map((item) => item.key)),
     [pourToiFilled],
@@ -1538,31 +1599,58 @@ export default function CultureConnectApp({
     }
     return ids;
   }, [pourToiFilled]);
+  const sliceKeys = useMemo(
+    () => new Set(sliceCards.map((item) => item.key)),
+    [sliceCards],
+  );
+  const sliceFilmIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const item of sliceCards) {
+      const fid = filmIdOfItem(item);
+      if (fid) ids.add(fid);
+    }
+    return ids;
+  }, [sliceCards]);
 
-  /** Main grid minus pack + Pour toi keys/film_ids so nothing is listed twice. */
+  /** Main grid minus pack + Top 3 + slice keys/film_ids so nothing is listed twice. */
   const gridItems = useMemo(() => {
     if (
       packFilmIds.size === 0 &&
       pourToiKeys.size === 0 &&
-      pourToiFilmIds.size === 0
+      pourToiFilmIds.size === 0 &&
+      sliceKeys.size === 0 &&
+      sliceFilmIds.size === 0
     ) {
       return listItems;
     }
     return listItems.filter((item) => {
-      if (pourToiKeys.has(item.key)) return false;
+      if (pourToiKeys.has(item.key) || sliceKeys.has(item.key)) return false;
       const fid = filmIdOfItem(item);
       if (fid && packFilmIds.has(fid)) return false;
       if (fid && pourToiFilmIds.has(fid)) return false;
+      if (fid && sliceFilmIds.has(fid)) return false;
       return true;
     });
-  }, [listItems, packFilmIds, pourToiKeys, pourToiFilmIds]);
+  }, [
+    listItems,
+    packFilmIds,
+    pourToiKeys,
+    pourToiFilmIds,
+    sliceKeys,
+    sliceFilmIds,
+  ]);
 
   /** Cards after film_id / créneau collapse — pack included, not doubled. */
   const pourToiCardCount = useMemo(
     () => densifiedCardCount(pourToiFilled),
     [pourToiFilled],
   );
-  const top3Set = useMemo(() => top3IdentitySet(pourToiFilled), [pourToiFilled]);
+  const top3Set = useMemo(() => {
+    // Packs / leftover dedup against displayed Top 3 + slice (not Top 3 quota).
+    const set = top3IdentitySet(pourToiFilled);
+    for (const key of top3IdentitySet(sliceCards)) set.add(key);
+    return set;
+  }, [pourToiFilled, sliceCards]);
   const gpsOrigin = nearMeActive ? userPos : null;
   const packFreezeKey = [
     timeScope,
@@ -1962,8 +2050,11 @@ export default function CultureConnectApp({
   );
   const haveAllItems = listItems.length >= total;
   const densifiedTotal = haveAllItems
-    ? pourToiCardCount + visiblePackCount + gridCardCount
-    : Math.max(densifiedTotalApi, pourToiCardCount + visiblePackCount + gridCardCount);
+    ? pourToiCardCount + sliceCards.length + visiblePackCount + gridCardCount
+    : Math.max(
+        densifiedTotalApi,
+        pourToiCardCount + sliceCards.length + visiblePackCount + gridCardCount,
+      );
 
   // Reset infinite-scroll window when scope / filters / query change.
   useEffect(() => {
@@ -2759,6 +2850,40 @@ export default function CultureConnectApp({
         </section>
         ) : null}
         </div>
+
+        {showSliceSection ? (
+          <section
+            className={TOP3_SECTION_CLASS}
+            data-slice=""
+            data-slice-count={sliceCards.length}
+          >
+            <h2 className={HOME_SECTION_TITLE_CLASS}>
+              <span
+                className={HOME_SECTION_TITLE_RULE_CLASS}
+                style={homeSectionAccentStyle(HOME_SECTION_TITLE_ACCENT_VAR)}
+              >
+                {sliceHeading(sessionStatus === 'authenticated')}
+              </span>
+            </h2>
+            {sliceImpressionKeys.length > 0 ? (
+              <ListImpressionProbe
+                surface="slice"
+                scope={`home:${timeScope}`}
+                itemKeys={sliceImpressionKeys}
+              />
+            ) : null}
+            <SeanceGrid
+              items={sliceCards}
+              showDate={showDateLabels}
+              onSelectItem={handleSelectTop3}
+              onSelectVenue={handleSelectVenue}
+              empty={null}
+              nouveauFilmIds={nouveauFilmIdSet}
+              reasonFor={reasonFor}
+              origin={gpsOrigin}
+            />
+          </section>
+        ) : null}
 
         {proposePlace === 'empty' ? (
           <ProposeEmptyCard
