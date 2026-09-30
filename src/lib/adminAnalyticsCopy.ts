@@ -47,6 +47,11 @@ export const SECTION_COPY = {
     intro:
       'Tags posés sur les événements du catalogue — popularité de couverture, ≠ ce que les gens aiment.',
   },
+  impressions: {
+    title: 'Impressions (P2)',
+    intro:
+      'Admin only — jamais sur le site public. Canal `cc:imp:*` (pas le cookie goûts). Un non-clic est un signal faible ; hors scoring profil pour l’instant.',
+  },
 } as const;
 
 export type KpiCopy = {
@@ -160,6 +165,26 @@ export const KPI_COPY: Record<string, KpiCopy> = {
     title: 'Connectés et non connectés',
     glossary:
       'Sur 7 jours Paris, deux populations indépendantes additionnées seulement comme base d’affichage : non connectés = visiteurs distincts sans compte (le même chiffre que les visiteurs distincts), connectés = comptes actifs 7 jours. Ce ne sont pas les mêmes personnes rapprochées. Base = non connectés + connectés. 0 et 0 donnent 0 / 0 (0 %). Si Neon ne répond pas, les pourcentages ne s’affichent pas.',
+  },
+  'p2-form': {
+    title: 'Ouvertures ÷ impressions, par forme',
+    glossary:
+      'Parmi les propositions affichées (Top 3 / sections), part qui mène à une ouverture de fiche, par forme (ciné / théâtre / musique). 0 % est normal tant que le journal d’impressions est vide.',
+  },
+  'p2-action': {
+    title: 'Actions ÷ ouvertures, par forme',
+    glossary:
+      'Parmi les fiches ouvertes, part qui convertit (agenda, ICS, réserver, favori, billetterie, partage). Mesure si la fiche convertit.',
+  },
+  'p2-pos': {
+    title: 'Taux d’ouverture par position (1–5)',
+    glossary:
+      'Le rang est le premier facteur de confusion. Si le rang 5 n’ouvre presque jamais, le slot sert peu.',
+  },
+  'p2-zero': {
+    title: 'Items >100 impressions, 0 ouverture',
+    glossary:
+      'Catalogue à corriger (visuel, titre, horaire). Jamais affiché côté public — un compteur de vues ferait paraître le vivant déserté.',
   },
 };
 

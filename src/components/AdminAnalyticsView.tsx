@@ -223,6 +223,91 @@ export default function AdminAnalyticsView({
           <Card kpi="4" value={fmt(snap.funnel.outboundClick)} />
         </div>
       </SectionBlock>
+      <SectionBlock
+        title={SECTION_COPY.impressions.title}
+        intro={SECTION_COPY.impressions.intro}
+      >
+        <div className="mt-2 grid gap-3 sm:grid-cols-2">
+          <Card
+            kpi="p2-form"
+            value={`${fmt(snap.impressions.totals.impressionSlots)} slots · ${fmt(snap.impressions.totals.openings)} ouv.`}
+            approx
+          >
+            <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
+              {snap.impressions.byForm.map((row) => (
+                <li key={row.form} className="flex justify-between gap-3">
+                  <span className="text-culture-muted">
+                    {row.form === 'theatre_danse'
+                      ? 'théâtre'
+                      : row.form === 'cinema'
+                        ? 'ciné'
+                        : row.form}
+                  </span>
+                  <span>
+                    {pct(row.openings, row.impressions)} · {fmt(row.openings)}/
+                    {fmt(row.impressions)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+          <Card
+            kpi="p2-action"
+            value={`${fmt(snap.impressions.totals.actions)} act. / ${fmt(snap.impressions.totals.openings)} ouv.`}
+            approx
+          >
+            <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
+              {snap.impressions.byForm.map((row) => (
+                <li key={`act-${row.form}`} className="flex justify-between gap-3">
+                  <span className="text-culture-muted">
+                    {row.form === 'theatre_danse'
+                      ? 'théâtre'
+                      : row.form === 'cinema'
+                        ? 'ciné'
+                        : row.form}
+                  </span>
+                  <span>
+                    {pct(row.actions, row.openings)} · {fmt(row.actions)}/
+                    {fmt(row.openings)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+          <Card kpi="p2-pos" approx>
+            <ul className="mt-2 space-y-0.5 text-sm text-culture-ink">
+              {snap.impressions.byPosition.map((row) => (
+                <li key={row.position} className="flex justify-between gap-3">
+                  <span className="text-culture-muted">rang {row.position}</span>
+                  <span>
+                    {pct(row.openings, row.impressions)} · {fmt(row.openings)}/
+                    {fmt(row.impressions)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+          <Card
+            kpi="p2-zero"
+            value={fmt(snap.impressions.zeroOpenHeavy.length)}
+            approx
+          >
+            {snap.impressions.zeroOpenHeavy.length > 0 ? (
+              <ul className="mt-2 max-h-40 space-y-0.5 overflow-y-auto text-sm text-culture-ink">
+                {snap.impressions.zeroOpenHeavy.slice(0, 20).map((row) => (
+                  <li key={row.itemKey} className="flex justify-between gap-3">
+                    <span className="truncate text-culture-muted">{row.itemKey}</span>
+                    <span>{fmt(row.impressions)}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-xs text-culture-muted">Aucun item dans ce cas.</p>
+            )}
+          </Card>
+        </div>
+      </SectionBlock>
+
 
       <SectionBlock title={SECTION_COPY.partage.title}>
         <div className="mt-2 grid gap-3 sm:grid-cols-2">

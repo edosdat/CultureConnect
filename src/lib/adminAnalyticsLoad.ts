@@ -60,6 +60,13 @@ import {
   isValidVid,
   type GuestAppendLine,
 } from '@/lib/guestSignals';
+import {
+  computeImpressionAdminMetrics,
+  parseImpressionLine,
+  type ImpressionAdminMetrics,
+  type ImpressionLine,
+  type ImpressionSignalRef,
+} from '@/lib/impressions';
 import { queryAgendaDetail } from '@/lib/agendaQuery';
 import {
   hasScorableState,
@@ -204,6 +211,46 @@ async function listGuestAppendLines(): Promise<GuestAppendLine[]> {
   return lines;
 }
 
+async function scanImpressionVidKeys(): Promise<string[]> {
+  const keys: string[] = [];
+  const seen = new Set<string>();
+  let cursor = '0';
+  for (let i = 0; i < 40; i += 1) {
+    const rows = await kvPipeline([
+      ['SCAN', cursor, 'MATCH', 'cc:imp:*', 'COUNT', '200'],
+    ]);
+    if (!rows) break;
+    const page = pipelineScan(rows[0]);
+    for (const key of page.keys) {
+      if (!key.startsWith('cc:imp:') || seen.has(key)) continue;
+      seen.add(key);
+      keys.push(key);
+      if (keys.length >= SCAN_KEY_CAP) return keys;
+    }
+    cursor = page.cursor;
+    if (cursor === '0') break;
+  }
+  return keys;
+}
+
+async function listImpressionLines(): Promise<ImpressionLine[]> {
+  const keys = await scanImpressionVidKeys();
+  if (keys.length === 0) return [];
+  const lines: ImpressionLine[] = [];
+  for (let i = 0; i < keys.length; i += LRANGE_BATCH) {
+    const batch = keys.slice(i, i + LRANGE_BATCH);
+    const rows = await kvPipeline(batch.map((k) => ['LRANGE', k, '0', '-1']));
+    if (!rows) break;
+    for (const entry of rows) {
+      for (const raw of pipelineStrings(entry)) {
+        const line = parseImpressionLine(raw);
+        if (line) lines.push(line);
+      }
+    }
+  }
+  return lines;
+}
+
 const MIX_MAINS: ReadonlySet<string> = new Set([
   'cinema',
   'theatre_danse',
@@ -325,6 +372,8 @@ export type AdminAnalyticsSnapshot = {
     rows: number;
     interne: true;
   };
+  /** P2 — admin-only impression funnel (never public UI). */
+  impressions: ImpressionAdminMetrics;
   adminTables: AdminTablesPayload;
 };
 
@@ -342,9 +391,18 @@ export async function loadAdminAnalytics(
   const notes: string[] = [];
 
   const notBefore = `${addDaysIso(windowDays[0] || '1970-01-01', -2)}T00:00:00.000Z`;
-  const [guestLines, tokens, rsvps, accounts, googleAccounts, clocks, shareActions] =
-    await Promise.all([
+  const [
+    guestLines,
+    impressionLinesRaw,
+    tokens,
+    rsvps,
+    accounts,
+    googleAccounts,
+    clocks,
+    shareActions,
+  ] = await Promise.all([
       listGuestAppendLines(),
+      listImpressionLines(),
       listShareTokensForAdmin(ADMIN_TOKENS_CAP),
       listShareRsvpsForAdmin(ADMIN_RSVPS_CAP),
       listAccountTastesForAdmin(ADMIN_TASTES_CAP),
@@ -405,6 +463,34 @@ export async function loadAdminAnalytics(
       if (s.kind === 'outbound_click') outboundClick += 1;
     }
   }
+
+  const windowImpressions = impressionLinesRaw.filter((l) =>
+    inParisWindow(l.ts, daySet),
+  );
+  const impressionSignals: ImpressionSignalRef[] = [];
+  for (const line of windowGuest) {
+    impressionSignals.push({
+      ts: line.ts,
+      kind: line.kind,
+      itemKey: line.itemKey,
+    });
+  }
+  for (const row of accounts) {
+    for (const s of row.state.signalsRecent) {
+      if (!inParisWindow(s.ts, daySet)) continue;
+      const key = s.film_id || s.event_id || s.programme_id || '';
+      if (!key) continue;
+      impressionSignals.push({ ts: s.ts, kind: s.kind, itemKey: key });
+    }
+  }
+  const impressions = computeImpressionAdminMetrics({
+    impressions: windowImpressions,
+    signals: impressionSignals,
+    formOf: (itemKey) => mixFromItemKey(itemKey, mixCache),
+  });
+  notes.push(
+    'P2 impressions : canal KV `cc:imp:*` (jamais `cc_signals_v1` / `cc:vs:*`). Collecte seule — hors scoring profil. Admin only.',
+  );
 
   const tokensInWindow = tokens.filter((t) => inParisWindow(t.createdAt, daySet));
   const tokenPool = tokensInWindow.length > 0 ? tokensInWindow : tokens;
@@ -550,6 +636,7 @@ export async function loadAdminAnalytics(
       matchable,
     },
     export18: { rows: exportRows.length, interne: true },
+    impressions,
     adminTables: {
       tastes: { rows: tasteRows, topTagsUsers: topTagsComptes(accounts) },
       tokens: { rows: tokenRows, totals: tokenTableTotals(tokenRows) },
