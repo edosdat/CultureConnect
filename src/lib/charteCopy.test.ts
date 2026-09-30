@@ -85,6 +85,17 @@ describe('charte copy is wired once from the mode flag', () => {
     assert.equal(line.includes('?'), false);
   });
 
+  it('first paint uses the default register, same block as the live home', () => {
+    const boot = readFileSync(
+      new URL('../components/HomeTop3BootFallback.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(boot, /<CharteRegisterLine register="default" copy=\{CHARTE_COPY\.default\}/);
+    assert.equal(boot.includes('avecEnfants'), false);
+    assert.equal(boot.includes('Mes crushs'), false);
+    assert.equal(boot.includes('Mes plans'), false);
+  });
+
   it('cards and the grid do not carry these labels', () => {
     for (const src of [card, grid]) {
       assert.equal(src.includes('Mes crushs'), false);
