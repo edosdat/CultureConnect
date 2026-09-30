@@ -1,0 +1,3 @@
+target_type	target_id	image_url	alt	credit	licence	source_tsv
+film	F0255	https://films.cinemas-utopia.org/wp-content/uploads/2025/12/J_ai-des-orties-sur-mon-balcon-AFF.jpg	J’ai des orties sur mon balcon — affiche officielle	Cinémas Utopia (films.cinemas-utopia.org)	Droits réservés — usage éditorial affiche salle	ae_films_by_film_id.tsv
+film	F0355	https://fr.web.img2.acsta.net/img/67/03/6703b0d1f16def3f1fdae1e720bfaa85.jpg	The Holy Boy — affiche officielle	AlloCiné (allocine.fr) / Grindhouse Paradise Pictures	Droits réservés — usage éditorial affiche officielle	ae_films_by_film_id.tsv
