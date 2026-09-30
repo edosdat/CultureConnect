@@ -90,6 +90,8 @@ import SearchOmnibox from './SearchOmnibox';
 import ListWaitDots, { HomeListWaitSlot } from './ListWaitDots';
 import Top3GuestCta from './Top3GuestCta';
 import HomeSection from './HomeSection';
+import ListImpressionProbe from './ListImpressionProbe';
+import { impressionItemKey } from '@/lib/impressions';
 import HomeAccroche from './HomeAccroche';
 import PackRailSkeleton from './PackRailSkeleton';
 import {
@@ -1505,6 +1507,10 @@ export default function CultureConnectApp({
     () => visibleTop3Items(pourToiFilled),
     [pourToiFilled],
   );
+  const top3ImpressionKeys = useMemo(
+    () => top3Cards.map(impressionItemKey).filter(Boolean),
+    [top3Cards],
+  );
 
   useEffect(() => {
     for (const item of top3Cards) rememberItem(item);
@@ -1656,6 +1662,30 @@ export default function CultureConnectApp({
     { pruneMissing: searching, replace: searching },
   );
   const visibleExpoRows = frozenExpoRows.slice(0, expoLimit);
+
+  const cineImpressionKeys = useMemo(
+    () => visibleCineRows.map((r) => impressionItemKey(r.item)).filter(Boolean),
+    [visibleCineRows],
+  );
+  const theatreImpressionKeys = useMemo(
+    () =>
+      visibleTheatreRows.map((r) => impressionItemKey(r.item)).filter(Boolean),
+    [visibleTheatreRows],
+  );
+  const musiqueImpressionKeys = useMemo(
+    () =>
+      visibleMusiqueRows.map((r) => impressionItemKey(r.item)).filter(Boolean),
+    [visibleMusiqueRows],
+  );
+  const enfantsImpressionKeys = useMemo(
+    () =>
+      visibleEnfantsRows.map((r) => impressionItemKey(r.item)).filter(Boolean),
+    [visibleEnfantsRows],
+  );
+  const expoImpressionKeys = useMemo(
+    () => visibleExpoRows.map((r) => impressionItemKey(r.item)).filter(Boolean),
+    [visibleExpoRows],
+  );
   const cineFirstKey = frozenCineRows[0]?.groupKey ?? null;
   const theatreFirstKey = frozenTheatreRows[0]?.groupKey ?? null;
   const musiqueFirstKey = frozenMusiqueRows[0]?.groupKey ?? null;
@@ -1822,6 +1852,10 @@ export default function CultureConnectApp({
     searching,
     titleLeftover,
   ]);
+  const leftoverImpressionKeys = useMemo(
+    () => leftoverRows.map((r) => impressionItemKey(r.item)).filter(Boolean),
+    [leftoverRows],
+  );
   const searchResultCount =
     visibleCineRows.length +
     visibleTheatreRows.length +
@@ -2700,6 +2734,13 @@ export default function CultureConnectApp({
               }
             />
           ) : null}
+          {top3Mode !== 'skeleton' && top3ImpressionKeys.length > 0 ? (
+            <ListImpressionProbe
+              surface="top3"
+              scope={`home:${timeScope}`}
+              itemKeys={top3ImpressionKeys}
+            />
+          ) : null}
           {top3Mode === 'skeleton' ? (
             <Top3Skeleton />
           ) : (
@@ -2826,6 +2867,11 @@ export default function CultureConnectApp({
               if (listItems.length < total) handleLoadMore();
             }}
           >
+            <ListImpressionProbe
+              surface="section"
+              scope={`cine:${timeScope}`}
+              itemKeys={cineImpressionKeys}
+            />
             <CinemaCarousel
               key={`cine-q-${titleLeftover.trim().toLowerCase()}`}
               rows={visibleCineRows}
@@ -2884,6 +2930,11 @@ export default function CultureConnectApp({
                 }
                 onSeeAll={() => handleLivingPackMore('theatre', true)}
               >
+                <ListImpressionProbe
+                  surface="section"
+                  scope={`theatre:${timeScope}`}
+                  itemKeys={theatreImpressionKeys}
+                />
                 <CinemaCarousel
                   key={`theatre-q-${titleLeftover.trim().toLowerCase()}`}
                   rows={visibleTheatreRows}
@@ -2933,6 +2984,11 @@ export default function CultureConnectApp({
                 }
                 onSeeAll={() => handleLivingPackMore('musique', true)}
               >
+                <ListImpressionProbe
+                  surface="section"
+                  scope={`musique:${timeScope}`}
+                  itemKeys={musiqueImpressionKeys}
+                />
                 <CinemaCarousel
                   key={`musique-q-${titleLeftover.trim().toLowerCase()}`}
                   rows={visibleMusiqueRows}
@@ -2981,6 +3037,11 @@ export default function CultureConnectApp({
             }
             onSeeAll={() => handleLivingPackMore('enfants', true)}
           >
+            <ListImpressionProbe
+              surface="section"
+              scope={`enfants:${timeScope}`}
+              itemKeys={enfantsImpressionKeys}
+            />
             <CinemaCarousel
               key={`enfants-q-${titleLeftover.trim().toLowerCase()}`}
               rows={visibleEnfantsRows}
@@ -3026,6 +3087,11 @@ export default function CultureConnectApp({
             }
             onSeeAll={() => handleLivingPackMore('expo', true)}
           >
+            <ListImpressionProbe
+              surface="section"
+              scope={`expo:${timeScope}`}
+              itemKeys={expoImpressionKeys}
+            />
             <CinemaCarousel
               key={`expo-q-${titleLeftover.trim().toLowerCase()}`}
               rows={visibleExpoRows}
@@ -3065,6 +3131,13 @@ export default function CultureConnectApp({
             badge={autresBadge}
             shown={leftoverRows.length}
           >
+            {leftoverImpressionKeys.length > 0 ? (
+              <ListImpressionProbe
+                surface="section"
+                scope={`autres:${timeScope}`}
+                itemKeys={leftoverImpressionKeys}
+              />
+            ) : null}
             <SeanceGrid
               items={leftoverRows.map((r) => r.item)}
               showDate={showDateLabels}
