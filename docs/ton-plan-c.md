@@ -31,9 +31,9 @@ Liste de mots interdits dans la copie (à tester dans le code, comme les famille
 | Liste « À voir » | **Mes crushs** |
 | Toast après un like | « Nouveau **crush** » + bouton **Inviter à un plan C** |
 | Partager | **Inviter à un plan C** |
-| Message WhatsApp | « J'ai un plan pour {jour}. {Titre}, {Lieu}. » + lien |
+| Message WhatsApp | « Je vous invite à un plan C {jour}. {Titre}, {Lieu}. Qui est partant ? » + lien |
 | Écran « Mes partages » | **Mes plans** — sous-titre « Qui est partant pour tes plans » |
-| Lien reçu (bandeau) | « Quelqu'un a un plan pour toi » |
+| Lien reçu (bandeau) | « {Prénom} t'invite à un plan C » |
 | Question sur le lien reçu | « Alors, tu en es ? » |
 | Réponses | **Envie** / **J'y vais** (inchangées : c'est le contrat de `shareRsvp.ts`) |
 | Pas de réponse | « Pas encore de réponse… laisse-leur le temps » |
