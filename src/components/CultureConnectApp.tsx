@@ -10,7 +10,12 @@ import {
   shouldPaintGuestBootReco,
   shouldSkipGuestBootRecoPost,
 } from '@/lib/guestBootReco';
-import { profileHasChipWeight } from '@/lib/reco';
+import {
+  itemBlockedByWorkKeys,
+  notInterestedBlockKeys,
+  profileHasChipWeight,
+  workBlockKeysOfItem,
+} from '@/lib/reco';
 import {
   extractMoods,
   profileHasZeroWeights,
@@ -250,6 +255,15 @@ type RecoKind = 'guest' | 'profile' | 'wiped' | 'pending';
 const RECO_BOOT_SCOPES = ['tous', 'soir', 'aujourdhui', 'weekend', 'semaine'] as const;
 
 /** Reco cards are keyed by window so Ce soir never paints boot/tous cards. */
+function excludeWorkIdsForReco(
+  signals: Parameters<typeof notInterestedBlockKeys>[0] | undefined,
+  extra: ReadonlySet<string>,
+): string[] {
+  const ids = notInterestedBlockKeys(signals ?? []);
+  for (const key of extra) ids.add(key);
+  return [...ids];
+}
+
 function recoPoolKey(
   scope: TimeScopeId,
   day: string | null,
@@ -439,6 +453,10 @@ export default function CultureConnectApp({
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   /** Mode « Avec les enfants » — not a category chip. */
   const [avecEnfants, setAvecEnfants] = useState(false);
+  /** P3 — hide the œuvre before the taste round-trip lands. */
+  const [optimisticNotInterested, setOptimisticNotInterested] = useState<
+    ReadonlySet<string>
+  >(() => new Set());
   /** List payload that was fetched with the mode flag (avoids a stale rail). */
   const [listAvecEnfants, setListAvecEnfants] = useState(false);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -698,6 +716,8 @@ export default function CultureConnectApp({
   recoPoolByKeyRef.current = recoPoolByKey;
   const tasteStateRef = useRef(tasteState);
   tasteStateRef.current = tasteState;
+  const optimisticNotInterestedRef = useRef(optimisticNotInterested);
+  optimisticNotInterestedRef.current = optimisticNotInterested;
   const recoKindRef = useRef<RecoKind>('guest');
   const recoPostedWithChipsRef = useRef<Set<string>>(new Set());
   /** Keys filled by a live reco POST this session — do not re-invalidate. */
@@ -1098,6 +1118,10 @@ export default function CultureConnectApp({
                   themes: profile.themes,
                 }
               : undefined,
+            excludeWorkIds: excludeWorkIdsForReco(
+              tasteStateRef.current?.signalsRecent,
+              optimisticNotInterestedRef.current,
+            ),
           }),
         });
         if (!res.ok) return;
@@ -1174,6 +1198,10 @@ export default function CultureConnectApp({
                 genres: profile.genres,
                 themes: profile.themes,
               },
+              excludeWorkIds: excludeWorkIdsForReco(
+                tasteStateRef.current?.signalsRecent,
+                optimisticNotInterestedRef.current,
+              ),
             }),
           });
           if (!res.ok) return;
@@ -1590,10 +1618,21 @@ export default function CultureConnectApp({
       : filterSeancesForActiveFilters(nouveautesItems, activeFilter);
     return packSourceItems(fromList, fromNouv, titleLeftover);
   }, [listItems, nouveautesItems, activeFilter, searching, titleLeftover]);
-  const pourToiFilled = useMemo(
-    () => fillEmptyCineFromPool(pourToiItems, cineSource),
-    [pourToiItems, cineSource],
-  );
+  const blockedWorks = useMemo(() => {
+    const ids = notInterestedBlockKeys(tasteState?.signalsRecent ?? []);
+    for (const key of optimisticNotInterested) ids.add(key);
+    return ids;
+  }, [tasteState, optimisticNotInterested]);
+  const pourToiFilled = useMemo(() => {
+    if (blockedWorks.size === 0) {
+      return fillEmptyCineFromPool(pourToiItems, cineSource);
+    }
+    const hide = (item: DayItem) => !itemBlockedByWorkKeys(item, blockedWorks);
+    return fillEmptyCineFromPool(
+      pourToiItems.filter(hide),
+      cineSource.filter(hide),
+    );
+  }, [pourToiItems, cineSource, blockedWorks]);
   const top3Cards = useMemo(
     () => visibleTop3Items(pourToiFilled),
     [pourToiFilled],
@@ -2060,6 +2099,20 @@ export default function CultureConnectApp({
   function handleSelectTop3(key: string) {
     applyHomeCardOpen(resolveHomeCardOpen(key, null, 'top3'));
   }
+
+  const dismissWork = useCallback((item: DayItem) => {
+    trackItem(item, 'not_interested');
+    setOptimisticNotInterested((prev) => {
+      const next = new Set(prev);
+      for (const key of workBlockKeysOfItem(item)) next.add(key);
+      return next;
+    });
+  }, [trackItem]);
+
+  const workIsNotInterested = useCallback(
+    (item: DayItem) => itemBlockedByWorkKeys(item, blockedWorks),
+    [blockedWorks],
+  );
   const listEmpty =
     listItems.length === 0 &&
     allCineRows.length === 0 &&
@@ -2895,6 +2948,8 @@ export default function CultureConnectApp({
               fixedSlots
               reasonFor={reasonFor}
               origin={gpsOrigin}
+              onNotInterested={dismissWork}
+              notInterested={workIsNotInterested}
             />
           )}
         </section>
@@ -3017,6 +3072,8 @@ export default function CultureConnectApp({
                 nouveauFilmIds={nouveauFilmIdSet}
                 origin={gpsOrigin}
                 oneCardPerSeance
+                onNotInterested={dismissWork}
+                notInterested={workIsNotInterested}
               />
             )}
           </HomeSection>
@@ -3079,6 +3136,8 @@ export default function CultureConnectApp({
               onIcs={(item) => trackItem(item, 'ics')}
               onReserve={(item) => trackItem(item, 'reserve')}
               onSelectLive={handleSelectHome}
+              onNotInterested={dismissWork}
+              notInterested={workIsNotInterested}
               origin={gpsOrigin}
             />
           </HomeSection>
@@ -3140,6 +3199,8 @@ export default function CultureConnectApp({
                   onIcs={(item) => trackItem(item, 'ics')}
                   onReserve={(item) => trackItem(item, 'reserve')}
                   onSelectLive={handleSelectHome}
+                  onNotInterested={dismissWork}
+                  notInterested={workIsNotInterested}
                   origin={gpsOrigin}
                 />
               </HomeSection>
@@ -3195,6 +3256,8 @@ export default function CultureConnectApp({
                   onIcs={(item) => trackItem(item, 'ics')}
                   onReserve={(item) => trackItem(item, 'reserve')}
                   onSelectLive={handleSelectHome}
+                  onNotInterested={dismissWork}
+                  notInterested={workIsNotInterested}
                   origin={gpsOrigin}
                 />
               </HomeSection>
@@ -3247,6 +3310,8 @@ export default function CultureConnectApp({
               onIcs={(item) => trackItem(item, 'ics')}
               onReserve={(item) => trackItem(item, 'reserve')}
               onSelectLive={handleSelectHome}
+              onNotInterested={dismissWork}
+              notInterested={workIsNotInterested}
               origin={gpsOrigin}
             />
           </HomeSection>
@@ -3297,6 +3362,8 @@ export default function CultureConnectApp({
               onIcs={(item) => trackItem(item, 'ics')}
               onReserve={(item) => trackItem(item, 'reserve')}
               onSelectLive={handleSelectHome}
+              onNotInterested={dismissWork}
+              notInterested={workIsNotInterested}
               origin={gpsOrigin}
             />
           </HomeSection>
@@ -3324,6 +3391,8 @@ export default function CultureConnectApp({
               onSelectVenue={handleSelectVenue}
               nouveauFilmIds={nouveauFilmIdSet}
               origin={gpsOrigin}
+              onNotInterested={dismissWork}
+              notInterested={workIsNotInterested}
             />
           </HomeSection>
         ) : null}

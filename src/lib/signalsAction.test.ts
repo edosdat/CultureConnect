@@ -1,5 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import {
   SIGNAL_WEIGHTS,
   applyIncomingSignals,
@@ -104,6 +105,9 @@ describe('SIGNAL_WEIGHTS — matching engine step A', () => {
     assert.equal(SIGNAL_WEIGHTS.ics, 5);
     assert.equal(SIGNAL_WEIGHTS.agenda_add, 5);
     assert.equal(SIGNAL_WEIGHTS.open_card, 2);
+    assert.equal(SIGNAL_WEIGHTS.not_interested, -4);
+    assert.ok(SIGNAL_WEIGHTS.not_interested > SIGNAL_WEIGHTS.unfavorite);
+    assert.ok(SIGNAL_WEIGHTS.not_interested < SIGNAL_WEIGHTS.chip_time);
     assert.ok(SIGNAL_WEIGHTS.favorite > SIGNAL_WEIGHTS.outbound_click);
     assert.ok(SIGNAL_WEIGHTS.outbound_click > SIGNAL_WEIGHTS.share);
     assert.ok(SIGNAL_WEIGHTS.share > SIGNAL_WEIGHTS.open_card);
@@ -279,6 +283,7 @@ describe('UI tracking paths — payloadFromDayItem', () => {
   it('shouldMapTasteIngest covers new fiche actions', () => {
     assert.equal(shouldMapTasteIngest('favorite', []), true);
     assert.equal(shouldMapTasteIngest('unfavorite', []), true);
+    assert.equal(shouldMapTasteIngest('not_interested', []), true);
     assert.equal(shouldMapTasteIngest('outbound_click', []), true);
     assert.equal(shouldMapTasteIngest('share', []), true);
     assert.equal(shouldMapTasteIngest('open_shared', []), true);
@@ -750,5 +755,94 @@ describe('tagless signals — audit only', () => {
     assert.equal(out.wroteGuest, true);
     assert.equal(out.state.profile.moods.tendre?.weight, 3);
     assert.equal(out.state.signalsRecent.some((s) => s.kind === 'favorite'), true);
+  });
+});
+
+describe('P3 not_interested', () => {
+  it('is a known item signal at weight −4 and carries œuvre ids', () => {
+    assert.equal(isKnownSignalKind('not_interested'), true);
+    assert.equal(SIGNAL_WEIGHTS.not_interested, -4);
+    const fiche = item();
+    const payload = payloadFromDayItem(fiche, 'not_interested');
+    const signal = makeSignal(payload);
+    assert.equal(signal.kind, 'not_interested');
+    assert.equal(signal.weight, -4);
+    assert.equal(signal.event_id, 'ev-1');
+    assert.equal(signal.programme_id, 'pr-1');
+    assert.ok(signal.moods.includes('rigolo'));
+    assert.equal(shouldMapTasteIngest('not_interested', signal.moods), true);
+    assert.equal(isTasteWritingSignal(signal), true);
+  });
+
+  it('pulls −4 off matching taste tags and never stores a negative bucket', () => {
+    const open = makeSignal({
+      kind: 'open_card',
+      event_id: 'ev-1',
+      moods: ['rigolo'],
+      genres: ['standup'],
+    });
+    const pass = makeSignal({
+      kind: 'not_interested',
+      event_id: 'ev-1',
+      moods: ['rigolo'],
+      genres: ['standup'],
+    });
+    const afterOpen = applyIncomingSignals(emptyProfile(), [open]);
+    assert.equal(afterOpen.moods.rigolo?.weight, 2);
+    const afterPass = applyIncomingSignals(afterOpen, [pass]);
+    assert.equal(afterPass.moods.rigolo, undefined);
+
+    const alone = applyIncomingSignals(emptyProfile(), [pass]);
+    assert.deepEqual(alone.moods, {});
+    assert.deepEqual(alone.genres, {});
+  });
+
+  it('does not prompt login by itself', () => {
+    const pass = makeSignal({
+      kind: 'not_interested',
+      event_id: 'ev-1',
+      moods: ['rigolo'],
+      genres: [],
+    });
+    assert.equal(shouldPromptLogin([pass]), false);
+  });
+
+  it('wires a discrete control on Top 3 and home rail cards, not the fiche', async () => {
+    const card = await readFile(
+      new URL('../components/SeanceCard.tsx', import.meta.url),
+      'utf8',
+    );
+    const control = await readFile(
+      new URL('../components/PasPourMoiControl.tsx', import.meta.url),
+      'utf8',
+    );
+    const grid = await readFile(
+      new URL('../components/SeanceGrid.tsx', import.meta.url),
+      'utf8',
+    );
+    const rail = await readFile(
+      new URL('../components/CinemaCarousel.tsx', import.meta.url),
+      'utf8',
+    );
+    const detail = await readFile(
+      new URL('../components/EventDetail.tsx', import.meta.url),
+      'utf8',
+    );
+    const app = await readFile(
+      new URL('../components/CultureConnectApp.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(control, /aria-label="Pas pour moi"/);
+    assert.match(control, /data-testid="pas-pour-moi"/);
+    assert.match(control, /data-signal-kind="not_interested"/);
+    assert.match(card, /PasPourMoiControl/);
+    assert.match(card, /onNotInterested/);
+    assert.match(grid, /onNotInterested=\{onNotInterested\}/);
+    assert.match(rail, /PasPourMoiControl/);
+    assert.equal(detail.includes('PasPourMoiControl'), false);
+    assert.equal(detail.includes('not_interested'), false);
+    assert.match(app, /trackItem\(item, 'not_interested'\)/);
+    assert.match(app, /visibleTop3Items\(pourToiFilled\)/);
+    assert.match(app, /onNotInterested=\{dismissWork\}/);
   });
 });

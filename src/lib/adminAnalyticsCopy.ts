@@ -209,6 +209,7 @@ export const SIGNAL_KIND_LABELS: Record<string, string> = {
   ics: 'Export calendrier',
   favorite: 'Favori',
   unfavorite: 'Retrait favori',
+  not_interested: 'Pas pour moi',
   share: 'Partage',
   open_shared: 'Ouverture d’un lien partagé',
   chip_time: 'Filtre horaire',

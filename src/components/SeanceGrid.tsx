@@ -48,6 +48,9 @@ type Props = {
    * The kids mode must not collapse a work's retained screening into the œuvre.
    */
   oneCardPerSeance?: boolean;
+  /** P3 « pas pour moi » on Top 3 and home list cards. Not the fiche. */
+  onNotInterested?: (item: DayItem) => void;
+  notInterested?: (item: DayItem) => boolean;
 };
 
 export { densifiedCardCount };
@@ -120,6 +123,8 @@ function FixedSlotsGrid({
   nouveauFilmIds,
   reasonFor,
   origin,
+  onNotInterested,
+  notInterested,
 }: Pick<
   Props,
   | 'items'
@@ -129,6 +134,8 @@ function FixedSlotsGrid({
   | 'nouveauFilmIds'
   | 'reasonFor'
   | 'origin'
+  | 'onNotInterested'
+  | 'notInterested'
 >) {
   const visible = origin
     ? visibleTop3Nearest(items, origin)
@@ -181,6 +188,8 @@ function FixedSlotsGrid({
               reason={reasonFor?.(item) ?? null}
               distanceKm={itemKmLabel(item, origin)}
               priority={i === 0}
+              onNotInterested={onNotInterested}
+              notInterested={notInterested?.(item) ?? false}
             />
           </li>
         ))}
@@ -207,6 +216,8 @@ export default function SeanceGrid({
   reasonFor,
   origin,
   oneCardPerSeance = false,
+  onNotInterested,
+  notInterested,
 }: Props) {
   if (oneCardPerSeance) {
     return (
@@ -219,6 +230,8 @@ export default function SeanceGrid({
         variant={variant}
         reasonFor={reasonFor}
         origin={origin}
+        onNotInterested={onNotInterested}
+        notInterested={notInterested}
       />
     );
   }
@@ -233,6 +246,8 @@ export default function SeanceGrid({
         nouveauFilmIds={nouveauFilmIds}
         reasonFor={reasonFor}
         origin={origin}
+        onNotInterested={onNotInterested}
+        notInterested={notInterested}
       />
     );
   }
@@ -251,6 +266,8 @@ export default function SeanceGrid({
       variant={variant}
       reasonFor={reasonFor}
       origin={origin}
+      onNotInterested={onNotInterested}
+      notInterested={notInterested}
     />
   );
 }
@@ -264,6 +281,8 @@ function SeancePerRow({
   variant,
   reasonFor,
   origin,
+  onNotInterested,
+  notInterested,
 }: Omit<Props, 'fixedSlots' | 'oneCardPerSeance' | 'visibleCount' | 'onLoadMore' | 'hasMoreRemote' | 'empty'>) {
   if (items.length === 0) return null;
   return (
@@ -279,6 +298,8 @@ function SeancePerRow({
             variant={variant}
             reason={reasonFor?.(item) ?? null}
             distanceKm={origin ? itemKmLabel(item, origin) : null}
+            onNotInterested={onNotInterested}
+            notInterested={notInterested?.(item) ?? false}
           />
         </li>
       ))}
@@ -299,6 +320,8 @@ function DensifiedGrid({
   variant,
   reasonFor,
   origin,
+  onNotInterested,
+  notInterested,
 }: Omit<Props, 'fixedSlots'>) {
   const rows = useMemo(
     () => densify(items, origin ? { origin } : undefined),
@@ -383,6 +406,8 @@ function DensifiedGrid({
                       itemKmLabel(item, origin)
                     : null
                 }
+                onNotInterested={onNotInterested}
+                notInterested={notInterested?.(item) ?? false}
               />
             </li>
           ),
