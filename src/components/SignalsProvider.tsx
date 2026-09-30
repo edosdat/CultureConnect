@@ -37,13 +37,21 @@ import {
   addGuestPhraseSignal,
   appendGuestSignal,
   clearGuestStore,
+  clearGuestStorePersistence,
   notifySignalsChanged,
   persistCohortFromLocation,
   readGuestStore,
   rememberGuestItemTags,
   wipeGuestProfileKey,
+  writeGuestStore,
 } from '@/lib/signalsStore';
 import { clientSignalPostMode } from '@/lib/guestSignals';
+import {
+  hasAcceptedSignalsConsent,
+  readSignalsConsent,
+  writeSignalsConsent,
+  type SignalsConsent,
+} from '@/lib/signalsConsent';
 import { notifyTasteCookieOnce, notifyVidCookiePosed } from './TasteCookieNotice';
 import { writeAccountProfileCache } from '@/lib/tastesCache';
 
@@ -64,6 +72,10 @@ type SignalsValue = {
   loginNudgeReady: boolean;
   loginNudgeDismissed: boolean;
   dismissLoginNudge: () => void;
+  /** P8: null = undecided (banner), accepted | refused = choice cookie. */
+  signalsConsent: SignalsConsent | null;
+  acceptSignalsConsent: () => void;
+  refuseSignalsConsent: () => void;
 };
 
 const SignalsContext = createContext<SignalsValue>({
@@ -78,6 +90,9 @@ const SignalsContext = createContext<SignalsValue>({
   loginNudgeReady: false,
   loginNudgeDismissed: true,
   dismissLoginNudge: () => {},
+  signalsConsent: null,
+  acceptSignalsConsent: () => {},
+  refuseSignalsConsent: () => {},
 });
 
 export function useSignals() {
@@ -131,6 +146,11 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
   const { data: session, status, update } = useSession();
   const [guestStore, setGuestStore] = useState<GuestSignalsStore>(emptyGuestStore);
   const [dismissed, setDismissed] = useState(true);
+  const [signalsConsent, setSignalsConsent] = useState<SignalsConsent | null>(
+    null,
+  );
+  const guestStoreRef = useRef(guestStore);
+  guestStoreRef.current = guestStore;
   const mergedRef = useRef(false);
   const pendingSignalsRef = useRef<Signal[]>([]);
   const statusRef = useRef(status);
@@ -140,7 +160,19 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     persistCohortFromLocation();
-    setGuestStore(readGuestStore());
+    const consent = readSignalsConsent();
+    setSignalsConsent(consent);
+    const stored = readGuestStore();
+    if (consent === 'refused') {
+      clearGuestStore();
+      setGuestStore(emptyGuestStore());
+    } else if (consent !== 'accepted') {
+      // Drop unauthorized tracer; keep RAM copy while the banner is undecided.
+      clearGuestStorePersistence();
+      setGuestStore(stored);
+    } else {
+      setGuestStore(stored);
+    }
     try {
       setDismissed(sessionStorage.getItem(LOGIN_NUDGE_DISMISS_KEY) === '1');
     } catch {
@@ -234,6 +266,8 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
     const next = appendGuestSignal(signal);
     setGuestStore(next);
     notifySignalsChanged();
+    // Persist + server guest append only with accept (P8).
+    if (!hasAcceptedSignalsConsent()) return Promise.resolve();
     notifyTasteCookieOnce();
     return postGuestSignal(signal);
   }, []);
@@ -334,7 +368,7 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
       const next = wipeGuestProfileKey(bucket, key);
       setGuestStore(next);
       notifySignalsChanged();
-      notifyTasteCookieOnce();
+      if (hasAcceptedSignalsConsent()) notifyTasteCookieOnce();
     },
     [applyAccountTaste, session?.user, status, update],
   );
@@ -353,10 +387,27 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
       const next = addGuestPhraseSignal(makeSignal(payload));
       setGuestStore(next);
       notifySignalsChanged();
-      notifyTasteCookieOnce();
+      if (hasAcceptedSignalsConsent()) notifyTasteCookieOnce();
     },
     [applyAccountTaste, session?.user, status],
   );
+
+  const acceptSignalsConsent = useCallback(() => {
+    writeSignalsConsent('accepted');
+    setSignalsConsent('accepted');
+    const next = writeGuestStore(guestStoreRef.current);
+    setGuestStore(next);
+    notifySignalsChanged();
+    notifyTasteCookieOnce();
+  }, []);
+
+  const refuseSignalsConsent = useCallback(() => {
+    writeSignalsConsent('refused');
+    setSignalsConsent('refused');
+    clearGuestStore();
+    setGuestStore(emptyGuestStore());
+    notifySignalsChanged();
+  }, []);
 
   const dismissLoginNudge = useCallback(() => {
     try {
@@ -405,6 +456,9 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
       loginNudgeReady,
       loginNudgeDismissed: dismissed,
       dismissLoginNudge,
+      signalsConsent,
+      acceptSignalsConsent,
+      refuseSignalsConsent,
     }),
     [
       track,
@@ -418,6 +472,9 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
       loginNudgeReady,
       dismissed,
       dismissLoginNudge,
+      signalsConsent,
+      acceptSignalsConsent,
+      refuseSignalsConsent,
     ],
   );
 

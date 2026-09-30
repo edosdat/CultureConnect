@@ -25,8 +25,13 @@ export default function ConfidentialitePage() {
           par Eloi DOSDAT.
         </p>
         <p>
-          <span className="font-medium">Quoi.</span> Ton e-mail Google, et tes
-          goûts (chips / phrases) pour les suggestions.
+          <span className="font-medium">Quoi.</span> Ton e-mail Google, ton{' '}
+          <span className="font-medium">prénom</span> et ta photo (affichage),
+          ton <span className="font-medium">champ libre</span> (phrase de
+          goûts), tes chips, et ton{' '}
+          <span className="font-medium">historique de clics</span> (ouverture
+          de carte, réserve, favori, partage…) pour les suggestions
+          «&nbsp;Pour toi&nbsp;».
         </p>
         <p>On affiche ton prénom et ta photo, on ne les met pas en base.</p>
         <p>
@@ -73,28 +78,63 @@ export default function ConfidentialitePage() {
           </a>
           .
         </p>
+
+        <section
+          aria-labelledby="opposition-title"
+          className="rounded-2xl border border-culture-line bg-culture-cream/60 px-4 py-3"
+        >
+          <h2
+            id="opposition-title"
+            className="font-display text-base text-culture-ink"
+          >
+            Droit d&apos;opposition (article 21)
+          </h2>
+          <p className="mt-2">
+            Tu peux t&apos;opposer à tout moment au traitement de tes goûts et
+            clics pour la personnalisation «&nbsp;Pour toi&nbsp;», y compris
+            lorsque la base est l&apos;intérêt légitime. Sur cet appareil :
+            choisis «&nbsp;Refuser tout&nbsp;» dans le bandeau cookies (ou
+            écris-nous). Compte connecté : «&nbsp;Supprimer mon compte&nbsp;»
+            efface la ligne en base. On ne te demandera pas de justifier ton
+            opposition pour ce profilage lié à CultureConnect.
+          </p>
+        </section>
+
         <p>
           <span className="font-medium">Autour de moi.</span> On utilise ta
           position le temps du tri.
         </p>
         <p>On ne la garde pas.</p>
         <p>
-          <span className="font-medium">Cookies.</span> Deux cookies distincts,
-          jamais joints :
+          <span className="font-medium">Cookies.</span> Cookies distincts,
+          jamais joints. Le traceur de goûts n&apos;est posé qu&apos;après
+          «&nbsp;Accepter tout&nbsp;».
         </p>
         <p>
-          <span className="font-medium">cc_signals_v1</span> : 14 j, goûts sur
-          cet appareil.
+          <span className="font-medium">cc_signals_v1</span> : 14&nbsp;j (≤&nbsp;13
+          mois, non renouvelable automatiquement), goûts sur cet appareil —
+          phrase, chips, historique de clics. Base : ton consentement.
         </p>
         <p>
-          <span className="font-medium">cc_vid</span> : 14 j, id anonyme
-          visiteurs/retours. Pas goûts, pas email. First-party, on ne revend
-          pas.
+          <span className="font-medium">cc_signals_consent</span> : ~6&nbsp;mois,
+          mémorise ton choix Accepter / Refuser.
+        </p>
+        <p>
+          <span className="font-medium">cc_vid</span> : 14&nbsp;j (données
+          d&apos;audience ≤&nbsp;25&nbsp;mois), id anonyme visiteurs/retours. Pas
+          goûts, pas email. First-party, on ne revend pas.
         </p>
         <p>
           <span className="font-medium">cc_vid</span> est posé au premier
           signal, pas au chargement. HttpOnly, SameSite=Lax, Secure. On ne le
           relie jamais à Google ni à Neon.
+        </p>
+        <p>
+          <span className="font-medium">Durées (synthèse).</span> Traceur goûts
+          ≤&nbsp;13&nbsp;mois non renouvelable (ici 14&nbsp;j) ; audience
+          ≤&nbsp;25&nbsp;mois (ici 14&nbsp;j) ; choix de consentement
+          ~6&nbsp;mois ; compte / goûts Neon : 24&nbsp;mois après la dernière
+          activité.
         </p>
         <p>
           <span className="font-medium">Partage.</span> Si tu tapes Envie ou
@@ -106,11 +146,12 @@ export default function ConfidentialitePage() {
           prénom ni à un e-mail.
         </p>
         <p>
-          Base légale : intérêt légitime à proposer «&nbsp;Pour toi&nbsp;», et
-          ton action quand tu indiques tes goûts. Conservation 24 mois après
-          la dernière activité, puis suppression. Compte connecté : tu peux
-          tout effacer via le bouton «&nbsp;Supprimer mon compte&nbsp;»
-          ci-dessous.
+          Base légale : intérêt légitime à proposer «&nbsp;Pour toi&nbsp;» côté
+          compte, et ton consentement pour le cookie appareil{' '}
+          <span className="font-medium">cc_signals_v1</span>. Conservation
+          24&nbsp;mois après la dernière activité, puis suppression. Compte
+          connecté : tu peux tout effacer via le bouton «&nbsp;Supprimer mon
+          compte&nbsp;» ci-dessous.
         </p>
         <p>
           <span className="font-medium">Proposition.</span> Tu peux proposer un
@@ -118,6 +159,69 @@ export default function ConfidentialitePage() {
           temps de vérifier. Ça n’entre pas dans l’agenda tant qu’on n’a pas
           vérifié. Supprimer le compte retire aussi ces propositions.
         </p>
+
+        <section aria-labelledby="registre-title" className="pt-2">
+          <h2
+            id="registre-title"
+            className="font-display text-base text-culture-ink"
+          >
+            Registre des traitements
+          </h2>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full min-w-[28rem] border-collapse text-left text-xs sm:text-sm">
+              <thead>
+                <tr className="border-b border-culture-line text-culture-muted">
+                  <th className="py-2 pr-3 font-medium">Traitement</th>
+                  <th className="py-2 pr-3 font-medium">Finalité</th>
+                  <th className="py-2 pr-3 font-medium">Base</th>
+                  <th className="py-2 font-medium">Durée</th>
+                </tr>
+              </thead>
+              <tbody className="align-top">
+                <tr className="border-b border-culture-line/70">
+                  <td className="py-2 pr-3">Compte Google</td>
+                  <td className="py-2 pr-3">
+                    Connexion, affichage prénom / photo
+                  </td>
+                  <td className="py-2 pr-3">Exécution du service</td>
+                  <td className="py-2">Session Auth.js (~30&nbsp;j)</td>
+                </tr>
+                <tr className="border-b border-culture-line/70">
+                  <td className="py-2 pr-3">
+                    Profil de goûts (phrase, chips, clics)
+                  </td>
+                  <td className="py-2 pr-3">
+                    Personnalisation «&nbsp;Pour toi&nbsp;»
+                  </td>
+                  <td className="py-2 pr-3">
+                    Consentement (cookie) / compte
+                  </td>
+                  <td className="py-2">
+                    14&nbsp;j appareil ; 24&nbsp;mois compte
+                  </td>
+                </tr>
+                <tr className="border-b border-culture-line/70">
+                  <td className="py-2 pr-3">Mesure d&apos;audience (cc_vid)</td>
+                  <td className="py-2 pr-3">
+                    Visiteurs / retours anonymes, first-party
+                  </td>
+                  <td className="py-2 pr-3">
+                    Intérêt légitime / exemption audience
+                  </td>
+                  <td className="py-2">14&nbsp;j (≤&nbsp;25&nbsp;mois)</td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-3">Choix de consentement</td>
+                  <td className="py-2 pr-3">
+                    Mémoriser Accepter / Refuser le traceur goûts
+                  </td>
+                  <td className="py-2 pr-3">Obligation / preuve du choix</td>
+                  <td className="py-2">~6&nbsp;mois</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
 
       <DeleteAccountButton />
