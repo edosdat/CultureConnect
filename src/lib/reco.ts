@@ -1752,9 +1752,17 @@ export function recommendForProfile(
  * Max 2 / primary genre; exactly 1 untagged when the pool has any;
  * dedup vs `exclude` identities. Engine default limit stays 6 for older tests.
  *
- * Displayed « parce que… » MUST use `reasonTasteSlugsForItem` /
- * `displayReasonForItem` — never a second reason path from `entry.reason`
- * (P0b / #175). This scorer stamps popularite/nouveaute only.
+ * **No cinéma** in the slice (P1b): filter `slotFormOfItem === 'cine'`.
+ * Theatre / concert / vivant only. Top 3 may still pick cine. If the
+ * feasible pool has no non-cine stock after exclude, return shorter/empty —
+ * never soft-fill with cinema.
+ *
+ * When `profileHasChipWeight`, rank affinity (`scoreOverlapHit` / same
+ * IDF+stock pattern as `recommendForProfile`) above cold fallback so
+ * `displayReasonForItem` can emit « parce que… ». Guest / empty profile:
+ * popularité behavior unchanged. Still stamps popularite/nouveaute only —
+ * displayed why-lines MUST use `reasonTasteSlugsForItem` /
+ * `displayReasonForItem` (P0b / #175), never a second path from `entry.reason`.
  */
 export function recommendSlice(
   items: DayItem[],
@@ -1766,14 +1774,88 @@ export function recommendSlice(
   if (items.length === 0 || limit <= 0) return [];
   const now = options?.now ?? new Date();
   const blocked = new Set(exclude.map(itemIdentity).filter(Boolean));
+  // P1b: slice is vivant-only — cinema stays in Top 3, never in this row.
   const pool = feasiblePool(items, state.profile, now).filter(
-    (item) => !blocked.has(itemIdentity(item)),
+    (item) =>
+      !blocked.has(itemIdentity(item)) && slotFormOfItem(item) !== 'cine',
   );
   if (pool.length === 0) return [];
 
   const nouveauIds = options?.nouveauFilmIds ?? new Set<string>();
-  const scored = scoreFallbackPool(pool, nouveauIds);
-  scored.sort(compareRank);
+  const hasProfile = profileHasChipWeight(state.profile);
+  const fallbackScored = scoreFallbackPool(pool, nouveauIds);
+  const fallbackById = new Map<string, ScoredDayItem>();
+  for (const entry of fallbackScored) {
+    const id = itemIdentity(entry.item) || entry.item.key || '';
+    if (id) fallbackById.set(id, entry);
+  }
+
+  let scored: ScoredDayItem[];
+  if (hasProfile) {
+    const idfBySlot = {
+      cine: inverseMoodWeights(pool, 'cine'),
+      theatre: inverseMoodWeights(pool, 'theatre'),
+      concert: inverseMoodWeights(pool, 'concert'),
+    };
+    const stockBySlot = {
+      cine: moodStockInSlot(pool, 'cine'),
+      theatre: moodStockInSlot(pool, 'theatre'),
+      concert: moodStockInSlot(pool, 'concert'),
+    };
+    const neighborKeys = [
+      ...Object.keys(state.profile.moods),
+      ...Object.keys(state.profile.genres),
+    ];
+    const neighborOkBySlot: Record<RecoSlotForm, Map<string, boolean>> = {
+      cine: new Map(),
+      theatre: new Map(),
+      concert: new Map(),
+    };
+    for (const slot of SLOT_ORDER) {
+      for (const key of neighborKeys) {
+        neighborOkBySlot[slot].set(key, neighborBridgeOk(pool, slot, key));
+      }
+    }
+
+    const affinity: ScoredDayItem[] = [];
+    const cold: ScoredDayItem[] = [];
+    const affinityIds = new Set<string>();
+    for (const item of pool) {
+      const slot = slotFormOfItem(item);
+      if (!slot || slot === 'cine') continue;
+      const id = itemIdentity(item) || item.key || '';
+      const coldEntry = id ? fallbackById.get(id) : undefined;
+      const coldReason: RecoReason =
+        coldEntry?.reason?.source === 'nouveaute'
+          ? { source: 'nouveaute' }
+          : { source: 'popularite' };
+      const hit = scoreOverlapHit(item, state.profile, slot, {
+        idf: idfBySlot[slot],
+        stock: stockBySlot[slot],
+        neighborOk: neighborOkBySlot[slot],
+      });
+      if (hit.score > 0) {
+        if (id) affinityIds.add(id);
+        // Rank above fallback; stamp popularite/nouveaute only (P0b).
+        affinity.push({ item, score: 10 + hit.score, reason: coldReason });
+      } else if (coldEntry) {
+        cold.push({ ...coldEntry, reason: coldReason });
+      }
+    }
+    affinity.sort(compareRank);
+    cold.sort(compareRank);
+    // Affinity first, then cold fallback not already affinity-picked.
+    scored = [
+      ...affinity,
+      ...cold.filter((e) => {
+        const id = itemIdentity(e.item) || e.item.key || '';
+        return !id || !affinityIds.has(id);
+      }),
+    ];
+  } else {
+    scored = fallbackScored;
+    scored.sort(compareRank);
+  }
 
   const wantUntagged = pool.some(itemIsUntagged) ? 1 : 0;
   const cap = Math.max(1, limit);
@@ -1783,6 +1865,8 @@ export function recommendSlice(
   let untagged = 0;
 
   const take = (entry: ScoredDayItem, onlyUntagged = false): boolean => {
+    // Defence in depth: never admit cinema into the slice.
+    if (slotFormOfItem(entry.item) === 'cine') return false;
     const id = itemIdentity(entry.item);
     if (id && seen.has(id)) return false;
     if (onlyUntagged && !itemIsUntagged(entry.item)) return false;
@@ -1793,7 +1877,9 @@ export function recommendSlice(
     if (itemIsUntagged(entry.item)) untagged += 1;
     out.push({
       ...entry,
-      reason: { source: entry.reason?.source === 'nouveaute' ? 'nouveaute' : 'popularite' },
+      reason: {
+        source: entry.reason?.source === 'nouveaute' ? 'nouveaute' : 'popularite',
+      },
     });
     return true;
   };

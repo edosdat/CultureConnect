@@ -657,6 +657,266 @@ describe('recommendSlice', () => {
     });
     assert.ok(line == null || typeof line === 'string');
   });
+
+  it('P1b: never admits cinéma when vivant stock is available', () => {
+    const top3 = [
+      item({
+        key: 'cine-top',
+        cat: 'cinema',
+        filmId: 'F-TOP',
+        moods: 'rigolo',
+        genre: 'comedie',
+      }),
+      item({
+        key: 'th-top',
+        cat: 'theatre',
+        eventId: 'TH-TOP',
+        genre: 'theatre_contemporain',
+        moods: 'tendre',
+      }),
+      item({
+        key: 'co-top',
+        cat: 'musique',
+        eventId: 'CO-TOP',
+        genre: 'rock',
+        moods: 'festif',
+      }),
+    ];
+    // Dominated by popular cinema clones + enough theatre/concert to fill 5.
+    const pool = [
+      ...top3,
+      ...Array.from({ length: 8 }, (_, i) =>
+        item({
+          key: `cine-extra-${i}`,
+          cat: 'cinema',
+          filmId: `FX${i}`,
+          moods: 'intense',
+          genre: `thriller_${i}`,
+          day: '2026-09-02',
+          heure: `1${i % 8}:00`,
+        }),
+      ),
+      item({
+        key: 'th1',
+        cat: 'theatre',
+        eventId: 'TH1',
+        genre: 'humour_standup',
+        moods: 'rigolo',
+      }),
+      item({
+        key: 'th2',
+        cat: 'theatre',
+        eventId: 'TH2',
+        genre: 'lecture_poesie',
+        moods: 'poetique',
+      }),
+      item({
+        key: 'th3',
+        cat: 'theatre',
+        eventId: 'TH3',
+        genre: 'danse',
+        moods: 'dansant',
+      }),
+      item({
+        key: 'co1',
+        cat: 'musique',
+        eventId: 'CO1',
+        genre: 'jazz_blues',
+        moods: 'festif',
+      }),
+      item({
+        key: 'co2',
+        cat: 'musique',
+        eventId: 'CO2',
+        genre: 'electro_techno',
+        moods: 'dansant',
+      }),
+      item({
+        key: 'u1',
+        cat: 'theatre',
+        eventId: 'U1',
+        genre: 'theatre_classique',
+      }), // untagged
+    ];
+    const slice = recommendSlice(
+      pool,
+      emptyTasteState(),
+      visibleTop3Items(top3),
+      HOME_SLICE_LIMIT,
+      { now: NOW },
+    );
+    assert.ok(slice.length >= 1);
+    assert.equal(
+      slice.filter((s) => slotFormOfItem(s.item) === 'cine').length,
+      0,
+      'slice must have 0 cinéma cards when vivant stock exists',
+    );
+    for (const row of slice) {
+      assert.notEqual(slotFormOfItem(row.item), 'cine');
+      assert.ok(
+        slotFormOfItem(row.item) === 'theatre' ||
+          slotFormOfItem(row.item) === 'concert',
+      );
+    }
+  });
+
+  it('P1b: returns empty (not cine fill) when only cinema remains after exclude', () => {
+    const top3 = [
+      item({ key: 'th-only', cat: 'theatre', eventId: 'TH-O', moods: 'tendre' }),
+      item({ key: 'co-only', cat: 'musique', eventId: 'CO-O', moods: 'festif' }),
+    ];
+    const pool = [
+      ...top3,
+      item({
+        key: 'cine-only-1',
+        cat: 'cinema',
+        filmId: 'FC1',
+        moods: 'rigolo',
+        genre: 'comedie',
+      }),
+      item({
+        key: 'cine-only-2',
+        cat: 'cinema',
+        filmId: 'FC2',
+        moods: 'intense',
+        genre: 'thriller',
+      }),
+    ];
+    const slice = recommendSlice(
+      pool,
+      emptyTasteState(),
+      visibleTop3Items(top3),
+      HOME_SLICE_LIMIT,
+      { now: NOW },
+    );
+    assert.equal(slice.length, 0);
+    assert.equal(
+      slice.filter((s) => slotFormOfItem(s.item) === 'cine').length,
+      0,
+    );
+  });
+
+  it('P1b: affinity selection yields displayReasonForItem why-lines (no second path)', () => {
+    const st = state({
+      profile: profile({
+        moods: {
+          festif: { weight: 8, pct: 100 },
+          tendre: { weight: 6, pct: 80 },
+        },
+      }),
+    });
+    const top3 = [
+      item({
+        key: 'cine-top',
+        cat: 'cinema',
+        filmId: 'F-TOP',
+        moods: 'rigolo',
+        genre: 'comedie',
+      }),
+    ];
+    // Cold-popular untagged cinema clones must NOT crowd out mood-matching vivant.
+    const coldCine = Array.from({ length: 6 }, (_, i) =>
+      item({
+        key: `cold-cine-${i}`,
+        cat: 'cinema',
+        filmId: `COLD${i}`,
+        genre: `fiction_${i}`,
+        day: '2026-09-02',
+        heure: `1${i}:00`,
+      }),
+    );
+    const affinityTheatre = item({
+      key: 'th-fest',
+      cat: 'theatre',
+      eventId: 'TH-FEST',
+      genre: 'humour_standup',
+      moods: 'festif',
+    });
+    const affinityConcert = item({
+      key: 'co-tend',
+      cat: 'musique',
+      eventId: 'CO-TEND',
+      genre: 'chanson_variete',
+      moods: 'tendre',
+    });
+    const noOverlapTheatre = item({
+      key: 'th-cold',
+      cat: 'theatre',
+      eventId: 'TH-COLD',
+      genre: 'theatre_contemporain',
+      moods: 'sombre',
+    });
+    const pool = [
+      ...top3,
+      ...coldCine,
+      affinityTheatre,
+      affinityConcert,
+      noOverlapTheatre,
+      item({
+        key: 'co2',
+        cat: 'musique',
+        eventId: 'CO2',
+        genre: 'jazz_blues',
+        moods: 'festif',
+      }),
+      item({
+        key: 'th2',
+        cat: 'theatre',
+        eventId: 'TH2',
+        genre: 'danse',
+        moods: 'dansant',
+      }),
+      item({
+        key: 'u1',
+        cat: 'theatre',
+        eventId: 'U1',
+        genre: 'cirque_arts_rue',
+      }),
+    ];
+
+    const slice = recommendSlice(
+      pool,
+      st,
+      visibleTop3Items(top3),
+      HOME_SLICE_LIMIT,
+      { now: NOW },
+    );
+    assert.ok(slice.length >= 2);
+    assert.equal(
+      slice.filter((s) => slotFormOfItem(s.item) === 'cine').length,
+      0,
+    );
+    // Scorer still stamps popularite/nouveaute only (P0b — UI uses displayReason).
+    for (const row of slice) {
+      assert.notEqual(row.reason?.source, 'profile');
+    }
+
+    const whyOpts = {
+      guest: false as const,
+      tasteState: st,
+      scope: 'aujourdhui' as const,
+      commune: null,
+    };
+    const withWhy = slice.filter(
+      (row) => displayReasonForItem(row.item, whyOpts) != null,
+    );
+    assert.ok(
+      withWhy.length >= 1,
+      'affinity-picked vivant must be able to produce « parce que… » via displayReasonForItem',
+    );
+    // Affinity moods preferred over cold sombre theatre when profile has festif/tendre.
+    const keys = new Set(slice.map((s) => s.item.key));
+    assert.ok(
+      keys.has('th-fest') || keys.has('co-tend') || keys.has('co2'),
+      'expected at least one festif/tendre affinity pick in the slice',
+    );
+    for (const row of withWhy) {
+      const line = displayReasonForItem(row.item, whyOpts);
+      assert.ok(line && line.startsWith('parce que'));
+      const allowed = reasonTasteSlugsForItem(row.item);
+      assert.ok(allowed.length > 0);
+    }
+  });
 });
 
 describe('sliceHeading', () => {
