@@ -350,6 +350,23 @@ export const THEME_SLUGS = [
   'voyage',
 ] as const;
 
+/**
+ * Art. 9 RGPD — orientation / religion / opinion politique.
+ * Stay in THEME_SLUGS / CLOSED_THEMES for content + session-explicit filters,
+ * but never persist into profile.themes or score via profile pct.
+ */
+export const PROFILE_EXCLUDED_THEMES = [
+  'lgbt',
+  'religion',
+  'politique',
+] as const;
+
+const PROFILE_EXCLUDED_THEME_SET = new Set<string>(PROFILE_EXCLUDED_THEMES);
+
+export function isProfileExcludedTheme(slug: string): boolean {
+  return PROFILE_EXCLUDED_THEME_SET.has(slug.trim().toLowerCase());
+}
+
 const THEME_WORDS: Record<string, string> = {
   feminisme: 'feminisme',
   feministe: 'feminisme',

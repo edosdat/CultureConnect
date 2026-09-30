@@ -16,7 +16,7 @@ import {
   mainFromGenreSlug,
   type MainCategoryId,
 } from '@/lib/categories';
-import { isTasteMood, TASTE_MOODS } from '@/lib/phraseTags';
+import { isProfileExcludedTheme, isTasteMood, TASTE_MOODS } from '@/lib/phraseTags';
 import {
   entryPct,
   entryWeight,
@@ -929,7 +929,8 @@ export type RecoSlotForm = 'cine' | 'theatre' | 'concert';
 /** 16 taste moods only. `sortie` is not a goût — do not score it. */
 const CLOSED_MOODS = new Set<string>(TASTE_MOODS);
 const NO_BRIDGE_MOODS = new Set(['angoissant', 'brutal', 'cerveau']);
-const CLOSED_THEMES = new Set([
+/** Content + session-filter vocab — includes Art.9 slugs that stay out of profile.themes (P7). */
+export const CLOSED_THEMES = new Set([
   'feminisme',
   'histoire',
   'politique',
@@ -1130,7 +1131,11 @@ function userPctForSlug(
   bucket: 'mood' | 'theme' | 'genre',
 ): number {
   if (bucket === 'mood') return entryPct(profile.moods[slug]);
-  if (bucket === 'theme') return entryPct(profile.themes?.[slug]);
+  if (bucket === 'theme') {
+    // P7: Art.9 themes never contribute via profile.themes pct
+    if (isProfileExcludedTheme(slug)) return 0;
+    return entryPct(profile.themes?.[slug]);
+  }
   return entryPct(profile.genres[slug]);
 }
 
