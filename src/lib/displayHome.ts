@@ -539,6 +539,17 @@ export function top3Heading(
   return signedIn ? `Mon top ${n} du moment` : `Le top ${n} du moment`;
 }
 
+/** Live home `recommendSlice` limit (P1). Pass explicitly — engine default is 6. */
+export const HOME_SLICE_LIMIT = 5;
+
+/**
+ * H2 for the P1 discovery row under Top 3.
+ * Soft Design may retune copy; keep short and parallel to top3Heading.
+ */
+export function sliceHeading(signedIn = false): string {
+  return signedIn ? 'Encore pour toi' : 'Encore des idées';
+}
+
 export function eventIdOf(item: DayItem): string {
   if (item.kind === 'programme') return item.programme.event_id || '';
   return item.evenement.event_id || '';

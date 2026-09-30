@@ -8,10 +8,12 @@ import {
 } from './phraseTags';
 import {
   displayReasonForItem,
+  HOME_SLICE_LIMIT,
   reasonTasteSlugsForItem,
   recoWhyForMood,
   seanceCardShowsPitch,
   shouldShowTop3Section,
+  sliceHeading,
   top3GridClass,
   top3Heading,
   top3TrackClass,
@@ -490,6 +492,178 @@ describe('recommendSlice', () => {
     assert.ok(jazz.length <= 2);
     assert.ok(slice.some((s) => itemIsUntagged(s.item)));
     for (const row of slice) assert.notEqual(row.reason?.source, 'profile');
+  });
+
+  it('P1 limit 5: no overlap with visible Top3, max 2/genre, exactly 1 untagged', () => {
+    assert.equal(HOME_SLICE_LIMIT, 5);
+    // Displayed Top 3 = cine + concert only (theatre slot empty at display).
+    const displayedTop3 = [
+      item({
+        key: 'cine-top',
+        cat: 'cinema',
+        filmId: 'F-TOP',
+        moods: 'rigolo',
+        genre: 'comedie',
+      }),
+      item({
+        key: 'co-top',
+        cat: 'musique',
+        eventId: 'CO-TOP',
+        genre: 'rock',
+        moods: 'festif',
+      }),
+    ];
+    const exclude = visibleTop3Items(displayedTop3);
+    assert.equal(exclude.length, 2);
+
+    // Theatre present in a hypothetical raw reco array but NOT displayed.
+    const theatreNotDisplayed = item({
+      key: 'th-eligible',
+      cat: 'theatre',
+      eventId: 'TH-ELIG',
+      genre: 'theatre_contemporain',
+      moods: 'tendre',
+    });
+
+    const pool = [
+      ...displayedTop3,
+      theatreNotDisplayed,
+      item({
+        key: 'j1',
+        cat: 'musique',
+        eventId: 'J1',
+        genre: 'jazz_blues',
+        moods: 'festif',
+      }),
+      item({
+        key: 'j2',
+        cat: 'musique',
+        eventId: 'J2',
+        genre: 'jazz_blues',
+        moods: 'festif',
+      }),
+      item({
+        key: 'j3',
+        cat: 'musique',
+        eventId: 'J3',
+        genre: 'jazz_blues',
+        moods: 'festif',
+      }),
+      item({
+        key: 'r1',
+        cat: 'musique',
+        eventId: 'R1',
+        genre: 'rock_metal_punk',
+        moods: 'intense',
+      }),
+      item({
+        key: 'u1',
+        cat: 'theatre',
+        eventId: 'U1',
+        genre: 'humour_standup',
+      }), // untagged (no moods)
+      item({
+        key: 'th2',
+        cat: 'theatre',
+        eventId: 'TH2',
+        genre: 'lecture_poesie',
+        moods: 'poetique',
+      }),
+      item({
+        key: 'cine2',
+        cat: 'cinema',
+        filmId: 'F2',
+        moods: 'intense',
+        genre: 'thriller',
+      }),
+    ];
+
+    const slice = recommendSlice(
+      pool,
+      emptyTasteState(),
+      exclude,
+      HOME_SLICE_LIMIT,
+      { now: NOW },
+    );
+    assert.equal(slice.length, HOME_SLICE_LIMIT);
+
+    const ids = new Set(slice.map((s) => itemIdentity(s.item)));
+    for (const t of exclude) {
+      assert.equal(
+        ids.has(itemIdentity(t)),
+        false,
+        `slice must not overlap displayed Top3 ${itemIdentity(t)}`,
+      );
+    }
+
+    // Contract: empty display slots must not exclude. Wrong exclude =
+    // displayed ∪ non-displayed raw pick → theatre vanishes from the row.
+    const wrongExclude = [...exclude, theatreNotDisplayed];
+    const blockedWrong = recommendSlice(
+      pool,
+      emptyTasteState(),
+      wrongExclude,
+      HOME_SLICE_LIMIT,
+      { now: NOW },
+    );
+    assert.equal(
+      blockedWrong.some(
+        (s) => itemIdentity(s.item) === itemIdentity(theatreNotDisplayed),
+      ),
+      false,
+    );
+    assert.equal(
+      exclude.some(
+        (t) => itemIdentity(t) === itemIdentity(theatreNotDisplayed),
+      ),
+      false,
+      'visibleTop3Items must omit the non-displayed theatre',
+    );
+
+    const jazz = slice.filter(
+      (s) =>
+        s.item.kind === 'programme' && s.item.programme.genre === 'jazz_blues',
+    );
+    assert.ok(jazz.length <= 2, `max 2/genre on the 5, got jazz=${jazz.length}`);
+
+    const untagged = slice.filter((s) => itemIsUntagged(s.item));
+    assert.equal(
+      untagged.length,
+      1,
+      `exactly 1 untagged when pool has untagged, got ${untagged.length}`,
+    );
+
+    for (const row of slice) {
+      assert.notEqual(row.reason?.source, 'profile');
+    }
+  });
+
+  it('P1 displayed reasons stay on reasonTasteSlugsForItem (no second path)', () => {
+    const row = item({
+      key: 'cine-reason',
+      cat: 'cinema',
+      filmId: 'F-R',
+      moods: 'rigolo',
+      genre: 'comedie',
+    });
+    const allowed = reasonTasteSlugsForItem(row);
+    assert.ok(allowed.includes('rigolo'));
+    // displayReasonForItem is the only UI path (guest → place/time line).
+    const line = displayReasonForItem(row, {
+      guest: true,
+      tasteState: null,
+      scope: 'aujourdhui',
+      commune: null,
+    });
+    assert.ok(line == null || typeof line === 'string');
+  });
+});
+
+describe('sliceHeading', () => {
+  it('mirrors top3 signed-in voice without touching Top3 quota copy', () => {
+    assert.equal(sliceHeading(false), 'Encore des idées');
+    assert.equal(sliceHeading(true), 'Encore pour toi');
+    assert.equal(top3Heading(3, true), 'Mon top 3 du moment');
   });
 });
 

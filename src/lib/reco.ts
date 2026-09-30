@@ -1748,8 +1748,13 @@ export function recommendForProfile(
 }
 
 /**
- * 6-item row outside top 3: max 2/genre, 1 untagged / 6 (discovery,
- * 0 personal reason), dedup vs top 3 identities.
+ * Discovery row outside Top 3. Live home (P1) calls with **limit 5**.
+ * Max 2 / primary genre; exactly 1 untagged when the pool has any;
+ * dedup vs `exclude` identities. Engine default limit stays 6 for older tests.
+ *
+ * Displayed « parce que… » MUST use `reasonTasteSlugsForItem` /
+ * `displayReasonForItem` — never a second reason path from `entry.reason`
+ * (P0b / #175). This scorer stamps popularite/nouveaute only.
  */
 export function recommendSlice(
   items: DayItem[],
