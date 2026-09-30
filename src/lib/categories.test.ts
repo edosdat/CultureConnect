@@ -1,8 +1,12 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import Papa from 'papaparse';
 import {
   GENRE_SLUG_TO_MAIN,
   genreBelongsToMains,
+  isAgeRestrictedSeance,
   isEnfantsOnlyChip,
   matchesEnfantsChipContent,
   matchesMainCategories,
@@ -175,6 +179,146 @@ describe('matchesEnfantsChipContent', () => {
         tags: 'famille',
       }),
       false,
+    );
+  });
+});
+
+describe('isAgeRestrictedSeance / E1 age-restricted exclusion', () => {
+  it('detects Interdit prefixes on séance public_cible', () => {
+    assert.equal(isAgeRestrictedSeance('Interdit - 16 ans'), true);
+    assert.equal(isAgeRestrictedSeance('Interdit - 12 ans avec avertissement'), true);
+    assert.equal(isAgeRestrictedSeance('  interdit - 18 ans'), true);
+    assert.equal(isAgeRestrictedSeance('tout_public'), false);
+    assert.equal(isAgeRestrictedSeance('jeune_public'), false);
+    assert.equal(isAgeRestrictedSeance(''), false);
+    assert.equal(isAgeRestrictedSeance(null), false);
+    assert.equal(isAgeRestrictedSeance(undefined), false);
+  });
+
+  it('excludes Interdit - 16 ans even with categorie enfants_famille', () => {
+    assert.equal(
+      matchesEnfantsChipContent({
+        categorie: 'enfants_famille',
+        genre: 'jeune_public',
+        publicCible: 'Interdit - 16 ans',
+      }),
+      false,
+    );
+  });
+
+  it('excludes Interdit - 12 ans avec avertissement', () => {
+    assert.equal(
+      matchesEnfantsChipContent({
+        categorie: 'cinema',
+        genre: 'animation_jeune_public',
+        publicCible: 'Interdit - 12 ans avec avertissement',
+      }),
+      false,
+    );
+    assert.equal(
+      matchesEnfantsChipContent({
+        categorie: 'enfants_famille',
+        genre: '',
+        publicCible: 'Interdit - 12 ans avec avertissement',
+      }),
+      false,
+    );
+  });
+
+  it('leaves tout_public, jeune_public and empty unchanged', () => {
+    assert.equal(
+      matchesEnfantsChipContent({
+        categorie: 'enfants_famille',
+        genre: '',
+        publicCible: 'tout_public',
+      }),
+      true,
+    );
+    assert.equal(
+      matchesEnfantsChipContent({
+        categorie: 'cinema',
+        genre: 'fiction',
+        publicCible: 'jeune_public',
+      }),
+      true,
+    );
+    assert.equal(
+      matchesEnfantsChipContent({
+        categorie: 'enfants_famille',
+        genre: 'jeune_public',
+        publicCible: '',
+      }),
+      true,
+    );
+    // Non-enfants cinema + tout_public still does not match via public_cible alone
+    assert.equal(
+      matchesEnfantsChipContent({
+        categorie: 'cinema',
+        genre: 'fiction',
+        publicCible: 'tout_public',
+      }),
+      false,
+    );
+  });
+
+  it('Enfants chip filter rejects age-restricted via matchesMainCategories', () => {
+    assert.equal(
+      matchesMainCategories('enfants_famille', 'jeune_public', ['enfants_famille'], {
+        publicCible: 'Interdit - 16 ans',
+      }),
+      false,
+    );
+    assert.equal(
+      matchesMainCategories('cinema', 'animation_jeune_public', ['enfants_famille'], {
+        publicCible: 'Interdit - 12 ans avec avertissement',
+      }),
+      false,
+    );
+    // Cinéma chip still shows the séance (exclusion is Enfants-only)
+    assert.equal(
+      matchesMainCategories('cinema', 'fiction', ['cinema'], {
+        publicCible: 'Interdit - 16 ans',
+      }),
+      true,
+    );
+  });
+
+  it('non-regression: upcoming form=enfants séances still match Enfants content', () => {
+    const today = '2026-09-30';
+    const prog = Papa.parse<Record<string, string>>(
+      fs.readFileSync(path.join(process.cwd(), 'data', 'programme.csv'), 'utf-8'),
+      { header: true, skipEmptyLines: true },
+    ).data;
+    const evs = Papa.parse<Record<string, string>>(
+      fs.readFileSync(path.join(process.cwd(), 'data', 'evenements.csv'), 'utf-8'),
+      { header: true, skipEmptyLines: true },
+    ).data;
+    const byId = new Map(evs.map((e) => [e.event_id, e]));
+    const upcoming = prog.filter(
+      (r) =>
+        (r.form || '').trim() === 'enfants' && (r.date || '').trim() >= today,
+    );
+    assert.ok(
+      upcoming.length >= 50,
+      `expected ~60 upcoming form=enfants, got ${upcoming.length}`,
+    );
+    const lost: string[] = [];
+    for (const r of upcoming) {
+      const ev = byId.get(r.event_id);
+      const publicCible =
+        (r.public_cible || '').trim() || (ev?.public_cible || '').trim();
+      const ok = matchesEnfantsChipContent({
+        categorie: ev?.categorie || '',
+        genre: (r.genre || ev?.genre || '').trim(),
+        tags: ev?.tags || '',
+        publicCible,
+      });
+      if (!ok) lost.push(`${r.programme_id}:${publicCible || '(empty)'}`);
+    }
+    assert.equal(
+      lost.length,
+      0,
+      `form=enfants séances lost from enfants matching: ${lost.join(', ')}`,
     );
   });
 });
