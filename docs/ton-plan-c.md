@@ -29,8 +29,8 @@ Liste de mots interdits dans la copie (à tester dans le code, comme les famille
 | Swipe à droite / tampon | **Ça me tente** / `ÇA ME TENTE` |
 | Swipe à gauche / tampon | **Pas mon genre** / `PAS MON GENRE` |
 | Liste « À voir » | **Mes crushs** |
-| Toast après un like | « Nouveau **crush** » + bouton **Proposer un plan** |
-| Partager | **Proposer un plan** |
+| Toast après un like | « Nouveau **crush** » + bouton **Inviter à un plan C** |
+| Partager | **Inviter à un plan C** |
 | Message WhatsApp | « J'ai un plan pour {jour}. {Titre}, {Lieu}. » + lien |
 | Écran « Mes partages » | **Mes plans** — sous-titre « Qui est partant pour tes plans » |
 | Lien reçu (bandeau) | « Quelqu'un a un plan pour toi » |
