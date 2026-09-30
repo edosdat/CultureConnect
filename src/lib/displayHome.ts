@@ -509,7 +509,8 @@ export type Top3PaintMode = 'hidden' | 'skeleton' | 'cards';
 
 /**
  * Home Top 3 row.
- * Hide when a QUOI chip or an omnibox commit (title leftover / phrase) is on.
+ * Category chips filter the grid only — the section stays (skeleton or cards).
+ * Hide on wipe, committed title leftover, or phrase.
  * Date chips, commune, and salle alone keep the section (if cards).
  * While reco is not ready, keep the shell so first paint is not blank.
  */
@@ -520,10 +521,10 @@ export function shouldShowTop3Section(opts: Top3SectionOpts): boolean {
 /**
  * First paint: skeleton as soon as the section is allowed.
  * Real cards only after recoReady. Never wait on reco to show the shell.
+ * `selectedCategories` is accepted and ignored: a QUOI chip must not hide Top 3.
  */
 export function top3PaintMode(opts: Top3SectionOpts): Top3PaintMode {
   if (opts.wiped) return 'hidden';
-  if ((opts.selectedCategories?.length ?? 0) > 0) return 'hidden';
   if ((opts.committedTitle || '').trim()) return 'hidden';
   if (opts.phraseActive) return 'hidden';
   if (!opts.ready) return 'skeleton';

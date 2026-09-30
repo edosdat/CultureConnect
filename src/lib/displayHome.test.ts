@@ -1218,7 +1218,7 @@ describe('search example chips', () => {
   });
 });
 
-describe('shouldShowTop3Section — hide on QUOI / search, keep on date', () => {
+describe('shouldShowTop3Section — keep on category / date, hide on search', () => {
   const shown = {
     ready: true,
     wiped: false,
@@ -1243,14 +1243,18 @@ describe('shouldShowTop3Section — hide on QUOI / search, keep on date', () => 
     );
   });
 
-  it('hides on category chips, committed search, or phrase', () => {
+  it('keeps cards on category chips (grid filters alone)', () => {
     assert.equal(
       shouldShowTop3Section({ ...shown, selectedCategories: ['cinema'] }),
-      false,
+      true,
+    );
+    assert.equal(
+      top3PaintMode({ ...shown, selectedCategories: ['cinema'] }),
+      'cards',
     );
     assert.equal(
       shouldShowTop3Section({ ...shown, selectedCategories: ['musique'] }),
-      false,
+      true,
     );
     assert.equal(
       shouldShowTop3Section({
@@ -1258,8 +1262,18 @@ describe('shouldShowTop3Section — hide on QUOI / search, keep on date', () => 
         selectedCategories: ['theatre'],
         committedTitle: '',
       }),
-      false,
+      true,
     );
+    assert.equal(
+      shouldShowTop3Section({
+        ...shown,
+        selectedCategories: ['enfants_famille'],
+      }),
+      true,
+    );
+  });
+
+  it('hides on committed search or phrase', () => {
     assert.equal(
       shouldShowTop3Section({ ...shown, committedTitle: 'nougaro' }),
       false,
@@ -1274,7 +1288,7 @@ describe('shouldShowTop3Section — hide on QUOI / search, keep on date', () => 
     );
   });
 
-  it('hides as soon as any non-date filter is on (date + category / search)', () => {
+  it('keeps Top 3 on a category even with a date; search still hides', () => {
     assert.equal(
       shouldShowTop3Section({
         ...shown,
@@ -1282,7 +1296,7 @@ describe('shouldShowTop3Section — hide on QUOI / search, keep on date', () => 
         committedTitle: '',
         phraseActive: false,
       }),
-      false,
+      true,
     );
     assert.equal(
       shouldShowTop3Section({
@@ -1302,11 +1316,20 @@ describe('shouldShowTop3Section — hide on QUOI / search, keep on date', () => 
     );
   });
 
-  it('returns when category / search are cleared', () => {
+  it('returns when search is cleared (a category alone never hid it)', () => {
     assert.equal(
       shouldShowTop3Section({
         ...shown,
         selectedCategories: [],
+        committedTitle: '   ',
+        phraseActive: false,
+      }),
+      true,
+    );
+    assert.equal(
+      shouldShowTop3Section({
+        ...shown,
+        selectedCategories: ['cinema'],
         committedTitle: '   ',
         phraseActive: false,
       }),
@@ -1345,7 +1368,7 @@ describe('shouldShowTop3Section — hide on QUOI / search, keep on date', () => 
     );
   });
 
-  it('hides skeleton on cat/search even before recoReady (#55)', () => {
+  it('keeps skeleton on a category chip before recoReady; search/phrase stay hidden (#55)', () => {
     assert.equal(
       top3PaintMode({
         ready: false,
@@ -1353,7 +1376,7 @@ describe('shouldShowTop3Section — hide on QUOI / search, keep on date', () => 
         cardCount: 0,
         selectedCategories: ['cinema'],
       }),
-      'hidden',
+      'skeleton',
     );
     assert.equal(
       top3PaintMode({

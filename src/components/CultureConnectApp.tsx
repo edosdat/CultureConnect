@@ -1608,6 +1608,8 @@ export default function CultureConnectApp({
     for (const item of pourToiFilled) rememberItem(item);
     if (detailItem) rememberItem(detailItem);
   }, [top3Cards, pourToiFilled, detailItem, rememberItem]);
+  // Category chips stay in the opts so a QUOI selection cannot grow a second
+  // hide gate here. top3PaintMode ignores them; wipe / title / phrase still hide.
   const top3Mode = top3PaintMode({
     ready: recoReady,
     wiped: recoWiped,
