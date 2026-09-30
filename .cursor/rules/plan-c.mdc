@@ -1,0 +1,9 @@
+---
+description: Plan C (ex-CultureConnect) : briefs, file d'attente et ton
+alwaysApply: true
+---
+
+- Au début de chaque tâche, lis `briefs/README.md` : c'est la file d'attente des briefs et le protocole à suivre (statuts, où écrire tes questions).
+- Avant de toucher aux tags, à la reco, aux profils ou aux duels, lis `briefs/feuille-de-route-tags-reco.md` et respecte son ordre d'exécution.
+- Tout texte affiché à l'utilisateur suit `docs/ton-plan-c.md`.
+- Un brief flou ou en contradiction avec le code : statut **Bloqué** dans `briefs/README.md` avec la question, pas de supposition.
