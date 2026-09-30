@@ -20,7 +20,7 @@ Les axes de tags ci-dessous ne sont pas inventés : chacun répond à un résult
 | On ne sort pas pour les mêmes raisons : quatre expériences de sortie, **intéressante**, **agréable**, **de partage**, **d'évasion** (50 entretiens, 2021–2022) | Observatoire des politiques culturelles, *Pourquoi sortons-nous ? Quatre expériences de sortie culturelle* | nouvel axe **`sortie`** sur chaque événement (§A2.2) ; il structure les familles (§B2) |
 | Les motivations sont souvent **extérieures au spectacle**, surtout la recherche d'une expérience sociale. On y va rarement seul : **8 % seuls**, 37 % en couple, 32 % entre amis, 20 % en famille | DGCA, *La sortie au spectacle vivant* (Repères DGCA, 2012, base DEPS 2008) | axe **`ideal_pour`** (§A2.6) ; badge « Toujours en bande » ; le partage WhatsApp est au cœur du produit |
 | En 2023 : **24 %** des Français ont assisté à un concert dans l'année, **14 %** sont allés au théâtre | DEPS, *Chiffres clés 2024*, fiche « Sorties culturelles des Français en 2023 » (Crédoc, oct. 2023) | le spectacle vivant reste minoritaire : l'onboarding doit rassurer et proposer de l'accessible |
-| Freins : **prix** (53 % des non-spectateurs de concert, 39 % pour le théâtre) et **manque d'intérêt** (45 % pour le théâtre) | même source | axe **`budget`** calculé (§A2.8), badge « Malin du gratuit » ; axe **`exigence`** (§A2.4) pour proposer d'abord ce qui ne demande aucun prérequis |
+| Freins : **prix** (53 % des non-spectateurs de concert, 39 % pour le théâtre) et **manque d'intérêt** (45 % pour le théâtre) | même source | axe **`budget`** calculé (§A2.8), badge « Chasseur de bons plans » ; axe **`exigence`** (§A2.4) pour proposer d'abord ce qui ne demande aucun prérequis |
 | Le « manque d'intérêt » et la distance sociale au théâtre : **16 %** des cadres contre **7 %** des employés et ouvriers y sont allés (2018) ; diplôme et catégorie sociale restent les variables les plus discriminantes | DEPS, enquête *Pratiques culturelles* 2018 (9 200 personnes) ; Lombardo & Wolff, *Cinquante ans de pratiques culturelles en France*, 2020 | on **ne collecte pas** la CSP ni le diplôme (§B7) ; l'axe `exigence` sert à ne pas enfermer : on recommande de l'accessible à tout le monde, et du pointu à qui le demande |
 | Les goûts se structurent moins en « savant contre populaire » qu'en **éclectisme** : des **omnivores** qui cumulent des genres variés, face à des répertoires plus exclusifs | Coulangeon, *La stratification sociale des goûts musicaux* (RFS, 2003) ; Donnat, *Les pratiques culturelles des Français à l'ère numérique* (2009) | score d'**éclectisme** dans le profil (§B1) ; famille « Couteau suisse » |
 | Les publics âgés sont très présents : les 65–74 ans assistant à un spectacle vivant sont passés de 14 % (1981) à **41 %** (2018) | DEPS 2018 | les familles ne supposent aucun âge ; l'humour ne vise jamais l'âge (§B5) |
@@ -258,11 +258,11 @@ Les prototypes chiffrés vont dans `src/lib/profileFamilies.ts` (`FAMILIES`), **
 
 ## B3. Les badges (pour avoir « plein » de profils)
 
-Une famille + **0 à 2 badges** donne des centaines de combinaisons (« Machine à rire · Noctambule · Malin du gratuit »).
+Une famille + **0 à 2 badges** donne des centaines de combinaisons (« Machine à rire · Noctambule · Chasseur de bons plans »).
 
 | id | Badge | Condition (features) |
 |---|---|---|
-| `malin_gratuit` | Malin du gratuit | `budget.gratuit + budget.lt15 ≥ 0,5` |
+| `malin_gratuit` | Chasseur de bons plans | `budget.gratuit + budget.lt15 ≥ 0,5` |
 | `noctambule` | Noctambule | ≥ 50 % des spectacles aimés commencent à 21 h 30 ou plus tard (feature `heure_tardive`, à ajouter dans `axes` : `heure:tard`) |
 | `toujours_en_bande` | Toujours en bande | `pour.amis ≥ 0,5` **ou** au moins 3 liens partagés avec au moins une réponse « J'y vais » (données `shareActivity`, comptage seulement) |
 | `solo_assume` | Solo assumé | `pour.solo ≥ 0,4` |
@@ -302,7 +302,7 @@ Déclenché à la fin de l'onboarding (choix d'ambiances ou 5 duels), puis consu
 2. Nom de la famille, en grand (serif) : `Machine à rire`
 3. Punchline : `Ton abdo préféré, c'est celui qui travaille quand tu ris.`
 4. Tendance, si elle existe : `tendance Cœur en velours`
-5. Badges (pastilles) : `Noctambule` · `Malin du gratuit`
+5. Badges (pastilles) : `Noctambule` · `Chasseur de bons plans`
 6. Trois traits en barres (les 3 features les plus fortes, en langage humain) : `Rire`, `Passer un bon moment`, `Seul en scène`
 7. `Ce qu'on va te proposer cette semaine` : 3 cartes de spectacles réels, les meilleurs scores de `recommendForProfile`
 8. Boutons : `C'est tout moi` · `Pas du tout` · `Partager mon profil` (lien WhatsApp avec image de partage générée par la route OG existante `src/app/api/og`)
@@ -310,7 +310,7 @@ Déclenché à la fin de l'onboarding (choix d'ambiances ou 5 duels), puis consu
 **Règles d'humour** (à respecter dans toute copie de famille ou de badge) :
 
 - Tutoiement, bienveillant, **on rit avec** la personne, jamais d'elle.
-- **Jamais** sur l'âge, le genre, l'origine, le milieu social, le revenu, le physique ou la santé. « Malin du gratuit » valorise ; « radin » est interdit.
+- **Jamais** sur l'âge, le genre, l'origine, le milieu social, le revenu, le physique ou la santé. « Chasseur de bons plans » valorise ; « radin » ou tout libellé qui renvoie aux moyens de la personne est interdit.
 - Un seul trait d'humour par écran (la punchline). Le reste est clair et utile.
 - Neutre en genre : noms de familles sans personne genrée (« Machine à rire », pas « Le rieur ») ; point médian quand c'est inévitable (`touché·e`).
 - Aucune donnée technique à l'écran (pas de score, pas de slug, pas de pourcentage brut).
