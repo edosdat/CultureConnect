@@ -303,6 +303,13 @@ export type EnfantsChipFields = {
   publicCible?: string;
 };
 
+/** Visa d'exploitation ciné. Exclusion dure : aucune inclusion ne la contourne. */
+const PUBLIC_CIBLE_INTERDIT = /^interdit\b/i;
+
+export function isAgeRestrictedSeance(publicCible?: string | null): boolean {
+  return PUBLIC_CIBLE_INTERDIT.test((publicCible || '').trim());
+}
+
 function splitChipTokens(raw: string | undefined | null): string[] {
   if (!raw) return [];
   return raw
@@ -331,6 +338,7 @@ function hasEnfantsAudienceTag(fields: EnfantsChipFields): boolean {
  * tags famille|enfants|jeune_public). Adult thriller / concert stay out.
  */
 export function matchesEnfantsChipContent(fields: EnfantsChipFields): boolean {
+  if (isAgeRestrictedSeance(fields.publicCible)) return false;
   const categorie = fields.categorie || '';
   const genre = fields.genre || '';
   const mains = mainsForItem(categorie, genre);
@@ -351,6 +359,17 @@ export function matchesMainCategories(
 ): boolean {
   if (selectedMains.length === 0) return true;
   const mains = mainsForItem(categorie, genreSlug);
+  // E1: age-restricted séances never match the Enfants chip (mains short-circuit
+  // would otherwise keep categorie=enfants_famille + Interdit). Other selected
+  // mains (ex. cinema) still match.
+  if (
+    selectedMains.includes('enfants_famille') &&
+    isAgeRestrictedSeance(extra?.publicCible)
+  ) {
+    const others = selectedMains.filter((m) => m !== 'enfants_famille');
+    if (others.length === 0) return false;
+    return mains.some((m) => others.includes(m));
+  }
   if (mains.some((m) => selectedMains.includes(m))) return true;
   if (
     selectedMains.includes('enfants_famille') &&
