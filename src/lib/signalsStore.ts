@@ -3,6 +3,7 @@
  * Client-only — do not import from server components.
  * Taste events only. Visitor identity is cookie `cc_vid` (B2b), never this JSON:
  * `compactForCookie` trims to ~3500 chars and would drop an embedded id.
+ * P8: cookie/sessionStorage writes require `cc_signals_consent=accepted`.
  */
 import type { DayItem } from '@/lib/types';
 import { COHORT_COOKIE } from '@/lib/guestId';
@@ -22,8 +23,12 @@ import {
   type ProfileBucket,
   type Signal,
 } from '@/lib/signals';
+import { hasAcceptedSignalsConsent } from '@/lib/signalsConsent';
 
 const COOKIE_BUDGET = 3500;
+
+/** Session RAM mirror so refuse/undecided can score without writing cc_signals_v1. */
+let memoryStore: GuestSignalsStore | null = null;
 
 function persistGuestProfile(
   prev: GuestSignalsStore['profile'],
@@ -86,11 +91,13 @@ function compactForCookie(store: GuestSignalsStore): string {
 
 export function readGuestStore(): GuestSignalsStore {
   if (!canUseDom()) return emptyGuestStore();
+  if (memoryStore) return memoryStore;
   try {
     const rawSs = sessionStorage.getItem(GUEST_STORAGE_KEY);
     if (rawSs) {
       const parsed = parseGuestStore(JSON.parse(rawSs));
       if (parsed.events.length > 0 || profileHasZeroWeights(parsed.profile)) {
+        memoryStore = parsed;
         return parsed;
       }
     }
@@ -102,10 +109,14 @@ export function readGuestStore(): GuestSignalsStore {
     if (rawCk) {
       const parsed = parseGuestStore(JSON.parse(rawCk));
       if (parsed.events.length > 0 || profileHasZeroWeights(parsed.profile)) {
-        try {
-          sessionStorage.setItem(GUEST_STORAGE_KEY, storeToJson(parsed));
-        } catch {
-          /* ignore */
+        memoryStore = parsed;
+        // Only mirror into sessionStorage when consent already allows persistence.
+        if (hasAcceptedSignalsConsent()) {
+          try {
+            sessionStorage.setItem(GUEST_STORAGE_KEY, storeToJson(parsed));
+          } catch {
+            /* ignore */
+          }
         }
         return parsed;
       }
@@ -122,7 +133,18 @@ export function writeGuestStore(store: GuestSignalsStore): GuestSignalsStore {
     events,
     profile: persistGuestProfile(store.profile),
   };
+  memoryStore = next;
   if (!canUseDom()) return next;
+  // P8: persist cc_signals_v1 only after explicit accept. Refuse / undecided → no tracer.
+  if (!hasAcceptedSignalsConsent()) {
+    try {
+      sessionStorage.removeItem(GUEST_STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
+    deleteCookie(GUEST_STORAGE_KEY);
+    return next;
+  }
   const json = storeToJson(next);
   try {
     sessionStorage.setItem(GUEST_STORAGE_KEY, json);
@@ -138,6 +160,18 @@ export function writeGuestStore(store: GuestSignalsStore): GuestSignalsStore {
 }
 
 export function clearGuestStore(): void {
+  memoryStore = null;
+  if (!canUseDom()) return;
+  try {
+    sessionStorage.removeItem(GUEST_STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+  deleteCookie(GUEST_STORAGE_KEY);
+}
+
+/** Drop cookie/sessionStorage only — keep RAM profile (undecided → banner). */
+export function clearGuestStorePersistence(): void {
   if (!canUseDom()) return;
   try {
     sessionStorage.removeItem(GUEST_STORAGE_KEY);

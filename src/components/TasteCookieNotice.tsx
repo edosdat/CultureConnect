@@ -59,7 +59,7 @@ function ConfidentialiteLink() {
   );
 }
 
-/** Bas de page when cookies are posed. Not a banner / CMP. */
+/** Bas de page when cookies are posed (after P8 accept). Banner CMP = SignalsConsentBanner. */
 export default function TasteCookieNotice() {
   const [showTastes, setShowTastes] = useState(false);
   const [showVid, setShowVid] = useState(false);
