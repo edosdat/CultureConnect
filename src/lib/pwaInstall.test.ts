@@ -11,9 +11,7 @@ import {
   CRIOS_SAFARI_PATH,
   CRIOS_SAFARI_STEPS,
   INSTALL_PROMPT_CAPTURE_SCRIPT,
-  IOS_A2HS_ALT_HINT,
   IOS_A2HS_LABEL,
-  IOS_A2HS_LABEL_ALT,
   IOS_DISMISS_TO_SHARE,
   IOS_NOT_A_BUTTON,
   IOS_SAFARI_ARROW_PX,
@@ -211,9 +209,10 @@ describe('install detection', () => {
     assert.equal(shouldAwaitInstallPrompt({ chromeIos: false }), true);
     assert.ok(INSTALL_PROMPT_CAPTURE_SCRIPT.indexOf('CriOS') < INSTALL_PROMPT_CAPTURE_SCRIPT.indexOf('beforeinstallprompt'));
 
-    assert.equal(CRIOS_SAFARI_PATH, 'Ouvre dans Safari → Partager → Ajouter à l’écran d’accueil');
-    assert.match(CRIOS_SAFARI_COPY, /Safari/);
-    assert.deepEqual([...CRIOS_SAFARI_STEPS], ['Partager', 'Ajouter à l’écran d’accueil']);
+    assert.equal(CRIOS_SAFARI_PATH, 'Ouvre dans Safari → Partager → Sur l’écran d’accueil');
+    assert.match(CRIOS_SAFARI_COPY, /Partager → Sur l’écran d’accueil/);
+    assert.deepEqual([...CRIOS_SAFARI_STEPS], ['Partager', 'Sur l’écran d’accueil']);
+    assert.match(CRIOS_COPIED_HINT, /Partager → Sur l’écran d’accueil/);
     assert.equal(CRIOS_COPY_LINK_LABEL, 'Copier le lien');
     assert.equal(CRIOS_COPIED_LABEL, 'Lien copié');
     assert.match(CRIOS_COPIED_HINT, /Safari/);
@@ -280,18 +279,16 @@ describe('install detection', () => {
   it('names the French Safari row Sur l’écran d’accueil and still accepts Ajouter', () => {
     assert.equal(IOS_SHARE_LABEL, 'Partager');
     assert.equal(IOS_A2HS_LABEL, 'Sur l’écran d’accueil');
-    assert.equal(IOS_A2HS_LABEL_ALT, 'Ajouter à l’écran d’accueil');
     assert.equal(IOS_NOT_A_BUTTON, 'Ce n’est pas un bouton de Plan C.');
     assert.equal(IOS_SAFARI_PATH, 'Barre Safari → Partager → Sur l’écran d’accueil');
-    assert.match(IOS_SHARE_HINT, /barre du bas Safari/);
-    assert.match(IOS_A2HS_ALT_HINT, /Ajouter à l’écran d’accueil/);
+    assert.equal(IOS_SHARE_HINT, 'Tape Partager en bas de Safari');
     assert.equal(IOS_DISMISS_TO_SHARE, 'Fermer pour toucher Partager');
     assert.deepEqual(
       IOS_SAFARI_STEPS.map((step) => step.label),
       ['Partager', 'Sur l’écran d’accueil'],
     );
     assert.equal(acceptsIosA2hsLabel(IOS_A2HS_LABEL), true);
-    assert.equal(acceptsIosA2hsLabel(IOS_A2HS_LABEL_ALT), true);
+    assert.equal(acceptsIosA2hsLabel('Ajouter à l’écran d’accueil'), true);
     assert.equal(acceptsIosA2hsLabel("Sur l'écran d'accueil"), true);
     assert.equal(acceptsIosA2hsLabel('  ajouter à l’écran d’accueil  '), true);
     assert.equal(acceptsIosA2hsLabel('« Sur l’écran d’accueil »'), true);
@@ -387,7 +384,8 @@ describe('service worker freshness only', () => {
     assert.doesNotMatch(menu, /pwa-install-sheet|crios-safari|ios-steps/);
     assert.match(ui, /Installer Plan C/);
     assert.match(ui, /IOS_A2HS_LABEL/);
-    assert.match(ui, /IOS_A2HS_ALT_HINT/);
+    assert.doesNotMatch(ui, /Ajouter à l’écran d’accueil/);
+    assert.match(ui, /data-pwa-anchor=\{clearSafariBar \? 'top' : 'bottom'\}/);
     assert.match(ui, /IOS_NOT_A_BUTTON/);
     assert.match(ui, /IOS_SAFARI_PATH/);
     assert.match(ui, /canShowNativeInstallButton/);
@@ -411,7 +409,7 @@ describe('service worker freshness only', () => {
     assert.match(ios, /data-testid="pwa-ios-step-share"/);
     assert.match(ios, /data-testid="pwa-ios-step-a2hs"/);
     assert.match(ios, /data-testid="pwa-ios-share-hint"/);
-    assert.match(ios, /data-testid="pwa-ios-a2hs-alt"/);
+    assert.doesNotMatch(ios, /pwa-ios-a2hs-alt|Ajouter à l’écran d’accueil/);
     assert.match(ios, /IOS_SHARE_LABEL/);
     assert.match(ios, /IOS_SHARE_HINT/);
     assert.match(ios, /IOS_A2HS_LABEL/);

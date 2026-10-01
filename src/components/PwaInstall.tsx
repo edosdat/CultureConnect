@@ -20,7 +20,6 @@ import {
   CRIOS_SAFARI_NOTE,
   CRIOS_SAFARI_PATH,
   CRIOS_SAFARI_STEPS,
-  IOS_A2HS_ALT_HINT,
   IOS_A2HS_LABEL,
   IOS_DISMISS_TO_SHARE,
   IOS_NOT_A_BUTTON,
@@ -176,7 +175,15 @@ function InstallSheet({
   const clearSafariBar = surface === 'ios-steps';
 
   return createPortal(
-    <div className="fixed inset-0 z-[160] flex items-end justify-center sm:items-end" role="presentation">
+    <div
+      className={
+        clearSafariBar
+          ? 'fixed inset-0 z-[160] flex items-start justify-center'
+          : 'fixed inset-0 z-[160] flex items-end justify-center'
+      }
+      data-pwa-anchor={clearSafariBar ? 'top' : 'bottom'}
+      role="presentation"
+    >
       <button
         type="button"
         tabIndex={-1}
@@ -193,10 +200,9 @@ function InstallSheet({
         data-pwa-surface={surface}
         className={
           clearSafariBar
-            ? 'relative m-3 w-full max-w-sm rounded-2xl border border-culture-line/80 bg-white/80 p-4 shadow-card backdrop-blur-md'
+            ? 'relative m-3 mt-[max(0.75rem,env(safe-area-inset-top))] w-full max-w-sm rounded-2xl border border-culture-line/80 bg-white/80 p-4 shadow-card backdrop-blur-md'
             : 'relative m-3 mb-[max(0.75rem,env(safe-area-inset-bottom))] w-full max-w-sm rounded-2xl border border-culture-line/80 bg-white/80 p-4 shadow-card backdrop-blur-md'
         }
-        style={clearSafariBar ? { marginBottom: bottomGap } : undefined}
       >
         <h2 id="pwa-install-title" className="font-display text-lg font-semibold text-culture-ink">
           Ajoute Plan C
@@ -275,9 +281,6 @@ function InstallSheet({
               </li>
               <li data-testid="pwa-ios-step-a2hs">
                 <span>{IOS_A2HS_LABEL}</span>
-                <span data-testid="pwa-ios-a2hs-alt" className="mt-0.5 block text-culture-muted">
-                  {IOS_A2HS_ALT_HINT}
-                </span>
               </li>
             </ol>
           </div>
@@ -299,16 +302,17 @@ function InstallSheet({
         >
           {clearSafariBar ? IOS_DISMISS_TO_SHARE : 'Plus tard'}
         </button>
-        {clearSafariBar ? (
-          <div
-            data-testid="pwa-ios-share-arrow"
-            className="pointer-events-none absolute left-1/2 top-full mt-1 grid h-8 w-8 -translate-x-1/2 place-items-center rounded-full bg-white text-culture-ink shadow-card"
-            aria-hidden
-          >
-            <DownArrow />
-          </div>
-        ) : null}
       </div>
+      {clearSafariBar ? (
+        <div
+          data-testid="pwa-ios-share-arrow"
+          className="pointer-events-none absolute left-1/2 z-10 grid h-8 w-8 -translate-x-1/2 place-items-center rounded-full bg-white text-culture-ink shadow-card"
+          style={{ bottom: Math.max(12, bottomGap - 44) }}
+          aria-hidden
+        >
+          <DownArrow />
+        </div>
+      ) : null}
     </div>,
     document.body,
   );

@@ -16,11 +16,11 @@ export const INSTALL_PROMPT_CAPTURE_SCRIPT =
 
 /** Visible path on the Chrome-iOS sheet. Safari is the only install that works. */
 export const CRIOS_SAFARI_PATH =
-  'Ouvre dans Safari → Partager → Ajouter à l’écran d’accueil';
+  'Ouvre dans Safari → Partager → Sur l’écran d’accueil';
 
 /** Same path in a full sentence, for the sheet body. */
 export const CRIOS_SAFARI_COPY =
-  'Sur iPhone, ouvre Plan C dans Safari, puis Partager → Ajouter à l’écran d’accueil.';
+  'Sur iPhone, ouvre Plan C dans Safari, puis Partager → Sur l’écran d’accueil.';
 
 /** Why tapping Share inside Chrome is not enough. */
 export const CRIOS_SAFARI_NOTE =
@@ -29,33 +29,30 @@ export const CRIOS_SAFARI_NOTE =
 export const CRIOS_COPY_LINK_LABEL = 'Copier le lien';
 export const CRIOS_COPIED_LABEL = 'Lien copié';
 export const CRIOS_COPIED_HINT =
-  'Colle-le dans Safari, puis Partager → Ajouter à l’écran d’accueil.';
+  'Colle-le dans Safari, puis Partager → Sur l’écran d’accueil.';
 export const CRIOS_COPY_FAILED =
   'Le lien n’a pas été copié. Sélectionne l’adresse, puis colle-la dans Safari.';
 
 /** Gestures that happen in Safari, after the link is pasted. Not page buttons. */
-export const CRIOS_SAFARI_STEPS = ['Partager', 'Ajouter à l’écran d’accueil'] as const;
+export const CRIOS_SAFARI_STEPS = ['Partager', 'Sur l’écran d’accueil'] as const;
 
 /**
  * Share-sheet row on French iOS. Apple’s label is « Sur l’écran d’accueil ».
- * Some versions still show « Ajouter à l’écran d’accueil » — same gesture.
+ * The older « Ajouter… » wording is still recognized, never shown.
  */
 export const IOS_SHARE_LABEL = 'Partager';
 export const IOS_A2HS_LABEL = 'Sur l’écran d’accueil';
-export const IOS_A2HS_LABEL_ALT = 'Ajouter à l’écran d’accueil';
 /** The rows are instructions. Tapping them does not install. */
 export const IOS_NOT_A_BUTTON = 'Ce n’est pas un bouton de Plan C.';
 /** Where the add actually happens. Manager label is « Sur l’écran d’accueil ». */
 export const IOS_SAFARI_PATH = 'Barre Safari → Partager → Sur l’écran d’accueil';
-export const IOS_SHARE_HINT = 'Dans la barre du bas Safari.';
-export const IOS_A2HS_ALT_HINT =
-  'Parfois « Ajouter à l’écran d’accueil » : c’est le même geste.';
+export const IOS_SHARE_HINT = 'Tape Partager en bas de Safari';
 export const IOS_DISMISS_TO_SHARE = 'Fermer pour toucher Partager';
 
 /** Steps for real Safari (not CriOS). Not tappable actions. */
 export const IOS_SAFARI_STEPS = [
   { id: 'share', label: IOS_SHARE_LABEL, detail: IOS_SHARE_HINT },
-  { id: 'a2hs', label: IOS_A2HS_LABEL, detail: IOS_A2HS_ALT_HINT },
+  { id: 'a2hs', label: IOS_A2HS_LABEL, detail: '' },
 ] as const;
 
 /** Leaves the Safari bottom bar (and the down arrow) outside the sheet. */
