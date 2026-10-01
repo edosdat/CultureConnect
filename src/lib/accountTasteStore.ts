@@ -26,6 +26,7 @@ import {
   unionPositiveWeights,
   type AccountTasteState,
 } from '@/lib/signals';
+import { deleteGoogleAccount } from '@/lib/googleAccountStore';
 import { deleteMailConsent } from '@/lib/mailConsentStore';
 
 export const ACCOUNT_TASTE_COOKIE = 'cc_account_taste';
@@ -438,6 +439,7 @@ export async function deleteAccountTaste(email: string): Promise<void> {
     /* missing file is fine */
   }
   await deleteMailConsent(email);
+  await deleteGoogleAccount(email);
   await clearAccountTasteCookie();
 }
 

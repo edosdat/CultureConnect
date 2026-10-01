@@ -77,3 +77,67 @@ Quand aujourd’hui tombe dans la fenêtre, les œuvres déjà retenues pour « 
 `items` a la même forme que `POST /api/agenda?reco=1` (cartes allégées). `total` vaut `items.length`, au plus 3. L’ordre des slices est fixe : `sam_dim`, puis `lun_ven`.
 
 `weekday` suit le calendrier Paris : 0 = dimanche, 1 = lundi, …, 6 = samedi.
+
+## Destinataires — fenêtre test jusqu’au 1er décembre 2026
+
+Exception produit (GO Eloi), assumée jusqu’au **1er décembre 2026 à 00:00** (Europe/Paris). Pendant cette fenêtre, Relance écrit à **tous les e-mails Google enregistrés**. La case `mail_consent.opted_in` n’est pas un filtre. Site n’envoie aucun mail.
+
+Il n’y a pas de table NextAuth `users` (session JWT). Les e-mails viennent de :
+
+- `account_tastes.user_key`
+- `google_accounts.email` (écrit à chaque login Google à partir de ce déploiement)
+- `mail_consent.user_key` (session Google)
+
+Un login antérieur sans ligne `account_tastes` et sans ligne `mail_consent` n’est pas dans la liste tant que la personne ne se reconnecte pas.
+
+Exclus uniquement si `mail_consent.unsubscribed_at` est renseigné (lien 1 clic). L’absence de ligne, ou une case non cochée, **n’exclut pas** avant le 1er décembre 2026.
+
+À partir de cette heure, le même endpoint ne garde que `opted_in = true` et non désabonnés. Ne pas prolonger l’exception sans un nouveau GO.
+
+### Liste
+
+`GET /api/mail-digest/recipients`
+
+`Authorization: Bearer` = `RELANCE_DIGEST_SECRET`, ou `CRON_SECRET` si le premier n’est pas posé. Les deux sont acceptés quand les deux sont posés. Secret absent ou faux : **401**. Base illisible : **503** — ne pas envoyer sur une liste vide inventée.
+
+```bash
+curl -sS 'https://<host>/api/mail-digest/recipients' \
+  -H "Authorization: Bearer $RELANCE_DIGEST_SECRET"
+```
+
+```json
+{
+  "count": 1,
+  "users": [
+    { "userId": "ada@example.com", "email": "ada@example.com" }
+  ]
+}
+```
+
+`userId` est l’e-mail normalisé : c’est la seule clé de compte durable (`token.sub` n’est pas stocké).
+
+Pour le corps du mail, Relance rappelle `POST /api/agenda?reco=1&digest=relance` avec le profil du compte. Cet endpoint de liste ne score pas.
+
+### Désabonnement 1 clic
+
+Chaque mail porte :
+
+`https://<host>/mail/unsub?t=<token>`
+
+Le clic n’exige pas de login Google. La page répond « Tu ne recevras plus le digeste. » et lie vers [Confidentialité](/confidentialite), où la case « Envoie-moi 3 idées par mail » réabonne (`unsubscribed_at` effacé).
+
+Jeton (HMAC-SHA256) :
+
+1. `email` = trim + minuscules.
+2. JSON canonique, clés dans cet ordre, sans espace : `{"v":1,"e":"<email>","p":"digest-unsub"}`.
+3. `payload` = base64url(UTF-8 de ce JSON), sans `=`.
+4. `sig` = base64url(HMAC-SHA256(secret, `payload`)), sans `=`. Le HMAC signe la chaîne `payload`, pas le JSON brut.
+5. `token` = `payload` + `.` + `sig`.
+
+Secret de signature : `RELANCE_DIGEST_SECRET` s’il est défini, sinon `CRON_SECRET`. Site vérifie les deux. Le lien n’expire pas : un ancien mail désabonne à nouveau après une réinscription.
+
+Exemple, secret `test-secret`, e-mail `ada@example.com` :
+
+```text
+/mail/unsub?t=eyJ2IjoxLCJlIjoiYWRhQGV4YW1wbGUuY29tIiwicCI6ImRpZ2VzdC11bnN1YiJ9.q3XFSvSW_TgJDNogC3o9ku75_GbEzqxa_jSfiXxpF0I
+```
