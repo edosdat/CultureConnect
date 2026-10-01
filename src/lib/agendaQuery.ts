@@ -79,6 +79,13 @@ import {
   type TimeScopeId,
 } from './timeScope';
 import {
+  parisIsoWeekKey,
+  RELANCE_DIGEST_TIMEZONE,
+  RELANCE_DIGEST_WINDOWS,
+  relanceDigestRange,
+  type RelanceDigestWindowId,
+} from './mesRecosWeek';
+import {
   fillEmptyCineSlot,
   itemBlockedByWorkKeys,
   mergeSlotPicks,
@@ -139,6 +146,12 @@ export type AgendaQueryInput = {
    * Dropped from the Top 3 pool for this request.
    */
   excludeWorkIds?: readonly string[];
+  /**
+   * Relance only. Replaces the scope range with the Paris-week
+   * Sat–Sun or Mon–Fri window. Scoring stays `scope=semaine`
+   * (`recommendForProfile`, cap 3). Ignored unless `recoUpcoming`.
+   */
+  digestWindow?: RelanceDigestWindowId;
 };
 
 export type { AgendaListResponse, AgendaDetailResponse } from './slim';
@@ -706,6 +719,11 @@ function listForRange(
     input.scope === 'tous'
       ? upcomingRange(paris.iso, dataMaxIso())
       : scopeRange;
+  if (reco && input.digestWindow) {
+    // Relance slices: civil Sat–Sun / Mon–Fri of this Paris week.
+    // Chip `weekend` is a different range (Friday joins when today is Friday).
+    range = relanceDigestRange(input.digestWindow, now);
+  }
   if (!searching && (phraseFrom || phraseTo)) {
     const start =
       phraseFrom && phraseFrom > range.startIso ? phraseFrom : range.startIso;
@@ -1167,6 +1185,86 @@ export function queryAgenda(
   }
 
   return assembleListFromItems(items, input, now, { searching, rangeDays });
+}
+
+export type RelanceDigestSlice = {
+  id: RelanceDigestWindowId;
+  date_from: string;
+  date_to: string;
+  items: DayItem[];
+  total: number;
+};
+
+/**
+ * Two personal slices for the Relance email.
+ * Same scorer as « Mes recos de la semaine »: `recommendForProfile` via
+ * `scope=semaine` (cap 3, aujourd'hui demoted when that day sits in the window).
+ * Not guest-boot `tous`, not the catalogue list order.
+ * No kids flag: moods / genres / themes only, same as the week sheet.
+ */
+export type RelanceDigestResponse = {
+  digest: 'relance';
+  /** Same engine as the week sheet (`scope=semaine`). */
+  score: 'mes-recos-semaine';
+  timezone: typeof RELANCE_DIGEST_TIMEZONE;
+  weekKey: string;
+  parisIso: string;
+  weekday: number;
+  commune: string | null;
+  slices: RelanceDigestSlice[];
+};
+
+export type RelanceDigestInput = {
+  commune: string | null;
+  recoProfile?: TasteProfile | null;
+  excludeWorkIds?: readonly string[];
+  year?: number;
+  month?: number;
+};
+
+export function queryRelanceDigest(
+  input: RelanceDigestInput,
+  now = new Date(),
+): RelanceDigestResponse {
+  const paris = parisParts(now);
+  const slices: RelanceDigestSlice[] = RELANCE_DIGEST_WINDOWS.map((id) => {
+    const window = relanceDigestRange(id, now);
+    const listed = queryAgenda(
+      {
+        scope: 'semaine',
+        commune: input.commune,
+        q: '',
+        cats: [],
+        genres: [],
+        lieuId: null,
+        selectedDate: null,
+        year: input.year ?? paris.year,
+        month: input.month ?? paris.month,
+        recoUpcoming: true,
+        recoProfile: input.recoProfile ?? null,
+        excludeWorkIds: input.excludeWorkIds,
+        digestWindow: id,
+      },
+      now,
+    );
+    return {
+      id,
+      date_from: window.startIso,
+      date_to: window.endIso,
+      items: listed.items,
+      total: listed.items.length,
+    };
+  });
+  return {
+    digest: 'relance',
+    score: 'mes-recos-semaine',
+    timezone: RELANCE_DIGEST_TIMEZONE,
+    weekKey: parisIsoWeekKey(now),
+    parisIso: paris.iso,
+    weekday: paris.weekday,
+    commune: input.commune,
+    slices,
+  };
 }
 
 /**

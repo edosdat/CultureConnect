@@ -37,3 +37,4 @@ Statuts : **À faire** · **En cours** · **Fait (#PR)** · **Bloqué** · **Rem
 | 5 | `badge-presse-cartes-musique.md` | À confirmer | idem |
 | 6 | `chip-enfants-films-theatre.md` | À confirmer | idem |
 | — | `tagging-methode-v2.md` | Remplacé | par `tags-v2-evenements-et-profils.md` |
+| — | tip Relance digeste 2 fenêtres (`sam_dim` / `lun_ven`) | En cours | GO Eloi. API `POST /api/agenda?reco=1` + `digest=relance`. Sheet Mes recos et Top 3 inchangés (max 3). HOLD merge : soft + GO. |

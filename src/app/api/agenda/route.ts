@@ -12,7 +12,9 @@ import {
   queryAgendaDetail,
   queryAgendaListCached,
   queryAgendaReco,
+  queryRelanceDigest,
 } from '@/lib/agendaQuery';
+import { relanceDigestMode } from '@/lib/mesRecosWeek';
 
 function agendaJson(data: unknown, status = 200) {
   return NextResponse.json(data, {
@@ -54,6 +56,13 @@ export async function GET(req: Request) {
     return agendaJson({ error: 'Too many requests' }, 429);
   }
   const url = new URL(req.url);
+  const digestOnGet = relanceDigestMode(null, url.searchParams.get('digest'));
+  if (digestOnGet !== 'absent') {
+    return agendaJson(
+      { error: 'digest=relance requires POST /api/agenda?reco=1' },
+      400,
+    );
+  }
   if ((url.searchParams.get('window') || '').trim() === 'home') {
     const boot = await loadHomeWindow();
     return agendaJson({
@@ -172,6 +181,7 @@ export async function POST(req: Request) {
     month?: unknown;
     profile?: unknown;
     excludeWorkIds?: unknown;
+    digest?: unknown;
   } = {};
   try {
     body = (await req.json()) as typeof body;
@@ -183,10 +193,39 @@ export async function POST(req: Request) {
   const year = Number.isFinite(yearRaw) && yearRaw >= 2000 ? yearRaw : 2026;
   const month =
     Number.isFinite(monthRaw) && monthRaw >= 1 && monthRaw <= 12 ? monthRaw : 8;
+  const digestMode = relanceDigestMode(body.digest, url.searchParams.get('digest'));
+  if (digestMode === 'invalid') {
+    return agendaJson({ error: 'Unknown digest' }, 400);
+  }
+  if (digestMode === 'relance') {
+    if (!recoUpcoming) {
+      return agendaJson({ error: 'digest=relance requires reco=1' }, 400);
+    }
+    const digest = queryRelanceDigest(
+      {
+        commune:
+          typeof body.commune === 'string'
+            ? body.commune
+            : url.searchParams.get('commune'),
+        year,
+        month,
+        recoProfile: parseRecoProfile(body.profile),
+        excludeWorkIds: parseExcludeWorkIds(body.excludeWorkIds),
+      },
+      new Date(),
+    );
+    return agendaJson(digest);
+  }
+  const scopeRaw =
+    typeof body.scope === 'string' ? body.scope : url.searchParams.get('scope');
+  if (scopeRaw === 'sam_dim' || scopeRaw === 'lun_ven') {
+    return agendaJson(
+      { error: 'sam_dim and lun_ven require digest=relance and reco=1' },
+      400,
+    );
+  }
   const result = await queryAgendaReco({
-    scope: parseTimeScope(
-      typeof body.scope === 'string' ? body.scope : url.searchParams.get('scope'),
-    ),
+    scope: parseTimeScope(scopeRaw),
     commune:
       typeof body.commune === 'string'
         ? body.commune
