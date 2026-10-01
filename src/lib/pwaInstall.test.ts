@@ -14,16 +14,14 @@ import {
   ANDROID_INSTALL_LABEL,
   IPAD_A2HS_HINT,
   IPAD_A2HS_LABEL,
+  IPAD_DISMISS,
   IPAD_SAFARI_PATH,
-  IPAD_SAFARI_STEPS,
-  IPAD_SHARE_DETAIL,
-  IPAD_SHARE_LABEL,
+  IPAD_SHARE_UNAVAILABLE,
   IPHONE_A2HS_HINT,
   IPHONE_A2HS_LABEL,
+  IPHONE_DISMISS,
   IPHONE_SAFARI_PATH,
-  IPHONE_SAFARI_STEPS,
-  IPHONE_SHARE_DETAIL,
-  IPHONE_SHARE_LABEL,
+  IPHONE_SHARE_UNAVAILABLE,
   IOS_SAFARI_BAR_MIN_GAP_PX,
   IOS_SAFARI_TOP_MIN_GAP_PX,
   a2hsSurface,
@@ -313,37 +311,24 @@ describe('install detection', () => {
     assert.equal(ANDROID_INSTALL_LABEL, 'Installer Plan C');
   });
 
-  it('names a different Safari path for iPhone bottom bar and iPad top toolbar', () => {
-    assert.equal(IPHONE_SAFARI_PATH, 'Partager, barre en bas → Sur l’écran d’accueil');
-    assert.equal(IPHONE_SHARE_LABEL, 'Partager');
-    assert.equal(IPHONE_SHARE_DETAIL, 'Barre Safari, en bas.');
-    assert.equal(IPHONE_A2HS_LABEL, 'Sur l’écran d’accueil');
-    assert.equal(IPHONE_A2HS_HINT, 'Dans le menu Partager. Pas un bouton ici.');
-    assert.deepEqual(
-      IPHONE_SAFARI_STEPS.map((step) => [step.id, step.label, step.detail]),
-      [
-        ['share', IPHONE_SHARE_LABEL, IPHONE_SHARE_DETAIL],
-        ['a2hs', IPHONE_A2HS_LABEL, IPHONE_A2HS_HINT],
-      ],
-    );
-    assert.doesNotMatch(IPHONE_SAFARI_PATH, /en haut|carré/);
-
+  it('locks the iPad Safari strings and mirrors them for the iPhone bottom bar', () => {
+    assert.equal(IPAD_SAFARI_PATH, 'Barre Safari (en haut) → Partager → Sur l’écran d’accueil');
     assert.equal(
-      IPAD_SAFARI_PATH,
-      'Barre Safari en haut → icône Partager (carré + flèche) → Sur l’écran d’accueil',
+      IPAD_SHARE_UNAVAILABLE,
+      'Tape l’icône Partager en haut de Safari, puis Sur l’écran d’accueil.',
     );
-    assert.equal(IPAD_SHARE_LABEL, 'Icône Partager (carré + flèche)');
-    assert.equal(IPAD_SHARE_DETAIL, 'Barre Safari, en haut.');
+    assert.equal(IPAD_DISMISS, 'Fermer pour toucher Partager en haut');
+    assert.equal(IPAD_A2HS_HINT, 'Dans le menu Partager de Safari. Pas le bouton de cette fiche.');
     assert.equal(IPAD_A2HS_LABEL, 'Sur l’écran d’accueil');
-    assert.equal(IPAD_A2HS_HINT, 'Dans le menu Partager. Pas un bouton ici.');
-    assert.deepEqual(
-      IPAD_SAFARI_STEPS.map((step) => [step.id, step.label, step.detail]),
-      [
-        ['share', IPAD_SHARE_LABEL, IPAD_SHARE_DETAIL],
-        ['a2hs', IPAD_A2HS_LABEL, IPAD_A2HS_HINT],
-      ],
+
+    assert.equal(IPHONE_SAFARI_PATH, 'Barre Safari (en bas) → Partager → Sur l’écran d’accueil');
+    assert.equal(
+      IPHONE_SHARE_UNAVAILABLE,
+      'Tape l’icône Partager en bas de Safari, puis Sur l’écran d’accueil.',
     );
-    assert.doesNotMatch(IPAD_SAFARI_PATH, /en bas/);
+    assert.equal(IPHONE_DISMISS, 'Fermer pour toucher Partager en bas');
+    assert.equal(IPHONE_A2HS_HINT, 'Dans le menu Partager de Safari. Pas le bouton de cette fiche.');
+    assert.equal(IPHONE_A2HS_LABEL, 'Sur l’écran d’accueil');
     assert.notEqual(IPHONE_SAFARI_PATH, IPAD_SAFARI_PATH);
     assert.equal(acceptsIosA2hsLabel(IPAD_A2HS_LABEL), true);
     assert.equal(acceptsIosA2hsLabel('Ajouter à l’écran d’accueil'), true);
@@ -486,19 +471,27 @@ describe('service worker freshness only', () => {
     assert.doesNotMatch(crios, /pwa-install-button|onInstall|navigator\.share|IPHONE_SAFARI_PATH|IPAD_SAFARI_PATH/);
     assert.match(iphone, /rootTestId="pwa-iphone-safari"/);
     assert.match(iphone, /pathTestId="pwa-iphone-safari-path"/);
+    assert.match(iphone, /unavailableTestId="pwa-iphone-share-unavailable"/);
     assert.match(iphone, /IPHONE_SAFARI_PATH/);
-    assert.match(iphone, /IPHONE_SAFARI_STEPS/);
+    assert.match(iphone, /IPHONE_SHARE_UNAVAILABLE/);
+    assert.match(iphone, /IPHONE_A2HS_HINT/);
     assert.doesNotMatch(iphone, /IPAD_SAFARI_PATH|CRIOS_|pwa-install-button|<button|navigator\.share/);
     assert.match(ipad, /rootTestId="pwa-ipad-safari"/);
     assert.match(ipad, /pathTestId="pwa-ipad-safari-path"/);
+    assert.match(ipad, /unavailableTestId="pwa-ipad-share-unavailable"/);
     assert.match(ipad, /IPAD_SAFARI_PATH/);
-    assert.match(ipad, /IPAD_SAFARI_STEPS/);
+    assert.match(ipad, /IPAD_SHARE_UNAVAILABLE/);
+    assert.match(ipad, /IPAD_A2HS_HINT/);
     assert.doesNotMatch(ipad, /IPHONE_SAFARI_PATH|CRIOS_|pwa-install-button|<button|navigator\.share/);
     assert.match(ui, /data-tap="inert"/);
-    assert.match(ui, /pwa-iphone-dismiss/);
-    assert.match(ui, /pwa-ipad-dismiss/);
+    assert.match(ui, /IPHONE_DISMISS/);
+    assert.match(ui, /IPAD_DISMISS/);
+    assert.match(ui, /data-pwa-arrow="up"/);
+    assert.match(ui, /data-testid="pwa-ipad-share-arrow"/);
+    assert.match(ui, /data-pwa-arrow="down"/);
+    assert.match(ui, /data-testid="pwa-iphone-share-arrow"/);
     assert.match(ui, /Plus tard/);
-    assert.doesNotMatch(ui, /Fermer pour toucher Partager/);
+    assert.doesNotMatch(ui, /navigator\.share/);
     const openBody = ui.slice(ui.indexOf('const openInstall = useCallback'), ui.indexOf('const onInstall'));
     assert.ok(openBody.indexOf('iosInstallFlags') >= 0);
     assert.ok(openBody.indexOf('setOpen(true)') > openBody.indexOf('iosInstallFlags'));

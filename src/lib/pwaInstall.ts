@@ -39,31 +39,27 @@ export const CRIOS_COPY_FAILED =
 /** Gestures that happen in Safari, after the link is pasted. Not page buttons. */
 export const CRIOS_SAFARI_STEPS = ['Partager', 'Sur l’écran d’accueil'] as const;
 
-/** Safari iPhone. Share lives in the bottom bar. Not a button on this sheet. */
-export const IPHONE_SAFARI_PATH = 'Partager, barre en bas → Sur l’écran d’accueil';
-export const IPHONE_SHARE_LABEL = 'Partager';
-export const IPHONE_SHARE_DETAIL = 'Barre Safari, en bas.';
+/**
+ * Safari iPhone. Mirror of the iPad LOCK, with the share icon in the bottom bar.
+ * Text only — the beige in-sheet Partager button is not the path.
+ */
+export const IPHONE_SAFARI_PATH = 'Barre Safari (en bas) → Partager → Sur l’écran d’accueil';
+export const IPHONE_SHARE_UNAVAILABLE =
+  'Tape l’icône Partager en bas de Safari, puis Sur l’écran d’accueil.';
+export const IPHONE_DISMISS = 'Fermer pour toucher Partager en bas';
 export const IPHONE_A2HS_LABEL = 'Sur l’écran d’accueil';
-export const IPHONE_A2HS_HINT = 'Dans le menu Partager. Pas un bouton ici.';
-export const IPHONE_SAFARI_STEPS = [
-  { id: 'share', label: IPHONE_SHARE_LABEL, detail: IPHONE_SHARE_DETAIL },
-  { id: 'a2hs', label: IPHONE_A2HS_LABEL, detail: IPHONE_A2HS_HINT },
-] as const;
+export const IPHONE_A2HS_HINT = 'Dans le menu Partager de Safari. Pas le bouton de cette fiche.';
 
 /**
- * Safari iPad. Share is the square-and-arrow in the top toolbar.
- * Never `navigator.share`, never a beige button on this sheet.
+ * Safari iPad LOCK. Exact strings. The path is Safari’s top share icon,
+ * never the beige Partager button on this sheet and never `navigator.share`.
  */
-export const IPAD_SAFARI_PATH =
-  'Barre Safari en haut → icône Partager (carré + flèche) → Sur l’écran d’accueil';
-export const IPAD_SHARE_LABEL = 'Icône Partager (carré + flèche)';
-export const IPAD_SHARE_DETAIL = 'Barre Safari, en haut.';
+export const IPAD_SAFARI_PATH = 'Barre Safari (en haut) → Partager → Sur l’écran d’accueil';
+export const IPAD_SHARE_UNAVAILABLE =
+  'Tape l’icône Partager en haut de Safari, puis Sur l’écran d’accueil.';
+export const IPAD_DISMISS = 'Fermer pour toucher Partager en haut';
 export const IPAD_A2HS_LABEL = 'Sur l’écran d’accueil';
-export const IPAD_A2HS_HINT = 'Dans le menu Partager. Pas un bouton ici.';
-export const IPAD_SAFARI_STEPS = [
-  { id: 'share', label: IPAD_SHARE_LABEL, detail: IPAD_SHARE_DETAIL },
-  { id: 'a2hs', label: IPAD_A2HS_LABEL, detail: IPAD_A2HS_HINT },
-] as const;
+export const IPAD_A2HS_HINT = 'Dans le menu Partager de Safari. Pas le bouton de cette fiche.';
 
 /** Android Chromium, only when `beforeinstallprompt` was stored. */
 export const ANDROID_INSTALL_LABEL = 'Installer Plan C';

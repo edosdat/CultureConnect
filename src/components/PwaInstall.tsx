@@ -23,10 +23,16 @@ import {
   ANDROID_INSTALL_HINT,
   ANDROID_INSTALL_LABEL,
   IOS_SAFARI_TOP_MIN_GAP_PX,
+  IPAD_A2HS_HINT,
+  IPAD_A2HS_LABEL,
+  IPAD_DISMISS,
   IPAD_SAFARI_PATH,
-  IPAD_SAFARI_STEPS,
+  IPAD_SHARE_UNAVAILABLE,
+  IPHONE_A2HS_HINT,
+  IPHONE_A2HS_LABEL,
+  IPHONE_DISMISS,
   IPHONE_SAFARI_PATH,
-  IPHONE_SAFARI_STEPS,
+  IPHONE_SHARE_UNAVAILABLE,
   a2hsSurface,
   canShowNativeInstallButton,
   copySafariHandoffUrl,
@@ -109,21 +115,20 @@ async function copyPageForSafari(): Promise<boolean> {
   return copyViaTextarea(url);
 }
 
-function ShareGlyph() {
+function UpArrow() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v9" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8.5 6.5 12 3l3.5 3.5" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8 10.5h-.5A1.5 1.5 0 0 0 6 12v6.5A1.5 1.5 0 0 0 7.5 20h9a1.5 1.5 0 0 0 1.5-1.5V12a1.5 1.5 0 0 0-1.5-1.5H16" />
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 20V7" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7 11l5-6 5 6" />
     </svg>
   );
 }
 
-function AddGlyph() {
+function DownArrow() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-      <rect x="4" y="4" width="16" height="16" rx="3" />
-      <path strokeLinecap="round" d="M12 8v8M8 12h8" />
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v13" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7 13l5 6 5-6" />
     </svg>
   );
 }
@@ -131,36 +136,34 @@ function AddGlyph() {
 function SafariGuide({
   rootTestId,
   pathTestId,
+  unavailableTestId,
+  hintTestId,
   path,
-  steps,
+  unavailable,
+  a2hsLabel,
+  hint,
 }: {
   rootTestId: string;
   pathTestId: string;
+  unavailableTestId: string;
+  hintTestId: string;
   path: string;
-  steps: readonly { id: string; label: string; detail: string }[];
+  unavailable: string;
+  a2hsLabel: string;
+  hint: string;
 }) {
   return (
     <div data-testid={rootTestId}>
       <p data-testid={pathTestId} className="mt-2 text-sm font-medium text-culture-ink">
         {path}
       </p>
-      <ol data-testid={`${rootTestId}-steps`} className="mt-3 list-decimal space-y-3 pl-5 text-sm text-culture-ink">
-        {steps.map((step) => (
-          <li key={step.id} data-testid={`${rootTestId}-step-${step.id}`} data-tap="inert">
-            <span className="inline-flex items-start gap-2">
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-culture-soft text-culture-clay">
-                {step.id === 'share' ? <ShareGlyph /> : <AddGlyph />}
-              </span>
-              <span>
-                <span className="font-medium">{step.label}</span>
-                <span data-testid={`${rootTestId}-detail-${step.id}`} className="mt-0.5 block text-culture-muted">
-                  {step.detail}
-                </span>
-              </span>
-            </span>
-          </li>
-        ))}
-      </ol>
+      <p data-testid={unavailableTestId} data-tap="inert" className="mt-2 text-sm text-culture-ink">
+        {unavailable}
+      </p>
+      <p data-testid={hintTestId} data-tap="inert" className="mt-3 text-sm text-culture-ink">
+        <span className="font-medium">{a2hsLabel}</span>
+        <span className="mt-0.5 block text-culture-muted">{hint}</span>
+      </p>
     </div>
   );
 }
@@ -321,16 +324,24 @@ function InstallSheet({
           <SafariGuide
             rootTestId="pwa-iphone-safari"
             pathTestId="pwa-iphone-safari-path"
+            unavailableTestId="pwa-iphone-share-unavailable"
+            hintTestId="pwa-iphone-a2hs-hint"
             path={IPHONE_SAFARI_PATH}
-            steps={IPHONE_SAFARI_STEPS}
+            unavailable={IPHONE_SHARE_UNAVAILABLE}
+            a2hsLabel={IPHONE_A2HS_LABEL}
+            hint={IPHONE_A2HS_HINT}
           />
         ) : null}
         {surface === 'safari-ipad' ? (
           <SafariGuide
             rootTestId="pwa-ipad-safari"
             pathTestId="pwa-ipad-safari-path"
+            unavailableTestId="pwa-ipad-share-unavailable"
+            hintTestId="pwa-ipad-a2hs-hint"
             path={IPAD_SAFARI_PATH}
-            steps={IPAD_SAFARI_STEPS}
+            unavailable={IPAD_SHARE_UNAVAILABLE}
+            a2hsLabel={IPAD_A2HS_LABEL}
+            hint={IPAD_A2HS_HINT}
           />
         ) : null}
         {surface === 'fallback' ? (
@@ -346,9 +357,31 @@ function InstallSheet({
           onClick={onClose}
           className="mt-3 block w-full py-1 text-center text-sm text-culture-muted hover:text-culture-ink"
         >
-          Plus tard
+          {safariIpad ? IPAD_DISMISS : safariIphone ? IPHONE_DISMISS : 'Plus tard'}
         </button>
       </div>
+      {safariIpad ? (
+        <div
+          data-testid="pwa-ipad-share-arrow"
+          data-pwa-arrow="up"
+          className="pointer-events-none absolute left-1/2 z-10 grid h-8 w-8 -translate-x-1/2 place-items-center rounded-full bg-white text-culture-ink shadow-card"
+          style={{ top: 12 }}
+          aria-hidden
+        >
+          <UpArrow />
+        </div>
+      ) : null}
+      {safariIphone ? (
+        <div
+          data-testid="pwa-iphone-share-arrow"
+          data-pwa-arrow="down"
+          className="pointer-events-none absolute left-1/2 z-10 grid h-8 w-8 -translate-x-1/2 place-items-center rounded-full bg-white text-culture-ink shadow-card"
+          style={{ bottom: Math.max(12, bottomGap - 44) }}
+          aria-hidden
+        >
+          <DownArrow />
+        </div>
+      ) : null}
     </div>,
     document.body,
   );
