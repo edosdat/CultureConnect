@@ -13,6 +13,11 @@ import {
   shouldRefreshShareClipboard,
 } from '@/lib/shareToken';
 import { rememberGuestCreatedToken } from '@/lib/guestShareTeaser';
+import {
+  claimArmedAuthAction,
+  requestAuthGate,
+  shouldDeferAuthResume,
+} from '@/lib/authActionGate';
 import { useSignals } from './SignalsProvider';
 import {
   getOverlayStack,
@@ -158,8 +163,10 @@ export default function ShareButton({
   const [busy, setBusy] = useState(false);
   const copiedTimer = useRef<number | null>(null);
   const sharing = useRef(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const { trackItem } = useSignals();
   const { status } = useSession();
+  const itemKey = shareCreateItemKey(item.key, seanceKey) || item.key;
 
   useEffect(() => {
     bindShareToastResume();
@@ -274,13 +281,37 @@ export default function ShareButton({
     })();
   }
 
+  function onShareClick() {
+    if (sharing.current || status === 'loading') return;
+    if (status !== 'authenticated') {
+      requestAuthGate({
+        kind: 'share',
+        itemKey,
+        seanceKey,
+      });
+      return;
+    }
+    claimArmedAuthAction({ kind: 'share', itemKey });
+    handleShare();
+  }
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    if (shouldDeferAuthResume(buttonRef.current)) return;
+    const pending = claimArmedAuthAction({ kind: 'share', itemKey });
+    if (!pending) return;
+    handleShare();
+  }, [status, itemKey]);
+
   return (
     <button
+      ref={buttonRef}
       type="button"
       onPointerDown={() => {
+        if (status !== 'authenticated') return;
         prefetchShareMint(item.key, seanceKey);
       }}
-      onClick={handleShare}
+      onClick={onShareClick}
       disabled={busy}
       aria-label={copied ? 'Lien copié' : busy ? 'Partage…' : 'Partager'}
       data-testid="share-icon"

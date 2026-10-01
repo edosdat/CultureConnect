@@ -15,6 +15,7 @@ import SignalsProvider from './SignalsProvider';
 import ShareVisitProvider from './ShareVisitProvider';
 import FavoritesProvider from './FavoritesProvider';
 import PwaInstallProvider from './PwaInstall';
+import AuthActionGate from './AuthActionGate';
 import {
   CLOSE_TASTES_EVENT,
   OPEN_TASTES_EVENT,
@@ -95,7 +96,10 @@ export default function Providers({
         <ShareVisitProvider>
           <FavoritesProvider>
             <TastesUiContext.Provider value={value}>
-              <PwaInstallProvider>{children}</PwaInstallProvider>
+              <PwaInstallProvider>
+                {children}
+                <AuthActionGate />
+              </PwaInstallProvider>
             </TastesUiContext.Provider>
           </FavoritesProvider>
         </ShareVisitProvider>

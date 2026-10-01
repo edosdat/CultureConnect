@@ -16,6 +16,7 @@ import {
   readDigestIntroSeen,
   writeDigestIntroSeen,
 } from '@/lib/digestTestIntro';
+import { AUTH_GATE_OPEN_EVENT, authGateHoldsAutoSheets } from '@/lib/authActionGate';
 
 /**
  * Soft card after a Google session, once per account, during the Thursday
@@ -56,7 +57,7 @@ export default function DigestTestIntro() {
       return;
     }
     if (previewQuery) {
-      if (!previewDismissed.current) showDigest();
+      if (!previewDismissed.current && !authGateHoldsAutoSheets()) showDigest();
       return;
     }
     previewDismissed.current = false;
@@ -85,10 +86,10 @@ export default function DigestTestIntro() {
           setOpen(false);
           return;
         }
-        showDigest();
+        if (!authGateHoldsAutoSheets()) showDigest();
       })
       .catch(() => {
-        if (!cancelled) showDigest();
+        if (!cancelled && !authGateHoldsAutoSheets()) showDigest();
       });
     return () => {
       cancelled = true;
@@ -96,6 +97,15 @@ export default function DigestTestIntro() {
   }, [email, pathname, previewQuery, showDigest, status]);
 
   useEffect(() => () => setDigestBlocking(false), []);
+
+  useEffect(() => {
+    function onAuthGate() {
+      setDigestBlocking(false);
+      setOpen(false);
+    }
+    window.addEventListener(AUTH_GATE_OPEN_EVENT, onAuthGate);
+    return () => window.removeEventListener(AUTH_GATE_OPEN_EVENT, onAuthGate);
+  }, []);
 
   useEffect(() => {
     if (!open) return;

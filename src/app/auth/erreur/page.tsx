@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AUTH_ERROR_RETRY_HREF, authErrorCopy } from '@/lib/authErrorCopy';
+import AuthGateErrorRedirect from './AuthGateErrorRedirect';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,7 @@ export default async function AuthErreurPage({
 
   return (
     <main className="mx-auto max-w-lg px-4 py-16 sm:px-6">
+      <AuthGateErrorRedirect />
       <p className="text-xs font-medium uppercase tracking-[0.15em] text-culture-terracotta">
         CultureConnect
       </p>
