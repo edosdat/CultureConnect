@@ -7,6 +7,7 @@
  * Les cookies produit (cc_vid, session, consentement) ne sont ni lus,
  * ni écrits, ni mis en cache. Le navigateur les envoie tout seul avec la requête.
  * Aucune permission, aucun abonnement, aucune synchro en arrière-plan.
+ * Le rechargement est décidé par la page : seulement si l'écran est libre.
  */
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting());
