@@ -763,8 +763,29 @@ describe('top 3 adaptive layout', () => {
         cardCount: 3,
         selectedCategories: ['cinema'],
       }),
+      false,
+      'a QUOI chip hides Top 3',
+    );
+    assert.equal(
+      shouldShowTop3Section({
+        ready: true,
+        wiped: false,
+        cardCount: 3,
+        selectedGenres: ['jazz'],
+      }),
+      false,
+      'a genre chip hides Top 3',
+    );
+    assert.equal(
+      shouldShowTop3Section({
+        ready: true,
+        wiped: false,
+        cardCount: 3,
+        selectedCategories: [],
+        selectedGenres: [],
+      }),
       true,
-      'a category chip keeps Top 3; only the grid filters',
+      'clearing QUOI and genres brings Top 3 back',
     );
     assert.equal(
       shouldShowTop3Section({

@@ -22,15 +22,15 @@ function homeBootMonthLabel(now = new Date()): string {
  * Reserved at ~380px (Design LAYOUT_JUMP):
  * - sticky search: h-10 + py-1.5 + border-b + mb-2 (~61px); ↵ always visible
  * - no SEARCH_EXAMPLES (retired)
- * - .cc-axes: two wrapping groups — QUAND then QUOI, compact column at
- *   every width (labels on; Filtres with Quoi on <md)
- * - Toulouse + Près de moi + Voir le mois (Paris month; wraps)
+ * - .cc-filter-band: Ville + Près de moi, then column QUAND → QUOI
+ *   (labels on; Filtres with Quoi on <md). Gap 6px, no empty row.
+ * - Voir le mois sits outside the band (Paris month)
  * - HomeListWaitSlot: overlay (no flow well; dots are 12px)
  *
  * SiteNav is already in the root layout. GenreFilter and the Salle chip
- * are absent here (no QUOI yet). Live: Salle sits after the column,
- * not behind Filtres.
- * Chips / city / wait slot are siblings of [data-top3].
+ * are absent here (no QUOI yet). Live: Salle sits after Quoi inside the
+ * band once a category is on (#205/#221), not behind Filtres.
+ * Chips / wait slot are siblings of [data-top3].
  */
 export default function HomeBootChrome({ children }: { children: ReactNode }) {
   const monthLabel = homeBootMonthLabel();
@@ -60,66 +60,69 @@ export default function HomeBootChrome({ children }: { children: ReactNode }) {
         </div>
       </div>
       <div className={HOME_CHROME_STACK_CLASS}>
-        <div inert aria-hidden className="cc-axes-row">
-          <div className="cc-axes">
-            <div className="cc-axes__group">
-              <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
-                Quand
-              </p>
-              {TIME_SCOPE_CHIPS.map(({ id, label }) => (
-                <span
-                  key={id}
-                  className="cc-axes__chip shrink-0 whitespace-nowrap rounded-full border border-culture-line bg-culture-surface font-medium text-culture-ink"
-                >
-                  {label}
-                </span>
-              ))}
-            </div>
-            <span className="cc-axes__rule" />
-            <div className="cc-axes__group">
-              <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
-                Quoi
-              </p>
-              {homeCats.map(({ id, label }) => {
-                const tint = `var(${MAIN_CAT_CSS_VAR[id]})`;
-                return (
+        <div inert aria-hidden className="cc-filter-band">
+          <div className="cc-filter-band__place">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="cc-axes__chip shrink-0 whitespace-nowrap rounded-full border border-culture-terracotta bg-culture-soft font-medium text-culture-clay shadow-sm">
+                {TOULOUSE_CHIP_DEFAULT}
+              </span>
+              <span className="rounded-full bg-culture-soft px-2.5 py-1 text-xs text-culture-clay">
+                ×
+              </span>
+            </span>
+            <span className="cc-axes__chip shrink-0 whitespace-nowrap rounded-full border border-culture-line bg-culture-surface font-medium text-culture-ink">
+              {NEAR_ME_CHIP_LABEL}
+            </span>
+          </div>
+          <div className="cc-axes-row">
+            <div className="cc-axes">
+              <div className="cc-axes__group">
+                <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
+                  Quand
+                </p>
+                {TIME_SCOPE_CHIPS.map(({ id, label }) => (
                   <span
                     key={id}
-                    className="cc-axes__chip shrink-0 whitespace-nowrap rounded-full"
-                    style={{
-                      borderWidth: 1.5,
-                      borderStyle: 'solid',
-                      borderColor: tint,
-                      backgroundColor: 'var(--cc-surface)',
-                      color: 'var(--cc-ink)',
-                    }}
+                    className="cc-axes__chip shrink-0 whitespace-nowrap rounded-full border border-culture-line bg-culture-surface font-medium text-culture-ink"
                   >
                     {label}
                   </span>
-                );
-              })}
-              <div className="cc-axes__more md:hidden">
-                <span className="cc-axes__chip inline-flex items-center gap-1 rounded-full border border-culture-line bg-culture-surface font-medium text-culture-ink">
-                  Filtres
-                  <span className="text-culture-muted">▾</span>
-                </span>
+                ))}
+              </div>
+              <span className="cc-axes__rule" />
+              <div className="cc-axes__group">
+                <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
+                  Quoi
+                </p>
+                {homeCats.map(({ id, label }) => {
+                  const tint = `var(${MAIN_CAT_CSS_VAR[id]})`;
+                  return (
+                    <span
+                      key={id}
+                      className="cc-axes__chip shrink-0 whitespace-nowrap rounded-full"
+                      style={{
+                        borderWidth: 1.5,
+                        borderStyle: 'solid',
+                        borderColor: tint,
+                        backgroundColor: 'var(--cc-surface)',
+                        color: 'var(--cc-ink)',
+                      }}
+                    >
+                      {label}
+                    </span>
+                  );
+                })}
+                <div className="cc-axes__more md:hidden">
+                  <span className="cc-axes__chip inline-flex items-center gap-1 rounded-full border border-culture-line bg-culture-surface font-medium text-culture-ink">
+                    Filtres
+                    <span className="text-culture-muted">▾</span>
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-        <div
-          inert
-          aria-hidden
-          className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1"
-        >
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <span className="shrink-0 rounded-full border border-culture-terracotta bg-culture-soft px-3 py-1.5 text-sm text-culture-clay shadow-sm">
-              {TOULOUSE_CHIP_DEFAULT}
-            </span>
-            <span className="shrink-0 rounded-full border border-culture-line bg-culture-surface px-3 py-1.5 text-sm font-medium text-culture-ink">
-              {NEAR_ME_CHIP_LABEL}
-            </span>
-          </div>
+        <div inert aria-hidden className="flex min-w-0 items-center justify-end">
           <span className="text-sm font-medium text-culture-terracotta">
             Voir le mois ({monthLabel})
           </span>

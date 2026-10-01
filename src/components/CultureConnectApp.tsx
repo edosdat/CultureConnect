@@ -1837,13 +1837,14 @@ export default function CultureConnectApp({
     for (const item of pourToiFilled) rememberItem(item);
     if (detailItem) rememberItem(detailItem);
   }, [top3Cards, pourToiFilled, detailItem, rememberItem]);
-  // Category chips stay in the opts so a QUOI selection cannot grow a second
-  // hide gate here. top3PaintMode ignores them; wipe / title / phrase still hide.
+  // QUOI or a genre chip hides the section. Date, commune, salle, and
+  // near-me do not. Wipe, title leftover, and phrase still hide.
   const top3Mode = top3PaintMode({
     ready: recoReady,
     wiped: recoWiped,
     cardCount: top3Cards.length,
     selectedCategories,
+    selectedGenres,
     committedTitle,
     phraseActive: phraseMode,
   });
@@ -2988,143 +2989,126 @@ export default function CultureConnectApp({
         />
       </div>
       <div className={HOME_CHROME_STACK_CLASS}>
-        <div className="cc-axes-row">
-          <div
-            className="cc-axes"
-            role="group"
-            aria-label="Quand et quoi"
-          >
-            <div className="cc-axes__group">
-              <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
-                Quand
-              </p>
-              <TimeScopeBar
-                scope={timeScope}
-                onChange={handleScopeChange}
-                hideLabel
-              />
-            </div>
-            <div
-              role="separator"
-              aria-hidden
-              className="cc-axes__rule"
+        <div
+          className="cc-filter-band"
+          role="group"
+          aria-label="Ville, salle, quand et quoi"
+        >
+          <div className="cc-filter-band__place">
+            <CityFilter
+              communes={communes}
+              selectedCommune={selectedCommune}
+              onChange={handleCommuneChange}
+              variant="inline"
+              inactive={searchingUi}
             />
-            <div className="cc-axes__group">
-              <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
-                Quoi
-              </p>
-              <CategoryFilter
-                selected={selectedCategories}
-                onChange={handleCategoriesChange}
-                variant="home"
+            {nearMeActive ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const next = nearMeOnToggleOff();
+                  setBrowseCommune(next.commune);
+                  applyNearMeState(next);
+                }}
+                aria-pressed={false}
+                className="cc-axes__chip shrink-0 rounded-full border border-culture-line bg-culture-surface font-medium text-culture-ink hover:border-culture-terracotta/50"
+              >
+                Toulouse
+              </button>
+            ) : null}
+            <NearMeChip
+              active={nearMeActive}
+              pending={nearMePending}
+              onToggle={handleNearMeToggle}
+            />
+          </div>
+          <div className="cc-axes-row">
+            <div className="cc-axes">
+              <div className="cc-axes__group">
+                <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
+                  Quand
+                </p>
+                <TimeScopeBar
+                  scope={timeScope}
+                  onChange={handleScopeChange}
+                  hideLabel
+                />
+              </div>
+              <div
+                role="separator"
+                aria-hidden
+                className="cc-axes__rule"
               />
-              <div className="cc-axes__more md:hidden">
-                <button
-                  type="button"
-                  onClick={() => setShowFiltersMobile((v) => !v)}
-                  className="cc-axes__chip inline-flex items-center gap-1 rounded-full border border-culture-line bg-culture-surface font-medium text-culture-ink hover:border-culture-terracotta/50"
-                  aria-expanded={showFiltersMobile}
-                >
-                  Filtres
-                  {filterBadge > 0 ? (
-                    <span className="rounded-full bg-culture-terracotta px-1.5 text-xs text-white">
-                      {filterBadge}
+              <div className="cc-axes__group">
+                <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
+                  Quoi
+                </p>
+                <CategoryFilter
+                  selected={selectedCategories}
+                  onChange={handleCategoriesChange}
+                  variant="home"
+                />
+                <div className="cc-axes__more md:hidden">
+                  <button
+                    type="button"
+                    onClick={() => setShowFiltersMobile((v) => !v)}
+                    className="cc-axes__chip inline-flex items-center gap-1 rounded-full border border-culture-line bg-culture-surface font-medium text-culture-ink hover:border-culture-terracotta/50"
+                    aria-expanded={showFiltersMobile}
+                  >
+                    Filtres
+                    {filterBadge > 0 ? (
+                      <span className="rounded-full bg-culture-terracotta px-1.5 text-xs text-white">
+                        {filterBadge}
+                      </span>
+                    ) : null}
+                    <span aria-hidden className="text-culture-muted">
+                      {showFiltersMobile ? '▴' : '▾'}
                     </span>
-                  ) : null}
-                  <span aria-hidden className="text-culture-muted">
-                    {showFiltersMobile ? '▴' : '▾'}
-                  </span>
-                </button>
+                  </button>
+                </div>
               </div>
             </div>
+            {/* Salle after Quoi (#205/#221). Null until a category is on —
+                no wrapper, so a closed chip leaves no empty row.
+                Not behind Filtres. Menu flips via placeVenueMenu. */}
+            <VenueFilter
+              lieux={venueOptions}
+              selectedLieuId={selectedLieuId}
+              onChange={setSelectedLieuId}
+              variant="inline"
+              selectedMains={selectedCategories}
+              hideWhenNoCategory
+              loading={
+                listFetchInFlight &&
+                selectedCategories.length > 0 &&
+                venueOptions.length === 0
+              }
+            />
           </div>
-          {/* Salle sits after the compact QUAND/QUOI column (sibling of
-              .cc-axes, not inside a scroller). Not behind Filtres.
-              Options = every upcoming venue in the active category
-              and commune (agenda venuesForCategoryMenu). */}
+          {/* GENRES: second band only when a category is on. */}
           {selectedCategories.length > 0 ? (
-            <div
-              data-salle-slot=""
-              className="flex min-w-0 max-w-full shrink-0 self-start"
-            >
-              <VenueFilter
-                lieux={venueOptions}
-                selectedLieuId={selectedLieuId}
-                onChange={setSelectedLieuId}
-                variant="inline"
-                selectedMains={selectedCategories}
-                hideWhenNoCategory
-                loading={
-                  listFetchInFlight &&
-                  selectedCategories.length > 0 &&
-                  venueOptions.length === 0
-                }
-              />
-            </div>
+            <GenreFilter
+              availableSlugs={genreChipSlugs}
+              legend={genresLegend}
+              selected={selectedGenres}
+              onChange={handleGenresChange}
+              selectedMains={selectedCategories}
+              hideWhenNoCategory
+              loading={genresLoading}
+            />
           ) : null}
         </div>
 
-        {/* Genres: mobile shows them as soon as a QUOI chip is on (or Filtres);
-            always on md+. hideWhenNoCategory keeps the block empty until QUOI. */}
-        <div
-          className={
-            (showFiltersMobile || selectedCategories.length > 0
-              ? 'flex'
-              : 'hidden') + ' flex-col gap-2.5 md:flex md:gap-4'
-          }
-        >
-          <GenreFilter
-            availableSlugs={genreChipSlugs}
-            legend={genresLegend}
-            selected={selectedGenres}
-            onChange={handleGenresChange}
-            selectedMains={selectedCategories}
-            hideWhenNoCategory
-            loading={genresLoading}
-          />
-        </div>
-
-        {/* Toulouse + month. Salle lives in the QUOI group. */}
-        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            {showAdminCounts ? (
-              <p
-                className="text-[11px] tabular-nums leading-tight text-culture-muted"
-                aria-label="Totaux agenda (debug)"
-              >
-                {adminCountLine}
-              </p>
-            ) : null}
-            {/* First paint / SSR: Toulouse + Près de moi stay visible (no hidden / Filtres gate). */}
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <CityFilter
-                communes={communes}
-                selectedCommune={selectedCommune}
-                onChange={handleCommuneChange}
-                variant="inline"
-                inactive={searchingUi}
-              />
-              {nearMeActive ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const next = nearMeOnToggleOff();
-                    setBrowseCommune(next.commune);
-                    applyNearMeState(next);
-                  }}
-                  aria-pressed={false}
-                  className="shrink-0 rounded-full border border-culture-line bg-culture-surface px-3 py-1.5 text-sm font-medium text-culture-ink hover:border-culture-terracotta/50"
-                >
-                  Toulouse
-                </button>
-              ) : null}
-              <NearMeChip
-                active={nearMeActive}
-                pending={nearMePending}
-                onToggle={handleNearMeToggle}
-              />
-            </div>
-          </div>
+        {/* Voir le mois stays outside the dense band. */}
+        <div className="flex min-w-0 items-center justify-end gap-x-2">
+          {showAdminCounts ? (
+            <p
+              className="mr-auto text-[11px] tabular-nums leading-tight text-culture-muted"
+              aria-label="Totaux agenda (debug)"
+            >
+              {adminCountLine}
+            </p>
+          ) : null}
           <button
             type="button"
             onClick={() => setShowMonthPanel((v) => !v)}

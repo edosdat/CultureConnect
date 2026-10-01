@@ -21,7 +21,7 @@ export default function NearMeChip({
       aria-pressed={active}
       aria-busy={pending || undefined}
       className={
-        'shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium transition ' +
+        'cc-axes__chip shrink-0 rounded-full border font-medium transition ' +
         (active
           ? 'border-culture-terracotta bg-culture-terracotta text-white shadow-sm'
           : 'border-culture-line bg-culture-surface text-culture-ink hover:border-culture-terracotta/50')

@@ -34,7 +34,7 @@ export default function CityFilter({
     return (
       <div
         className={
-          'flex min-w-0 flex-wrap items-center gap-2' +
+          'inline-flex min-w-0 flex-wrap items-center gap-1.5' +
           (inactive ? ' opacity-40' : '')
         }
       >
@@ -48,7 +48,7 @@ export default function CityFilter({
           aria-controls="cc-city"
           aria-disabled={inactive}
           className={
-            'shrink-0 rounded-full border px-3 py-1.5 text-sm transition ' +
+            'cc-axes__chip shrink-0 whitespace-nowrap rounded-full border font-medium transition ' +
             (selectedCommune || open
               ? 'border-culture-terracotta bg-culture-soft text-culture-clay shadow-sm'
               : 'border-culture-line bg-culture-surface text-culture-ink hover:border-culture-terracotta/50')
