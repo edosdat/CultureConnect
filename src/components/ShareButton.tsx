@@ -7,7 +7,10 @@ import { deepLinkUrl, isLikelyMobile, sharePrefill } from '@/lib/displayHome';
 import {
   normalizeSeanceKey,
   shareCreateItemKey,
+  shareMintCacheKey,
+  shareUrlForTap,
   shouldClientTrackShare,
+  shouldRefreshShareClipboard,
 } from '@/lib/shareToken';
 import { rememberGuestCreatedToken } from '@/lib/guestShareTeaser';
 import { useSignals } from './SignalsProvider';
@@ -74,14 +77,61 @@ function bindShareToastResume() {
   window.addEventListener('pageshow', resumeShareCopiedToast);
 }
 
-async function waitForToastPaint() {
-  await new Promise<void>((resolve) => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        window.setTimeout(resolve, 120);
-      });
+type MintedShare = { url: string; token?: string; created: boolean };
+
+const mintedByKey = new Map<string, MintedShare>();
+const mintingByKey = new Map<string, Promise<MintedShare | null>>();
+
+async function requestShareMint(
+  shareItemKey: string,
+  seanceKey: string | null,
+): Promise<MintedShare | null> {
+  const origin = window.location.origin;
+  const fallback = deepLinkUrl(origin, shareItemKey);
+  try {
+    const body: { kind: 'created'; itemKey: string; seanceKey?: string } = {
+      kind: 'created',
+      itemKey: shareItemKey,
+    };
+    const seance = normalizeSeanceKey(seanceKey);
+    if (seance) body.seanceKey = seance;
+    const res = await fetch('/api/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(body),
     });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { url?: string; token?: string };
+    if (data.token) rememberGuestCreatedToken(data.token);
+    return {
+      url: data.url || fallback,
+      token: data.token,
+      created: Boolean(data.url),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Deduped mint. Safe to call on mount, pointer-down, and tap. */
+function prefetchShareMint(
+  itemKey: string,
+  seanceKey: string | null,
+): Promise<MintedShare | null> {
+  const key = shareMintCacheKey(itemKey, seanceKey);
+  const cached = mintedByKey.get(key);
+  if (cached) return Promise.resolve(cached);
+  const inflight = mintingByKey.get(key);
+  if (inflight) return inflight;
+  const shareItemKey = shareCreateItemKey(itemKey, seanceKey) || itemKey;
+  const pending = requestShareMint(shareItemKey, seanceKey).then((minted) => {
+    mintingByKey.delete(key);
+    if (minted) mintedByKey.set(key, minted);
+    return minted;
   });
+  mintingByKey.set(key, pending);
+  return pending;
 }
 
 export default function ShareButton({
@@ -92,6 +142,7 @@ export default function ShareButton({
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const copiedTimer = useRef<number | null>(null);
+  const sharing = useRef(false);
   const { trackItem } = useSignals();
   const { status } = useSession();
 
@@ -110,32 +161,6 @@ export default function ShareButton({
       setCopied(false);
       copiedTimer.current = null;
     }, TOAST_MS);
-  }
-
-  async function createShareUrl(): Promise<{ url: string; created: boolean }> {
-    const origin = window.location.origin;
-    const shareItemKey = shareCreateItemKey(item.key, seanceKey) || item.key;
-    const fallback = deepLinkUrl(origin, shareItemKey);
-    try {
-      const body: { kind: 'created'; itemKey: string; seanceKey?: string } = {
-        kind: 'created',
-        itemKey: shareItemKey,
-      };
-      const seance = normalizeSeanceKey(seanceKey);
-      if (seance) body.seanceKey = seance;
-      const res = await fetch('/api/share', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) return { url: fallback, created: false };
-      const data = (await res.json()) as { url?: string; token?: string };
-      if (data.token) rememberGuestCreatedToken(data.token);
-      return { url: data.url || fallback, created: Boolean(data.url) };
-    } catch {
-      return { url: fallback, created: false };
-    }
   }
 
   async function copyText(payload: string): Promise<boolean> {
@@ -160,60 +185,86 @@ export default function ShareButton({
     }
   }
 
-  async function handleShare() {
-    if (busy) return;
+  function handleShare() {
+    if (sharing.current) return;
+    sharing.current = true;
     setBusy(true);
-    let created = false;
+
     const shareItemKey = shareCreateItemKey(item.key, seanceKey) || item.key;
-    let url = deepLinkUrl(window.location.origin, shareItemKey);
-    try {
-      const result = await createShareUrl();
-      created = result.created;
-      url = result.url;
-    } finally {
-      setBusy(false);
-    }
+    const fallback = deepLinkUrl(window.location.origin, shareItemKey);
+    const cached = mintedByKey.get(shareMintCacheKey(item.key, seanceKey));
+    const url = shareUrlForTap({ cachedUrl: cached?.url, fallbackUrl: fallback });
     const prefill = sharePrefill(item, url);
-    const authed = status === 'authenticated';
-    const trackShare = () => {
-      if (shouldClientTrackShare({ created, authed })) {
-        trackItem(item, 'share');
-      }
-    };
     const payload = `${prefill.text}\n${prefill.url}`;
-    const copiedOk = await copyText(payload);
-    if (copiedOk) {
-      trackShare();
-      flashCopied();
-      await waitForToastPaint();
-    }
-    if (isLikelyMobile() && typeof navigator.share === 'function') {
+    const authed = status === 'authenticated';
+    let tracked = false;
+    const trackShare = (created: boolean) => {
+      if (tracked) return;
+      if (!shouldClientTrackShare({ created, authed })) return;
+      tracked = true;
+      trackItem(item, 'share');
+    };
+
+    // Toast and the share sheet in this turn. Do not wait on POST.
+    flashCopied();
+
+    const mobile = isLikelyMobile() && typeof navigator.share === 'function';
+    const sharePromise = mobile
+      ? navigator
+          .share({
+            title: prefill.title,
+            text: prefill.text,
+            url: prefill.url,
+          })
+          .then(
+            () => undefined,
+            () => undefined,
+          )
+      : Promise.resolve();
+    const copyPromise = copyText(payload);
+    const mintPromise = prefetchShareMint(item.key, seanceKey);
+
+    if (cached) trackShare(cached.created);
+    else if (!authed) trackShare(false);
+
+    void (async () => {
+      let copiedOk = false;
       try {
-        await navigator.share({
-          title: prefill.title,
-          text: prefill.text,
-          url: prefill.url,
-        });
+        copiedOk = await copyPromise;
+        await sharePromise;
+        if (mobile) flashCopied();
+        if (!copiedOk && !mobile) {
+          window.prompt('Copier le lien', payload);
+          flashCopied();
+        }
+      } finally {
+        sharing.current = false;
+        setBusy(false);
+      }
+      try {
+        const minted = await mintPromise;
+        const mintedUrl = minted?.url;
+        if (
+          copiedOk &&
+          mintedUrl &&
+          shouldRefreshShareClipboard({ copiedUrl: url, mintedUrl })
+        ) {
+          const next = sharePrefill(item, mintedUrl);
+          await copyText(`${next.text}\n${next.url}`);
+        }
+        if (!cached) trackShare(Boolean(minted?.created));
       } catch {
-        /* cancelled — toast lives on document.body */
+        if (!cached) trackShare(false);
       }
-      if (copiedOk) flashCopied();
-      else {
-        trackShare();
-        flashCopied();
-      }
-      return;
-    }
-    if (!copiedOk) {
-      window.prompt('Copier le lien', payload);
-      trackShare();
-      flashCopied();
-    }
+    })();
   }
 
   return (
     <button
       type="button"
+      onPointerDown={() => {
+        prefetchShareMint(item.key, seanceKey);
+      }}
       onClick={handleShare}
       disabled={busy}
       aria-label={copied ? 'Lien copié' : busy ? 'Partage…' : 'Partager'}

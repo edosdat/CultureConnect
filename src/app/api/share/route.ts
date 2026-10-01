@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { auth, unstable_update } from '@/auth';
 import {
   COHORT_COOKIE,
@@ -32,6 +32,7 @@ import {
 } from '@/lib/shareRsvp';
 import { workIdForItemKey } from '@/lib/shareRsvpWork';
 import {
+  hasAuthSessionCookie,
   isShareToken,
   normalizeSeanceKey,
   normalizeShareToken,
@@ -91,9 +92,14 @@ export async function POST(req: Request) {
     seanceKey?: unknown;
     token?: unknown;
   };
-  const session = await auth();
   const cookieHeader = req.headers.get('cookie');
   const ip = clientIpFromRequest(req);
+  // Guest create has no session cookie. `auth()` would still decode and
+  // hydrate tastes before we can return `{token,url}`.
+  const session =
+    incoming.kind === 'created' && !hasAuthSessionCookie(cookieHeader)
+      ? null
+      : await auth();
   const sharerEmail = sessionSharerEmail(session?.user);
 
   if (incoming.kind === 'created') {
@@ -105,37 +111,60 @@ export async function POST(req: Request) {
       seanceKey,
     );
     if (!itemKey) return jsonError('itemKey invalide', 400);
-    if (await isShareCreateRateLimited({ ip, email: sharerEmail })) {
-      return jsonError('Too many requests', 429);
-    }
     const firstName = firstNameFromDisplayName(
       typeof session?.user?.name === 'string' ? session.user.name : '',
     );
-    const created = await createShareToken({
-      itemKey,
-      seanceKey,
-      sharerEmail,
-      origin: requestOrigin(req),
-      firstName,
-    });
+    // Rate-limit and the token claim are independent Redis calls. Run them
+    // together so the guest POST waits for one round trip, not two.
+    const [limited, created] = await Promise.all([
+      isShareCreateRateLimited({ ip, email: sharerEmail }),
+      createShareToken({
+        itemKey,
+        seanceKey,
+        sharerEmail,
+        origin: requestOrigin(req),
+        firstName,
+        skipSharerSeed: true,
+      }),
+    ]);
+    if (limited) return jsonError('Too many requests', 429);
     if (!created) return jsonError('Création impossible', 500);
     scheduleShareOgWarm(requestOrigin(req) || publicAppOrigin(), itemKey);
-    if (sharerEmail) {
-      await seedSharerEnvie({
-        token: created.token,
-        itemKey,
-        email: sharerEmail,
-        firstName,
-      });
-    }
-
-    if (session?.user) {
-      const tasteState = await ingestAccountItemSignal({
-        user: session.user,
-        payload: trackPayloadForItemKey(itemKey, 'share'),
-      });
-      return withTasteUpdate(NextResponse.json(created), tasteState);
-    }
+    const createdToken = created.token;
+    const tasteUser = session?.user;
+    // Seed, Matching A ingest, and the JWT refresh must not sit on the POST.
+    // `after` keeps them alive once `{token,url}` is on the wire.
+    after(async () => {
+      if (sharerEmail) {
+        try {
+          await seedSharerEnvie({
+            token: createdToken,
+            itemKey,
+            email: sharerEmail,
+            firstName,
+          });
+        } catch {
+          /* token is already stored */
+        }
+      }
+      if (!tasteUser) return;
+      try {
+        const tasteState = await ingestAccountItemSignal({
+          user: tasteUser,
+          payload: trackPayloadForItemKey(itemKey, 'share'),
+        });
+        await unstable_update({
+          user: {
+            tastes: tasteState.tastesText ?? '',
+            tastesSetAt: tasteState.tastesSetAt,
+            tasteState,
+          },
+          tasteState,
+        } as never);
+      } catch {
+        /* account row is the durable copy; cookie refresh is best-effort */
+      }
+    });
     return NextResponse.json(created);
   }
 

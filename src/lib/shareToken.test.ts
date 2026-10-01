@@ -10,14 +10,18 @@ import {
   isShareToken,
   normalizeSeanceKey,
   normalizeShareToken,
+  hasAuthSessionCookie,
   sessionSharerEmail,
   SHARE_CREATE_RATE_PER_HOUR,
   SHARE_TOKEN_RE,
   SHARE_VISIT_STORAGE_PREFIX,
   SHARE_VISITS_CAP,
   shareCreateItemKey,
+  shareMintCacheKey,
+  shareUrlForTap,
   shareVisitStorageKey,
   shouldClientTrackShare,
+  shouldRefreshShareClipboard,
 } from './shareToken';
 import {
   createShareToken,
@@ -30,6 +34,7 @@ import {
   readShareToken,
   recordShareVisit,
   resetShareStoreForTests,
+  setShareKvPipelineForTests,
   shareOrphanLogsForTests,
 } from './shareStore';
 import { assertNoVidAccountJoin } from './guestSignals';
@@ -225,6 +230,89 @@ describe('B3 visit + RGPD', () => {
 });
 
 describe('B3 URL + open_shared + no B3b', () => {
+  it('tap uses the deep link immediately and refreshes only when the mint differs', () => {
+    assert.equal(hasAuthSessionCookie(null), false);
+    assert.equal(hasAuthSessionCookie('cc_vid=abc'), false);
+    assert.equal(
+      hasAuthSessionCookie('__Secure-authjs.session-token=eyJ; cc_vid=abc'),
+      true,
+    );
+    assert.equal(hasAuthSessionCookie('authjs.session-token.0=chunk'), true);
+    assert.equal(hasAuthSessionCookie('next-auth.session-token=legacy'), true);
+    const key = shareMintCacheKey('p:P1847', 'p:P1999');
+    assert.equal(key, shareMintCacheKey('ignored', 'p:P1999'));
+    assert.notEqual(key, shareMintCacheKey('p:P1847', null));
+    const fallback = 'https://cc.test/?e=p%3AP1847';
+    const minted = `${fallback}&t=abcd1234`;
+    assert.equal(shareUrlForTap({ fallbackUrl: fallback }), fallback);
+    assert.equal(shareUrlForTap({ cachedUrl: '  ', fallbackUrl: fallback }), fallback);
+    assert.equal(shareUrlForTap({ cachedUrl: minted, fallbackUrl: fallback }), minted);
+    assert.equal(
+      shouldRefreshShareClipboard({ copiedUrl: fallback, mintedUrl: minted }),
+      true,
+    );
+    assert.equal(
+      shouldRefreshShareClipboard({ copiedUrl: minted, mintedUrl: minted }),
+      false,
+    );
+    assert.equal(
+      shouldRefreshShareClipboard({ copiedUrl: fallback, mintedUrl: '' }),
+      false,
+    );
+  });
+
+  it('guest create claims with one SET NX and does not GET first', async () => {
+    resetShareStoreForTests();
+    const cmds: string[][] = [];
+    setShareKvPipelineForTests(async (batch) => {
+      cmds.push(...batch);
+      return batch.map((cmd) => {
+        if (cmd[0] === 'SET') return { result: 'OK' };
+        return { result: null };
+      });
+    });
+    const created = await createShareToken({
+      itemKey: 'e:E012',
+      sharerEmail: null,
+      origin: 'https://cc.test',
+    });
+    assert.ok(created);
+    assert.match(created.token, SHARE_TOKEN_RE);
+    assert.equal(created.url.includes(`t=${created.token}`), true);
+    assert.equal(
+      cmds.some((cmd) => cmd[0] === 'GET'),
+      false,
+    );
+    const set = cmds.find((cmd) => cmd[0] === 'SET');
+    assert.ok(set);
+    assert.equal(set?.[1], `share:tok:${created.token}`);
+    assert.equal(set?.includes('NX'), true);
+    assert.equal((await readShareToken(created.token))?.itemKey, 'e:E012');
+  });
+
+  it('SET NX collision retries and still returns a token', async () => {
+    resetShareStoreForTests();
+    let sets = 0;
+    setShareKvPipelineForTests(async (batch) => {
+      return batch.map((cmd) => {
+        if (cmd[0] === 'SET' && cmd.includes('NX')) {
+          sets += 1;
+          if (sets === 1) return { result: null };
+          return { result: 'OK' };
+        }
+        return { result: null };
+      });
+    });
+    const created = await createShareToken({
+      itemKey: 'e:E012',
+      sharerEmail: null,
+      origin: 'https://cc.test',
+    });
+    assert.ok(created);
+    assert.equal(sets >= 2, true);
+    assert.equal((await readShareToken(created.token))?.sharerEmail, null);
+  });
+
   it('deepLinkUrl appends t= without changing e= fiche id', () => {
     const withTok = deepLinkUrl('https://cc.test', 'p:P1847', 'abcd1234');
     const without = deepLinkUrl('https://cc.test', 'p:P1847');
@@ -309,9 +397,34 @@ describe('B3 URL + open_shared + no B3b', () => {
     assert.match(src, /visibilitychange/);
     assert.match(src, /pageshow/);
     assert.match(src, /navigator\.share/);
-    assert.match(src, /if \(copiedOk\) flashCopied\(\)/);
-    assert.match(src, /waitForToastPaint/);
+    assert.match(src, /flashCopied\(\)/);
+    assert.match(src, /shareUrlForTap/);
+    assert.match(src, /prefetchShareMint/);
+    assert.match(src, /onPointerDown/);
+    assert.match(src, /shouldRefreshShareClipboard/);
+    assert.match(src, /shouldClientTrackShare/);
+    assert.equal(src.includes('waitForToastPaint'), false);
+    assert.equal(src.includes('await createShareUrl'), false);
+    const shareStart = src.indexOf('function handleShare');
+    const handler = src.slice(shareStart, src.indexOf('return (', shareStart));
+    const flashAt = handler.indexOf('flashCopied()');
+    const shareAt = handler.indexOf('navigator');
+    const firstAwait = handler.indexOf('await ');
+    assert.ok(flashAt >= 0 && shareAt > flashAt);
+    assert.ok(firstAwait === -1 || flashAt < firstAwait);
     assert.match(src, /share-copied-toast/);
+    const route = await readFile(new URL('../app/api/share/route.ts', import.meta.url), 'utf8');
+    const createdHandler = route.slice(
+      route.indexOf("incoming.kind === 'created'"),
+      route.indexOf("incoming.kind === 'visit'"),
+    );
+    assert.match(route, /hasAuthSessionCookie/);
+    assert.match(createdHandler, /Promise\.all/);
+    assert.match(createdHandler, /skipSharerSeed:\s*true/);
+    const afterAt = createdHandler.indexOf('after(');
+    const seedAt = createdHandler.indexOf('seedSharerEnvie');
+    const jsonAt = createdHandler.lastIndexOf('NextResponse.json(created)');
+    assert.ok(afterAt >= 0 && seedAt > afterAt && jsonAt > seedAt);
     const visitSrc = await readFile(
       new URL('../components/ShareVisitProvider.tsx', import.meta.url),
       'utf8',

@@ -42,3 +42,4 @@ Statuts : **À faire** · **En cours** · **Fait (#PR)** · **Bloqué** · **Rem
 | — | tip Bot chat feedback V0 | En cours | PATCH soft RGPD sur #215 (notice, purge cron, pas de xAI). HOLD merge jusqu'au GO. |
 | — | tip PWA 3/3 refresh contenu ouvert | En cours | Shell réseau d'abord. Focus + 10 min : `reg.update()`, reload si l'écran est libre, sinon bandeau. Agenda refetch sans tuer l'app. HOLD merge jusqu'au GO. |
 | — | tip 1/3 popup 1ère connexion digeste jeudi | En cours | Une fois par compte (`seen`) + drapeau local. Pas de case sur la carte. HOLD merge jusqu'au GO. |
+| — | tip Partager trop long | En cours | Toast / sheet au tap, mint async. POST allégé (guest sans `auth()`, SET NX). HOLD merge jusqu'au GO soft. |

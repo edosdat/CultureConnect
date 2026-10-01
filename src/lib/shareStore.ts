@@ -9,6 +9,7 @@
  * RGPD: never persist cc_vid next to email / emailHash / firstName.
  */
 import { createHash } from 'crypto';
+import { after } from 'next/server';
 import { VercelPool } from '@vercel/postgres';
 import { deepLinkUrl } from '@/lib/displayHome';
 import { normalizeDeepLinkId, resolveShareDeepLinkKey } from '@/lib/deepLink';
@@ -474,48 +475,101 @@ async function writeShareToken(record: ShareTokenRecord): Promise<void> {
   await writeShareTokenNeon(record);
 }
 
+/** Keep the isolate alive for the Neon mirror without blocking the share POST. */
+function deferAfterResponse(task: () => Promise<void>): void {
+  try {
+    after(() => task().catch(() => undefined));
+  } catch {
+    void task().catch(() => undefined);
+  }
+}
+
+/**
+ * SET NX result. `null` result means the key already exists (collision).
+ * A transport or command error is `down` — fall back to Neon, do not retry forever.
+ */
+function kvNxOutcome(entry: unknown): 'set' | 'exists' | 'down' {
+  if (kvSetSucceeded(entry)) return 'set';
+  if (!entry || typeof entry !== 'object') return 'down';
+  if ('error' in entry && (entry as { error?: unknown }).error) return 'down';
+  if ('result' in entry && (entry as { result?: unknown }).result == null) return 'exists';
+  return 'down';
+}
+
+/**
+ * Claim a fresh token in one Redis round trip.
+ * The old path GET (miss) then Neon SELECT (miss) before SET — that was the POST wait.
+ * When Redis accepts NX, Neon is mirrored after the response.
+ */
+async function claimNewShareToken(record: ShareTokenRecord): Promise<boolean> {
+  if (memoryTokens.has(record.token)) return false;
+  const payload = JSON.stringify(record);
+  const rows = await kvPipeline([['SET', tokKey(record.token), payload, 'NX']]);
+  if (rows) {
+    const outcome = kvNxOutcome(rows[0]);
+    if (outcome === 'exists') return false;
+    if (outcome === 'set') {
+      memoryTokens.set(record.token, { ...record });
+      deferAfterResponse(() => writeShareTokenNeon(record));
+      return true;
+    }
+  }
+  const existing = await readShareTokenNeon(record.token);
+  if (existing) return false;
+  memoryTokens.set(record.token, { ...record });
+  await writeShareTokenNeon(record);
+  return true;
+}
+
 export async function createShareToken(opts: {
   itemKey: string;
   seanceKey?: string | null;
   sharerEmail: string | null;
   origin: string;
   firstName?: string | null;
+  /** Caller runs `seedSharerEnvie` after the HTTP response. Default still seeds here. */
+  skipSharerSeed?: boolean;
 }): Promise<{ token: string; url: string; seanceKey?: string } | null> {
   const seanceKey = normalizeSeanceKey(opts.seanceKey);
   const itemKey = shareCreateItemKey(opts.itemKey, seanceKey);
   if (!itemKey) return null;
-  let token = '';
+  let record: ShareTokenRecord | null = null;
   for (let i = 0; i < 6; i += 1) {
     const candidate = generateShareToken();
-    const existing = await readShareToken(candidate);
-    if (!existing) {
-      token = candidate;
+    const next: ShareTokenRecord = {
+      token: candidate,
+      itemKey,
+      createdAt: new Date().toISOString(),
+      sharerEmail: opts.sharerEmail,
+      opens: 0,
+    };
+    if (seanceKey) next.seanceKey = seanceKey;
+    if (await claimNewShareToken(next)) {
+      record = next;
       break;
     }
   }
-  if (!token) return null;
-  const record: ShareTokenRecord = {
-    token,
-    itemKey,
-    createdAt: new Date().toISOString(),
-    sharerEmail: opts.sharerEmail,
-    opens: 0,
-  };
-  if (seanceKey) record.seanceKey = seanceKey;
-  await writeShareToken(record);
+  if (!record) return null;
   if (record.sharerEmail) {
-    await indexSharerToken(record.sharerEmail, record.token);
+    const email = record.sharerEmail;
+    const token = record.token;
     // Connected share = auto-Envie on this token. Guest (null email) skips.
-    await seedSharerEnvie({
-      token: record.token,
-      itemKey,
-      workId: itemKey,
-      email: record.sharerEmail,
-      firstName: opts.firstName,
-    });
+    // The HTTP route defers both the index and the seed until after `{token,url}`.
+    if (opts.skipSharerSeed) {
+      deferAfterResponse(() => indexSharerToken(email, token));
+    } else {
+      await indexSharerToken(email, token);
+      await seedSharerEnvie({
+        token,
+        itemKey,
+        workId: itemKey,
+        email,
+        firstName: opts.firstName,
+      });
+    }
   }
-  const url = deepLinkUrl(opts.origin, itemKey, token);
-  return seanceKey ? { token, url, seanceKey } : { token, url };
+  const url = deepLinkUrl(opts.origin, itemKey, record.token);
+  return seanceKey ? { token: record.token, url, seanceKey } : { token: record.token, url };
 }
 
 async function indexSharerToken(email: string, token: string): Promise<void> {

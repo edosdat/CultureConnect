@@ -81,6 +81,48 @@ export function sessionSharerEmail(user?: {
   return email;
 }
 
+/** Auth.js session cookie, including the secure prefix and chunked `.0` names. */
+const AUTH_SESSION_COOKIE_RE =
+  /(?:^|;\s*)(?:__Host-|__Secure-)?(?:authjs|next-auth)\.session-token(?:\.\d+)?=/;
+
+/**
+ * Guest `kind=created` skips `auth()` when no session cookie is present.
+ * A missing cookie is a guest; decoding a JWT would only add latency.
+ */
+export function hasAuthSessionCookie(cookieHeader: string | null | undefined): boolean {
+  if (!cookieHeader) return false;
+  return AUTH_SESSION_COOKIE_RE.test(cookieHeader);
+}
+
+/** One mint per item + séance. Pointer-down, mount, and tap share this key. */
+export function shareMintCacheKey(itemKey: string, seanceKey?: string | null): string {
+  const id = shareCreateItemKey(itemKey, seanceKey) || (itemKey || '').trim();
+  const seance = normalizeSeanceKey(seanceKey) || '';
+  return `${id}|${seance}`;
+}
+
+/**
+ * Link used the instant the button is tapped.
+ * A finished prefetch wins; otherwise the plain deep link. Never blocks on POST.
+ */
+export function shareUrlForTap(opts: {
+  cachedUrl?: string | null;
+  fallbackUrl: string;
+}): string {
+  const cached = (opts.cachedUrl || '').trim();
+  return cached || opts.fallbackUrl;
+}
+
+/** Rewrite the clipboard only when the minted link differs from the one already copied. */
+export function shouldRefreshShareClipboard(opts: {
+  copiedUrl: string;
+  mintedUrl?: string | null;
+}): boolean {
+  const minted = (opts.mintedUrl || '').trim();
+  if (!minted) return false;
+  return minted !== (opts.copiedUrl || '').trim();
+}
+
 export function requestOrigin(req: Request): string {
   const env = process.env;
   for (const key of ['AUTH_URL', 'NEXTAUTH_URL'] as const) {
