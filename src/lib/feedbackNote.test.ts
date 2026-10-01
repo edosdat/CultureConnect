@@ -7,6 +7,16 @@ import { after, before, beforeEach, describe, it } from 'node:test';
 import { hashEmailKey } from './adminAnalytics';
 import { FEEDBACK_MAX_TOKENS, replyToFeedback } from './feedbackAi';
 import {
+  BUG_QUESTION,
+  BUG_STUB,
+  BUG_SUBTYPES,
+  SUGGESTION_QUESTION,
+  SUGGESTION_STUB,
+  SUGGESTION_SUBTYPES,
+  clearStub,
+  fieldForTrack,
+} from './feedbackChips';
+import {
   FEEDBACK_ACK,
   FEEDBACK_IP_RATE_PER_HOUR,
   FEEDBACK_KINDS,
@@ -497,8 +507,18 @@ describe('feedback surfaces', () => {
     assert.match(widget, /plan-c-icon-LOCK-v3-violet\.jpg/);
     assert.match(widget, /Suggestion/);
     assert.match(widget, /Bug/);
+    assert.ok(widget.indexOf("label: 'Bug'") < widget.indexOf("label: 'Suggestion'"));
     assert.match(widget, /kind: 'idee'/);
     assert.match(widget, /kind: 'bug'/);
+    assert.match(widget, /fieldForTrack/);
+    assert.match(widget, /clearStub/);
+    assert.match(widget, /bg-culture-terracotta text-culture-ink/);
+    assert.match(widget, /BUG_QUESTION/);
+    assert.match(widget, /SUGGESTION_QUESTION/);
+    assert.ok(
+      widget.indexOf('aria-label="Type de message"') <
+        widget.indexOf("aria-label={active.kind === 'bug' ? 'Type de bug' : 'Type de suggestion'}"),
+    );
     assert.match(widget, /listRef/);
     assert.match(widget, /data-feedback-end/);
     assert.match(widget, /pwa-install-sheet/);
@@ -548,5 +568,34 @@ describe('feedback surfaces', () => {
     assert.match(conf, /pas un consentement séparé/);
     assert.match(conf, /seulement en écrivant/);
     assert.match(conf, /Intérêt légitime/);
+  });
+});
+
+describe('feedback chip prefill', () => {
+  it('locks the subtype lists and the follow-up questions', () => {
+    assert.deepEqual([...BUG_SUBTYPES], ['Affichage', 'Filtres', 'Connexion', 'Autre']);
+    assert.deepEqual(
+      [...SUGGESTION_SUBTYPES],
+      ['Idée produit', 'Contenu manquant', 'Amélioration', 'Autre'],
+    );
+    assert.equal(BUG_SUBTYPES.at(-1), 'Autre');
+    assert.equal(SUGGESTION_SUBTYPES.at(-1), 'Autre');
+    assert.equal(BUG_QUESTION, 'Quel type de bug ?');
+    assert.equal(SUGGESTION_QUESTION, 'Quel type de suggestion ?');
+    assert.equal(BUG_STUB, 'J’ai repéré un bug : ');
+    assert.equal(SUGGESTION_STUB, 'Voici une suggestion : ');
+    assert.equal(BUG_STUB.endsWith(' '), true);
+    assert.equal(SUGGESTION_STUB.endsWith(' '), true);
+  });
+
+  it('swaps the stub only when the field is empty or still the previous stub', () => {
+    assert.equal(fieldForTrack('', null, BUG_STUB), BUG_STUB);
+    assert.equal(fieldForTrack('   ', null, SUGGESTION_STUB), SUGGESTION_STUB);
+    assert.equal(fieldForTrack(BUG_STUB, BUG_STUB, SUGGESTION_STUB), SUGGESTION_STUB);
+    assert.equal(fieldForTrack('', BUG_STUB, SUGGESTION_STUB), SUGGESTION_STUB);
+    const edited = `${BUG_STUB}le titre déborde`;
+    assert.equal(fieldForTrack(edited, BUG_STUB, SUGGESTION_STUB), edited);
+    assert.equal(clearStub(BUG_STUB, BUG_STUB), '');
+    assert.equal(clearStub(edited, BUG_STUB), edited);
   });
 });
