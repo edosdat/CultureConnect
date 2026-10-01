@@ -68,6 +68,9 @@ function applyTasteStateToToken(
 
 export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   trustHost: true,
+  pages: {
+    error: '/auth/erreur',
+  },
   // Always register Google; credentials resolved when the module loads on the server
   // (Vercel cold start has Production env). Empty id → provider unused / providers API empty.
   providers: [
