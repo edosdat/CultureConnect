@@ -50,6 +50,15 @@ import {
   type BeforeInstallPromptEvent,
   type IosInstallFlags,
 } from '@/lib/pwaInstall';
+import {
+  AGENDA_REFRESH_EVENT,
+  SHELL_UPDATE_ACTION,
+  SHELL_UPDATE_TIP,
+  SW_UPDATE_INTERVAL_MS,
+  agendaRefreshDue,
+  readShellReloadSignals,
+  shellReloadIsSafe,
+} from '@/lib/pwaRefresh';
 
 type PwaInstallValue = {
   /** `null` until the client has checked standalone / related apps. */
@@ -387,11 +396,33 @@ function InstallSheet({
   );
 }
 
+function ShellRefreshTip({ onRefresh }: { onRefresh: () => void }) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      data-testid="pwa-shell-refresh"
+      className="fixed inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-[170] mx-auto flex w-auto max-w-sm items-center justify-between gap-3 rounded-2xl border border-culture-line/80 bg-white/90 px-4 py-3 shadow-card backdrop-blur-md"
+    >
+      <p className="text-sm text-culture-ink">{SHELL_UPDATE_TIP}</p>
+      <button
+        type="button"
+        data-testid="pwa-shell-refresh-action"
+        onClick={onRefresh}
+        className="min-h-10 shrink-0 rounded-full bg-culture-terracotta px-4 py-2 text-sm font-semibold text-white hover:bg-culture-clay"
+      >
+        {SHELL_UPDATE_ACTION}
+      </button>
+    </div>
+  );
+}
+
 export default function PwaInstallProvider({ children }: { children: ReactNode }) {
   const [installed, setInstalled] = useState<boolean | null>(null);
   const [open, setOpen] = useState(false);
   const [installFlags, setInstallFlags] = useState<IosInstallFlags | null>(null);
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [shellUpdateReady, setShellUpdateReady] = useState(false);
 
   const rememberPrompt = useCallback((event?: Event) => {
     const next =
@@ -408,30 +439,59 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
     if (!('serviceWorker' in navigator)) return;
     const hadController = Boolean(navigator.serviceWorker.controller);
     let reloading = false;
-    function onController() {
-      if (!hadController || reloading) return;
+    let pendingReload = false;
+    let registration: ServiceWorkerRegistration | null = null;
+    let lastAgendaAt: number | null = Date.now();
+
+    function trySoftReload() {
+      if (!pendingReload || reloading) return;
+      if (!shellReloadIsSafe(readShellReloadSignals(document))) {
+        setShellUpdateReady(true);
+        return;
+      }
       reloading = true;
       window.location.reload();
     }
+
+    function onController() {
+      if (!hadController || reloading) return;
+      pendingReload = true;
+      trySoftReload();
+    }
+
+    function maybeAgenda(now = Date.now()) {
+      if (document.visibilityState !== 'visible') return;
+      if (!agendaRefreshDue(lastAgendaAt, now)) return;
+      lastAgendaAt = now;
+      window.dispatchEvent(new Event(AGENDA_REFRESH_EVENT));
+    }
+
+    function tick() {
+      registration?.update().catch(() => {});
+      maybeAgenda();
+      trySoftReload();
+    }
+
     navigator.serviceWorker.addEventListener('controllerchange', onController);
-    let removeVis = () => {};
+    const onVis = () => {
+      if (document.visibilityState !== 'visible') return;
+      registration?.update().catch(() => {});
+      maybeAgenda();
+      trySoftReload();
+    };
+    document.addEventListener('visibilitychange', onVis);
+    const timer = window.setInterval(tick, SW_UPDATE_INTERVAL_MS);
     navigator.serviceWorker
-      .register('/sw.js', { scope: '/' })
+      .register('/sw.js', { scope: '/', updateViaCache: 'none' })
       .then((reg) => {
-        const update = () => {
-          reg.update().catch(() => {});
-        };
-        update();
-        const onVis = () => {
-          if (document.visibilityState === 'visible') update();
-        };
-        document.addEventListener('visibilitychange', onVis);
-        removeVis = () => document.removeEventListener('visibilitychange', onVis);
+        registration = reg;
+        reg.update().catch(() => {});
       })
       .catch(() => {});
     return () => {
+      window.clearInterval(timer);
       navigator.serviceWorker.removeEventListener('controllerchange', onController);
-      removeVis();
+      document.removeEventListener('visibilitychange', onVis);
     };
   }, []);
 
@@ -552,6 +612,13 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
           promptReady={Boolean(promptEvent)}
           onInstall={onInstall}
           onClose={() => setOpen(false)}
+        />
+      ) : null}
+      {shellUpdateReady ? (
+        <ShellRefreshTip
+          onRefresh={() => {
+            window.location.reload();
+          }}
         />
       ) : null}
     </PwaInstallContext.Provider>

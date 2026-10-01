@@ -162,6 +162,11 @@ import {
   listGenerationShouldSettle,
 } from '@/lib/agendaParams';
 import {
+  AGENDA_REFRESH_EVENT,
+  homeWindowRefreshAllowed,
+  mergeRowsByKey,
+} from '@/lib/pwaRefresh';
+import {
   requestBrowserPosition,
   resolveNearMeResult,
   nearMeFromBoot,
@@ -737,6 +742,8 @@ export default function CultureConnectApp({
   /** Keys filled by a live reco POST this session — do not re-invalidate. */
   const recoFetchedKeysRef = useRef<Set<string>>(new Set());
   const listLoadingRef = useRef(false);
+  const agendaRefreshFlight = useRef(false);
+  const refreshAgendaRef = useRef<() => void>(() => {});
   const detailFetchGen = useRef(0);
   /** True only while a list generation's `/api/agenda` GET is in flight. */
   const [listFetchInFlight, setListFetchInFlight] = useState(false);
@@ -1007,6 +1014,134 @@ export default function CultureConnectApp({
     }
     setCatalogueReady(true);
   }
+
+  function applyFreshList(data: AgendaListResponse) {
+    setListItems((prev) => mergeRowsByKey(prev, data.items ?? []));
+    const leftoverOn = Boolean(titleLeftover.trim());
+    if (!leftoverOn) {
+      if (data.nouveautes) {
+        setNouveautesItems((prev) =>
+          mergeRowsByKey(
+            prev,
+            filterItemsByCommune(data.nouveautes ?? [], selectedCommune),
+          ),
+        );
+      }
+      if (data.vivantItems) {
+        setVivantItems((prev) =>
+          mergeRowsByKey(
+            prev,
+            filterItemsByCommune(data.vivantItems ?? [], selectedCommune),
+          ),
+        );
+      }
+    }
+    if (typeof data.vivantTotal === 'number') setVivantTotal(data.vivantTotal);
+    if (typeof data.cineTotal === 'number') setCineTotal(data.cineTotal);
+    if (typeof data.theatreTotal === 'number') setTheatreTotal(data.theatreTotal);
+    if (typeof data.musiqueTotal === 'number') setMusiqueTotal(data.musiqueTotal);
+    if (typeof data.enfantsTotal === 'number') setEnfantsTotal(data.enfantsTotal);
+    if (typeof data.expoTotal === 'number') setExpoTotal(data.expoTotal);
+    applySlotTotals(data, liveSlotKey);
+    if (typeof data.total === 'number') setTotal(data.total);
+    if (typeof data.densifiedTotal === 'number') setDensifiedTotalApi(data.densifiedTotal);
+    if (typeof data.csvEvents === 'number') setCsvEvents(data.csvEvents);
+    if (typeof data.csvProgramme === 'number') setCsvProgramme(data.csvProgramme);
+    if (data.venues?.length) setVenueOptions(data.venues);
+    if (data.genreSlugs && data.genreSlugs.length > 0) {
+      setAvailableGenreSlugs(data.genreSlugs);
+    }
+    if (data.counts) setCounts(new Map(Object.entries(data.counts)));
+    if (data.nouveauFilmIds?.length) {
+      setNouveauFilmIdSet(new Set(data.nouveauFilmIds));
+    }
+    setCatalogueReady(true);
+  }
+
+  refreshAgendaRef.current = () => {
+    if (listLoadingRef.current || listFetchInFlight || agendaRefreshFlight.current) return;
+    agendaRefreshFlight.current = true;
+    const gen = listFetchGen.current;
+    const allowHome = homeWindowRefreshAllowed({
+      scope: timeScope,
+      bootScope: initialScope,
+      cats: selectedCategories,
+      genres: selectedGenres,
+      q: query,
+      title: titleLeftover,
+      phraseMode,
+    });
+    const params = buildAgendaParams({
+      scope: timeScope,
+      commune: selectedCommune,
+      q: titleLeftover.trim(),
+      cats: selectedCategories,
+      genres: selectedGenres,
+      lieuId: selectedLieuId,
+      selectedDate: selectedDay,
+      year,
+      month,
+      includeListMeta: false,
+      phraseMode,
+      phraseTags,
+    });
+    void (async () => {
+      try {
+        const pulls: Promise<void>[] = [];
+        pulls.push(
+          (async () => {
+            const res = await fetch(`/api/agenda?${params.toString()}`, {
+              cache: 'no-store',
+            });
+            if (!res.ok || gen !== listFetchGen.current) return;
+            const data = (await res.json()) as AgendaListResponse;
+            if (gen !== listFetchGen.current) return;
+            applyFreshList(data);
+          })(),
+        );
+        if (allowHome) {
+          pulls.push(
+            (async () => {
+              const res = await fetch('/api/agenda?window=home', {
+                cache: 'no-store',
+              });
+              if (!res.ok || gen !== listFetchGen.current) return;
+              const data = (await res.json()) as AgendaListResponse;
+              if (gen !== listFetchGen.current) return;
+              const live = bootFiltersRef.current;
+              if (
+                !homeWindowRefreshAllowed({
+                  scope: live.timeScope,
+                  bootScope: initialScope,
+                  cats: live.cats,
+                  genres: live.genres,
+                  q: live.q,
+                  title: live.title,
+                  phraseMode,
+                })
+              ) {
+                return;
+              }
+              applyFreshList(data);
+            })(),
+          );
+        }
+        await Promise.all(pulls);
+      } catch {
+        /* painted list stays */
+      } finally {
+        agendaRefreshFlight.current = false;
+      }
+    })();
+  };
+
+  useEffect(() => {
+    const onRefresh = () => {
+      refreshAgendaRef.current();
+    };
+    window.addEventListener(AGENDA_REFRESH_EVENT, onRefresh);
+    return () => window.removeEventListener(AGENDA_REFRESH_EVENT, onRefresh);
+  }, []);
 
   const recoWiped = Boolean(
     tasteState &&
