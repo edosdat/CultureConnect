@@ -28,8 +28,9 @@ function homeBootMonthLabel(now = new Date()): string {
  * - HomeListWaitSlot: overlay (no flow well; dots are 12px)
  *
  * SiteNav is already in the root layout. GenreFilter and the Salle chip
- * are absent here (no QUOI yet). Live: Salle sits in QUOI after a category,
- * not behind Filtres. Chips / city / wait slot are siblings of [data-top3].
+ * are absent here (no QUOI yet). Live: Salle is pinned beside the axes
+ * (outside the horizontal scroller), not behind Filtres.
+ * Chips / city / wait slot are siblings of [data-top3].
  */
 export default function HomeBootChrome({ children }: { children: ReactNode }) {
   const monthLabel = homeBootMonthLabel();

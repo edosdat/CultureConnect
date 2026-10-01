@@ -81,7 +81,7 @@ describe('Salle chip', () => {
     );
   });
 
-  it('is a dropdown in the QUOI group, not a Filtres-gated chip rail', () => {
+  it('is a dropdown beside the axes, not a Filtres-gated chip rail', () => {
     const ui = readFileSync(join(here, '../components/VenueFilter.tsx'), 'utf8');
     const app = readFileSync(
       join(here, '../components/CultureConnectApp.tsx'),
@@ -92,9 +92,10 @@ describe('Salle chip', () => {
     assert.match(ui, /SALLE_ALL_LABEL/);
     assert.equal(ui.includes('basis-full'), false);
     assert.equal(ui.includes('>Salles<'), false);
-    const venueAt = app.indexOf('<VenueFilter');
     const moreAt = app.indexOf('cc-axes__more');
-    assert.ok(venueAt > 0 && moreAt > venueAt);
+    const slotAt = app.indexOf('data-salle-slot');
+    const genresAt = app.indexOf('Genres: mobile');
+    assert.ok(moreAt > 0 && slotAt > moreAt && genresAt > slotAt);
     assert.equal(app.includes("showFiltersMobile ? 'flex' : 'hidden'"), false);
   });
 });

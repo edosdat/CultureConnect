@@ -2883,22 +2883,6 @@ export default function CultureConnectApp({
                 onChange={handleCategoriesChange}
                 variant="home"
               />
-              {/* Salle: next to QUOI, including mobile. Not behind Filtres.
-                  Options = every upcoming venue in the active category
-                  and commune (agenda venuesForCategoryMenu). */}
-              <VenueFilter
-                lieux={venueOptions}
-                selectedLieuId={selectedLieuId}
-                onChange={setSelectedLieuId}
-                variant="inline"
-                selectedMains={selectedCategories}
-                hideWhenNoCategory
-                loading={
-                  listFetchInFlight &&
-                  selectedCategories.length > 0 &&
-                  venueOptions.length === 0
-                }
-              />
               <div className="cc-axes__more md:hidden">
                 <button
                   type="button"
@@ -2919,6 +2903,30 @@ export default function CultureConnectApp({
               </div>
             </div>
           </div>
+          {/* Salle sits outside the scrolling axes so it stays on screen
+              (desktop overflow-x, mobile wrap). Not behind Filtres.
+              Options = every upcoming venue in the active category
+              and commune (agenda venuesForCategoryMenu). */}
+          {selectedCategories.length > 0 ? (
+            <div
+              data-salle-slot=""
+              className="flex shrink-0 self-start md:self-center"
+            >
+              <VenueFilter
+                lieux={venueOptions}
+                selectedLieuId={selectedLieuId}
+                onChange={setSelectedLieuId}
+                variant="inline"
+                selectedMains={selectedCategories}
+                hideWhenNoCategory
+                loading={
+                  listFetchInFlight &&
+                  selectedCategories.length > 0 &&
+                  venueOptions.length === 0
+                }
+              />
+            </div>
+          ) : null}
         </div>
 
         {/* Genres: mobile shows them as soon as a QUOI chip is on (or Filtres);
