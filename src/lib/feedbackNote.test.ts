@@ -9,8 +9,10 @@ import { FEEDBACK_MAX_TOKENS, replyToFeedback } from './feedbackAi';
 import {
   FEEDBACK_ACK,
   FEEDBACK_IP_RATE_PER_HOUR,
+  FEEDBACK_KINDS,
   FEEDBACK_RATE_PER_HOUR,
   feedbackActor,
+  feedbackKind,
   feedbackUserKey,
   parseFeedbackAiContent,
   resetFeedbackRateForTests,
@@ -79,6 +81,25 @@ describe('feedback text', () => {
     assert.equal(sanitizeFeedbackReply('On entraîne le modèle avec ça.'), null);
     assert.equal(sanitizeFeedbackReply('Voir https://example.com'), null);
     assert.equal(sanitizeFeedbackReply('Bien noté.'), 'Bien noté.');
+  });
+
+  it('locks the hourly caps so a short thread is not blocked', () => {
+    assert.equal(FEEDBACK_RATE_PER_HOUR, 10);
+    assert.equal(FEEDBACK_IP_RATE_PER_HOUR, 20);
+  });
+
+  it('accepts bug next to the older kinds and drops an unknown label', () => {
+    assert.deepEqual([...FEEDBACK_KINDS], ['avis', 'idee', 'bug', 'autre']);
+    assert.equal(feedbackKind('bug'), 'bug');
+    assert.equal(feedbackKind('BUG'), 'bug');
+    assert.equal(feedbackKind('idée'), 'idee');
+    assert.equal(feedbackKind('suggestion'), null);
+    assert.equal(feedbackKind(''), null);
+    assert.equal(feedbackKind(12), null);
+    assert.deepEqual(parseFeedbackAiContent('{"kind":"bug","reply":"Bien noté."}'), {
+      kind: 'bug',
+      reply: 'Bien noté.',
+    });
   });
 
   it('parses a bounded JSON reply and ignores prose', () => {
@@ -372,6 +393,43 @@ describe('feedback store', { concurrency: 1 }, () => {
     }
   });
 
+  it('keeps a chip kind and lets the model classify an unknown one', async () => {
+    const bug = await submitFeedback(
+      input({
+        text: 'le bouton date bloque',
+        ip: '203.0.113.50',
+        kind: 'bug',
+      }),
+      { reply: async () => null },
+    );
+    assert.equal(bug.ok, true);
+
+    const idea = await submitFeedback(
+      input({
+        text: 'une piste pour le filtre',
+        ip: '203.0.113.51',
+        kind: 'idee',
+      }),
+      { reply: async () => ({ kind: 'avis', reply: 'Bien noté.' }) },
+    );
+    assert.equal(idea.ok, true);
+
+    const junk = await submitFeedback(
+      input({
+        text: 'classe moi ailleurs merci',
+        ip: '203.0.113.52',
+        kind: 'suggestion',
+      }),
+      { reply: async () => ({ kind: 'avis', reply: 'Bien noté.' }) },
+    );
+    assert.equal(junk.ok, true);
+
+    const notes = await listFeedbackForAdmin();
+    assert.equal(notes.find((note) => note.body.includes('bouton date'))?.kind, 'bug');
+    assert.equal(notes.find((note) => note.body.includes('piste pour'))?.kind, 'idee');
+    assert.equal(notes.find((note) => note.body.includes('ailleurs'))?.kind, 'avis');
+  });
+
   it('does not put an e-mail on the admin shape', () => {
     const note = toAdminFeedbackNote({
       id: '1',
@@ -406,6 +464,7 @@ describe('feedback surfaces', () => {
       new URL('../app/api/feedback/route.ts', import.meta.url),
       'utf8',
     );
+    const submit = readFileSync(new URL('./feedbackSubmit.ts', import.meta.url), 'utf8');
     const ai = readFileSync(new URL('./feedbackAi.ts', import.meta.url), 'utf8');
     const del = readFileSync(
       new URL('../app/api/account-tastes/route.ts', import.meta.url),
@@ -423,6 +482,16 @@ describe('feedback surfaces', () => {
 
     assert.match(layout, /FeedbackChat/);
     assert.match(widget, /Un avis \?/);
+    assert.match(widget, /aria-label=\{LAUNCHER_LABEL\}/);
+    assert.match(widget, /plan-c-icon-LOCK-v3-violet\.jpg/);
+    assert.match(widget, /Suggestion/);
+    assert.match(widget, /Bug/);
+    assert.match(widget, /kind: 'idee'/);
+    assert.match(widget, /kind: 'bug'/);
+    assert.match(widget, /listRef/);
+    assert.match(widget, /data-feedback-end/);
+    assert.match(widget, /pwa-install-sheet/);
+    assert.match(widget, /data-consent-banner/);
     assert.match(widget, /90 jours/);
     assert.match(widget, /N’écris pas ton e-mail/);
     assert.match(widget, /modèle \(US\)/);
@@ -434,11 +503,16 @@ describe('feedback surfaces', () => {
 
     assert.match(page, /isAdminSession/);
     assert.match(page, /notFound\(\)/);
+    assert.match(page, /bug: 'bug'/);
     assert.match(adminApi, /isAdminSession/);
     assert.match(adminApi, /status: 404/);
     assert.match(post, /submitFeedback/);
     assert.match(post, /cookieVid: vid/);
+    assert.match(post, /kind/);
+    assert.match(submit, /feedbackKind\(input\.kind\)/);
+    assert.match(submit, /chosen \?\? ai\?\.kind/);
     assert.match(ai, /import 'server-only'/);
+    assert.match(ai, /avis \| idee \| bug \| autre/);
     assert.match(ai, /OPENAI_API_KEY/);
     assert.match(ai, /max_tokens: FEEDBACK_MAX_TOKENS/);
     assert.equal(ai.includes('XAI_API_KEY'), false);

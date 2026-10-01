@@ -22,13 +22,15 @@ export async function POST(req: Request) {
   }
 
   let text = '';
+  let kind: unknown;
   try {
     const raw = await req.text();
     if (raw.length > 8_000) {
       return NextResponse.json({ error: 'Écris quelques mots.' }, { status: 400 });
     }
-    const body = JSON.parse(raw) as { text?: unknown };
+    const body = JSON.parse(raw) as { text?: unknown; kind?: unknown };
     text = typeof body.text === 'string' ? body.text : '';
+    kind = body.kind;
   } catch {
     return NextResponse.json({ error: 'Écris quelques mots.' }, { status: 400 });
   }
@@ -41,6 +43,7 @@ export async function POST(req: Request) {
   );
   const result = await submitFeedback({
     text,
+    kind,
     email,
     cookieVid: vid,
     ip: clientIpFromRequest(req),

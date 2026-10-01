@@ -11,15 +11,17 @@ import { assertNoVidAccountJoin } from '@/lib/guestSignals';
 export const FEEDBACK_BODY_MAX = 400;
 export const FEEDBACK_REPLY_MAX = 180;
 export const FEEDBACK_BODY_MIN = 2;
-export const FEEDBACK_RATE_PER_HOUR = 6;
-export const FEEDBACK_IP_RATE_PER_HOUR = 12;
+export const FEEDBACK_RATE_PER_HOUR = 10;
+export const FEEDBACK_IP_RATE_PER_HOUR = 20;
 export const FEEDBACK_RATE_WINDOW_MS = 60 * 60 * 1000;
 export const FEEDBACK_RETENTION_DAYS = 90;
 export const FEEDBACK_ADMIN_CAP = 80;
 export const FEEDBACK_ACK = 'Bien reçu. On lit ça.';
 
-export const FEEDBACK_KINDS = ['avis', 'idee', 'autre'] as const;
+export const FEEDBACK_KINDS = ['avis', 'idee', 'bug', 'autre'] as const;
 export type FeedbackKind = (typeof FEEDBACK_KINDS)[number];
+
+const FEEDBACK_KIND_SET = new Set<string>(FEEDBACK_KINDS);
 
 export type FeedbackActor = {
   userKey: string | null;
@@ -95,8 +97,7 @@ export function feedbackKind(raw: unknown): FeedbackKind | null {
     .trim()
     .toLowerCase()
     .replace(/é/g, 'e');
-  if (v === 'avis' || v === 'idee' || v === 'autre') return v;
-  return null;
+  return FEEDBACK_KIND_SET.has(v) ? (v as FeedbackKind) : null;
 }
 
 export function parseFeedbackAiContent(

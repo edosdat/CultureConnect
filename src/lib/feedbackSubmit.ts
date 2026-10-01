@@ -13,6 +13,7 @@ import {
   feedbackActor,
   feedbackActorBucket,
   feedbackIpBucket,
+  feedbackKind,
   feedbackRateLimited,
   sanitizeFeedbackBody,
 } from '@/lib/feedbackNote';
@@ -32,6 +33,8 @@ export type SubmitFeedbackInput = {
   cookieVid?: string | null;
   ip: string;
   now?: number;
+  /** Chip or client hint. Unknown values are dropped. */
+  kind?: unknown;
 };
 
 export type SubmitFeedbackResult =
@@ -46,6 +49,7 @@ export async function submitFeedback(
 ): Promise<SubmitFeedbackResult> {
   const body = sanitizeFeedbackBody(input.text);
   if (!body) return { ok: false, status: 400, error: TOO_SHORT };
+  const chosen = feedbackKind(input.kind);
 
   const now = input.now ?? Date.now();
   const actor = feedbackActor({
@@ -89,7 +93,7 @@ export async function submitFeedback(
   const reply = ai?.reply || FEEDBACK_ACK;
   try {
     await insertFeedbackNote({
-      kind: ai?.kind ?? 'autre',
+      kind: chosen ?? ai?.kind ?? 'autre',
       body,
       userKey: actor.userKey,
       ccVid: actor.ccVid,

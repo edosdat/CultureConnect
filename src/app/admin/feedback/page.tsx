@@ -22,6 +22,13 @@ function formatWhen(iso: string): string {
   }).format(d);
 }
 
+const KIND_LABEL: Record<AdminFeedbackNote['kind'], string> = {
+  avis: 'avis',
+  idee: 'idée',
+  bug: 'bug',
+  autre: 'autre',
+};
+
 function actorLabel(note: AdminFeedbackNote): string {
   if (note.actor === 'compte') return 'Compte';
   if (note.actor === 'visiteur') return 'Visiteur';
@@ -72,7 +79,7 @@ export default async function AdminFeedbackPage() {
               className="rounded-2xl border border-culture-line bg-white px-4 py-3"
             >
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
-                {note.kind} · {formatWhen(note.createdAt)} · {actorLabel(note)}
+                {KIND_LABEL[note.kind]} · {formatWhen(note.createdAt)} · {actorLabel(note)}
                 {note.ref ? (
                   <span className="ml-1 font-mono normal-case tracking-normal">
                     {note.ref}
