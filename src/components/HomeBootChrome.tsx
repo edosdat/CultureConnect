@@ -5,15 +5,9 @@ import {
 } from '@/lib/categories';
 import { MAIN_CAT_CSS_VAR } from '@/lib/categoryColor';
 import { HOME_CHROME_STACK_CLASS, SEARCH_PLACEHOLDER } from '@/lib/displayHome';
-import { MONTH_NAMES_FR } from '@/lib/labels';
 import { NEAR_ME_CHIP_LABEL, TOULOUSE_CHIP_DEFAULT } from '@/lib/nearMe';
-import { parisParts, TIME_SCOPE_CHIPS } from '@/lib/timeScope';
+import { TIME_SCOPE_CHIPS } from '@/lib/timeScope';
 import { HomeListWaitSlot } from './ListWaitDots';
-
-function homeBootMonthLabel(now = new Date()): string {
-  const { year, month } = parisParts(now);
-  return `${MONTH_NAMES_FR[month - 1]} ${year}`;
-}
 
 /**
  * Inert first-paint chrome above Top 3. Mirrors CultureConnectApp so the
@@ -25,7 +19,6 @@ function homeBootMonthLabel(now = new Date()): string {
  * - .cc-filter-band: Ville + Près de moi on one nowrap line, then QUAND → QUOI
  *   each as one scroll row (›). No Filtres and no Salle (no category yet).
  *   Gap 6px, no empty row.
- * - Voir le mois sits outside the band (Paris month)
  * - HomeListWaitSlot: overlay (no flow well; dots are 12px)
  *
  * SiteNav is already in the root layout. GenreFilter and the Salle chip
@@ -34,7 +27,6 @@ function homeBootMonthLabel(now = new Date()): string {
  * Chips / wait slot are siblings of [data-top3].
  */
 export default function HomeBootChrome({ children }: { children: ReactNode }) {
-  const monthLabel = homeBootMonthLabel();
   const homeCats = [...HOME_CATEGORY_CHIPS, ...EXTRA_CATEGORY_CHIPS];
 
   return (
@@ -120,11 +112,6 @@ export default function HomeBootChrome({ children }: { children: ReactNode }) {
               </div>
             </div>
           </div>
-        </div>
-        <div inert aria-hidden className="flex min-w-0 items-center justify-end">
-          <span className="text-sm font-medium text-culture-terracotta">
-            Voir le mois ({monthLabel})
-          </span>
         </div>
         <div className="relative">
           <HomeListWaitSlot />
