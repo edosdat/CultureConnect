@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import TasteCookieNotice from './TasteCookieNotice';
 import SignalsConsentBanner from './SignalsConsentBanner';
@@ -18,7 +19,9 @@ export default function SiteFooter() {
         </p>
       </footer>
       <SignalsConsentBanner />
-      <DigestTestIntro />
+      <Suspense fallback={null}>
+        <DigestTestIntro />
+      </Suspense>
     </>
   );
 }

@@ -1,15 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useTastesUi } from './Providers';
 import {
   DIGEST_TEST_INTRO_COPY as COPY,
+  DIGEST_TEST_INTRO_PREVIEW,
   DIGEST_TEST_INTRO_SYNC_KEY,
-  digestIntroPreviewRequested,
   digestTestWindowOpen,
   normalizeIntroEmail,
   readDigestIntroSeen,
@@ -24,31 +24,33 @@ import {
 export default function DigestTestIntro() {
   const { data: session, status } = useSession();
   const pathname = usePathname() || '/';
+  const searchParams = useSearchParams();
+  const previewQuery = searchParams.get('apercu') === DIGEST_TEST_INTRO_PREVIEW;
   const { tastesOpen } = useTastesUi();
   const email = normalizeIntroEmail(session?.user?.email || '');
   const [open, setOpen] = useState(false);
-  const [preview, setPreview] = useState(false);
+  const previewDismissed = useRef(false);
 
   const dismiss = useCallback(() => {
-    if (!preview && email) {
+    if (previewQuery) {
+      previewDismissed.current = true;
+    } else if (email) {
       writeDigestIntroSeen(email);
       void postSeen();
     }
     setOpen(false);
-  }, [email, preview]);
+  }, [email, previewQuery]);
 
   useEffect(() => {
-    const params = typeof window === 'undefined' ? '' : window.location.search;
-    const showPreview = digestIntroPreviewRequested(params);
-    setPreview(showPreview);
     if (!digestTestWindowOpen()) {
       setOpen(false);
       return;
     }
-    if (showPreview) {
-      setOpen(true);
+    if (previewQuery) {
+      if (!previewDismissed.current) setOpen(true);
       return;
     }
+    previewDismissed.current = false;
     const quiet =
       pathname.startsWith('/admin') || pathname.startsWith('/mail/unsub');
     if (quiet || status !== 'authenticated' || !email) {
@@ -79,12 +81,13 @@ export default function DigestTestIntro() {
     return () => {
       cancelled = true;
     };
-  }, [email, pathname, status]);
+  }, [email, pathname, previewQuery, status]);
 
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
       if (e.key !== 'Escape' || tastesOpen) return;
+      if (document.querySelector('[aria-modal="true"]')) return;
       e.preventDefault();
       dismiss();
     }
@@ -101,7 +104,7 @@ export default function DigestTestIntro() {
         aria-modal="false"
         aria-labelledby="digest-test-intro-title"
         data-testid="digest-test-intro"
-        data-digest-intro={preview ? 'preview' : 'account'}
+        data-digest-intro={previewQuery ? 'preview' : 'account'}
         className="pointer-events-auto w-full max-w-sm rounded-2xl border border-culture-line bg-culture-surface p-4 shadow-card"
       >
         <div className="flex items-start justify-between gap-3">

@@ -96,7 +96,11 @@ describe('digest test intro wiring', () => {
       'utf8',
     );
 
+    assert.match(intro, /useSearchParams/);
+    assert.match(intro, /previewQuery/);
     assert.match(intro, /aria-modal="false"/);
+    assert.match(intro, /\[aria-modal="true"\]/);
+    assert.match(footer, /Suspense/);
     assert.match(intro, /pointer-events-none/);
     assert.match(intro, /JSON\.stringify\(\{ seen: true \}\)/);
     assert.equal(intro.includes('opted'), false);
