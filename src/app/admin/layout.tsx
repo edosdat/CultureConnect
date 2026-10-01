@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
+import AdminColdReset from '@/components/AdminColdReset';
 import { isAdminSession } from '@/lib/adminGate';
 
 export const dynamic = 'force-dynamic';
@@ -16,5 +17,10 @@ export default async function AdminLayout({
   children: ReactNode;
 }) {
   if (!(await isAdminSession())) notFound();
-  return children;
+  return (
+    <>
+      <AdminColdReset />
+      {children}
+    </>
+  );
 }
