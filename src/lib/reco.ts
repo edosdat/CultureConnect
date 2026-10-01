@@ -808,6 +808,11 @@ export type RecommendOptions = {
    * the demoted item still fills it.
    */
   demoteWorkIds?: ReadonlySet<string>;
+  /**
+   * Œuvre keys from `not_interested` (P3). Drop the work from Top 3 /
+   * recommendSlice — film id, event id, programme id, or `workIdOf`.
+   */
+  excludeWorkIds?: ReadonlySet<string>;
 };
 
 /**
@@ -1179,6 +1184,70 @@ function filmIdOf(item: DayItem): string {
   return item.kind === 'programme'
     ? (item.programme.film_id || '').trim()
     : '';
+}
+
+/**
+ * Keys that identify one œuvre for a `not_interested` signal.
+ * Film id covers every séance of that film; event id covers the living work.
+ */
+export function workBlockKeysOfItem(item: DayItem): string[] {
+  const keys: string[] = [];
+  const push = (key: string) => {
+    const k = key.trim();
+    if (k && !keys.includes(k)) keys.push(k);
+  };
+  const film = filmIdOf(item);
+  if (film) push(`f:${film}`);
+  const ev = itemEventId(item);
+  if (ev) push(`e:${ev}`);
+  if (item.kind === 'programme') {
+    const pid = (item.programme.programme_id || '').trim();
+    if (pid) push(`p:${pid}`);
+  }
+  push(workIdOf(item));
+  return keys;
+}
+
+/** Block keys stored on `not_interested` signals (film / event / programme). */
+export function notInterestedBlockKeys(
+  signals: readonly {
+    kind: string;
+    film_id?: string;
+    event_id?: string;
+    programme_id?: string;
+  }[],
+): Set<string> {
+  const out = new Set<string>();
+  for (const signal of signals) {
+    if (signal.kind !== 'not_interested') continue;
+    const film = (signal.film_id || '').trim();
+    if (film) out.add(`f:${film}`);
+    const ev = (signal.event_id || '').trim();
+    if (ev) out.add(`e:${ev}`);
+    const prog = (signal.programme_id || '').trim();
+    if (prog) out.add(`p:${prog}`);
+  }
+  return out;
+}
+
+/** True when this séance belongs to an œuvre the person marked « pas pour moi ». */
+export function itemBlockedByWorkKeys(
+  item: DayItem,
+  blocked: ReadonlySet<string>,
+): boolean {
+  if (blocked.size === 0) return false;
+  for (const key of workBlockKeysOfItem(item)) {
+    if (blocked.has(key)) return true;
+  }
+  return false;
+}
+
+function withoutBlockedWorks(
+  items: DayItem[],
+  blocked: ReadonlySet<string> | undefined,
+): DayItem[] {
+  if (!blocked || blocked.size === 0) return items;
+  return items.filter((item) => !itemBlockedByWorkKeys(item, blocked));
 }
 
 /** Work id: densified film_id (or title), else event_id. Never raw séance rows. */
@@ -1678,7 +1747,10 @@ export function recommendForProfile(
 ): ScoredDayItem[] {
   if (items.length === 0) return [];
   const now = options?.now ?? new Date();
-  const pool = feasiblePool(items, state.profile, now);
+  const pool = withoutBlockedWorks(
+    feasiblePool(items, state.profile, now),
+    options?.excludeWorkIds,
+  );
   if (pool.length === 0) return [];
 
   const nouveauIds = options?.nouveauFilmIds ?? new Set<string>();
@@ -1766,8 +1838,11 @@ export function recommendSlice(
   if (items.length === 0 || limit <= 0) return [];
   const now = options?.now ?? new Date();
   const blocked = new Set(exclude.map(itemIdentity).filter(Boolean));
-  const pool = feasiblePool(items, state.profile, now).filter(
-    (item) => !blocked.has(itemIdentity(item)),
+  const pool = withoutBlockedWorks(
+    feasiblePool(items, state.profile, now).filter(
+      (item) => !blocked.has(itemIdentity(item)),
+    ),
+    options?.excludeWorkIds,
   );
   if (pool.length === 0) return [];
 

@@ -7,6 +7,7 @@ import {
 import {
   loadHomeWindow,
   parseCsvParam,
+  parseExcludeWorkIds,
   parseRecoProfile,
   parseTimeScope,
   queryAgendaDetail,
@@ -174,6 +175,7 @@ export async function POST(req: Request) {
     year?: unknown;
     month?: unknown;
     profile?: unknown;
+    excludeWorkIds?: unknown;
     enfants?: unknown;
     avec_enfants?: unknown;
   } = {};
@@ -205,6 +207,7 @@ export async function POST(req: Request) {
     month,
     recoUpcoming,
     recoProfile: parseRecoProfile(body.profile),
+    excludeWorkIds: parseExcludeWorkIds(body.excludeWorkIds),
     avecEnfants:
       parseAvecEnfantsFlag(body.enfants) ||
       parseAvecEnfantsFlag(body.avec_enfants) ||

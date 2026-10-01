@@ -24,6 +24,7 @@ export type SignalKind =
   | 'reserve'
   | 'favorite'
   | 'unfavorite'
+  | 'not_interested'
   | 'outbound_click'
   | 'share'
   | 'open_shared'
@@ -42,6 +43,7 @@ export type ItemSignalKind = Extract<
   | 'reserve'
   | 'favorite'
   | 'unfavorite'
+  | 'not_interested'
   | 'outbound_click'
   | 'share'
   | 'open_shared'
@@ -103,6 +105,8 @@ export const SIGNAL_WEIGHTS: Record<SignalKind, number> = {
   favorite: 6,
   reserve: 6,
   unfavorite: -6,
+  /** P3 — rare explicit negative. Between unfavorite and weak positives. */
+  not_interested: -4,
   ics: 5,
   agenda_add: 5,
   outbound_click: 4,
@@ -139,6 +143,7 @@ const TASTE_TAG_PEER_KINDS: ReadonlySet<SignalKind> = new Set([
   'open_card',
   'favorite',
   'unfavorite',
+  'not_interested',
   'reserve',
   'outbound_click',
   'share',
@@ -155,6 +160,7 @@ const TASTE_INHERIT_KINDS: ReadonlySet<SignalKind> = new Set([
   'reserve',
   'favorite',
   'unfavorite',
+  'not_interested',
   'outbound_click',
   'share',
   'open_shared',
@@ -841,6 +847,7 @@ export function shouldMapTasteIngest(
     kind === 'agenda_add' ||
     kind === 'favorite' ||
     kind === 'unfavorite' ||
+    kind === 'not_interested' ||
     kind === 'outbound_click' ||
     kind === 'share' ||
     kind === 'open_shared'

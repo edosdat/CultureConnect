@@ -6,8 +6,10 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  itemBlockedByWorkKeys,
   itemInheritsParentClosedTags,
   itemInheritsParentMoods,
+  notInterestedBlockKeys,
   recommendForProfile,
   recommendSlice,
   slotFormOfItem,
@@ -612,5 +614,112 @@ describe('recoEngine — L2 reason.mood ∈ reasonTasteSlugsForItem', () => {
     assert.ok(cineRow);
     assert.notEqual(cineRow.reason?.mood, 'leger');
     assert.equal(reasonTasteSlugsForItem(cineParentOnly).includes('leger'), false);
+  });
+});
+
+describe('P3 not_interested excludes the œuvre from proposals', () => {
+  const theatre = item({
+    key: 'th-keep',
+    cat: 'theatre',
+    eventId: 'E-KEEP',
+    titre: 'Pièce à garder',
+  });
+  const concert = item({
+    key: 'co-keep',
+    cat: 'musique',
+    eventId: 'E-MUS',
+    titre: 'Concert à garder',
+  });
+  const dismissed = item({
+    key: 'cine-no',
+    cat: 'cinema',
+    filmId: 'F-NO',
+    eventId: 'E-NO',
+    titre: 'Film à écarter',
+    day: '2026-09-02',
+  });
+  const sameFilmLater = item({
+    key: 'cine-no-late',
+    cat: 'cinema',
+    filmId: 'F-NO',
+    eventId: 'E-NO',
+    titre: 'Film à écarter',
+    day: '2026-09-05',
+    heure: '21:00',
+  });
+  const otherFilm = item({
+    key: 'cine-yes',
+    cat: 'cinema',
+    filmId: 'F-YES',
+    eventId: 'E-YES',
+    titre: 'Autre film',
+    day: '2026-09-04',
+  });
+
+  function blockedFilm() {
+    return notInterestedBlockKeys([
+      { kind: 'not_interested', film_id: 'F-NO', event_id: 'E-NO', programme_id: 'p-cine-no' },
+    ]);
+  }
+
+  it('recommendForProfile drops every séance of the marked film and keeps another', () => {
+    const pool = [dismissed, sameFilmLater, otherFilm, theatre, concert];
+    const blocked = blockedFilm();
+    assert.equal(itemBlockedByWorkKeys(dismissed, blocked), true);
+    assert.equal(itemBlockedByWorkKeys(sameFilmLater, blocked), true);
+    assert.equal(itemBlockedByWorkKeys(otherFilm, blocked), false);
+
+    const out = recommendForProfile(pool, emptyTasteState(), 3, {
+      now: NOW,
+      excludeWorkIds: blocked,
+    });
+    const films = out
+      .filter((row) => row.item.kind === 'programme')
+      .map((row) =>
+        row.item.kind === 'programme' ? row.item.programme.film_id : '',
+      );
+    assert.equal(films.includes('F-NO'), false);
+    assert.ok(films.includes('F-YES'));
+    assert.equal(out.some((row) => workIdOf(row.item) === 'f:F-NO'), false);
+  });
+
+  it('recommendSlice never returns the excluded œuvre', () => {
+    const pool = [dismissed, sameFilmLater, otherFilm, theatre, concert];
+    const slice = recommendSlice(pool, emptyTasteState(), [], 5, {
+      now: NOW,
+      excludeWorkIds: blockedFilm(),
+    });
+    assert.ok(slice.length > 0);
+    assert.equal(
+      slice.some((row) => workIdOf(row.item) === 'f:F-NO'),
+      false,
+    );
+    assert.ok(slice.some((row) => workIdOf(row.item) === 'f:F-YES'));
+  });
+
+  it('an event id blocks the living work even without a film id', () => {
+    const dropped = item({
+      key: 'th-drop',
+      cat: 'theatre',
+      eventId: 'E-DROP',
+      titre: 'Pièce écartée',
+    });
+    const kept = item({
+      key: 'th-stay',
+      cat: 'theatre',
+      eventId: 'E-STAY',
+      titre: 'Autre pièce',
+    });
+    const blocked = notInterestedBlockKeys([
+      { kind: 'not_interested', event_id: 'E-DROP' },
+    ]);
+    const out = recommendForProfile(
+      [dropped, kept, otherFilm, concert],
+      emptyTasteState(),
+      3,
+      { now: NOW, excludeWorkIds: blocked },
+    );
+    assert.equal(out.some((row) => row.item.key === 'th-drop'), false);
+    assert.ok(out.some((row) => row.item.key === 'th-stay'));
   });
 });

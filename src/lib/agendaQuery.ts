@@ -80,6 +80,7 @@ import {
 } from './timeScope';
 import {
   fillEmptyCineSlot,
+  itemBlockedByWorkKeys,
   mergeSlotPicks,
   pickSoonestPerSlot,
   profileHasChipWeight,
@@ -135,6 +136,11 @@ export type AgendaQueryInput = {
   /** Moods/genres/themes only. Never email / signals / cats. */
   recoProfile?: TasteProfile | null;
   /**
+   * P3 « pas pour moi » œuvre keys (`f:` / `e:` / `p:` / work id).
+   * Dropped from the Top 3 pool for this request.
+   */
+  excludeWorkIds?: readonly string[];
+  /**
    * Mode « Avec les enfants ». Request flag, not a `cats` value.
    * Intersects with category chips and filters each séance.
    */
@@ -172,6 +178,25 @@ export function parseRecoProfile(raw: unknown): TasteProfile | null {
     communes: {},
   };
   return profileHasChipWeight(profile) ? profile : null;
+}
+
+const EXCLUDE_WORK_ID_MAX = 80;
+const EXCLUDE_WORK_ID_LEN = 160;
+
+/** Client-supplied œuvre keys. Membership check only — never a query. */
+export function parseExcludeWorkIds(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const value of raw) {
+    if (typeof value !== 'string') continue;
+    const id = value.trim();
+    if (!id || id.length > EXCLUDE_WORK_ID_LEN || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+    if (out.length >= EXCLUDE_WORK_ID_MAX) break;
+  }
+  return out;
 }
 
 function csvRowCounts(): Pick<AgendaListResponse, 'csvEvents' | 'csvProgramme'> {
@@ -1093,7 +1118,12 @@ export function queryAgenda(
     // aujourdhui/semaine: skip started séances. tous must not — that glued
     // boot top 3 onto today's soonest trio.
     // Slots use séance day+time ≥ now Paris, never event.date_debut (saison 02/07).
-    const upcoming = items.filter((item) => isStillUpcomingSeance(item, now));
+    const blockedWorks = new Set(input.excludeWorkIds ?? []);
+    const upcoming = items.filter(
+      (item) =>
+        isStillUpcomingSeance(item, now) &&
+        !itemBlockedByWorkKeys(item, blockedWorks),
+    );
     const windowPool = upcoming;
     const profile = input.recoProfile ?? {
       cats: {},
@@ -1777,7 +1807,8 @@ export async function queryAgendaReco(
       scope: input.scope,
       commune: input.commune,
       selectedDate: input.selectedDate,
-    })
+    }) &&
+    !(input.excludeWorkIds && input.excludeWorkIds.length > 0)
   ) {
     return loadGuestBootReco(now, { eager: true, place });
   }
