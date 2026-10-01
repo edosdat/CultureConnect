@@ -822,7 +822,7 @@ function listForRange(
   return { items, searching, rangeDays: range.days };
 }
 
-/** Unique slim lieux from the same item set the counter uses (lieuId stripped). */
+/** Unique slim lieux from the given items. Optionally keeps a selected id. */
 function venuesFromWindow(items: DayItem[], selectedLieuId: string | null): Lieu[] {
   const map = new Map<string, Lieu>();
   for (const item of items) {
@@ -836,6 +836,39 @@ function venuesFromWindow(items: DayItem[], selectedLieuId: string | null): Lieu
   return Array.from(map.values()).sort((a, b) =>
     a.nom.localeCompare(b.nom, 'fr'),
   );
+}
+
+/**
+ * Salle menu: every lieu with an upcoming event in the active categories,
+ * inside the active commune (null commune = all communes, Près de moi).
+ * Quand, genre, phrase, title search, and the selected salle do not narrow it.
+ */
+const categoryVenueMemo = createDayMemo<Lieu[]>({ ttlMs: 300_000, max: 32 });
+
+function venuesForCategoryMenu(
+  input: AgendaQueryInput,
+  now: Date,
+): Lieu[] {
+  const paris = parisParts(now).iso;
+  const cats = [...input.cats].sort().join(',');
+  const key = `${paris}|${normalizeCommune(input.commune)}|${cats}`;
+  const hit = categoryVenueMemo.get(key);
+  if (hit) return hit;
+  const facet: AgendaQueryInput = {
+    scope: 'tous',
+    commune: input.commune,
+    q: '',
+    cats: input.cats,
+    genres: [],
+    lieuId: null,
+    selectedDate: null,
+    year: input.year,
+    month: input.month,
+  };
+  const { items } = listForRange(facet, now);
+  const venues = venuesFromWindow(items, null);
+  categoryVenueMemo.set(key, venues);
+  return venues;
 }
 
 function withRecoTags(item: DayItem): DayItem {
@@ -1449,7 +1482,10 @@ function assembleListFromItems(
     counts = Object.fromEntries(map);
   }
 
-  const venues = venuesFromWindow(items, input.lieuId);
+  const venues =
+    input.cats.length > 0
+      ? venuesForCategoryMenu(input, now)
+      : venuesFromWindow(items, input.lieuId);
   const genreSlugs =
     input.cats.length > 0 ? genreSlugsFromItems(items) : [];
   const slots = sectionSlotTotals(items, {

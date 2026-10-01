@@ -2903,6 +2903,30 @@ export default function CultureConnectApp({
               </div>
             </div>
           </div>
+          {/* Salle sits outside the scrolling axes so it stays on screen
+              (desktop overflow-x, mobile wrap). Not behind Filtres.
+              Options = every upcoming venue in the active category
+              and commune (agenda venuesForCategoryMenu). */}
+          {selectedCategories.length > 0 ? (
+            <div
+              data-salle-slot=""
+              className="flex shrink-0 self-start md:self-center"
+            >
+              <VenueFilter
+                lieux={venueOptions}
+                selectedLieuId={selectedLieuId}
+                onChange={setSelectedLieuId}
+                variant="inline"
+                selectedMains={selectedCategories}
+                hideWhenNoCategory
+                loading={
+                  listFetchInFlight &&
+                  selectedCategories.length > 0 &&
+                  venueOptions.length === 0
+                }
+              />
+            </div>
+          ) : null}
         </div>
 
         {/* Genres: mobile shows them as soon as a QUOI chip is on (or Filtres);
@@ -2925,7 +2949,7 @@ export default function CultureConnectApp({
           />
         </div>
 
-        {/* Toulouse + Salles + month (Salles: QUOI gate + Filtres on mobile) */}
+        {/* Toulouse + month. Salle lives in the QUOI group. */}
         <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             {showAdminCounts ? (
@@ -2963,26 +2987,6 @@ export default function CultureConnectApp({
                 active={nearMeActive}
                 pending={nearMePending}
                 onToggle={handleNearMeToggle}
-              />
-            </div>
-            {/* Salles: category gate primary (hidden when no QUOI);
-                mobile still behind Filtres. Options = venues with upcoming
-                events in the active category (agenda venuesFromWindow). */}
-            <div
-              className={
-                selectedCategories.length === 0
-                  ? 'hidden'
-                  : (showFiltersMobile ? 'flex' : 'hidden') +
-                    ' min-w-0 flex-wrap items-center gap-2 md:flex'
-              }
-            >
-              <VenueFilter
-                lieux={venueOptions}
-                selectedLieuId={selectedLieuId}
-                onChange={setSelectedLieuId}
-                variant="inline"
-                selectedMains={selectedCategories}
-                hideWhenNoCategory
               />
             </div>
           </div>
