@@ -12,11 +12,23 @@ import {
 import { createPortal } from 'react-dom';
 import {
   A2HS_DAY_KEY,
+  CRIOS_COPIED_HINT,
+  CRIOS_COPIED_LABEL,
+  CRIOS_COPY_FAILED,
+  CRIOS_COPY_LINK_LABEL,
+  CRIOS_SAFARI_COPY,
+  CRIOS_SAFARI_NOTE,
+  CRIOS_SAFARI_PATH,
+  CRIOS_SAFARI_STEPS,
   a2hsSurface,
+  copySafariHandoffUrl,
   detectPwaInstalled,
+  isChromeIosClient,
   isHandheldClient,
   isIosClient,
   localDayStamp,
+  safariHandoffUrl,
+  shouldAwaitInstallPrompt,
   shouldShowDailyA2hs,
   type BeforeInstallPromptEvent,
 } from '@/lib/pwaInstall';
@@ -64,6 +76,37 @@ function ShareGlyph() {
   );
 }
 
+function copyViaTextarea(url: string): boolean {
+  try {
+    const area = document.createElement('textarea');
+    area.value = url;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.top = '0';
+    area.style.left = '-9999px';
+    document.body.appendChild(area);
+    area.focus();
+    area.select();
+    const ok = document.execCommand('copy');
+    area.remove();
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+async function copyPageForSafari(): Promise<boolean> {
+  const href = window.location.href;
+  const url = safariHandoffUrl(href);
+  if (!url) return false;
+  const clipboard = navigator.clipboard;
+  if (clipboard?.writeText) {
+    const wrote = await copySafariHandoffUrl(href, (value) => clipboard.writeText(value));
+    if (wrote) return true;
+  }
+  return copyViaTextarea(url);
+}
+
 function AddGlyph() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
@@ -75,16 +118,25 @@ function AddGlyph() {
 
 function InstallSheet({
   ios,
+  chromeIos,
   promptReady,
   onInstall,
   onClose,
 }: {
   ios: boolean;
+  chromeIos: boolean;
   promptReady: boolean;
   onInstall: () => void;
   onClose: () => void;
 }) {
-  const surface = a2hsSurface({ ios, promptReady });
+  const surface = a2hsSurface({ ios, chromeIos, promptReady });
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const pageUrl = typeof window === 'undefined' ? '' : safariHandoffUrl(window.location.href);
+
+  async function onCopyLink() {
+    const ok = await copyPageForSafari();
+    setCopyState(ok ? 'copied' : 'failed');
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -129,6 +181,46 @@ function InstallSheet({
             </button>
           </>
         ) : null}
+        {surface === 'crios-safari' ? (
+          <div data-testid="pwa-install-crios">
+            <p className="mt-1 text-sm font-medium text-culture-ink">{CRIOS_SAFARI_PATH}</p>
+            <p className="mt-1 text-sm text-culture-ink">{CRIOS_SAFARI_COPY}</p>
+            <p className="mt-1 text-sm text-culture-muted">{CRIOS_SAFARI_NOTE}</p>
+            {pageUrl ? (
+              <input
+                readOnly
+                value={pageUrl}
+                aria-label="Lien à coller dans Safari"
+                data-testid="pwa-safari-url"
+                onFocus={(e) => e.currentTarget.select()}
+                className="mt-3 w-full rounded-lg border border-culture-line bg-white px-3 py-2 text-sm text-culture-ink"
+              />
+            ) : null}
+            <button
+              type="button"
+              data-testid="pwa-copy-link"
+              onClick={() => {
+                void onCopyLink();
+              }}
+              className="mt-3 min-h-10 w-full rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-white hover:bg-culture-clay"
+            >
+              {copyState === 'copied' ? CRIOS_COPIED_LABEL : CRIOS_COPY_LINK_LABEL}
+            </button>
+            <p className="mt-2 text-sm text-culture-ink" aria-live="polite" data-testid="pwa-copy-status">
+              {copyState === 'copied' ? CRIOS_COPIED_HINT : null}
+              {copyState === 'failed' ? CRIOS_COPY_FAILED : null}
+            </p>
+            <p className="mt-1 text-sm text-culture-muted">Ensuite, dans Safari :</p>
+            <ol
+              data-testid="pwa-crios-safari-steps"
+              className="mt-1 list-decimal space-y-1 pl-5 text-sm text-culture-ink"
+            >
+              {CRIOS_SAFARI_STEPS.map((label) => (
+                <li key={label}>{label}</li>
+              ))}
+            </ol>
+          </div>
+        ) : null}
         {surface === 'ios-steps' ? (
           <ol data-testid="pwa-install-ios" className="mt-3 space-y-2 text-sm text-culture-ink">
             <li className="flex items-center gap-2">
@@ -169,6 +261,7 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
   const [installed, setInstalled] = useState<boolean | null>(null);
   const [open, setOpen] = useState(false);
   const [ios, setIos] = useState(false);
+  const [chromeIos, setChromeIos] = useState(false);
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
 
   const rememberPrompt = useCallback((event?: Event) => {
@@ -214,6 +307,9 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
   }, []);
 
   useEffect(() => {
+    if (!shouldAwaitInstallPrompt({ chromeIos: isChromeIosClient(clientSignals()) })) {
+      return;
+    }
     window.addEventListener('beforeinstallprompt', rememberPrompt);
     window.addEventListener('planc-bip', rememberPrompt);
     rememberPrompt();
@@ -227,6 +323,7 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
     let cancelled = false;
     const signals = clientSignals();
     setIos(isIosClient(signals));
+    setChromeIos(isChromeIosClient(signals));
 
     const timer = window.setTimeout(() => {
       void (async () => {
@@ -318,6 +415,7 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
       {open && installed !== true ? (
         <InstallSheet
           ios={ios}
+          chromeIos={chromeIos}
           promptReady={Boolean(promptEvent)}
           onInstall={onInstall}
           onClose={() => setOpen(false)}

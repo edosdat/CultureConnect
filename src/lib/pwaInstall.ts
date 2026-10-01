@@ -7,16 +7,41 @@
 
 export const A2HS_DAY_KEY = 'planc_a2hs_day';
 
-/** Captures Chromium's install event before hydration. No permission request. */
+/**
+ * Captures Chromium's install event before hydration. No permission request.
+ * Chrome on iOS never fires `beforeinstallprompt` — do not listen or wait.
+ */
 export const INSTALL_PROMPT_CAPTURE_SCRIPT =
-  "window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__plancInstallPrompt=e;window.dispatchEvent(new Event('planc-bip'));});";
+  "(function(){if(/CriOS/i.test(navigator.userAgent||''))return;window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__plancInstallPrompt=e;window.dispatchEvent(new Event('planc-bip'));});})();";
+
+/** Visible path on the Chrome-iOS sheet. Safari is the only install that works. */
+export const CRIOS_SAFARI_PATH =
+  'Ouvre dans Safari → Partager → Ajouter à l’écran d’accueil';
+
+/** Same path in a full sentence, for the sheet body. */
+export const CRIOS_SAFARI_COPY =
+  'Sur iPhone, ouvre Plan C dans Safari, puis Partager → Ajouter à l’écran d’accueil.';
+
+/** Why tapping Share inside Chrome is not enough. */
+export const CRIOS_SAFARI_NOTE =
+  'Le menu Partager de Chrome ne le propose pas toujours.';
+
+export const CRIOS_COPY_LINK_LABEL = 'Copier le lien';
+export const CRIOS_COPIED_LABEL = 'Lien copié';
+export const CRIOS_COPIED_HINT =
+  'Colle-le dans Safari, puis Partager → Ajouter à l’écran d’accueil.';
+export const CRIOS_COPY_FAILED =
+  'Le lien n’a pas été copié. Sélectionne l’adresse, puis colle-la dans Safari.';
+
+/** Gestures that happen in Safari, after the link is pasted. Not page buttons. */
+export const CRIOS_SAFARI_STEPS = ['Partager', 'Ajouter à l’écran d’accueil'] as const;
 
 export type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 };
 
-export type A2hsSurface = 'android-prompt' | 'ios-steps' | 'fallback';
+export type A2hsSurface = 'android-prompt' | 'ios-steps' | 'crios-safari' | 'fallback';
 
 export type AccountInstallItem = 'pending' | 'download' | 'installed';
 
@@ -61,6 +86,42 @@ export function isIosClient(input: {
   return false;
 }
 
+/** Chrome on iPhone/iPad. The UA token is `CriOS`, including iPad desktop mode. */
+export function isChromeIosClient(input: { userAgent: string }): boolean {
+  return /CriOS/i.test(input.userAgent || '');
+}
+
+/** Chrome iOS never emits beforeinstallprompt. Do not wait for it. */
+export function shouldAwaitInstallPrompt(input: { chromeIos: boolean }): boolean {
+  return !input.chromeIos;
+}
+
+/** Page address to paste into Safari. Rejects non-http(s) URLs. */
+export function safariHandoffUrl(href: string): string {
+  try {
+    const url = new URL(href);
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return '';
+    return url.toString();
+  } catch {
+    return '';
+  }
+}
+
+/** Copies the Safari handoff URL. A thrown clipboard error is a failed copy. */
+export async function copySafariHandoffUrl(
+  href: string,
+  writeText: (value: string) => Promise<void>,
+): Promise<boolean> {
+  const url = safariHandoffUrl(href);
+  if (!url) return false;
+  try {
+    await writeText(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Once per local calendar day, handheld only, and only while not installed.
  * Dismissing still counts as today's offer — the account menu remains.
@@ -76,11 +137,17 @@ export function shouldShowDailyA2hs(input: {
   return input.lastDay !== input.today;
 }
 
-/** iOS never gets a fake install button. Chromium does when the event exists. */
+/**
+ * iOS never gets a fake install button. Chrome iOS is its own surface:
+ * no `beforeinstallprompt`, and Add to Home Screen usually needs Safari.
+ * Other Chromium gets the native prompt only when the event was stored.
+ */
 export function a2hsSurface(input: {
   ios: boolean;
+  chromeIos?: boolean;
   promptReady: boolean;
 }): A2hsSurface {
+  if (input.chromeIos) return 'crios-safari';
   if (input.ios) return 'ios-steps';
   if (input.promptReady) return 'android-prompt';
   return 'fallback';
