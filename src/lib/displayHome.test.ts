@@ -47,6 +47,7 @@ import {
   theatreRows,
   TOP3_CAROUSEL_CARD_CLASS,
   TOP3_CAROUSEL_TRACK_CLASS,
+  TOP3_INDICATOR_CLASS,
   TOP3_RAIL_CARD_HEIGHT_CLASS,
   TOP3_RAIL_IMAGE_CLASS,
   TOP3_RAIL_THUMB_CLASS,
@@ -1530,12 +1531,41 @@ describe('Top 3 mobile carousel (<md)', () => {
     const three = top3TrackClass(3);
     assert.ok(three.startsWith('flex '));
     assert.ok(three.includes('md:grid'));
-    assert.ok(three.includes('lg:grid-cols-3'));
+    assert.ok(three.includes('md:grid-cols-3'));
+    assert.equal(three.includes('lg:grid-cols-3'), false);
     assert.equal(three.includes('w-[85%]'), false);
     assert.ok(top3GridClass(3).startsWith('grid '));
     const two = top3TrackClass(2);
     assert.ok(two.includes('sm:grid-cols-2'));
     assert.ok(two.includes('md:grid'));
+  });
+
+  it('lays 3 cards as a compact 3-up from md, including the 820 tablet band', () => {
+    const grid = top3GridClass(3);
+    assert.ok(grid.includes('grid-cols-1'));
+    assert.ok(grid.includes('md:grid-cols-3'));
+    assert.equal(grid.includes('lg:grid-cols-3'), false);
+    assert.equal(grid.includes('sm:grid-cols-3'), false);
+
+    const three = top3TrackClass(3);
+    assert.ok(three.startsWith('flex '));
+    assert.ok(three.includes('snap-x'));
+    assert.ok(three.includes('snap-mandatory'));
+    assert.ok(three.includes('md:grid'));
+    assert.ok(three.includes('md:overflow-x-visible'));
+    assert.ok(three.includes('md:snap-none'));
+    assert.ok(three.includes('md:grid-cols-3'));
+    assert.equal(three.includes('lg:grid-cols-3'), false);
+
+    assert.equal(top3GridClass(1).includes('md:grid-cols-3'), false);
+    assert.equal(top3GridClass(2).includes('md:grid-cols-3'), false);
+    assert.ok(top3GridClass(2).includes('sm:grid-cols-2'));
+
+    const card = top3CardFrameClass(3);
+    assert.ok(card.includes('w-[78%]'));
+    assert.ok(card.includes('snap-start'));
+    assert.ok(card.includes('md:w-full'));
+    assert.ok(TOP3_INDICATOR_CLASS.includes('md:hidden'));
   });
 
   it('allows vertical page pan as well as horizontal snap (not pan-x only)', () => {

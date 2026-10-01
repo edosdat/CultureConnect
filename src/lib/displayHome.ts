@@ -359,11 +359,17 @@ export function fillEmptyCineFromPool(
   return fillEmptyCineSlot(recoItems, films);
 }
 
-/** 0 → hide; 1 → full width; 2 → 50/50; 3 → current 3-up. Stretch so rail thumbs fill the row. */
+/**
+ * 1 → full width; 2 → 50/50 from sm; 3 → compact 3-up from md.
+ * The home track is a snap rail below md, then `md:grid`. Three cards
+ * must be `md:grid-cols-3`: `lg:` alone leaves 768–1023 (e.g. 820) as
+ * three stacked full-width bands. `items-stretch` keeps rail thumbs
+ * even. Mes recos sheet does not use this.
+ */
 export function top3GridClass(count: number): string {
   if (count <= 1) return 'grid w-full grid-cols-1 items-stretch gap-3';
   if (count === 2) return 'grid w-full grid-cols-1 items-stretch gap-3 sm:grid-cols-2';
-  return 'grid w-full grid-cols-1 items-stretch gap-3 lg:grid-cols-3';
+  return 'grid w-full grid-cols-1 items-stretch gap-3 md:grid-cols-3';
 }
 
 /** 2–3 cards: snap carousel on <md. One card stays a single full-width tile. */
