@@ -16,6 +16,12 @@ describe('isDateOnlyTitle', () => {
     assert.equal(isDateOnlyTitle('Vendredi 02 octobre 2026 - 20H30'), true);
     assert.equal(isDateOnlyTitle('Samedi 19 septembre 2026 - 20H00'), true);
     assert.equal(isDateOnlyTitle('2026-10-02'), true);
+    assert.equal(
+      isDateOnlyTitle(
+        'Jeudi 17 septembre 2026 - 20H30 Jeudi 12 novembre 2026 - 20H30',
+      ),
+      true,
+    );
   });
 
   it('rejects real titles that merely contain a date', () => {
@@ -28,6 +34,42 @@ describe('isJunkTitle', () => {
   it('flags date-only titles', () => {
     assert.equal(junkTitleReason('Vendredi 02 octobre 2026 - 20H30'), 'date_only');
     assert.equal(isJunkTitle('2026-10-02'), true);
+  });
+
+  it('flags multi-date scrape concatenations (M1 hole / #177 live FAIL)', () => {
+    const multi =
+      'Jeudi 17 septembre 2026 - 20H30 Jeudi 12 novembre 2026 - 20H30';
+    assert.equal(junkTitleReason(multi), 'date_only');
+    assert.equal(isJunkTitle(multi), true);
+    assert.equal(
+      junkTitleReason(
+        'Mardi 29 septembre 2026 - 20H30 Mercredi 30 septembre 2026 - 20H30 + de dates',
+      ),
+      'date_only',
+    );
+    assert.equal(
+      junkTitleReason(
+        'Mercredi 18 novembre 2026 - 20H30 Jeudi 19 novembre 2026 - 20H30',
+      ),
+      'date_only',
+    );
+  });
+
+  it('flags date-only titles with common month typos (fvrier / dcembre)', () => {
+    assert.equal(
+      junkTitleReason('Vendredi 19 fvrier 2027 - 20H00'),
+      'date_only',
+    );
+    assert.equal(
+      junkTitleReason('Mercredi 02 dcembre 2026 - 20H30'),
+      'date_only',
+    );
+    assert.equal(
+      junkTitleReason(
+        'Jeudi 25 fvrier 2027 - 20H30 Vendredi 26 fvrier 2027 - 20H30 + de dates',
+      ),
+      'date_only',
+    );
   });
 
   it('flags pagination scrape leftovers', () => {

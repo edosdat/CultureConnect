@@ -19,10 +19,27 @@ const MONTH_NAMES = [
   'decembre',
 ] as const;
 
-const MONTH_ALT = MONTH_NAMES.join('|');
+/**
+ * Common scrape typos for month names (La Comédie de Toulouse etc.).
+ * Kept beside MONTH_NAMES so DATE_TITLE stays one regex; bare_month still
+ * only matches the canonical list.
+ */
+const MONTH_TYPOS = ['fvrier', 'dcembre'] as const;
 
+const MONTH_ALT = [...MONTH_NAMES, ...MONTH_TYPOS].join('|');
+
+const WEEKDAY_ALT = 'lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche';
+
+/** One weekday? + day + month + year + optional « - 20H30 ». */
+const DATE_SEGMENT = `(?:(?:${WEEKDAY_ALT})\\s+)?\\d{1,2}\\s+(?:${MONTH_ALT})\\s+\\d{4}(?:\\s*-\\s*\\d{1,2}\\s*h(?:\\s*\\d{2})?)?`;
+
+/**
+ * One or more date(+time) segments, optional trailing « + de dates ».
+ * Catches single-date (L1), multi-date concatenations (M1 hole), and
+ * typo months (fvrier / dcembre).
+ */
 const DATE_TITLE = new RegExp(
-  `^(?:(?:lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\\s+)?\\d{1,2}\\s+(?:${MONTH_ALT})\\s+\\d{4}(?:\\s*-\\s*\\d{1,2}\\s*h(?:\\s*\\d{2})?)?$`,
+  `^(?:${DATE_SEGMENT}\\s*)+(?:\\+\\s*de\\s*dates)?$`,
 );
 
 const ISO_DATE_TITLE = /^\d{4}-\d{2}-\d{2}(?:[ t]\d{2}:\d{2})?$/;
@@ -97,7 +114,9 @@ export function normalizeJunkTitle(title: string): string {
 
 /**
  * Date-only titles (former `scripts/tagAudit` `isDateOnlyTitle` / error `titre_date`).
- * Ex. « Vendredi 02 octobre 2026 - 20H30 », « 2026-10-02 ».
+ * Ex. « Vendredi 02 octobre 2026 - 20H30 », « 2026-10-02 »,
+ * « Jeudi 17 septembre 2026 - 20H30 Jeudi 12 novembre 2026 - 20H30 »,
+ * « Mardi 29 septembre 2026 - 20H30 … + de dates ».
  */
 export function isDateOnlyTitle(title: string): boolean {
   const t = squash(title);
