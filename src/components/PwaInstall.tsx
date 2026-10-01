@@ -11,7 +11,13 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  A2HS_DAY_KEY,
+  A2HS_BAR_HEIGHT_PX,
+  A2HS_BAR_HINT,
+  A2HS_BAR_ICON_PX,
+  A2HS_BAR_ICON_SRC,
+  A2HS_BAR_LABEL,
+  A2HS_BAR_LABEL_NARROW,
+  A2HS_BAR_OFFSET_VAR,
   CRIOS_COPIED_HINT,
   CRIOS_COPIED_LABEL,
   CRIOS_COPY_FAILED,
@@ -40,13 +46,11 @@ import {
   iosInstallFlags,
   iosSheetBottomGapPx,
   isChromeIosClient,
-  isHandheldClient,
-  localDayStamp,
   nativeInstallTap,
   safariBottomChromePx,
   safariHandoffUrl,
   shouldAwaitInstallPrompt,
-  shouldShowDailyA2hs,
+  shouldShowA2hsBar,
   type BeforeInstallPromptEvent,
   type IosInstallFlags,
 } from '@/lib/pwaInstall';
@@ -396,6 +400,60 @@ function InstallSheet({
   );
 }
 
+/**
+ * Sticky strip directly under the site header. Always on while the app
+ * is not installed — phone and desktop. Tap opens the install sheet.
+ * No dismiss control: « Plus tard » only closes that sheet.
+ */
+export function A2hsDownloadBar() {
+  const { installed, openInstall } = usePwaInstall();
+  const show = shouldShowA2hsBar({ installed });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!show) {
+      root.style.removeProperty(A2HS_BAR_OFFSET_VAR);
+      return;
+    }
+    root.style.setProperty(A2HS_BAR_OFFSET_VAR, `${A2HS_BAR_HEIGHT_PX}px`);
+    return () => {
+      root.style.removeProperty(A2HS_BAR_OFFSET_VAR);
+    };
+  }, [show]);
+
+  if (!show) return null;
+
+  return (
+    <div
+      data-testid="pwa-download-bar"
+      className="sticky top-0 z-[35] flex h-11 items-center gap-2.5 border-b border-culture-terracotta/[0.12] bg-culture-cream px-3"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={A2HS_BAR_ICON_SRC}
+        alt=""
+        width={A2HS_BAR_ICON_PX}
+        height={A2HS_BAR_ICON_PX}
+        draggable={false}
+        data-testid="pwa-download-bar-icon"
+        className="h-[22px] w-[22px] shrink-0 rounded-[4px] object-cover"
+      />
+      <p className="hidden min-w-0 flex-1 truncate text-[13px] leading-none text-culture-muted min-[390px]:block">
+        {A2HS_BAR_HINT}
+      </p>
+      <button
+        type="button"
+        data-testid="pwa-download-bar-action"
+        onClick={openInstall}
+        className="ml-auto min-h-9 shrink-0 rounded-full bg-culture-terracotta px-3 py-0 text-sm font-semibold leading-none text-white hover:bg-culture-clay focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta"
+      >
+        <span className="min-[360px]:hidden">{A2HS_BAR_LABEL_NARROW}</span>
+        <span className="hidden min-[360px]:inline">{A2HS_BAR_LABEL}</span>
+      </button>
+    </div>
+  );
+}
+
 function ShellRefreshTip({ onRefresh }: { onRefresh: () => void }) {
   return (
     <div
@@ -513,45 +571,15 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
 
   useEffect(() => {
     let cancelled = false;
-    const signals = clientSignals();
 
-    const timer = window.setTimeout(() => {
-      void (async () => {
-        const installedNow = await detectPwaInstalled({
-          displayModeStandalone: window.matchMedia('(display-mode: standalone)').matches,
-          navigatorStandalone: navigator.standalone === true,
-          getInstalledRelatedApps: navigator.getInstalledRelatedApps,
-        });
-        if (cancelled) return;
-        setInstalled(installedNow);
-        const today = localDayStamp(new Date());
-        let lastDay: string | null = null;
-        try {
-          lastDay = localStorage.getItem(A2HS_DAY_KEY);
-        } catch {
-          lastDay = null;
-        }
-        if (
-          !shouldShowDailyA2hs({
-            handheld: isHandheldClient(signals),
-            installed: installedNow,
-            lastDay,
-            today,
-          })
-        ) {
-          return;
-        }
-        try {
-          localStorage.setItem(A2HS_DAY_KEY, today);
-        } catch {
-          /* private mode: still show this once */
-        }
-        if (!cancelled) {
-          setInstallFlags(iosInstallFlags(clientSignals()));
-          setOpen(true);
-        }
-      })();
-    }, 600);
+    void (async () => {
+      const installedNow = await detectPwaInstalled({
+        displayModeStandalone: window.matchMedia('(display-mode: standalone)').matches,
+        navigatorStandalone: navigator.standalone === true,
+        getInstalledRelatedApps: navigator.getInstalledRelatedApps,
+      });
+      if (!cancelled) setInstalled(installedNow);
+    })();
 
     function onVisible() {
       if (document.visibilityState !== 'visible') return;
@@ -567,7 +595,6 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
 
     return () => {
       cancelled = true;
-      window.clearTimeout(timer);
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, []);

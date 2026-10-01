@@ -2984,7 +2984,7 @@ export default function CultureConnectApp({
       <HomeAccroche />
 
       {/* Heights: keep HomeBootChrome + HomeListWaitSlot in sync (LAYOUT_JUMP). */}
-      <div className="sticky top-0 z-20 -mx-4 mb-2 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-1.5 backdrop-blur sm:-mx-6 sm:px-6">
+      <div className="sticky top-[var(--a2hs-bar-h)] z-20 -mx-4 mb-2 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-1.5 backdrop-blur sm:-mx-6 sm:px-6">
         <SearchOmnibox
           value={query}
           onChange={handleQueryChange}

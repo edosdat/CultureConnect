@@ -5,7 +5,20 @@
  * Product cookies (cc_vid, session) are untouched here.
  */
 
-export const A2HS_DAY_KEY = 'planc_a2hs_day';
+/** Sticky strip under the header. Same words as the account menu. */
+export const A2HS_BAR_LABEL = 'Télécharger l’appli';
+/** Viewports under 360px keep the strip on one line. */
+export const A2HS_BAR_LABEL_NARROW = 'Télécharger';
+export const A2HS_BAR_NARROW_PX = 360;
+/** Optional left hint. Hidden below this width so the strip does not wrap. */
+export const A2HS_BAR_HINT = 'Tu peux télécharger l’appli';
+export const A2HS_BAR_HINT_MIN_PX = 390;
+/** LOCK lettermark « C » v3 violet — not a terracotta glyph. */
+export const A2HS_BAR_ICON_SRC = '/plan-c-icon-LOCK-v3-violet.jpg';
+export const A2HS_BAR_ICON_PX = 22;
+/** Strip content height. Search stick offset uses the same pixel value. */
+export const A2HS_BAR_HEIGHT_PX = 44;
+export const A2HS_BAR_OFFSET_VAR = '--a2hs-bar-h';
 
 /**
  * Captures Chromium's install event before hydration. No permission request.
@@ -83,13 +96,6 @@ export type A2hsSurface =
   | 'fallback';
 
 export type AccountInstallItem = 'pending' | 'download' | 'installed';
-
-export function localDayStamp(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
 
 export function isInstalledDisplay(input: {
   displayModeStandalone: boolean;
@@ -273,18 +279,27 @@ export async function copySafariHandoffUrl(
 }
 
 /**
- * Once per local calendar day, handheld only, and only while not installed.
- * Dismissing still counts as today's offer — the account menu remains.
+ * Full label at 360px and up. Below that, the short CTA keeps one line.
+ * A non-finite width keeps the full label (desktop default).
  */
-export function shouldShowDailyA2hs(input: {
-  handheld: boolean;
-  installed: boolean;
-  lastDay: string | null;
-  today: string;
-}): boolean {
-  if (!input.handheld || input.installed) return false;
-  if (!input.today) return false;
-  return input.lastDay !== input.today;
+export function a2hsBarLabel(viewportWidth: number): string {
+  if (!Number.isFinite(viewportWidth)) return A2HS_BAR_LABEL;
+  return viewportWidth < A2HS_BAR_NARROW_PX ? A2HS_BAR_LABEL_NARROW : A2HS_BAR_LABEL;
+}
+
+/** Left hint only when the strip has room. Under 390px the CTA stands alone. */
+export function a2hsBarShowsHint(viewportWidth: number): boolean {
+  return Number.isFinite(viewportWidth) && viewportWidth >= A2HS_BAR_HINT_MIN_PX;
+}
+
+/**
+ * Sticky strip under the header on every web visit, phone and desktop.
+ * Standalone / related-app install stays quiet. `null` means detection
+ * is still in flight — do not paint, then hide, for an installed app.
+ * Closing the sheet does not hide the strip. No day stamp, no session hide.
+ */
+export function shouldShowA2hsBar(input: { installed: boolean | null }): boolean {
+  return input.installed === false;
 }
 
 /**
@@ -306,7 +321,7 @@ export function a2hsSurface(input: {
 }
 
 /**
- * Daily sheet and the account menu (`openInstall`) share this decision.
+ * Sticky bar and the account menu (`openInstall`) share this decision.
  * A Safari iPhone UA is never `crios-safari`: that token is `CriOS` only.
  */
 export function a2hsSurfaceForClient(input: {

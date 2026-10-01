@@ -13,6 +13,8 @@
   --cc-line: #e7e0d8;
   --cc-soft: #f6d5c8;
   --cc-sand: #f3e8da;
+  /* 0 until the A2HS strip mounts; then 44px so the home search sticks under it. */
+  --a2hs-bar-h: 0px;
 
   /* S8 category palette LOCK — paint chips / badges / H2 / fallback wash only */
   --cat-cine: #e85d3b; /* LOCK terracotta — do not change */
