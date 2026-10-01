@@ -1,6 +1,8 @@
 'use client';
 
 import { MONTH_NAMES_FR, WEEKDAY_NAMES_FR } from '@/lib/labels';
+import { calendarDayTone } from '@/lib/monthCalendarTone';
+import { parisParts } from '@/lib/timeScope';
 
 const WEEKDAY_SHORT_FR = ['L', 'M', 'M', 'J', 'V', 'S', 'D'] as const;
 
@@ -14,7 +16,10 @@ type Props = {
   onNextMonth: () => void;
   /** Inside MonthCalendarDrawer: drop card chrome, tighter mobile cells. */
   embedded?: boolean;
-  /** Public: no per-day event numbers. Admin debug keeps them. */
+  /**
+   * Per-day sortie counts under each cell (same filters as « X sorties »).
+   * Public default on; pass false only to hide.
+   */
   showDayCounts?: boolean;
 };
 
@@ -31,8 +36,9 @@ export default function MonthCalendar({
   onPrevMonth,
   onNextMonth,
   embedded = false,
-  showDayCounts = false,
+  showDayCounts = true,
 }: Props) {
+  const todayIso = parisParts().iso;
   const first = new Date(year, month - 1, 1);
   // Monday-first: JS getDay() Sun=0 .. Sat=6 -> Mon=0 .. Sun=6
   const startPad = (first.getDay() + 6) % 7;
@@ -95,21 +101,25 @@ export default function MonthCalendar({
           }
           const iso = toIso(year, month, day);
           const count = counts.get(iso) ?? 0;
-          const selected = selectedDay === iso;
+          const tone = calendarDayTone(iso, selectedDay, todayIso);
+          const selected = tone === 'selected';
+          const isToday = tone === 'today';
+          const cellToneClass = selected
+            ? 'border-culture-terracotta bg-culture-terracotta text-white shadow'
+            : isToday
+              ? count > 0
+                ? 'border-culture-terracotta bg-culture-cream text-culture-ink ring-2 ring-culture-terracotta ring-offset-1 ring-offset-culture-surface hover:border-culture-terracotta'
+                : 'border-culture-terracotta text-culture-ink ring-2 ring-culture-terracotta ring-offset-1 ring-offset-culture-surface hover:bg-culture-cream/60'
+              : count > 0
+                ? 'border-culture-line bg-culture-cream text-culture-ink hover:border-culture-terracotta/60'
+                : 'border-transparent text-culture-muted hover:bg-culture-cream/60';
           return (
             <button
               key={iso}
               type="button"
               onClick={() => onSelectDay(iso)}
-              className={
-                cellBase +
-                ' ' +
-                (selected
-                  ? 'border-culture-terracotta bg-culture-terracotta text-white shadow'
-                  : count > 0
-                    ? 'border-culture-line bg-culture-cream text-culture-ink hover:border-culture-terracotta/60'
-                    : 'border-transparent text-culture-muted hover:bg-culture-cream/60')
-              }
+              aria-current={iso === todayIso ? 'date' : undefined}
+              className={cellBase + ' ' + cellToneClass}
             >
               <span className="font-medium leading-none">{day}</span>
               {showDayCounts && count > 0 && (
