@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, useSyncExternalStore, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type ChangeEvent, type FormEvent } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { compressFeedbackCapture } from '@/lib/feedbackCapture';
 import {
   BUG_QUESTION,
   BUG_STUB,
@@ -13,6 +14,14 @@ import {
   clearStub,
   fieldForTrack,
 } from '@/lib/feedbackChips';
+import {
+  ATTACH_LABEL,
+  CAPTURE_LABEL,
+  IMAGE_PERMISSION,
+  IMAGE_SEND_FAIL,
+  IMAGE_TOO_HEAVY,
+  REMOVE_CAPTURE_LABEL,
+} from '@/lib/feedbackImage';
 import {
   feedbackOpenAllowed,
   getOverlayStack,
@@ -53,10 +62,23 @@ const CHIP_CLASS =
   'inline-flex min-h-10 items-center rounded-full px-3 text-xs font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta disabled:opacity-50 ';
 
 type ChipKind = (typeof CHIPS)[number]['kind'];
-type Msg = { id: string; role: 'bot' | 'user'; text: string };
+type DraftCapture = { url: string; blob: Blob };
+type Msg = { id: string; role: 'bot' | 'user'; text: string; imageUrl?: string };
 
-function calmError(status: number): string {
+const KNOWN_ERRORS = new Set([
+  'Trop de messages d’un coup. Réessaie plus tard.',
+  'Écris quelques mots.',
+  'Ça n’est pas parti. Réessaie.',
+  IMAGE_TOO_HEAVY,
+  IMAGE_SEND_FAIL,
+  IMAGE_PERMISSION,
+]);
+
+function calmError(status: number, raw: string, hadImage: boolean): string {
+  if (raw === IMAGE_TOO_HEAVY || status === 413) return IMAGE_TOO_HEAVY;
   if (status === 429) return 'Trop de messages d’un coup. Réessaie plus tard.';
+  if (hadImage) return IMAGE_SEND_FAIL;
+  if (raw && KNOWN_ERRORS.has(raw)) return raw;
   if (status === 400) return 'Écris quelques mots.';
   return 'Ça n’est pas parti. Réessaie.';
 }
@@ -98,6 +120,9 @@ export default function FeedbackChat() {
   const endRef = useRef<HTMLLIElement>(null);
   const seq = useRef(0);
   const caretRef = useRef<number | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const liveUrls = useRef<string[]>([]);
+  const captureRef = useRef<DraftCapture | null>(null);
   const [open, setOpen] = useState(false);
   const overlay = useSyncExternalStore(subscribeOverlayStack, getOverlayStack, getServerOverlayStack);
   const a2hsSheetOpen = overlay.a2hsSheetOpen;
@@ -105,6 +130,7 @@ export default function FeedbackChat() {
   const [text, setText] = useState('');
   const [kind, setKind] = useState<ChipKind | null>(null);
   const [subtype, setSubtype] = useState<string | null>(null);
+  const [capture, setCapture] = useState<DraftCapture | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [messages, setMessages] = useState<Msg[]>([
@@ -114,6 +140,20 @@ export default function FeedbackChat() {
   useEffect(() => {
     if (a2hsSheetOpen) setOpen(false);
   }, [a2hsSheetOpen]);
+
+  useEffect(() => {
+    captureRef.current = capture;
+  }, [capture]);
+
+  useEffect(() => {
+    const urls = liveUrls;
+    const draft = captureRef;
+    return () => {
+      const pending = draft.current;
+      if (pending && !urls.current.includes(pending.url)) URL.revokeObjectURL(pending.url);
+      for (const url of urls.current) URL.revokeObjectURL(url);
+    };
+  }, []);
 
   useEffect(() => {
     if (pathname?.startsWith('/admin')) return;
@@ -165,44 +205,101 @@ export default function FeedbackChat() {
 
   const active = CHIPS.find((chip) => chip.kind === kind) ?? null;
 
+  function openPicker() {
+    if (sending) return;
+    const input = fileRef.current;
+    if (!input) return;
+    input.value = '';
+    try {
+      input.click();
+    } catch (err) {
+      const name = err instanceof DOMException ? err.name : '';
+      if (name === 'NotAllowedError' || name === 'SecurityError') {
+        setError(IMAGE_PERMISSION);
+      }
+    }
+  }
+
+  async function onPick(ev: ChangeEvent<HTMLInputElement>) {
+    const file = ev.target.files?.[0];
+    ev.target.value = '';
+    if (!file || sending) return;
+    const result = await compressFeedbackCapture(file);
+    if ('error' in result) {
+      setError(result.error);
+      return;
+    }
+    setCapture((prev) => {
+      if (prev && !liveUrls.current.includes(prev.url)) URL.revokeObjectURL(prev.url);
+      return { url: URL.createObjectURL(result.blob), blob: result.blob };
+    });
+    setError('');
+  }
+
+  function clearCapture() {
+    if (sending) return;
+    setCapture((prev) => {
+      if (prev && !liveUrls.current.includes(prev.url)) URL.revokeObjectURL(prev.url);
+      return null;
+    });
+  }
+
   async function onSubmit(ev: FormEvent) {
     ev.preventDefault();
     const pending = text.trim();
-    if (!pending || sending) return;
+    if (sending) return;
+    if (pending.length > 0 && pending.length < 2) {
+      setError('Écris quelques mots.');
+      return;
+    }
+    if (!pending && !capture) return;
     const pendingKind = kind;
+    const draft = capture;
     setSending(true);
     setError('');
     setText('');
     try {
-      const res = await fetch('/api/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          pendingKind ? { text: pending, kind: pendingKind } : { text: pending },
-        ),
-      });
+      let res: Response;
+      if (draft) {
+        const form = new FormData();
+        form.set('text', pending);
+        if (pendingKind) form.set('kind', pendingKind);
+        form.set('image', new File([draft.blob], 'capture.jpg', { type: 'image/jpeg' }));
+        res = await fetch('/api/feedback', { method: 'POST', body: form });
+      } else {
+        res = await fetch('/api/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(
+            pendingKind ? { text: pending, kind: pendingKind } : { text: pending },
+          ),
+        });
+      }
+      const data = (await res.json().catch(() => null)) as { reply?: unknown; error?: unknown } | null;
       if (!res.ok) {
         setText(pending);
-        setError(calmError(res.status));
+        const raw = data && typeof data.error === 'string' ? data.error : '';
+        setError(calmError(res.status, raw, Boolean(draft)));
         return;
       }
-      const data = (await res.json()) as { reply?: unknown };
       const reply =
-        typeof data.reply === 'string' && data.reply.trim()
+        data && typeof data.reply === 'string' && data.reply.trim()
           ? data.reply.trim()
           : 'Bien reçu. On lit ça.';
       seq.current += 1;
       const n = seq.current;
+      if (draft) liveUrls.current.push(draft.url);
       setKind(null);
       setSubtype(null);
+      setCapture(null);
       setMessages((prev) => [
         ...prev,
-        { id: `u${n}`, role: 'user', text: pending },
+        { id: `u${n}`, role: 'user', text: pending, imageUrl: draft?.url },
         { id: `b${n}`, role: 'bot', text: reply },
       ]);
     } catch {
       setText(pending);
-      setError(calmError(0));
+      setError(draft ? IMAGE_SEND_FAIL : calmError(0, '', false));
     } finally {
       setSending(false);
     }
@@ -267,7 +364,17 @@ export default function FeedbackChat() {
                     : 'mr-6 whitespace-normal break-words rounded-2xl bg-culture-sand px-3 py-2 text-sm text-culture-ink'
                 }
               >
-                {msg.text}
+                {msg.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={msg.imageUrl}
+                    alt={CAPTURE_LABEL}
+                    className={
+                      'max-h-32 w-full rounded-lg object-cover ' + (msg.text ? 'mb-1' : '')
+                    }
+                  />
+                ) : null}
+                {msg.text ? msg.text : null}
               </li>
             ))}
             <li ref={endRef} data-feedback-end="" aria-hidden="true" className="h-px" />
@@ -350,30 +457,97 @@ export default function FeedbackChat() {
             <label htmlFor={inputId} className="sr-only">
               Ton avis ou ton idée
             </label>
-            <textarea
-              ref={inputRef}
-              id={inputId}
-              name="text"
-              rows={3}
-              maxLength={400}
-              value={text}
-              disabled={sending}
-              placeholder="Quelques mots"
-              onChange={(ev) => setText(ev.target.value)}
-              className="mt-2 w-full resize-none rounded-xl border border-culture-line bg-white px-3 py-2 text-sm text-culture-ink placeholder:text-culture-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta disabled:opacity-60"
-            />
+            <div className="mt-2 flex items-end gap-2">
+              <button
+                type="button"
+                data-feedback="attach"
+                title={ATTACH_LABEL}
+                aria-label={ATTACH_LABEL}
+                disabled={sending}
+                onClick={openPicker}
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-culture-line bg-white text-culture-ink hover:text-culture-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta disabled:opacity-50"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21.44 11.05l-8.49 8.49a5.5 5.5 0 0 1-7.78-7.78l8.49-8.49a3.5 3.5 0 0 1 4.95 4.95l-8.49 8.49a1.5 1.5 0 0 1-2.12-2.12l7.78-7.78" />
+                </svg>
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                tabIndex={-1}
+                aria-hidden="true"
+                className="sr-only"
+                onChange={onPick}
+              />
+              <textarea
+                ref={inputRef}
+                id={inputId}
+                name="text"
+                rows={3}
+                maxLength={400}
+                value={text}
+                disabled={sending}
+                placeholder="Quelques mots"
+                onChange={(ev) => setText(ev.target.value)}
+                className="min-w-0 flex-1 resize-none rounded-xl border border-culture-line bg-white px-3 py-2 text-sm text-culture-ink placeholder:text-culture-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta disabled:opacity-60"
+              />
+              <button
+                type="submit"
+                disabled={sending || (text.trim().length < 2 && !(capture && text.trim().length === 0))}
+                className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-full bg-culture-ink px-4 text-sm font-medium text-culture-cream hover:opacity-90 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta"
+              >
+                {sending ? 'Envoi…' : 'Envoyer'}
+              </button>
+            </div>
+            {capture ? (
+              <div data-feedback="capture-preview" className="mt-2 flex items-center gap-2">
+                <span className="relative h-10 w-10 shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={capture.url}
+                    alt=""
+                    className="h-10 w-10 rounded-lg object-cover"
+                  />
+                  {sending ? (
+                    <span
+                      className="absolute inset-0 grid place-items-center rounded-lg bg-culture-ink/40"
+                      aria-hidden="true"
+                    >
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-culture-cream border-t-transparent" />
+                    </span>
+                  ) : null}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-xs text-culture-muted">
+                  {CAPTURE_LABEL}
+                </span>
+                <button
+                  type="button"
+                  aria-label={REMOVE_CAPTURE_LABEL}
+                  disabled={sending}
+                  onClick={clearCapture}
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm text-culture-muted hover:text-culture-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta disabled:opacity-50"
+                >
+                  ×
+                </button>
+              </div>
+            ) : null}
             {error ? (
               <p className="mt-1 text-xs text-culture-ink" role="status">
                 {error}
               </p>
             ) : null}
-            <button
-              type="submit"
-              disabled={sending || text.trim().length < 2}
-              className="mt-2 inline-flex min-h-10 items-center justify-center rounded-full bg-culture-ink px-4 text-sm font-medium text-culture-cream hover:opacity-90 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta"
-            >
-              {sending ? 'Envoi…' : 'Envoyer'}
-            </button>
           </form>
         </section>
       ) : null}

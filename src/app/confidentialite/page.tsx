@@ -70,6 +70,8 @@ export default function ConfidentialitePage() {
         <p>
           <span className="font-medium">Avis.</span> Le bouton «&nbsp;Un avis&nbsp;?&nbsp;»
           envoie ce texte, seul, à OpenAI (États-Unis) pour une réponse courte.
+          Une image jointe reste chez Neon (Paris), les mêmes 90&nbsp;jours.
+          Elle n’est pas envoyée à OpenAI.
           On le garde chez Neon (Paris), 90&nbsp;jours. Compte connecté&nbsp;:
           une empreinte du compte, pas l’e-mail en clair, et pas le cookie
           visiteur. Sans compte&nbsp;: le cookie{' '}

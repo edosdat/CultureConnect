@@ -47,7 +47,17 @@ Sans URL Postgres, ou avec `FEEDBACK_STORE=file`, repli fichier local (tests et 
 
 Le chip gagne sur le modèle. Un `kind` inconnu (`suggestion`, vide, autre mot) est ignoré : on retombe sur le modèle, puis `autre`.
 
-`POST /api/feedback` accepte `{ "text": "…", "kind": "bug" }`. `kind` est optionnel. Le texte : 2 à 400 caractères. Le modèle ne reçoit que le texte rédigé, pas l’empreinte, pas `cc_vid`, pas l’e-mail.
+`POST /api/feedback` accepte `{ "text": "…", "kind": "bug" }` ou un formulaire `multipart` (`text`, `kind`, `image`). `kind` est optionnel. Le texte : 2 à 400 caractères, ou vide si une image est jointe. Le modèle ne reçoit que le texte rédigé, pas l’empreinte, pas `cc_vid`, pas l’e-mail, pas l’image.
+
+## Capture
+
+Un trombone dans la barre du champ (« Joindre une capture », 40 px) ouvre le sélecteur du système (`input type=file`, `accept="image/*"`). Pas de seconde pastille, pas de `getDisplayMedia`, pas de caméra maison. Une image par message, 5 Mo maximum sur le fichier choisi. Le navigateur ré-encode en JPEG (bord long 1920 px) avant l’envoi, ce qui retire les métadonnées (GPS, EXIF). Le serveur ne garde qu’un JPEG, et retire à nouveau ces métadonnées.
+
+L’aperçu (vignette, libellé « Capture », retrait) est dans le compositeur. Après l’envoi, la vignette reste dans la bulle de la personne, dans le fil de la session. L’admin la voit sur la note (`GET /api/admin/feedback/:id/image`, même garde, `Cache-Control: private`). La liste admin n’embarque pas les octets.
+
+Stockage : colonnes `image_mime` et `image_bytes` sur `feedback_notes` (Neon, Paris). Pas de fichier public, pas d’URL externe. Même purge 90 jours, même effacement de compte. Le repli fichier local range l’image à côté de la note (tests seulement).
+
+Hors de cette version : vidéo, OCR, notification push, PDF, plusieurs fichiers.
 
 ## Limites
 
