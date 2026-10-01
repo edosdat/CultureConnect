@@ -2955,7 +2955,7 @@ export default function CultureConnectApp({
               month={month}
               selectedDay={timeScope === 'date' ? selectedDay : null}
               counts={counts}
-              showDayCounts={showAdminCounts}
+              showDayCounts
               onSelectDay={handleSelectDay}
               onPrevMonth={goPrevMonth}
               onNextMonth={goNextMonth}
