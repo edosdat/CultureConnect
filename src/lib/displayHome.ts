@@ -46,8 +46,10 @@ import {
 import type { RecoSlotForm } from './reco';
 import {
   fillEmptyCineSlot,
+  itemBlockedByWorkKeys,
   itemInheritsParentMoods,
   slotFormOfItem,
+  workBlockKeysOfItem,
 } from './reco';
 import { parseSearchChips, type SearchChipParse } from './parseSearchChips';
 import { seanceDateIso, type TimeScopeId } from './timeScope';
@@ -286,6 +288,25 @@ export function reasonTasteSlugsForItem(item: DayItem): string[] {
       )
     : itemGenreSlugs(item);
   return [...moods, ...genres].filter(isTasteMood);
+}
+
+
+/**
+ * Drop pool items that share a work identity with any demoteItem
+ * (film / event / programme / workIdOf keys — same as not_interested).
+ * Pure; does not mutate inputs. Empty demote → pool unchanged.
+ */
+export function excludeWorksFromPool(
+  pool: DayItem[],
+  demoteItems: readonly DayItem[],
+): DayItem[] {
+  if (demoteItems.length === 0 || pool.length === 0) return pool;
+  const blocked = new Set<string>();
+  for (const item of demoteItems) {
+    for (const key of workBlockKeysOfItem(item)) blocked.add(key);
+  }
+  if (blocked.size === 0) return pool;
+  return pool.filter((item) => !itemBlockedByWorkKeys(item, blocked));
 }
 
 /** Reco cards that actually exist (1 ciné + 1 théâtre + 1 concert). Omit empty slots. */

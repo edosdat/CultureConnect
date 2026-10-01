@@ -58,6 +58,7 @@ import {
   top3SlideIndex,
   top3TrackClass,
   top3UsesMobileCarousel,
+  excludeWorksFromPool,
   visibleTop3Items,
 } from './displayHome';
 import { isTasteMood } from './phraseTags';
@@ -502,6 +503,51 @@ describe('pack rail more CTA', () => {
   });
 });
 
+
+describe('excludeWorksFromPool', () => {
+  it('drops pool items that share work keys with demoteItems', () => {
+    const weekCine = item({ key: 'week-cine', cat: 'cinema', filmId: 'F-WEEK' });
+    const weekTh = item({ key: 'week-th', cat: 'theatre', eventId: 'E-WEEK-TH' });
+    const weekCo = item({ key: 'week-co', cat: 'concert', eventId: 'E-WEEK-CO' });
+    const nextCine = item({ key: 'home-cine', cat: 'cinema', filmId: 'F-HOME' });
+    const nextTh = item({ key: 'home-th', cat: 'theatre', eventId: 'E-HOME-TH' });
+    const nextCo = item({ key: 'home-co', cat: 'concert', eventId: 'E-HOME-CO' });
+    // Same film as week cine, different séance key — must still demote.
+    const sameFilmOtherSeance = item({
+      key: 'home-cine-dup',
+      cat: 'cinema',
+      filmId: 'F-WEEK',
+    });
+    const pool = [
+      weekCine,
+      weekTh,
+      weekCo,
+      sameFilmOtherSeance,
+      nextCine,
+      nextTh,
+      nextCo,
+    ];
+    const filtered = excludeWorksFromPool(pool, [weekCine, weekTh, weekCo]);
+    assert.deepEqual(
+      filtered.map((row) => row.key),
+      ['home-cine', 'home-th', 'home-co'],
+    );
+    const homeTop3 = visibleTop3Items(filtered);
+    assert.deepEqual(
+      homeTop3.map((row) => row.key),
+      ['home-th', 'home-cine', 'home-co'],
+    );
+  });
+
+  it('leaves pool unchanged when demoteItems is empty', () => {
+    const pool = [
+      item({ key: 'a', cat: 'cinema', filmId: 'F1' }),
+      item({ key: 'b', cat: 'theatre' }),
+    ];
+    assert.equal(excludeWorksFromPool(pool, []), pool);
+  });
+});
+
 describe('pack rows + date filter', () => {
   const emptyTop3 = new Set<string>();
   const mix: DayItem[] = [
@@ -566,6 +612,7 @@ describe('pack rows + date filter', () => {
       ['th', 'cine', 'co'],
     );
   });
+
 
   it('tous reco does not re-apply day/soir window', () => {
     const cine = item({

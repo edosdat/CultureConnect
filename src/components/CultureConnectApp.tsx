@@ -85,6 +85,7 @@ import {
   top3PaintMode,
   theatreRows,
   top3IdentitySet,
+  excludeWorksFromPool,
   visibleTop3Items,
   type HomeCardOpen,
 } from '@/lib/displayHome';
@@ -1175,12 +1176,14 @@ export default function CultureConnectApp({
   ]);
 
   // After mount, a taste profile prefetches boot scopes (same POST reco=1). Guest stays on boot.
+  // Semaine first — Mes recos sheet must paint from cache/pool without waiting on other scopes.
   // Do not cancel successful writes — JWT/tasteState identity must not drop a finished POST.
   useEffect(() => {
     if (recoKind !== 'profile') return;
     const commune = selectedCommune;
     const profile = tasteStateRef.current?.profile;
     if (!profile) return;
+    const profileSnapshot = profile;
     const jobs = RECO_BOOT_SCOPES.map((scope) => {
       const day = recoKeyDay(scope, null, initialParisIso);
       return {
@@ -1190,50 +1193,63 @@ export default function CultureConnectApp({
       };
     }).filter((job) => recoPoolByKeyRef.current[job.key] === undefined);
     if (jobs.length === 0) return;
-    void Promise.all(
-      jobs.map(async (job) => {
-        try {
-          const params = new URLSearchParams();
-          params.set('reco', '1');
-          const res = await fetch(`/api/agenda?${params.toString()}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              scope: job.scope,
-              date: job.day,
-              commune,
-              year,
-              month,
-              profile: {
-                moods: profile.moods,
-                genres: profile.genres,
-                themes: profile.themes,
-              },
-              excludeWorkIds: excludeWorkIdsForReco(
+    // Prioritize semaine so Mes recos open is quasi-instant after login.
+    const semaineFirst = [
+      ...jobs.filter((j) => j.scope === 'semaine'),
+      ...jobs.filter((j) => j.scope !== 'semaine'),
+    ];
+    async function fetchRecoJob(job: (typeof jobs)[number]) {
+      try {
+        const params = new URLSearchParams();
+        params.set('reco', '1');
+        const res = await fetch(`/api/agenda?${params.toString()}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scope: job.scope,
+            date: job.day,
+            commune,
+            year,
+            month,
+            profile: {
+              moods: profileSnapshot.moods,
+              genres: profileSnapshot.genres,
+              themes: profileSnapshot.themes,
+            },
+            excludeWorkIds: excludeWorkIdsForReco(
               tasteStateRef.current?.signalsRecent,
               optimisticNotInterestedRef.current,
             ),
-            }),
-          });
-          if (!res.ok) return;
-          const data = (await res.json()) as AgendaListResponse;
-          if (recoWipedRef.current) return;
-          setRecoPoolByKey((prev) => {
-            const next = {
-              ...prev,
-              [job.key]: data.items ?? [],
-            };
-            recoFetchedKeysRef.current.add(job.key);
-            if (recoKindRef.current === 'profile') {
-              writeProfileRecoCache(initialParisIso, commune, next);
-            }
-            return next;
-          });
-        } catch {
-          /* leave key empty */
-        }
-      }),
-    );
+          }),
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as AgendaListResponse;
+        if (recoWipedRef.current) return;
+        setRecoPoolByKey((prev) => {
+          const next = {
+            ...prev,
+            [job.key]: data.items ?? [],
+          };
+          recoFetchedKeysRef.current.add(job.key);
+          if (recoKindRef.current === 'profile') {
+            writeProfileRecoCache(initialParisIso, commune, next);
+          }
+          return next;
+        });
+      } catch {
+        /* leave key empty */
+      }
+    }
+    void (async () => {
+      const first = semaineFirst[0];
+      const rest = semaineFirst.slice(1);
+      if (first?.scope === 'semaine') {
+        await fetchRecoJob(first);
+        await Promise.all(rest.map(fetchRecoJob));
+      } else {
+        await Promise.all(semaineFirst.map(fetchRecoJob));
+      }
+    })();
   }, [recoKind, selectedCommune, year, month, initialParisIso]);
 
   // Reload first-paint: merge public profile card cache (no tastes / email).
@@ -1637,10 +1653,37 @@ export default function CultureConnectApp({
       cineSource.filter(hide),
     );
   }, [pourToiItems, cineSource, blockedWorks]);
-  const top3Cards = useMemo(
-    () => visibleTop3Items(pourToiFilled),
-    [pourToiFilled],
+
+  // —— Mes recos de la semaine: ALWAYS scope=semaine profile pool (≠ chip-scoped home Top3)
+  // Computed before home Top3 so we can demote sheet works from the home surface.
+  const weekRecoKey = useMemo(
+    () => recoPoolKey('semaine', null, selectedCommune, 'profile'),
+    [selectedCommune],
   );
+  const weekPourToiRaw = useMemo(() => {
+    if (sessionStatus !== 'authenticated' || recoWiped) return [];
+    return recoPoolByKey[weekRecoKey] ?? [];
+  }, [sessionStatus, recoWiped, recoPoolByKey, weekRecoKey]);
+  const weekPourToiFilled = useMemo(() => {
+    // Keep week pool pure — do not fill from chip-scoped cineSource.
+    if (blockedWorks.size === 0) return weekPourToiRaw;
+    const hide = (item: DayItem) => !itemBlockedByWorkKeys(item, blockedWorks);
+    return weekPourToiRaw.filter(hide);
+  }, [weekPourToiRaw, blockedWorks]);
+  const weekTop3Cards = useMemo(
+    () => visibleTop3Items(weekPourToiFilled),
+    [weekPourToiFilled],
+  );
+
+  const top3Cards = useMemo(() => {
+    // Authenticated: never show Mes recos week sheet works on home Top3
+    // (two pools, zéro mélange — even when home chip is also semaine).
+    const pool =
+      sessionStatus === 'authenticated' && weekTop3Cards.length > 0
+        ? excludeWorksFromPool(pourToiFilled, weekTop3Cards)
+        : pourToiFilled;
+    return visibleTop3Items(pool);
+  }, [pourToiFilled, weekTop3Cards, sessionStatus]);
   const top3ImpressionKeys = useMemo(
     () => top3Cards.map(impressionItemKey).filter(Boolean),
     [top3Cards],
@@ -2122,25 +2165,7 @@ export default function CultureConnectApp({
     [blockedWorks],
   );
 
-  // —— Mes recos de la semaine: ALWAYS scope=semaine profile pool (≠ chip-scoped home Top3)
-  const weekRecoKey = useMemo(
-    () => recoPoolKey('semaine', null, selectedCommune, 'profile'),
-    [selectedCommune],
-  );
-  const weekPourToiRaw = useMemo(() => {
-    if (sessionStatus !== 'authenticated' || recoWiped) return [];
-    return recoPoolByKey[weekRecoKey] ?? [];
-  }, [sessionStatus, recoWiped, recoPoolByKey, weekRecoKey]);
-  const weekPourToiFilled = useMemo(() => {
-    // Keep week pool pure — do not fill from chip-scoped cineSource.
-    if (blockedWorks.size === 0) return weekPourToiRaw;
-    const hide = (item: DayItem) => !itemBlockedByWorkKeys(item, blockedWorks);
-    return weekPourToiRaw.filter(hide);
-  }, [weekPourToiRaw, blockedWorks]);
-  const weekTop3Cards = useMemo(
-    () => visibleTop3Items(weekPourToiFilled),
-    [weekPourToiFilled],
-  );
+  // weekRecoKey / weekTop3Cards: defined above (before home top3Cards demote).
   const weekPoolReady = Object.prototype.hasOwnProperty.call(
     recoPoolByKey,
     weekRecoKey,
@@ -2159,8 +2184,16 @@ export default function CultureConnectApp({
 
   const openMesRecosManual = useCallback(() => {
     // Menu « Mes recos » — reopen WITHOUT consuming / re-gating the week.
+    // Open immediately; sheet paints cached week cards or a light local loading state.
     setMesRecosOpen(true);
   }, []);
+
+  // Prefetch MesRecosSheet chunk as soon as we know the user is signed in
+  // (dynamic() otherwise waits until first open — feels slow on iPad Safari).
+  useEffect(() => {
+    if (sessionStatus !== 'authenticated') return;
+    void import('./MesRecosSheet');
+  }, [sessionStatus]);
 
   useEffect(() => {
     function onOpen() {
@@ -2186,7 +2219,8 @@ export default function CultureConnectApp({
     if (mesRecosAutoOpenedRef.current) return;
     if (mesRecosWeekAlreadyShown()) return;
     if (recoKind !== 'profile') return;
-    // Prefer week pool paint; if only home reco is ready, still open (cold/empty OK).
+    // Prefer week pool ready (instant cards). Fall back: open with local loading
+    // once any profile reco is ready so login never waits on a blank screen.
     if (!weekPoolReady && !recoReady) return;
     mesRecosAutoOpenedRef.current = true;
     markMesRecosWeekShown(); // « montré » = sheet mounted
@@ -3433,6 +3467,7 @@ export default function CultureConnectApp({
         onClose={closeMesRecos}
         cards={weekTop3Cards}
         copyState={mesRecosCopyState}
+        poolReady={weekPoolReady}
         onSelectCard={handleSelectMesRecosCard}
         onNotInterested={dismissWork}
         notInterested={workIsNotInterested}
