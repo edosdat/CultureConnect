@@ -174,7 +174,9 @@ describe('Relance contract — sheet and home Top 3 stay capped', () => {
     );
     assert.match(app, /recoPoolKey\('semaine', null, selectedCommune, 'profile'\)/);
     assert.match(app, /visibleTop3Items\(weekPourToiFilled\)/);
-    assert.match(app, /visibleTop3Items\(pourToiFilled\)/);
+    // #204 demotes week-sheet works off home Top 3, then still caps via visibleTop3Items.
+    assert.match(app, /excludeWorksFromPool\(pourToiFilled, weekTop3Cards\)/);
+    assert.match(app, /return visibleTop3Items\(pool\)/);
     assert.match(
       query,
       /agendaRecommend\.forProfile\(\s*pool,\s*\{ signalsRecent: \[\], profile \},\s*3,/,
