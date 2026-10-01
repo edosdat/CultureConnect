@@ -565,13 +565,16 @@ export function top3PaintMode(opts: Top3SectionOpts): Top3PaintMode {
   return opts.cardCount > 0 ? 'cards' : 'hidden';
 }
 
-/** H2 for the reco row. Matches visible card count; 0 is hidden by the caller. */
+/**
+ * H2 for the reco row. Always « Top 3 » — never « top 1 » / « top 2 ».
+ * cardCount is ignored: a QUAND-only day with one card still reads Top 3.
+ * The caller hides the section when cardCount is 0.
+ */
 export function top3Heading(
-  cardCount: number,
+  _cardCount: number,
   signedIn = false,
 ): string {
-  const n = cardCount === 1 || cardCount === 2 || cardCount === 3 ? cardCount : 3;
-  return signedIn ? `Mon top ${n} du moment` : `Le top ${n} du moment`;
+  return signedIn ? 'Mon top 3 du moment' : 'Le top 3 du moment';
 }
 
 /** Live home `recommendSlice` limit (P1). Pass explicitly — engine default is 6. */

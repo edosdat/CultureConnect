@@ -53,6 +53,7 @@ import {
   TOP3_RAIL_THUMB_CLASS,
   TOP3_SECTION_CLASS,
   top3CardFrameClass,
+  top3Heading,
   top3GridClass,
   top3IndicatorLabel,
   top3PaintMode,
@@ -1354,6 +1355,21 @@ describe('shouldShowTop3Section — hide on QUOI or genre, keep on date', () => 
       }),
       false,
     );
+  });
+
+  it('QUAND-only with one card still paints the section as Top 3', () => {
+    const quandOnly = {
+      ready: true,
+      wiped: false,
+      cardCount: 1,
+      selectedCategories: [] as string[],
+      selectedGenres: [] as string[],
+    };
+    assert.equal(shouldShowTop3Section(quandOnly), true);
+    assert.equal(top3PaintMode(quandOnly), 'cards');
+    assert.equal(top3Heading(1), 'Le top 3 du moment');
+    assert.equal(top3Heading(1, true), 'Mon top 3 du moment');
+    assert.equal(top3Heading(2), 'Le top 3 du moment');
   });
 
   it('hides on committed search or phrase', () => {
