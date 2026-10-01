@@ -4,14 +4,25 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import {
   A2HS_DAY_KEY,
+  CRIOS_COPIED_HINT,
+  CRIOS_COPIED_LABEL,
+  CRIOS_COPY_LINK_LABEL,
+  CRIOS_SAFARI_COPY,
+  CRIOS_SAFARI_PATH,
+  CRIOS_SAFARI_STEPS,
+  INSTALL_PROMPT_CAPTURE_SCRIPT,
   a2hsSurface,
   accountInstallItem,
+  copySafariHandoffUrl,
   detectPwaInstalled,
+  isChromeIosClient,
   isHandheldClient,
   isInstalledDisplay,
   isIosClient,
   localDayStamp,
   readInstalledRelated,
+  safariHandoffUrl,
+  shouldAwaitInstallPrompt,
   shouldShowDailyA2hs,
 } from './pwaInstall';
 import {
@@ -163,6 +174,52 @@ describe('install detection', () => {
     assert.equal(a2hsSurface({ ios: false, promptReady: false }), 'fallback');
   });
 
+  it('gives Chrome iOS its own Safari handoff, and does not wait for beforeinstallprompt', async () => {
+    const crios =
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/131.0.6778.73 Mobile/15E148 Safari/604.1';
+    const safariIphone =
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1';
+    const androidChrome =
+      'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.6778.73 Mobile Safari/537.36';
+
+    assert.equal(isChromeIosClient({ userAgent: crios }), true);
+    assert.equal(isChromeIosClient({ userAgent: safariIphone }), false);
+    assert.equal(isChromeIosClient({ userAgent: androidChrome }), false);
+    assert.equal(a2hsSurface({ ios: true, chromeIos: true, promptReady: true }), 'crios-safari');
+    assert.equal(a2hsSurface({ ios: true, chromeIos: true, promptReady: false }), 'crios-safari');
+    assert.equal(a2hsSurface({ ios: false, chromeIos: true, promptReady: true }), 'crios-safari');
+    assert.equal(shouldAwaitInstallPrompt({ chromeIos: true }), false);
+    assert.equal(shouldAwaitInstallPrompt({ chromeIos: false }), true);
+    assert.ok(INSTALL_PROMPT_CAPTURE_SCRIPT.indexOf('CriOS') < INSTALL_PROMPT_CAPTURE_SCRIPT.indexOf('beforeinstallprompt'));
+
+    assert.equal(CRIOS_SAFARI_PATH, 'Ouvre dans Safari → Partager → Ajouter à l’écran d’accueil');
+    assert.match(CRIOS_SAFARI_COPY, /Safari/);
+    assert.deepEqual([...CRIOS_SAFARI_STEPS], ['Partager', 'Ajouter à l’écran d’accueil']);
+    assert.equal(CRIOS_COPY_LINK_LABEL, 'Copier le lien');
+    assert.equal(CRIOS_COPIED_LABEL, 'Lien copié');
+    assert.match(CRIOS_COPIED_HINT, /Safari/);
+
+    const page = 'https://culture-connect.example/soiree?q=1#haut';
+    assert.equal(safariHandoffUrl(page), page);
+    assert.equal(safariHandoffUrl('javascript:alert(1)'), '');
+    assert.equal(safariHandoffUrl('not a url'), '');
+    let written = '';
+    assert.equal(
+      await copySafariHandoffUrl(page, async (value) => {
+        written = value;
+      }),
+      true,
+    );
+    assert.equal(written, page);
+    assert.equal(
+      await copySafariHandoffUrl(page, async () => {
+        throw new Error('denied');
+      }),
+      false,
+    );
+    assert.equal(await copySafariHandoffUrl('blob:https://x/1', async () => {}), false);
+  });
+
   it('hides the account item until detection, then disables it once installed', () => {
     assert.equal(accountInstallItem(null), 'pending');
     assert.equal(accountInstallItem(false), 'download');
@@ -190,10 +247,23 @@ describe('service worker freshness only', () => {
   it('account menu and sheet stay free of push subscriptions', () => {
     const ui = readFileSync(path.join(process.cwd(), 'src/components/PwaInstall.tsx'), 'utf8');
     const menu = readFileSync(path.join(process.cwd(), 'src/components/AuthButtons.tsx'), 'utf8');
+    const layout = readFileSync(path.join(process.cwd(), 'src/app/layout.tsx'), 'utf8');
     assert.match(menu, /Télécharger l’appli/);
     assert.match(menu, /Déjà installée/);
     assert.match(ui, /Installer Plan C/);
     assert.match(ui, /Ajouter à l’écran d’accueil/);
     assert.doesNotMatch(ui + menu, /vapid|pushManager|Notification/i);
+
+    const criosStart = ui.indexOf("surface === 'crios-safari'");
+    const iosStart = ui.indexOf("surface === 'ios-steps'");
+    assert.ok(criosStart > 0 && iosStart > criosStart);
+    const crios = ui.slice(criosStart, iosStart);
+    assert.match(crios, /CRIOS_SAFARI_PATH/);
+    assert.match(crios, /CRIOS_COPY_LINK_LABEL/);
+    assert.match(crios, /data-testid="pwa-copy-link"/);
+    assert.match(crios, /data-testid="pwa-safari-url"/);
+    assert.doesNotMatch(crios, /Installer Plan C|pwa-install-button|onInstall/);
+    assert.match(ui, /shouldAwaitInstallPrompt/);
+    assert.ok(layout.indexOf('INSTALL_PROMPT_CAPTURE_SCRIPT') < layout.indexOf('<Providers'));
   });
 });
