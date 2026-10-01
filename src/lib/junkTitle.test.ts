@@ -6,6 +6,7 @@ import Papa from 'papaparse';
 import {
   isDateOnlyTitle,
   isJunkTitle,
+  isTruncatedDateTitle,
   junkTitleReason,
 } from './junkTitle';
 import { isPublishableEvent, isPublishableProgrammeName } from './publishable';
@@ -16,6 +17,12 @@ describe('isDateOnlyTitle', () => {
     assert.equal(isDateOnlyTitle('Vendredi 02 octobre 2026 - 20H30'), true);
     assert.equal(isDateOnlyTitle('Samedi 19 septembre 2026 - 20H00'), true);
     assert.equal(isDateOnlyTitle('2026-10-02'), true);
+    assert.equal(
+      isDateOnlyTitle(
+        'Jeudi 17 septembre 2026 - 20H30 Jeudi 12 novembre 2026 - 20H30',
+      ),
+      true,
+    );
   });
 
   it('rejects real titles that merely contain a date', () => {
@@ -28,6 +35,65 @@ describe('isJunkTitle', () => {
   it('flags date-only titles', () => {
     assert.equal(junkTitleReason('Vendredi 02 octobre 2026 - 20H30'), 'date_only');
     assert.equal(isJunkTitle('2026-10-02'), true);
+  });
+
+  it('flags multi-date scrape concatenations (M1 hole / #177 live FAIL)', () => {
+    const multi =
+      'Jeudi 17 septembre 2026 - 20H30 Jeudi 12 novembre 2026 - 20H30';
+    assert.equal(junkTitleReason(multi), 'date_only');
+    assert.equal(isJunkTitle(multi), true);
+    assert.equal(
+      junkTitleReason(
+        'Mardi 29 septembre 2026 - 20H30 Mercredi 30 septembre 2026 - 20H30 + de dates',
+      ),
+      'date_only',
+    );
+    assert.equal(
+      junkTitleReason(
+        'Mercredi 18 novembre 2026 - 20H30 Jeudi 19 novembre 2026 - 20H30',
+      ),
+      'date_only',
+    );
+  });
+
+  it('flags date-only titles with common month typos (fvrier / dcembre)', () => {
+    assert.equal(
+      junkTitleReason('Vendredi 19 fvrier 2027 - 20H00'),
+      'date_only',
+    );
+    assert.equal(
+      junkTitleReason('Mercredi 02 dcembre 2026 - 20H30'),
+      'date_only',
+    );
+    assert.equal(
+      junkTitleReason(
+        'Jeudi 25 fvrier 2027 - 20H30 Vendredi 26 fvrier 2027 - 20H30 + de dates',
+      ),
+      'date_only',
+    );
+  });
+
+  it('flags truncated date-range fragments (soft #192 R2)', () => {
+    assert.equal(junkTitleReason('Mercredi 30 septembre et'), 'truncated_date');
+    assert.equal(junkTitleReason('Du jeudi 8 au'), 'truncated_date');
+    assert.equal(junkTitleReason('Vendredi 25 et'), 'truncated_date');
+    assert.equal(
+      junkTitleReason('Les Lancers de Fil : Triplicata – Du jeudi 01 au'),
+      'truncated_date',
+    );
+    assert.equal(
+      junkTitleReason('Stella et la magie de Yule – Du mercredi 30 septembre au'),
+      'truncated_date',
+    );
+    assert.equal(
+      junkTitleReason("Tout-Jeune Public : En'corps ! – Les mercredi 21 et"),
+      'truncated_date',
+    );
+    assert.equal(isTruncatedDateTitle('Du jeudi 8 au'), true);
+    // Real titles without truncated suffix stay
+    assert.equal(isJunkTitle('Les Lancers de Fil : Triplicata'), false);
+    assert.equal(isJunkTitle('Amir et les miroirs'), false);
+    assert.equal(isJunkTitle('Jean de la Lune'), false);
   });
 
   it('flags pagination scrape leftovers', () => {
