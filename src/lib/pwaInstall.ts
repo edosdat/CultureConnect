@@ -42,18 +42,55 @@ export const CRIOS_SAFARI_STEPS = ['Partager', 'Sur l’écran d’accueil'] as 
  */
 export const IOS_SHARE_LABEL = 'Partager';
 export const IOS_A2HS_LABEL = 'Sur l’écran d’accueil';
-/** The rows are instructions. Tapping them does not install. */
-export const IOS_NOT_A_BUTTON = 'Ce n’est pas un bouton de Plan C.';
 /** Where the add actually happens. Manager label is « Sur l’écran d’accueil ». */
 export const IOS_SAFARI_PATH = 'Barre Safari → Partager → Sur l’écran d’accueil';
-export const IOS_SHARE_HINT = 'Tape Partager en bas de Safari';
+/** Shown when `navigator.share` is missing or rejects. Not a second button. */
+export const IOS_SHARE_UNAVAILABLE =
+  'Tape Partager en bas de Safari, puis Sur l’écran d’accueil.';
+/** Step 2 is a label in the share sheet, not a control on this page. */
+export const IOS_A2HS_HINT = 'Dans le menu Partager. Pas un bouton ici.';
+export const IOS_SHARE_TITLE = 'Plan C';
 export const IOS_DISMISS_TO_SHARE = 'Fermer pour toucher Partager';
 
 /** Steps for real Safari (not CriOS). Not tappable actions. */
 export const IOS_SAFARI_STEPS = [
-  { id: 'share', label: IOS_SHARE_LABEL, detail: IOS_SHARE_HINT },
-  { id: 'a2hs', label: IOS_A2HS_LABEL, detail: '' },
+  { id: 'share', label: IOS_SHARE_LABEL, detail: IOS_SHARE_UNAVAILABLE },
+  { id: 'a2hs', label: IOS_A2HS_LABEL, detail: IOS_A2HS_HINT },
 ] as const;
+
+export type IosSharePayload = { url: string; title: string };
+
+export type IosShareResult = 'shared' | 'dismissed' | 'unavailable';
+
+/** `{ url, title }` for `navigator.share`. Rejects non-http(s) pages. */
+export function iosSharePayload(href: string, title = IOS_SHARE_TITLE): IosSharePayload | null {
+  const url = safariHandoffUrl(href);
+  if (!url) return null;
+  return { url, title };
+}
+
+function shareWasDismissed(error: unknown): boolean {
+  return error instanceof Error && error.name === 'AbortError';
+}
+
+/**
+ * Opens the system share sheet. A cancel is `dismissed`.
+ * Anything else (missing URL, thrown share) is `unavailable` — show the Safari-bar copy.
+ */
+export async function shareIosInstallPage(
+  href: string,
+  share: (data: IosSharePayload) => Promise<void>,
+): Promise<IosShareResult> {
+  const payload = iosSharePayload(href);
+  if (!payload) return 'unavailable';
+  try {
+    await share(payload);
+    return 'shared';
+  } catch (error) {
+    if (shareWasDismissed(error)) return 'dismissed';
+    return 'unavailable';
+  }
+}
 
 /** Leaves the Safari bottom bar (and the down arrow) outside the sheet. */
 export const IOS_SAFARI_BAR_MIN_GAP_PX = 96;

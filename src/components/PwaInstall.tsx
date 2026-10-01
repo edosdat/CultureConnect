@@ -20,12 +20,12 @@ import {
   CRIOS_SAFARI_NOTE,
   CRIOS_SAFARI_PATH,
   CRIOS_SAFARI_STEPS,
+  IOS_A2HS_HINT,
   IOS_A2HS_LABEL,
   IOS_DISMISS_TO_SHARE,
-  IOS_NOT_A_BUTTON,
   IOS_SAFARI_PATH,
-  IOS_SHARE_HINT,
   IOS_SHARE_LABEL,
+  IOS_SHARE_UNAVAILABLE,
   a2hsSurface,
   canShowNativeInstallButton,
   copySafariHandoffUrl,
@@ -38,6 +38,7 @@ import {
   nativeInstallTap,
   safariBottomChromePx,
   safariHandoffUrl,
+  shareIosInstallPage,
   shouldAwaitInstallPrompt,
   shouldShowDailyA2hs,
   type BeforeInstallPromptEvent,
@@ -131,12 +132,24 @@ function InstallSheet({
   const surface = a2hsSurface({ ...flags, promptReady });
   const showInstall = canShowNativeInstallButton({ ...flags, promptReady });
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const [shareFallback, setShareFallback] = useState(
+    () => typeof navigator === 'undefined' || typeof navigator.share !== 'function',
+  );
   const [bottomGap, setBottomGap] = useState(() => iosSheetBottomGapPx(0));
   const pageUrl = typeof window === 'undefined' ? '' : safariHandoffUrl(window.location.href);
 
   async function onCopyLink() {
     const ok = await copyPageForSafari();
     setCopyState(ok ? 'copied' : 'failed');
+  }
+
+  async function onIosShare() {
+    if (typeof navigator.share !== 'function') {
+      setShareFallback(true);
+      return;
+    }
+    const result = await shareIosInstallPage(window.location.href, (data) => navigator.share(data));
+    if (result === 'unavailable') setShareFallback(true);
   }
 
   useEffect(() => {
@@ -261,28 +274,32 @@ function InstallSheet({
           </div>
         ) : null}
         {surface === 'ios-steps' ? (
-          <div data-testid="pwa-install-ios-block">
-            <p data-testid="pwa-ios-not-a-button" className="mt-2 text-sm text-culture-ink">
-              {IOS_NOT_A_BUTTON}
-            </p>
-            <p data-testid="pwa-ios-safari-path" className="mt-1 text-sm font-medium text-culture-ink">
+          <div data-testid="pwa-install-ios">
+            <p data-testid="pwa-ios-safari-path" className="mt-2 text-sm font-medium text-culture-ink">
               {IOS_SAFARI_PATH}
             </p>
-            <ol
-              data-testid="pwa-install-ios"
-              data-tap="inert"
-              className="mt-2 list-decimal space-y-1 pl-5 text-sm text-culture-ink"
-            >
-              <li data-testid="pwa-ios-step-share">
-                <span>{IOS_SHARE_LABEL}</span>
-                <span data-testid="pwa-ios-share-hint" className="mt-0.5 block text-culture-muted">
-                  {IOS_SHARE_HINT}
-                </span>
-              </li>
-              <li data-testid="pwa-ios-step-a2hs">
-                <span>{IOS_A2HS_LABEL}</span>
-              </li>
-            </ol>
+            {shareFallback ? (
+              <p data-testid="pwa-ios-share-fallback" className="mt-2 text-sm text-culture-ink">
+                {IOS_SHARE_UNAVAILABLE}
+              </p>
+            ) : (
+              <button
+                type="button"
+                data-testid="pwa-ios-share"
+                onClick={() => {
+                  void onIosShare();
+                }}
+                className="mt-3 min-h-10 w-full rounded-full border border-culture-line bg-white px-5 py-2.5 text-sm font-semibold text-culture-ink hover:bg-culture-cream"
+              >
+                {IOS_SHARE_LABEL}
+              </button>
+            )}
+            <p data-testid="pwa-ios-step-a2hs" data-tap="inert" className="mt-3 text-sm text-culture-ink">
+              <span className="font-medium">{IOS_A2HS_LABEL}</span>
+              <span data-testid="pwa-ios-a2hs-hint" className="mt-0.5 block text-culture-muted">
+                {IOS_A2HS_HINT}
+              </span>
+            </p>
           </div>
         ) : null}
         {surface === 'fallback' ? (

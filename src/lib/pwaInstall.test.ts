@@ -11,15 +11,16 @@ import {
   CRIOS_SAFARI_PATH,
   CRIOS_SAFARI_STEPS,
   INSTALL_PROMPT_CAPTURE_SCRIPT,
+  IOS_A2HS_HINT,
   IOS_A2HS_LABEL,
   IOS_DISMISS_TO_SHARE,
-  IOS_NOT_A_BUTTON,
   IOS_SAFARI_ARROW_PX,
   IOS_SAFARI_BAR_MIN_GAP_PX,
   IOS_SAFARI_PATH,
   IOS_SAFARI_STEPS,
-  IOS_SHARE_HINT,
   IOS_SHARE_LABEL,
+  IOS_SHARE_TITLE,
+  IOS_SHARE_UNAVAILABLE,
   a2hsSurface,
   a2hsSurfaceForClient,
   acceptsIosA2hsLabel,
@@ -39,6 +40,8 @@ import {
   sheetSurfaceWhenOpening,
   safariBottomChromePx,
   safariHandoffUrl,
+  shareIosInstallPage,
+  iosSharePayload,
   shouldAwaitInstallPrompt,
   shouldShowDailyA2hs,
 } from './pwaInstall';
@@ -279,9 +282,10 @@ describe('install detection', () => {
   it('names the French Safari row Sur l’écran d’accueil and still accepts Ajouter', () => {
     assert.equal(IOS_SHARE_LABEL, 'Partager');
     assert.equal(IOS_A2HS_LABEL, 'Sur l’écran d’accueil');
-    assert.equal(IOS_NOT_A_BUTTON, 'Ce n’est pas un bouton de Plan C.');
+    assert.equal(IOS_A2HS_HINT, 'Dans le menu Partager. Pas un bouton ici.');
     assert.equal(IOS_SAFARI_PATH, 'Barre Safari → Partager → Sur l’écran d’accueil');
-    assert.equal(IOS_SHARE_HINT, 'Tape Partager en bas de Safari');
+    assert.equal(IOS_SHARE_UNAVAILABLE, 'Tape Partager en bas de Safari, puis Sur l’écran d’accueil.');
+    assert.equal(IOS_SHARE_TITLE, 'Plan C');
     assert.equal(IOS_DISMISS_TO_SHARE, 'Fermer pour toucher Partager');
     assert.deepEqual(
       IOS_SAFARI_STEPS.map((step) => step.label),
@@ -295,6 +299,35 @@ describe('install detection', () => {
     assert.equal(acceptsIosA2hsLabel('Copier le lien'), false);
     assert.equal(acceptsIosA2hsLabel('Installer'), false);
     assert.equal(acceptsIosA2hsLabel(''), false);
+  });
+
+  it('shares url and title, and falls back when share is unavailable', async () => {
+    const page = 'https://culture-connect.example/soiree?q=1#haut';
+    assert.deepEqual(iosSharePayload(page), { url: page, title: 'Plan C' });
+    assert.equal(iosSharePayload('javascript:alert(1)'), null);
+    let shared: { url: string; title: string } | null = null;
+    assert.equal(
+      await shareIosInstallPage(page, async (data) => {
+        shared = data;
+      }),
+      'shared',
+    );
+    assert.deepEqual(shared, { url: page, title: 'Plan C' });
+    assert.equal(
+      await shareIosInstallPage(page, async () => {
+        const cancel = new Error('cancel');
+        cancel.name = 'AbortError';
+        throw cancel;
+      }),
+      'dismissed',
+    );
+    assert.equal(
+      await shareIosInstallPage(page, async () => {
+        throw new Error('blocked');
+      }),
+      'unavailable',
+    );
+    assert.equal(await shareIosInstallPage('blob:https://x/1', async () => {}), 'unavailable');
   });
 
   it('never offers a dead Installer tap on Safari, and waits for UA flags', () => {
@@ -386,7 +419,8 @@ describe('service worker freshness only', () => {
     assert.match(ui, /IOS_A2HS_LABEL/);
     assert.doesNotMatch(ui, /Ajouter à l’écran d’accueil/);
     assert.match(ui, /data-pwa-anchor=\{clearSafariBar \? 'top' : 'bottom'\}/);
-    assert.match(ui, /IOS_NOT_A_BUTTON/);
+    assert.match(ui, /IOS_SHARE_UNAVAILABLE/);
+    assert.match(ui, /shareIosInstallPage/);
     assert.match(ui, /IOS_SAFARI_PATH/);
     assert.match(ui, /canShowNativeInstallButton/);
     assert.match(ui, /\{showInstall \?/);
@@ -406,18 +440,21 @@ describe('service worker freshness only', () => {
     assert.match(crios, /data-testid="pwa-safari-url"/);
     assert.doesNotMatch(crios, /Installer Plan C|pwa-install-button|onInstall/);
     assert.match(ios, /data-testid="pwa-install-ios"/);
-    assert.match(ios, /data-testid="pwa-ios-step-share"/);
+    assert.match(ios, /data-testid="pwa-ios-share"/);
+    assert.match(ios, /data-testid="pwa-ios-share-fallback"/);
     assert.match(ios, /data-testid="pwa-ios-step-a2hs"/);
-    assert.match(ios, /data-testid="pwa-ios-share-hint"/);
-    assert.doesNotMatch(ios, /pwa-ios-a2hs-alt|Ajouter à l’écran d’accueil/);
     assert.match(ios, /IOS_SHARE_LABEL/);
-    assert.match(ios, /IOS_SHARE_HINT/);
+    assert.match(ios, /IOS_SHARE_UNAVAILABLE/);
     assert.match(ios, /IOS_A2HS_LABEL/);
-    assert.match(ios, /IOS_NOT_A_BUTTON/);
+    assert.match(ios, /IOS_A2HS_HINT/);
     assert.match(ios, /IOS_SAFARI_PATH/);
-    assert.match(ios, /data-tap="inert"/);
-    assert.doesNotMatch(ios, /<button|onClick|rounded-full|bg-culture-terracotta|pwa-install-button/);
-    assert.doesNotMatch(ios, /CRIOS_COPY_LINK_LABEL|pwa-copy-link|Installer Plan C/);
+    assert.match(ios, /onIosShare/);
+    assert.doesNotMatch(ios, /<li|pwa-ios-a2hs-alt|Ajouter à l’écran d’accueil/);
+    const a2hs = ios.slice(ios.indexOf('data-testid="pwa-ios-step-a2hs"'));
+    assert.match(a2hs, /data-tap="inert"/);
+    assert.doesNotMatch(a2hs, /<button|onClick/);
+    assert.doesNotMatch(ios, /bg-culture-terracotta|pwa-install-button|Installer Plan C/);
+    assert.doesNotMatch(ios, /CRIOS_COPY_LINK_LABEL|pwa-copy-link/);
     assert.match(ui, /data-testid="pwa-ios-share-arrow"/);
     assert.match(ui, /data-testid=\{clearSafariBar \? 'pwa-ios-dismiss-share'/);
     assert.doesNotMatch(
