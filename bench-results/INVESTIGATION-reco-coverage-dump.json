@@ -1,0 +1,3646 @@
+{
+  "sourceBench": "origin/cursor/reco-bench-c82d bench-results/2026-09-15-eloi25.json",
+  "catalogue": "data/programme.csv + data/evenements.csv @ main f5056e3",
+  "note": "Catalogue row is the post-2026-09-21 seance with the richest parent mood vector (the one scoring can see).",
+  "nRecommendedWorks": 65,
+  "items": [
+    {
+      "title": "Des Fleurs pour Tokyo",
+      "workId": "f:F0043",
+      "slot": "cine",
+      "occurrences": 25,
+      "distinctProfiles": 9,
+      "profiles": [
+        "A2",
+        "A3",
+        "B1",
+        "B3",
+        "B4",
+        "C1",
+        "C5",
+        "D1",
+        "D4"
+      ],
+      "scenarios": {
+        "monday": 9,
+        "week": 8,
+        "month": 8
+      },
+      "reasonSource": {
+        "profile": 25
+      },
+      "displayedMoodsBench": [
+        "rigolo",
+        "cerveau",
+        "epique",
+        "tendre",
+        "festif",
+        "critique",
+        "leger",
+        "intense"
+      ],
+      "catalogue": {
+        "programme_id": "P1122",
+        "event_id": "E003",
+        "film_id": "F0043",
+        "date": "2026-09-22",
+        "parentTitle": "Programmation Utopia Borderouge",
+        "parentLooksUmbrella": true,
+        "ownTasteMoods": [],
+        "parentTasteMoods": [
+          "rigolo",
+          "cerveau",
+          "epique",
+          "tendre",
+          "festif",
+          "critique",
+          "leger",
+          "intense"
+        ],
+        "inheritedTasteMoodsOnly": [
+          "rigolo",
+          "cerveau",
+          "epique",
+          "tendre",
+          "festif",
+          "critique",
+          "leger",
+          "intense"
+        ],
+        "moodsOnlyViaParent": true,
+        "ownClosedSlugs": [],
+        "parentClosedSlugs": [
+          "rigolo",
+          "cerveau",
+          "epique",
+          "tendre",
+          "festif",
+          "critique",
+          "leger",
+          "intense",
+          "comedie",
+          "documentaire",
+          "danse",
+          "patrimoine",
+          "animation",
+          "action",
+          "polar",
+          "funk",
+          "famille",
+          "religion",
+          "histoire",
+          "guerre",
+          "jeunesse",
+          "ecologie",
+          "politique",
+          "travail",
+          "amour",
+          "lgbt",
+          "colonial",
+          "immigration"
+        ]
+      }
+    },
+    {
+      "title": "Quiz de culture générale et blind test tous les lundis à 21h",
+      "workId": "e:BAR0073",
+      "slot": "concert",
+      "occurrences": 16,
+      "distinctProfiles": 9,
+      "profiles": [
+        "A2",
+        "A3",
+        "B1",
+        "C1",
+        "C5",
+        "C8",
+        "D1",
+        "D2",
+        "D4"
+      ],
+      "scenarios": {
+        "monday": 9,
+        "week": 4,
+        "month": 3
+      },
+      "reasonSource": {
+        "profile": 16
+      },
+      "displayedMoodsBench": [
+        "rigolo",
+        "cerveau"
+      ],
+      "catalogue": {
+        "programme_id": "BARP0078",
+        "event_id": "BAR0078",
+        "film_id": "",
+        "date": "2026-10-26",
+        "parentTitle": "Quiz de culture générale et blind test tous les lundis à 21h",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "festif",
+          "rigolo",
+          "leger"
+        ],
+        "parentTasteMoods": [],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "festif",
+          "rigolo",
+          "leger"
+        ],
+        "parentClosedSlugs": []
+      }
+    },
+    {
+      "title": "Chasse à l’homme",
+      "workId": "f:F0317",
+      "slot": "cine",
+      "occurrences": 15,
+      "distinctProfiles": 8,
+      "profiles": [
+        "A5",
+        "B5",
+        "B7",
+        "C2",
+        "C3",
+        "C7",
+        "C8",
+        "D3"
+      ],
+      "scenarios": {
+        "week": 8,
+        "month": 7
+      },
+      "reasonSource": {
+        "profile": 15
+      },
+      "displayedMoodsBench": [
+        "intense",
+        "cerveau",
+        "brutal",
+        "leger",
+        "epique",
+        "rigolo",
+        "sombre",
+        "tendre",
+        "intimiste",
+        "festif",
+        "dansant"
+      ],
+      "catalogue": {
+        "programme_id": "P0179",
+        "event_id": "E006",
+        "film_id": "F0317",
+        "date": "2026-09-22",
+        "parentTitle": "Rentrée Cinémathèque (Fritz Lang, animation…)",
+        "parentLooksUmbrella": true,
+        "ownTasteMoods": [
+          "intense",
+          "cerveau",
+          "brutal"
+        ],
+        "parentTasteMoods": [
+          "intense",
+          "leger",
+          "epique",
+          "rigolo",
+          "sombre",
+          "tendre",
+          "intimiste",
+          "cerveau",
+          "brutal",
+          "festif",
+          "dansant"
+        ],
+        "inheritedTasteMoodsOnly": [
+          "leger",
+          "epique",
+          "rigolo",
+          "sombre",
+          "tendre",
+          "intimiste",
+          "festif",
+          "dansant"
+        ],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "intense",
+          "cerveau",
+          "brutal",
+          "patrimoine",
+          "thriller",
+          "animation",
+          "action",
+          "famille",
+          "jeunesse",
+          "amitie",
+          "guerre",
+          "histoire"
+        ],
+        "parentClosedSlugs": [
+          "intense",
+          "leger",
+          "epique",
+          "rigolo",
+          "sombre",
+          "tendre",
+          "intimiste",
+          "cerveau",
+          "brutal",
+          "festif",
+          "dansant",
+          "animation",
+          "famille",
+          "jeunesse",
+          "amitie",
+          "voyage",
+          "patrimoine",
+          "romance",
+          "comedie",
+          "rock",
+          "aventure",
+          "drame",
+          "sf",
+          "classique_theatre",
+          "thriller",
+          "action",
+          "classique",
+          "polar",
+          "amour",
+          "guerre",
+          "ecologie",
+          "histoire",
+          "science",
+          "politique",
+          "sport",
+          "lgbt",
+          "travail"
+        ]
+      }
+    },
+    {
+      "title": "Les Clotildes : La bonne surprise !",
+      "workId": "e:TMP0013",
+      "slot": "theatre",
+      "occurrences": 13,
+      "distinctProfiles": 4,
+      "profiles": [
+        "A2",
+        "B1",
+        "D1",
+        "D5"
+      ],
+      "scenarios": {
+        "monday": 4,
+        "friday": 3,
+        "week": 3,
+        "month": 3
+      },
+      "reasonSource": {
+        "profile": 13
+      },
+      "displayedMoodsBench": [
+        "rigolo"
+      ],
+      "catalogue": {
+        "programme_id": "P9106",
+        "event_id": "E647",
+        "film_id": "",
+        "date": "2026-12-30",
+        "parentTitle": "Les Clotildes : La bonne surprise !",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "rigolo"
+        ],
+        "parentTasteMoods": [
+          "rigolo",
+          "dansant"
+        ],
+        "inheritedTasteMoodsOnly": [
+          "dansant"
+        ],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "rigolo",
+          "comedie",
+          "standup"
+        ],
+        "parentClosedSlugs": [
+          "rigolo",
+          "dansant",
+          "standup",
+          "comedie"
+        ]
+      }
+    },
+    {
+      "title": "Light Asylum",
+      "workId": "e:E033",
+      "slot": "concert",
+      "occurrences": 10,
+      "distinctProfiles": 8,
+      "profiles": [
+        "B2",
+        "B3",
+        "B7",
+        "C2",
+        "C4",
+        "C7",
+        "D1",
+        "D3"
+      ],
+      "scenarios": {
+        "friday": 8,
+        "week": 1,
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 10
+      },
+      "displayedMoodsBench": [
+        "intense",
+        "dansant",
+        "festif"
+      ],
+      "catalogue": {
+        "programme_id": "P1542",
+        "event_id": "E033",
+        "film_id": "",
+        "date": "2026-09-25",
+        "parentTitle": "Light Asylum + Potochkine",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "intense",
+          "dansant",
+          "festif"
+        ],
+        "parentTasteMoods": [
+          "intense",
+          "dansant",
+          "festif"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "intense",
+          "dansant",
+          "festif",
+          "electro",
+          "metal",
+          "guerre"
+        ],
+        "parentClosedSlugs": [
+          "intense",
+          "dansant",
+          "festif",
+          "electro",
+          "metal",
+          "guerre"
+        ]
+      }
+    },
+    {
+      "title": "Open Mic Night",
+      "workId": "e:BAR0025",
+      "slot": "concert",
+      "occurrences": 10,
+      "distinctProfiles": 6,
+      "profiles": [
+        "A1",
+        "A5",
+        "B3",
+        "B6",
+        "C2",
+        "D3"
+      ],
+      "scenarios": {
+        "monday": 6,
+        "week": 2,
+        "month": 2
+      },
+      "reasonSource": {
+        "popularite": 4,
+        "profile": 6
+      },
+      "displayedMoodsBench": [
+        "festif"
+      ],
+      "catalogue": {
+        "programme_id": "BARP0026",
+        "event_id": "BAR0026",
+        "film_id": "",
+        "date": "2026-09-28",
+        "parentTitle": "Open Mic Night",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "festif"
+        ],
+        "parentTasteMoods": [
+          "festif"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "festif",
+          "chanson"
+        ],
+        "parentClosedSlugs": [
+          "festif",
+          "chanson"
+        ]
+      }
+    },
+    {
+      "title": "Rentrée Cinémathèque (Fritz Lang, animation…)",
+      "workId": "t:rentree cinematheque (fritz lang, animation…)",
+      "slot": "cine",
+      "occurrences": 9,
+      "distinctProfiles": 9,
+      "profiles": [
+        "A5",
+        "B5",
+        "B7",
+        "C2",
+        "C3",
+        "C6",
+        "C7",
+        "C8",
+        "D3"
+      ],
+      "scenarios": {
+        "monday": 9
+      },
+      "reasonSource": {
+        "profile": 9
+      },
+      "displayedMoodsBench": [
+        "intense",
+        "leger",
+        "epique",
+        "rigolo",
+        "sombre",
+        "tendre",
+        "intimiste",
+        "cerveau",
+        "brutal",
+        "festif",
+        "dansant"
+      ],
+      "catalogue": {
+        "programme_id": null,
+        "event_id": null,
+        "film_id": null,
+        "date": null,
+        "parentTitle": null,
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [],
+        "parentTasteMoods": [],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [],
+        "parentClosedSlugs": []
+      }
+    },
+    {
+      "title": "Avengers : Endgame Extended",
+      "workId": "f:F0034",
+      "slot": "cine",
+      "occurrences": 9,
+      "distinctProfiles": 6,
+      "profiles": [
+        "A1",
+        "A3",
+        "B2",
+        "B6",
+        "B7",
+        "D2"
+      ],
+      "scenarios": {
+        "friday": 6,
+        "week": 2,
+        "month": 1
+      },
+      "reasonSource": {
+        "nouveaute": 7,
+        "profile": 2
+      },
+      "displayedMoodsBench": [
+        "intense"
+      ],
+      "catalogue": {
+        "programme_id": "PTMP_L139_466_09291030",
+        "event_id": "ETMP_L139_1000051238_0929",
+        "film_id": "F0034",
+        "date": "2026-09-29",
+        "parentTitle": "Avengers : Endgame Extended",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "intense"
+        ],
+        "parentTasteMoods": [
+          "intense"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "intense",
+          "action",
+          "aventure",
+          "sf"
+        ],
+        "parentClosedSlugs": [
+          "intense",
+          "action",
+          "aventure",
+          "sf"
+        ]
+      }
+    },
+    {
+      "title": "Psy, sex and fun",
+      "workId": "e:E651",
+      "slot": "theatre",
+      "occurrences": 9,
+      "distinctProfiles": 4,
+      "profiles": [
+        "A5",
+        "B4",
+        "C1",
+        "C5"
+      ],
+      "scenarios": {
+        "monday": 4,
+        "friday": 3,
+        "week": 1,
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 9
+      },
+      "displayedMoodsBench": [
+        "rigolo",
+        "tendre"
+      ],
+      "catalogue": {
+        "programme_id": "P9132",
+        "event_id": "E651",
+        "film_id": "",
+        "date": "2026-12-09",
+        "parentTitle": "Psy, sex and fun",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "rigolo"
+        ],
+        "parentTasteMoods": [
+          "rigolo",
+          "tendre"
+        ],
+        "inheritedTasteMoodsOnly": [
+          "tendre"
+        ],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "rigolo",
+          "comedie",
+          "standup",
+          "amour",
+          "amitie"
+        ],
+        "parentClosedSlugs": [
+          "rigolo",
+          "tendre",
+          "standup",
+          "comedie",
+          "romance",
+          "amour",
+          "amitie"
+        ]
+      }
+    },
+    {
+      "title": "Amazones",
+      "workId": "e:BAR0115",
+      "slot": "theatre",
+      "occurrences": 8,
+      "distinctProfiles": 4,
+      "profiles": [
+        "A5",
+        "C8",
+        "D1",
+        "D2"
+      ],
+      "scenarios": {
+        "friday": 4,
+        "week": 2,
+        "month": 2
+      },
+      "reasonSource": {
+        "profile": 8
+      },
+      "displayedMoodsBench": [
+        "rigolo",
+        "festif",
+        "intense"
+      ],
+      "catalogue": {
+        "programme_id": "BARP0145",
+        "event_id": "BAR0145",
+        "film_id": "",
+        "date": "2026-11-27",
+        "parentTitle": "Amazones",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "rigolo",
+          "festif"
+        ],
+        "parentTasteMoods": [
+          "intense"
+        ],
+        "inheritedTasteMoodsOnly": [
+          "intense"
+        ],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "rigolo",
+          "festif",
+          "danse"
+        ],
+        "parentClosedSlugs": [
+          "intense",
+          "danse"
+        ]
+      }
+    },
+    {
+      "title": "Cinéma : De la comédie française",
+      "workId": "e:TMP0647",
+      "slot": "concert",
+      "occurrences": 7,
+      "distinctProfiles": 7,
+      "profiles": [
+        "A2",
+        "B1",
+        "C1",
+        "C5",
+        "C8",
+        "D2",
+        "D4"
+      ],
+      "scenarios": {
+        "friday": 7
+      },
+      "reasonSource": {
+        "profile": 7
+      },
+      "displayedMoodsBench": [
+        "rigolo"
+      ],
+      "catalogue": {
+        "programme_id": "TMPP1563",
+        "event_id": "TMP0647",
+        "film_id": "",
+        "date": "2026-09-25",
+        "parentTitle": "Cinéma : De la comédie française",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "rigolo"
+        ],
+        "parentTasteMoods": [
+          "rigolo"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "rigolo"
+        ],
+        "parentClosedSlugs": [
+          "rigolo"
+        ]
+      }
+    },
+    {
+      "title": "Qui som? — Baro d’evel",
+      "workId": "e:E310",
+      "slot": "theatre",
+      "occurrences": 7,
+      "distinctProfiles": 6,
+      "profiles": [
+        "B2",
+        "B3",
+        "C2",
+        "C4",
+        "C7",
+        "D3"
+      ],
+      "scenarios": {
+        "friday": 6,
+        "week": 1
+      },
+      "reasonSource": {
+        "profile": 7
+      },
+      "displayedMoodsBench": [
+        "festif",
+        "intense"
+      ],
+      "catalogue": {
+        "programme_id": "P1388",
+        "event_id": "E310",
+        "film_id": "",
+        "date": "2026-10-03",
+        "parentTitle": "Qui som? — Baro d’evel",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "festif",
+          "intense"
+        ],
+        "parentTasteMoods": [
+          "festif",
+          "intense"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "festif",
+          "intense",
+          "cirque",
+          "polar"
+        ],
+        "parentClosedSlugs": [
+          "festif",
+          "intense",
+          "cirque",
+          "polar"
+        ]
+      }
+    },
+    {
+      "title": "Histoires de la nuit",
+      "workId": "f:F0037",
+      "slot": "cine",
+      "occurrences": 7,
+      "distinctProfiles": 3,
+      "profiles": [
+        "A4",
+        "C4",
+        "D3"
+      ],
+      "scenarios": {
+        "monday": 2,
+        "friday": 1,
+        "week": 2,
+        "month": 2
+      },
+      "reasonSource": {
+        "profile": 7
+      },
+      "displayedMoodsBench": [
+        "intense",
+        "rigolo",
+        "cerveau",
+        "festif",
+        "epique",
+        "angoissant",
+        "brutal",
+        "tendre",
+        "critique"
+      ],
+      "catalogue": {
+        "programme_id": "P1141",
+        "event_id": "E003b",
+        "film_id": "F0037",
+        "date": "2026-09-22",
+        "parentTitle": "Programmation Utopia Tournefeuille",
+        "parentLooksUmbrella": true,
+        "ownTasteMoods": [
+          "intense",
+          "rigolo"
+        ],
+        "parentTasteMoods": [
+          "rigolo",
+          "cerveau",
+          "festif",
+          "epique",
+          "intense",
+          "angoissant",
+          "brutal",
+          "tendre",
+          "critique"
+        ],
+        "inheritedTasteMoodsOnly": [
+          "cerveau",
+          "festif",
+          "epique",
+          "angoissant",
+          "brutal",
+          "tendre",
+          "critique"
+        ],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "intense",
+          "rigolo",
+          "thriller",
+          "patrimoine",
+          "comedie",
+          "action"
+        ],
+        "parentClosedSlugs": [
+          "rigolo",
+          "cerveau",
+          "festif",
+          "epique",
+          "intense",
+          "angoissant",
+          "brutal",
+          "tendre",
+          "critique",
+          "patrimoine",
+          "action",
+          "animation",
+          "documentaire",
+          "thriller",
+          "polar",
+          "famille",
+          "amitie",
+          "guerre",
+          "religion",
+          "jeunesse",
+          "histoire",
+          "feminisme",
+          "politique",
+          "colonial",
+          "immigration",
+          "lgbt",
+          "amour"
+        ]
+      }
+    },
+    {
+      "title": "1 évènement 11",
+      "workId": "e:TMP0476",
+      "slot": "theatre",
+      "occurrences": 6,
+      "distinctProfiles": 3,
+      "profiles": [
+        "B3",
+        "C2",
+        "D3"
+      ],
+      "scenarios": {
+        "monday": 3,
+        "week": 2,
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 6
+      },
+      "displayedMoodsBench": [
+        "festif"
+      ],
+      "catalogue": {
+        "programme_id": "TMPP1221",
+        "event_id": "TMP0476",
+        "film_id": "",
+        "date": "2026-10-06",
+        "parentTitle": "1 évènement 11",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "festif"
+        ],
+        "parentTasteMoods": [
+          "festif"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "festif",
+          "cirque",
+          "danse"
+        ],
+        "parentClosedSlugs": [
+          "festif",
+          "cirque",
+          "danse"
+        ]
+      }
+    },
+    {
+      "title": "ATELIER DE LECTURE À VOIX HAUTE",
+      "workId": "e:E9122",
+      "slot": "theatre",
+      "occurrences": 6,
+      "distinctProfiles": 3,
+      "profiles": [
+        "A1",
+        "A3",
+        "B6"
+      ],
+      "scenarios": {
+        "monday": 2,
+        "friday": 2,
+        "week": 1,
+        "month": 1
+      },
+      "reasonSource": {
+        "popularite": 6
+      },
+      "displayedMoodsBench": [],
+      "catalogue": {
+        "programme_id": "TMPP0600",
+        "event_id": "E391",
+        "film_id": "",
+        "date": "2027-05-22",
+        "parentTitle": "Atelier de lecture à voix haute",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "intense",
+          "intimiste",
+          "poetique"
+        ],
+        "parentTasteMoods": [
+          "tendre",
+          "intense",
+          "intimiste"
+        ],
+        "inheritedTasteMoodsOnly": [
+          "tendre"
+        ],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "intense",
+          "intimiste",
+          "poetique"
+        ],
+        "parentClosedSlugs": [
+          "tendre",
+          "intense",
+          "intimiste",
+          "classique",
+          "animation",
+          "aventure",
+          "contemporain"
+        ]
+      }
+    },
+    {
+      "title": "Mortal Lipsync",
+      "workId": "e:BAR0093",
+      "slot": "concert",
+      "occurrences": 6,
+      "distinctProfiles": 3,
+      "profiles": [
+        "B7",
+        "C2",
+        "D4"
+      ],
+      "scenarios": {
+        "week": 3,
+        "month": 3
+      },
+      "reasonSource": {
+        "profile": 6
+      },
+      "displayedMoodsBench": [
+        "festif",
+        "absurde",
+        "dansant"
+      ],
+      "catalogue": {
+        "programme_id": "BARP0093",
+        "event_id": "BAR0093",
+        "film_id": "",
+        "date": "2026-09-24",
+        "parentTitle": "Mortal Lipsync",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "festif",
+          "absurde"
+        ],
+        "parentTasteMoods": [
+          "festif",
+          "dansant"
+        ],
+        "inheritedTasteMoodsOnly": [
+          "dansant"
+        ],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "festif",
+          "absurde"
+        ],
+        "parentClosedSlugs": [
+          "festif",
+          "dansant",
+          "electro",
+          "chanson"
+        ]
+      }
+    },
+    {
+      "title": "Decorado",
+      "workId": "f:F0032",
+      "slot": "cine",
+      "occurrences": 6,
+      "distinctProfiles": 2,
+      "profiles": [
+        "C6",
+        "D4"
+      ],
+      "scenarios": {
+        "friday": 2,
+        "week": 2,
+        "month": 2
+      },
+      "reasonSource": {
+        "profile": 6
+      },
+      "displayedMoodsBench": [
+        "absurde",
+        "critique",
+        "sombre",
+        "angoissant"
+      ],
+      "catalogue": {
+        "programme_id": "P1155",
+        "event_id": "E003",
+        "film_id": "F0032",
+        "date": "2026-09-23",
+        "parentTitle": "Programmation Utopia Borderouge",
+        "parentLooksUmbrella": true,
+        "ownTasteMoods": [],
+        "parentTasteMoods": [
+          "rigolo",
+          "cerveau",
+          "epique",
+          "tendre",
+          "festif",
+          "critique",
+          "leger",
+          "intense"
+        ],
+        "inheritedTasteMoodsOnly": [
+          "rigolo",
+          "cerveau",
+          "epique",
+          "tendre",
+          "festif",
+          "critique",
+          "leger",
+          "intense"
+        ],
+        "moodsOnlyViaParent": true,
+        "ownClosedSlugs": [
+          "animation",
+          "famille",
+          "jeunesse"
+        ],
+        "parentClosedSlugs": [
+          "rigolo",
+          "cerveau",
+          "epique",
+          "tendre",
+          "festif",
+          "critique",
+          "leger",
+          "intense",
+          "comedie",
+          "documentaire",
+          "danse",
+          "patrimoine",
+          "animation",
+          "action",
+          "polar",
+          "funk",
+          "famille",
+          "religion",
+          "histoire",
+          "guerre",
+          "jeunesse",
+          "ecologie",
+          "politique",
+          "travail",
+          "amour",
+          "lgbt",
+          "colonial",
+          "immigration"
+        ]
+      }
+    },
+    {
+      "title": "Garance",
+      "workId": "f:F0061",
+      "slot": "cine",
+      "occurrences": 5,
+      "distinctProfiles": 5,
+      "profiles": [
+        "A4",
+        "A5",
+        "B5",
+        "C3",
+        "C8"
+      ],
+      "scenarios": {
+        "friday": 5
+      },
+      "reasonSource": {
+        "profile": 5
+      },
+      "displayedMoodsBench": [
+        "intimiste",
+        "festif",
+        "angoissant"
+      ],
+      "catalogue": {
+        "programme_id": "PTMP_L126_452_09291615",
+        "event_id": "ETMP_L126_1000026039_0929",
+        "film_id": "F0061",
+        "date": "2026-09-29",
+        "parentTitle": "Garance",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "intimiste",
+          "festif",
+          "angoissant"
+        ],
+        "parentTasteMoods": [
+          "intimiste",
+          "festif",
+          "angoissant"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "intimiste",
+          "festif",
+          "angoissant",
+          "drame",
+          "politique",
+          "amitie",
+          "travail"
+        ],
+        "parentClosedSlugs": [
+          "intimiste",
+          "festif",
+          "angoissant",
+          "drame",
+          "politique",
+          "amitie",
+          "travail"
+        ]
+      }
+    },
+    {
+      "title": "Les faux british",
+      "workId": "e:E650",
+      "slot": "theatre",
+      "occurrences": 5,
+      "distinctProfiles": 5,
+      "profiles": [
+        "B2",
+        "C4",
+        "C7",
+        "C8",
+        "D2"
+      ],
+      "scenarios": {
+        "monday": 5
+      },
+      "reasonSource": {
+        "profile": 5
+      },
+      "displayedMoodsBench": [
+        "rigolo",
+        "intense"
+      ],
+      "catalogue": {
+        "programme_id": "P9061",
+        "event_id": "E650",
+        "film_id": "",
+        "date": "2026-12-29",
+        "parentTitle": "Les faux british",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "rigolo"
+        ],
+        "parentTasteMoods": [
+          "rigolo",
+          "intense"
+        ],
+        "inheritedTasteMoodsOnly": [
+          "intense"
+        ],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "rigolo",
+          "comedie",
+          "action",
+          "standup",
+          "classique_theatre"
+        ],
+        "parentClosedSlugs": [
+          "rigolo",
+          "intense",
+          "standup",
+          "comedie",
+          "action",
+          "classique_theatre"
+        ]
+      }
+    },
+    {
+      "title": "Concert et Pyrotechnie — Les commandos Percu Rythme Feu",
+      "workId": "e:E515",
+      "slot": "concert",
+      "occurrences": 5,
+      "distinctProfiles": 3,
+      "profiles": [
+        "B2",
+        "C7",
+        "D2"
+      ],
+      "scenarios": {
+        "week": 3,
+        "month": 2
+      },
+      "reasonSource": {
+        "profile": 5
+      },
+      "displayedMoodsBench": [
+        "intense",
+        "festif"
+      ],
+      "catalogue": {
+        "programme_id": "P1706",
+        "event_id": "E515",
+        "film_id": "",
+        "date": "2026-09-24",
+        "parentTitle": "Concert et Pyrotechnie — Les commandos Percu Rythme Feu",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "intense",
+          "festif"
+        ],
+        "parentTasteMoods": [],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "intense",
+          "festif"
+        ],
+        "parentClosedSlugs": []
+      }
+    },
+    {
+      "title": "Zinée",
+      "workId": "e:E444",
+      "slot": "concert",
+      "occurrences": 4,
+      "distinctProfiles": 3,
+      "profiles": [
+        "A5",
+        "B4",
+        "B5"
+      ],
+      "scenarios": {
+        "friday": 3,
+        "week": 1
+      },
+      "reasonSource": {
+        "profile": 4
+      },
+      "displayedMoodsBench": [
+        "tendre",
+        "intimiste"
+      ],
+      "catalogue": {
+        "programme_id": "P1613",
+        "event_id": "E444",
+        "film_id": "",
+        "date": "2026-09-25",
+        "parentTitle": "Zinée + Etane",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "tendre",
+          "intimiste"
+        ],
+        "parentTasteMoods": [
+          "tendre",
+          "intimiste"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "tendre",
+          "intimiste",
+          "hiphop",
+          "chanson",
+          "electro"
+        ],
+        "parentClosedSlugs": [
+          "tendre",
+          "intimiste",
+          "hiphop",
+          "chanson",
+          "electro"
+        ]
+      }
+    },
+    {
+      "title": "COMPLET – TENTATIVE D’ÉPUISEMENT #1",
+      "workId": "e:TMP0139",
+      "slot": "theatre",
+      "occurrences": 4,
+      "distinctProfiles": 2,
+      "profiles": [
+        "C6",
+        "D4"
+      ],
+      "scenarios": {
+        "friday": 2,
+        "week": 1,
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 4
+      },
+      "displayedMoodsBench": [
+        "absurde",
+        "critique"
+      ],
+      "catalogue": {
+        "programme_id": "TMPP0489",
+        "event_id": "TMP0139",
+        "film_id": "",
+        "date": "2026-09-27",
+        "parentTitle": "COMPLET – TENTATIVE D’ÉPUISEMENT #1",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "absurde",
+          "critique"
+        ],
+        "parentTasteMoods": [
+          "absurde",
+          "critique"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "absurde",
+          "critique",
+          "politique"
+        ],
+        "parentClosedSlugs": [
+          "absurde",
+          "critique",
+          "politique"
+        ]
+      }
+    },
+    {
+      "title": "Les compositrices oubliées de l'histoire",
+      "workId": "e:E615",
+      "slot": "concert",
+      "occurrences": 4,
+      "distinctProfiles": 2,
+      "profiles": [
+        "C3",
+        "C6"
+      ],
+      "scenarios": {
+        "friday": 2,
+        "week": 2
+      },
+      "reasonSource": {
+        "profile": 4
+      },
+      "displayedMoodsBench": [
+        "tendre"
+      ],
+      "catalogue": {
+        "programme_id": "P1821",
+        "event_id": "E615",
+        "film_id": "",
+        "date": "2026-09-25",
+        "parentTitle": "Les compositrices oubliées de l'histoire",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "tendre"
+        ],
+        "parentTasteMoods": [
+          "tendre"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "tendre",
+          "voyage",
+          "contemporain"
+        ],
+        "parentClosedSlugs": [
+          "tendre",
+          "voyage",
+          "contemporain"
+        ]
+      }
+    },
+    {
+      "title": "The Last Viking",
+      "workId": "f:F0050",
+      "slot": "cine",
+      "occurrences": 4,
+      "distinctProfiles": 2,
+      "profiles": [
+        "B2",
+        "D5"
+      ],
+      "scenarios": {
+        "monday": 2,
+        "week": 1,
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 4
+      },
+      "displayedMoodsBench": [
+        "intense"
+      ],
+      "catalogue": {
+        "programme_id": "PTMP_L128_170_09221000",
+        "event_id": "ETMP_L128_316460_0922",
+        "film_id": "F0050",
+        "date": "2026-09-22",
+        "parentTitle": "The Last Viking",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "intense"
+        ],
+        "parentTasteMoods": [
+          "intense"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "intense",
+          "voyage",
+          "comedie",
+          "drame",
+          "thriller"
+        ],
+        "parentClosedSlugs": [
+          "intense",
+          "voyage",
+          "comedie",
+          "drame",
+          "thriller"
+        ]
+      }
+    },
+    {
+      "title": "Vacances de rêve",
+      "workId": "e:E653",
+      "slot": "theatre",
+      "occurrences": 4,
+      "distinctProfiles": 2,
+      "profiles": [
+        "C6",
+        "D4"
+      ],
+      "scenarios": {
+        "monday": 2,
+        "week": 1,
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 4
+      },
+      "displayedMoodsBench": [
+        "rigolo",
+        "absurde"
+      ],
+      "catalogue": {
+        "programme_id": "P9144",
+        "event_id": "E653",
+        "film_id": "",
+        "date": "2027-01-02",
+        "parentTitle": "Vacances de rêve",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "rigolo"
+        ],
+        "parentTasteMoods": [
+          "rigolo",
+          "absurde"
+        ],
+        "inheritedTasteMoodsOnly": [
+          "absurde"
+        ],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "rigolo",
+          "voyage",
+          "comedie",
+          "standup"
+        ],
+        "parentClosedSlugs": [
+          "rigolo",
+          "absurde",
+          "standup",
+          "voyage",
+          "comedie"
+        ]
+      }
+    },
+    {
+      "title": "LOUIS CATTELAT",
+      "workId": "e:E680",
+      "slot": "concert",
+      "occurrences": 3,
+      "distinctProfiles": 3,
+      "profiles": [
+        "C1",
+        "C5",
+        "C8"
+      ],
+      "scenarios": {
+        "month": 3
+      },
+      "reasonSource": {
+        "profile": 3
+      },
+      "displayedMoodsBench": [
+        "tendre",
+        "rigolo",
+        "intimiste"
+      ],
+      "catalogue": {
+        "programme_id": "P1927",
+        "event_id": "E680",
+        "film_id": "",
+        "date": "2026-09-30",
+        "parentTitle": "LOUIS CATTELAT",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "tendre",
+          "rigolo",
+          "intimiste"
+        ],
+        "parentTasteMoods": [
+          "tendre",
+          "rigolo",
+          "intimiste"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "tendre",
+          "rigolo",
+          "intimiste",
+          "comedie"
+        ],
+        "parentClosedSlugs": [
+          "tendre",
+          "rigolo",
+          "intimiste",
+          "comedie"
+        ]
+      }
+    },
+    {
+      "title": "L’Inconnue",
+      "workId": "f:F0014",
+      "slot": "cine",
+      "occurrences": 3,
+      "distinctProfiles": 3,
+      "profiles": [
+        "B3",
+        "C2",
+        "D1"
+      ],
+      "scenarios": {
+        "friday": 3
+      },
+      "reasonSource": {
+        "profile": 3
+      },
+      "displayedMoodsBench": [
+        "festif"
+      ],
+      "catalogue": {
+        "programme_id": "PTMP_L125_408_09251340",
+        "event_id": "ETMP_L125_linconnue_0925",
+        "film_id": "F0014",
+        "date": "2026-09-25",
+        "parentTitle": "L’Inconnue",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "festif"
+        ],
+        "parentTasteMoods": [
+          "festif"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "festif"
+        ],
+        "parentClosedSlugs": [
+          "festif"
+        ]
+      }
+    },
+    {
+      "title": "Artus - Le Show XXL au cinéma",
+      "workId": "f:F0087",
+      "slot": "cine",
+      "occurrences": 3,
+      "distinctProfiles": 2,
+      "profiles": [
+        "D2",
+        "D5"
+      ],
+      "scenarios": {
+        "week": 2,
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 3
+      },
+      "displayedMoodsBench": [
+        "rigolo"
+      ],
+      "catalogue": {
+        "programme_id": "PTMP_L137_342_09241900",
+        "event_id": "ETMP_L137_1000042175_0924",
+        "film_id": "F0087",
+        "date": "2026-09-24",
+        "parentTitle": "Artus - Le Show XXL au cinéma",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "rigolo"
+        ],
+        "parentTasteMoods": [
+          "rigolo"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "rigolo",
+          "comedie",
+          "standup"
+        ],
+        "parentClosedSlugs": [
+          "rigolo",
+          "comedie",
+          "standup"
+        ]
+      }
+    },
+    {
+      "title": "Lukaraoké",
+      "workId": "e:BAR0050",
+      "slot": "concert",
+      "occurrences": 3,
+      "distinctProfiles": 2,
+      "profiles": [
+        "B4",
+        "C5"
+      ],
+      "scenarios": {
+        "week": 2,
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 3
+      },
+      "displayedMoodsBench": [
+        "tendre",
+        "festif"
+      ],
+      "catalogue": {
+        "programme_id": "BARP0050",
+        "event_id": "BAR0050",
+        "film_id": "",
+        "date": "2026-09-23",
+        "parentTitle": "Lukaraoké",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "tendre",
+          "festif"
+        ],
+        "parentTasteMoods": [
+          "tendre",
+          "festif"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "tendre",
+          "festif",
+          "chanson"
+        ],
+        "parentClosedSlugs": [
+          "tendre",
+          "festif",
+          "chanson"
+        ]
+      }
+    },
+    {
+      "title": "Valentin POMMERAY TRIO",
+      "workId": "e:E110",
+      "slot": "concert",
+      "occurrences": 3,
+      "distinctProfiles": 2,
+      "profiles": [
+        "C8",
+        "D1"
+      ],
+      "scenarios": {
+        "week": 2,
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 3
+      },
+      "displayedMoodsBench": [
+        "festif",
+        "rigolo"
+      ],
+      "catalogue": {
+        "programme_id": "P0270",
+        "event_id": "E110",
+        "film_id": "",
+        "date": "2026-09-23",
+        "parentTitle": "Valentin POMMERAY TRIO",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "festif",
+          "rigolo"
+        ],
+        "parentTasteMoods": [
+          "festif",
+          "rigolo"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "festif",
+          "rigolo",
+          "jazz"
+        ],
+        "parentClosedSlugs": [
+          "festif",
+          "rigolo",
+          "jazz"
+        ]
+      }
+    },
+    {
+      "title": "Amir et les miroirs",
+      "workId": "e:E152",
+      "slot": "theatre",
+      "occurrences": 3,
+      "distinctProfiles": 1,
+      "profiles": [
+        "C3"
+      ],
+      "scenarios": {
+        "friday": 1,
+        "week": 1,
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 3
+      },
+      "displayedMoodsBench": [
+        "poetique",
+        "intimiste",
+        "contemplatif"
+      ],
+      "catalogue": {
+        "programme_id": "P0122",
+        "event_id": "E152",
+        "film_id": "",
+        "date": "2026-09-26",
+        "parentTitle": "Amir et les miroirs",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "poetique",
+          "contemplatif"
+        ],
+        "parentTasteMoods": [
+          "poetique",
+          "contemplatif"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "poetique",
+          "contemplatif",
+          "contemporain",
+          "danse",
+          "voyage"
+        ],
+        "parentClosedSlugs": [
+          "poetique",
+          "contemplatif",
+          "contemporain",
+          "danse",
+          "voyage"
+        ]
+      }
+    },
+    {
+      "title": "Rusalka — Antonín Dvořák",
+      "workId": "e:E300",
+      "slot": "theatre",
+      "occurrences": 3,
+      "distinctProfiles": 1,
+      "profiles": [
+        "B6"
+      ],
+      "scenarios": {
+        "friday": 1,
+        "week": 1,
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 3
+      },
+      "displayedMoodsBench": [
+        "poetique"
+      ],
+      "catalogue": {
+        "programme_id": "P1378",
+        "event_id": "E300",
+        "film_id": "",
+        "date": "2026-10-04",
+        "parentTitle": "Rusalka — Antonín Dvořák",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "poetique"
+        ],
+        "parentTasteMoods": [
+          "poetique"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "poetique",
+          "classique",
+          "amour"
+        ],
+        "parentClosedSlugs": [
+          "poetique",
+          "classique",
+          "amour"
+        ]
+      }
+    },
+    {
+      "title": "Après-midi récréative des aîné·es",
+      "workId": "e:TMP0644",
+      "slot": "concert",
+      "occurrences": 2,
+      "distinctProfiles": 2,
+      "profiles": [
+        "A1",
+        "A3"
+      ],
+      "scenarios": {
+        "friday": 2
+      },
+      "reasonSource": {
+        "popularite": 2
+      },
+      "displayedMoodsBench": [],
+      "catalogue": {
+        "programme_id": "P9383",
+        "event_id": "TMP0644",
+        "film_id": "",
+        "date": "2026-09-25",
+        "parentTitle": "Après-midi récréative des aîné·es",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [],
+        "parentTasteMoods": [],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [],
+        "parentClosedSlugs": []
+      }
+    },
+    {
+      "title": "Dracula",
+      "workId": "e:EHG016",
+      "slot": "theatre",
+      "occurrences": 2,
+      "distinctProfiles": 2,
+      "profiles": [
+        "A4",
+        "C4"
+      ],
+      "scenarios": {
+        "month": 2
+      },
+      "reasonSource": {
+        "profile": 2
+      },
+      "displayedMoodsBench": [
+        "rigolo",
+        "festif",
+        "angoissant"
+      ],
+      "catalogue": {
+        "programme_id": "PHG0024",
+        "event_id": "EHG016",
+        "film_id": "",
+        "date": "2026-10-16",
+        "parentTitle": "[Espace Roguet] Dracula — Les z'OMNI",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "rigolo",
+          "festif"
+        ],
+        "parentTasteMoods": [
+          "rigolo",
+          "festif",
+          "angoissant"
+        ],
+        "inheritedTasteMoodsOnly": [
+          "angoissant"
+        ],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "rigolo",
+          "festif",
+          "contemporain",
+          "jeunesse"
+        ],
+        "parentClosedSlugs": [
+          "rigolo",
+          "festif",
+          "angoissant",
+          "contemporain",
+          "jeunesse"
+        ]
+      }
+    },
+    {
+      "title": "Fini de rire ! L’humour p...",
+      "workId": "f:F0092",
+      "slot": "cine",
+      "occurrences": 2,
+      "distinctProfiles": 2,
+      "profiles": [
+        "A2",
+        "B1"
+      ],
+      "scenarios": {
+        "friday": 2
+      },
+      "reasonSource": {
+        "profile": 2
+      },
+      "displayedMoodsBench": [
+        "rigolo"
+      ],
+      "catalogue": {
+        "programme_id": "PTMP_L125_424_09261910",
+        "event_id": "ETMP_L125_finiderirelhumourp_0926",
+        "film_id": "F0092",
+        "date": "2026-09-26",
+        "parentTitle": "Fini de rire ! L’humour p...",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "rigolo",
+          "critique"
+        ],
+        "parentTasteMoods": [
+          "rigolo",
+          "critique"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "rigolo",
+          "critique",
+          "politique"
+        ],
+        "parentClosedSlugs": [
+          "rigolo",
+          "critique",
+          "politique"
+        ]
+      }
+    },
+    {
+      "title": "Fjord",
+      "workId": "f:F0005",
+      "slot": "cine",
+      "occurrences": 2,
+      "distinctProfiles": 2,
+      "profiles": [
+        "A1",
+        "B6"
+      ],
+      "scenarios": {
+        "monday": 2
+      },
+      "reasonSource": {
+        "popularite": 2
+      },
+      "displayedMoodsBench": [],
+      "catalogue": {
+        "programme_id": "P1136",
+        "event_id": "E003b",
+        "film_id": "F0005",
+        "date": "2026-09-22",
+        "parentTitle": "Programmation Utopia Tournefeuille",
+        "parentLooksUmbrella": true,
+        "ownTasteMoods": [
+          "rigolo",
+          "intense"
+        ],
+        "parentTasteMoods": [
+          "rigolo",
+          "cerveau",
+          "festif",
+          "epique",
+          "intense",
+          "angoissant",
+          "brutal",
+          "tendre",
+          "critique"
+        ],
+        "inheritedTasteMoodsOnly": [
+          "cerveau",
+          "festif",
+          "epique",
+          "angoissant",
+          "brutal",
+          "tendre",
+          "critique"
+        ],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "rigolo",
+          "intense",
+          "famille",
+          "religion",
+          "patrimoine",
+          "comedie",
+          "action"
+        ],
+        "parentClosedSlugs": [
+          "rigolo",
+          "cerveau",
+          "festif",
+          "epique",
+          "intense",
+          "angoissant",
+          "brutal",
+          "tendre",
+          "critique",
+          "patrimoine",
+          "action",
+          "animation",
+          "documentaire",
+          "thriller",
+          "polar",
+          "famille",
+          "amitie",
+          "guerre",
+          "religion",
+          "jeunesse",
+          "histoire",
+          "feminisme",
+          "politique",
+          "colonial",
+          "immigration",
+          "lgbt",
+          "amour"
+        ]
+      }
+    },
+    {
+      "title": "Histoires de la bonne vallée",
+      "workId": "t:histoires de la bonne vallee",
+      "slot": "cine",
+      "occurrences": 2,
+      "distinctProfiles": 2,
+      "profiles": [
+        "B6",
+        "C3"
+      ],
+      "scenarios": {
+        "month": 2
+      },
+      "reasonSource": {
+        "profile": 2
+      },
+      "displayedMoodsBench": [
+        "poetique"
+      ],
+      "catalogue": {
+        "programme_id": "PTMP_L128_213_10112100",
+        "event_id": "ETMP_L128_1000022263_1011",
+        "film_id": "F0215",
+        "date": "2026-10-11",
+        "parentTitle": "Histoires de la bonne vallée",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "poetique"
+        ],
+        "parentTasteMoods": [
+          "poetique"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "poetique",
+          "documentaire",
+          "amour",
+          "travail"
+        ],
+        "parentClosedSlugs": [
+          "poetique",
+          "documentaire",
+          "amour",
+          "travail"
+        ]
+      }
+    },
+    {
+      "title": "Kraken",
+      "workId": "f:F0221",
+      "slot": "cine",
+      "occurrences": 2,
+      "distinctProfiles": 2,
+      "profiles": [
+        "C4",
+        "C7"
+      ],
+      "scenarios": {
+        "friday": 2
+      },
+      "reasonSource": {
+        "profile": 2
+      },
+      "displayedMoodsBench": [
+        "intense",
+        "angoissant",
+        "sombre"
+      ],
+      "catalogue": {
+        "programme_id": "PTMP_L138_462_09252200",
+        "event_id": "ETMP_L138_326983_0925",
+        "film_id": "F0221",
+        "date": "2026-09-25",
+        "parentTitle": "Kraken",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "intense",
+          "angoissant",
+          "sombre"
+        ],
+        "parentTasteMoods": [
+          "intense",
+          "angoissant",
+          "sombre"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "intense",
+          "angoissant",
+          "sombre",
+          "thriller",
+          "action",
+          "horreur",
+          "mer"
+        ],
+        "parentClosedSlugs": [
+          "intense",
+          "angoissant",
+          "sombre",
+          "thriller",
+          "action",
+          "horreur",
+          "mer"
+        ]
+      }
+    },
+    {
+      "title": "La Danse au Grand Jour",
+      "workId": "e:E532",
+      "slot": "theatre",
+      "occurrences": 2,
+      "distinctProfiles": 2,
+      "profiles": [
+        "C2",
+        "D3"
+      ],
+      "scenarios": {
+        "month": 2
+      },
+      "reasonSource": {
+        "profile": 2
+      },
+      "displayedMoodsBench": [
+        "festif",
+        "dansant"
+      ],
+      "catalogue": {
+        "programme_id": "P1734",
+        "event_id": "E532",
+        "film_id": "",
+        "date": "2026-10-04",
+        "parentTitle": "La Danse au Grand Jour",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "festif",
+          "dansant"
+        ],
+        "parentTasteMoods": [
+          "festif",
+          "dansant"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "festif",
+          "dansant",
+          "danse"
+        ],
+        "parentClosedSlugs": [
+          "festif",
+          "dansant",
+          "danse"
+        ]
+      }
+    },
+    {
+      "title": "La chaleur",
+      "workId": "f:F0076",
+      "slot": "cine",
+      "occurrences": 2,
+      "distinctProfiles": 2,
+      "profiles": [
+        "B4",
+        "C5"
+      ],
+      "scenarios": {
+        "friday": 2
+      },
+      "reasonSource": {
+        "profile": 2
+      },
+      "displayedMoodsBench": [
+        "angoissant",
+        "tendre",
+        "intense"
+      ],
+      "catalogue": {
+        "programme_id": "PTMP_L143_73_09251530",
+        "event_id": "ETMP_L143_lachaleur_0925",
+        "film_id": "F0076",
+        "date": "2026-09-25",
+        "parentTitle": "La chaleur",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "angoissant",
+          "tendre",
+          "intense"
+        ],
+        "parentTasteMoods": [
+          "angoissant",
+          "tendre",
+          "intense"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "angoissant",
+          "tendre",
+          "intense",
+          "romance",
+          "drame",
+          "thriller",
+          "amour"
+        ],
+        "parentClosedSlugs": [
+          "angoissant",
+          "tendre",
+          "intense",
+          "romance",
+          "drame",
+          "thriller",
+          "amour"
+        ]
+      }
+    },
+    {
+      "title": "Gabrielle Giraud, Au naturel",
+      "workId": "e:E661",
+      "slot": "theatre",
+      "occurrences": 2,
+      "distinctProfiles": 1,
+      "profiles": [
+        "B4"
+      ],
+      "scenarios": {
+        "week": 1,
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 2
+      },
+      "displayedMoodsBench": [
+        "rigolo",
+        "tendre"
+      ],
+      "catalogue": {
+        "programme_id": "P1881",
+        "event_id": "E661",
+        "film_id": "",
+        "date": "2026-09-25",
+        "parentTitle": "Gabrielle Giraud, Au naturel",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "rigolo",
+          "tendre"
+        ],
+        "parentTasteMoods": [
+          "rigolo",
+          "tendre"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "rigolo",
+          "tendre",
+          "standup",
+          "comedie",
+          "ecologie"
+        ],
+        "parentClosedSlugs": [
+          "rigolo",
+          "tendre",
+          "standup",
+          "comedie",
+          "ecologie"
+        ]
+      }
+    },
+    {
+      "title": "Jeudi 17 septembre 2026 - 20H30 Jeudi 12 novembre 2026 - 20H30",
+      "workId": "e:E098",
+      "slot": "theatre",
+      "occurrences": 2,
+      "distinctProfiles": 1,
+      "profiles": [
+        "B2"
+      ],
+      "scenarios": {
+        "week": 1,
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 2
+      },
+      "displayedMoodsBench": [
+        "rigolo",
+        "intense"
+      ],
+      "catalogue": {
+        "programme_id": null,
+        "event_id": null,
+        "film_id": null,
+        "date": null,
+        "parentTitle": null,
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [],
+        "parentTasteMoods": [],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [],
+        "parentClosedSlugs": []
+      }
+    },
+    {
+      "title": "Livia Giaffreda : Piel + Jam chants et musique du monde",
+      "workId": "e:BAR0010",
+      "slot": "concert",
+      "occurrences": 2,
+      "distinctProfiles": 1,
+      "profiles": [
+        "B5"
+      ],
+      "scenarios": {
+        "week": 1,
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 2
+      },
+      "displayedMoodsBench": [
+        "intimiste"
+      ],
+      "catalogue": {
+        "programme_id": "BARP0010",
+        "event_id": "BAR0010",
+        "film_id": "",
+        "date": "2026-09-23",
+        "parentTitle": "Livia Giaffreda : Piel + Jam chants et musique du monde",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "intimiste"
+        ],
+        "parentTasteMoods": [
+          "intimiste"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "intimiste",
+          "world"
+        ],
+        "parentClosedSlugs": [
+          "intimiste",
+          "world"
+        ]
+      }
+    },
+    {
+      "title": "OpenLabs et Démos du Fablab – Impression 3D",
+      "workId": "e:T900620",
+      "slot": "theatre",
+      "occurrences": 2,
+      "distinctProfiles": 1,
+      "profiles": [
+        "A3"
+      ],
+      "scenarios": {
+        "week": 1,
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 2
+      },
+      "displayedMoodsBench": [
+        "cerveau"
+      ],
+      "catalogue": {
+        "programme_id": "T90P1572",
+        "event_id": "T900620",
+        "film_id": "",
+        "date": "2026-09-24",
+        "parentTitle": "OpenLabs et Démos du Fablab – Impression 3D",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "cerveau"
+        ],
+        "parentTasteMoods": [],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "cerveau"
+        ],
+        "parentClosedSlugs": []
+      }
+    },
+    {
+      "title": "Patchwork",
+      "workId": "e:E640",
+      "slot": "theatre",
+      "occurrences": 2,
+      "distinctProfiles": 1,
+      "profiles": [
+        "B5"
+      ],
+      "scenarios": {
+        "week": 1,
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 2
+      },
+      "displayedMoodsBench": [
+        "intimiste",
+        "poetique"
+      ],
+      "catalogue": {
+        "programme_id": "P1842",
+        "event_id": "E640",
+        "film_id": "",
+        "date": "2026-09-23",
+        "parentTitle": "Patchwork",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "intimiste",
+          "poetique"
+        ],
+        "parentTasteMoods": [
+          "intimiste",
+          "poetique"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "intimiste",
+          "poetique"
+        ],
+        "parentClosedSlugs": [
+          "intimiste",
+          "poetique"
+        ]
+      }
+    },
+    {
+      "title": "CORNÉLIUS",
+      "workId": "e:EHG020",
+      "slot": "concert",
+      "occurrences": 1,
+      "distinctProfiles": 1,
+      "profiles": [
+        "C3"
+      ],
+      "scenarios": {
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 1
+      },
+      "displayedMoodsBench": [
+        "tendre",
+        "intimiste",
+        "poetique"
+      ],
+      "catalogue": {
+        "programme_id": "PHG0031",
+        "event_id": "EHG020",
+        "film_id": "",
+        "date": "2026-10-08",
+        "parentTitle": "CORNÉLIUS — réouverture du Kawa",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "tendre",
+          "intimiste",
+          "poetique"
+        ],
+        "parentTasteMoods": [
+          "tendre",
+          "intimiste",
+          "poetique"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "tendre",
+          "intimiste",
+          "poetique"
+        ],
+        "parentClosedSlugs": [
+          "tendre",
+          "intimiste",
+          "poetique"
+        ]
+      }
+    },
+    {
+      "title": "Cars",
+      "workId": "f:F0078",
+      "slot": "cine",
+      "occurrences": 1,
+      "distinctProfiles": 1,
+      "profiles": [
+        "D2"
+      ],
+      "scenarios": {
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 1
+      },
+      "displayedMoodsBench": [
+        "rigolo",
+        "intense"
+      ],
+      "catalogue": {
+        "programme_id": "PTMP_L139_477_10041045",
+        "event_id": "ETMP_L139_55774_1004",
+        "film_id": "F0078",
+        "date": "2026-10-04",
+        "parentTitle": "Cars",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "rigolo",
+          "intense"
+        ],
+        "parentTasteMoods": [
+          "rigolo",
+          "intense"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "rigolo",
+          "intense",
+          "animation",
+          "comedie",
+          "action",
+          "famille",
+          "jeunesse"
+        ],
+        "parentClosedSlugs": [
+          "rigolo",
+          "intense",
+          "animation",
+          "comedie",
+          "action",
+          "famille",
+          "jeunesse"
+        ]
+      }
+    },
+    {
+      "title": "Demi Portion",
+      "workId": "e:PRIO0034",
+      "slot": "concert",
+      "occurrences": 1,
+      "distinctProfiles": 1,
+      "profiles": [
+        "C6"
+      ],
+      "scenarios": {
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 1
+      },
+      "displayedMoodsBench": [
+        "intense",
+        "critique"
+      ],
+      "catalogue": {
+        "programme_id": "PRIOP0034",
+        "event_id": "PRIO0034",
+        "film_id": "",
+        "date": "2026-10-16",
+        "parentTitle": "Demi Portion",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "intense",
+          "critique"
+        ],
+        "parentTasteMoods": [],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "intense",
+          "critique",
+          "hiphop"
+        ],
+        "parentClosedSlugs": [
+          "hiphop"
+        ]
+      }
+    },
+    {
+      "title": "Du jeudi 8 au",
+      "workId": "e:TMP0639",
+      "slot": "theatre",
+      "occurrences": 1,
+      "distinctProfiles": 1,
+      "profiles": [
+        "C7"
+      ],
+      "scenarios": {
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 1
+      },
+      "displayedMoodsBench": [
+        "intense",
+        "sombre",
+        "rigolo"
+      ],
+      "catalogue": {
+        "programme_id": "TMPP1718",
+        "event_id": "TMP0639",
+        "film_id": "",
+        "date": "2026-10-10",
+        "parentTitle": "Du jeudi 8 au",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "intense",
+          "sombre"
+        ],
+        "parentTasteMoods": [
+          "rigolo"
+        ],
+        "inheritedTasteMoodsOnly": [
+          "rigolo"
+        ],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "intense",
+          "sombre"
+        ],
+        "parentClosedSlugs": [
+          "rigolo",
+          "comedie"
+        ]
+      }
+    },
+    {
+      "title": "HOURVARI — Compagnie Rasposo",
+      "workId": "e:E517",
+      "slot": "theatre",
+      "occurrences": 1,
+      "distinctProfiles": 1,
+      "profiles": [
+        "A5"
+      ],
+      "scenarios": {
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 1
+      },
+      "displayedMoodsBench": [
+        "tendre",
+        "intimiste",
+        "poetique",
+        "festif"
+      ],
+      "catalogue": {
+        "programme_id": "P1709",
+        "event_id": "E517",
+        "film_id": "",
+        "date": "2026-10-15",
+        "parentTitle": "HOURVARI — Compagnie Rasposo",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "tendre",
+          "intimiste",
+          "poetique",
+          "festif"
+        ],
+        "parentTasteMoods": [
+          "tendre",
+          "intimiste",
+          "poetique",
+          "festif"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "tendre",
+          "intimiste",
+          "poetique",
+          "festif",
+          "cirque",
+          "contemporain",
+          "famille"
+        ],
+        "parentClosedSlugs": [
+          "tendre",
+          "intimiste",
+          "poetique",
+          "festif",
+          "cirque",
+          "contemporain",
+          "famille"
+        ]
+      }
+    },
+    {
+      "title": "HYPNO5E & HIPPOTRAKTOR (metal|post-metal)",
+      "workId": "e:TMP0252",
+      "slot": "concert",
+      "occurrences": 1,
+      "distinctProfiles": 1,
+      "profiles": [
+        "C4"
+      ],
+      "scenarios": {
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 1
+      },
+      "displayedMoodsBench": [
+        "intense",
+        "epique"
+      ],
+      "catalogue": {
+        "programme_id": "TMPP0699",
+        "event_id": "TMP0252",
+        "film_id": "",
+        "date": "2026-10-08",
+        "parentTitle": "HYPNO5E & HIPPOTRAKTOR (metal|post-metal)",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "intense",
+          "epique"
+        ],
+        "parentTasteMoods": [
+          "intense"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "intense",
+          "epique",
+          "metal"
+        ],
+        "parentClosedSlugs": [
+          "intense",
+          "metal"
+        ]
+      }
+    },
+    {
+      "title": "LA DAME DE PIERRE",
+      "workId": "e:E449",
+      "slot": "theatre",
+      "occurrences": 1,
+      "distinctProfiles": 1,
+      "profiles": [
+        "C4"
+      ],
+      "scenarios": {
+        "week": 1
+      },
+      "reasonSource": {
+        "profile": 1
+      },
+      "displayedMoodsBench": [
+        "epique"
+      ],
+      "catalogue": {
+        "programme_id": "P1621",
+        "event_id": "E449",
+        "film_id": "",
+        "date": "2026-09-23",
+        "parentTitle": "LA DAME DE PIERRE",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "epique"
+        ],
+        "parentTasteMoods": [
+          "epique"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "epique",
+          "contemporain",
+          "danse"
+        ],
+        "parentClosedSlugs": [
+          "epique",
+          "contemporain",
+          "danse"
+        ]
+      }
+    },
+    {
+      "title": "La Vie d'une femme",
+      "workId": "f:F0007",
+      "slot": "cine",
+      "occurrences": 1,
+      "distinctProfiles": 1,
+      "profiles": [
+        "D5"
+      ],
+      "scenarios": {
+        "friday": 1
+      },
+      "reasonSource": {
+        "profile": 1
+      },
+      "displayedMoodsBench": [],
+      "catalogue": {
+        "programme_id": "P1149",
+        "event_id": "E003b",
+        "film_id": "F0007",
+        "date": "2026-09-22",
+        "parentTitle": "Programmation Utopia Tournefeuille",
+        "parentLooksUmbrella": true,
+        "ownTasteMoods": [
+          "rigolo",
+          "intense"
+        ],
+        "parentTasteMoods": [
+          "rigolo",
+          "cerveau",
+          "festif",
+          "epique",
+          "intense",
+          "angoissant",
+          "brutal",
+          "tendre",
+          "critique"
+        ],
+        "inheritedTasteMoodsOnly": [
+          "cerveau",
+          "festif",
+          "epique",
+          "angoissant",
+          "brutal",
+          "tendre",
+          "critique"
+        ],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "rigolo",
+          "intense",
+          "patrimoine",
+          "comedie",
+          "action"
+        ],
+        "parentClosedSlugs": [
+          "rigolo",
+          "cerveau",
+          "festif",
+          "epique",
+          "intense",
+          "angoissant",
+          "brutal",
+          "tendre",
+          "critique",
+          "patrimoine",
+          "action",
+          "animation",
+          "documentaire",
+          "thriller",
+          "polar",
+          "famille",
+          "amitie",
+          "guerre",
+          "religion",
+          "jeunesse",
+          "histoire",
+          "feminisme",
+          "politique",
+          "colonial",
+          "immigration",
+          "lgbt",
+          "amour"
+        ]
+      }
+    },
+    {
+      "title": "Le Grand Hôtel",
+      "workId": "e:E660",
+      "slot": "theatre",
+      "occurrences": 1,
+      "distinctProfiles": 1,
+      "profiles": [
+        "A5"
+      ],
+      "scenarios": {
+        "week": 1
+      },
+      "reasonSource": {
+        "profile": 1
+      },
+      "displayedMoodsBench": [
+        "rigolo",
+        "intense",
+        "intimiste"
+      ],
+      "catalogue": {
+        "programme_id": "P9194",
+        "event_id": "E660",
+        "film_id": "",
+        "date": "2026-12-11",
+        "parentTitle": "Le Grand Hôtel",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "rigolo",
+          "intense",
+          "intimiste"
+        ],
+        "parentTasteMoods": [
+          "rigolo",
+          "intense",
+          "intimiste"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "rigolo",
+          "intense",
+          "intimiste",
+          "comedie",
+          "standup"
+        ],
+        "parentClosedSlugs": [
+          "rigolo",
+          "intense",
+          "intimiste",
+          "standup",
+          "comedie",
+          "amour"
+        ]
+      }
+    },
+    {
+      "title": "Le Pays des sons – Du mercredi 16 au",
+      "workId": "e:T900682",
+      "slot": "theatre",
+      "occurrences": 1,
+      "distinctProfiles": 1,
+      "profiles": [
+        "C5"
+      ],
+      "scenarios": {
+        "week": 1
+      },
+      "reasonSource": {
+        "profile": 1
+      },
+      "displayedMoodsBench": [
+        "tendre",
+        "poetique"
+      ],
+      "catalogue": {
+        "programme_id": "T90P1871",
+        "event_id": "T900682",
+        "film_id": "",
+        "date": "2026-09-26",
+        "parentTitle": "Le Pays des sons – Du mercredi 16 au",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "tendre",
+          "poetique"
+        ],
+        "parentTasteMoods": [],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "tendre",
+          "poetique",
+          "famille",
+          "jeunesse"
+        ],
+        "parentClosedSlugs": [
+          "famille",
+          "jeunesse"
+        ]
+      }
+    },
+    {
+      "title": "Les Clotildes : La bonne surprise !",
+      "workId": "e:E647",
+      "slot": "theatre",
+      "occurrences": 1,
+      "distinctProfiles": 1,
+      "profiles": [
+        "B7"
+      ],
+      "scenarios": {
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 1
+      },
+      "displayedMoodsBench": [
+        "rigolo",
+        "dansant"
+      ],
+      "catalogue": {
+        "programme_id": "P9106",
+        "event_id": "E647",
+        "film_id": "",
+        "date": "2026-12-30",
+        "parentTitle": "Les Clotildes : La bonne surprise !",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "rigolo"
+        ],
+        "parentTasteMoods": [
+          "rigolo",
+          "dansant"
+        ],
+        "inheritedTasteMoodsOnly": [
+          "dansant"
+        ],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "rigolo",
+          "comedie",
+          "standup"
+        ],
+        "parentClosedSlugs": [
+          "rigolo",
+          "dansant",
+          "standup",
+          "comedie"
+        ]
+      }
+    },
+    {
+      "title": "Peau de cigale",
+      "workId": "e:E619",
+      "slot": "concert",
+      "occurrences": 1,
+      "distinctProfiles": 1,
+      "profiles": [
+        "A5"
+      ],
+      "scenarios": {
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 1
+      },
+      "displayedMoodsBench": [
+        "tendre",
+        "intimiste",
+        "poetique",
+        "festif"
+      ],
+      "catalogue": {
+        "programme_id": "P1825",
+        "event_id": "E619",
+        "film_id": "",
+        "date": "2026-10-09",
+        "parentTitle": "Peau de cigale",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "tendre",
+          "intimiste",
+          "poetique",
+          "festif"
+        ],
+        "parentTasteMoods": [
+          "tendre",
+          "intimiste",
+          "poetique",
+          "festif"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "tendre",
+          "intimiste",
+          "poetique",
+          "festif",
+          "cirque"
+        ],
+        "parentClosedSlugs": [
+          "tendre",
+          "intimiste",
+          "poetique",
+          "festif",
+          "cirque"
+        ]
+      }
+    },
+    {
+      "title": "Pierre-Emmanuel Barré",
+      "workId": "e:E459",
+      "slot": "concert",
+      "occurrences": 1,
+      "distinctProfiles": 1,
+      "profiles": [
+        "D5"
+      ],
+      "scenarios": {
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 1
+      },
+      "displayedMoodsBench": [
+        "rigolo"
+      ],
+      "catalogue": {
+        "programme_id": "P1631",
+        "event_id": "E459",
+        "film_id": "",
+        "date": "2026-10-02",
+        "parentTitle": "Pierre-Emmanuel Barré",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "rigolo"
+        ],
+        "parentTasteMoods": [
+          "rigolo"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "rigolo",
+          "chanson",
+          "comedie"
+        ],
+        "parentClosedSlugs": [
+          "rigolo",
+          "chanson",
+          "comedie"
+        ]
+      }
+    },
+    {
+      "title": "Si tu penses bien",
+      "workId": "f:F0040",
+      "slot": "cine",
+      "occurrences": 1,
+      "distinctProfiles": 1,
+      "profiles": [
+        "D2"
+      ],
+      "scenarios": {
+        "monday": 1
+      },
+      "reasonSource": {
+        "popularite": 1
+      },
+      "displayedMoodsBench": [],
+      "catalogue": {
+        "programme_id": "P1138",
+        "event_id": "E003b",
+        "film_id": "F0040",
+        "date": "2026-09-22",
+        "parentTitle": "Programmation Utopia Tournefeuille",
+        "parentLooksUmbrella": true,
+        "ownTasteMoods": [
+          "rigolo",
+          "angoissant",
+          "brutal",
+          "intense"
+        ],
+        "parentTasteMoods": [
+          "rigolo",
+          "cerveau",
+          "festif",
+          "epique",
+          "intense",
+          "angoissant",
+          "brutal",
+          "tendre",
+          "critique"
+        ],
+        "inheritedTasteMoodsOnly": [
+          "cerveau",
+          "festif",
+          "epique",
+          "tendre",
+          "critique"
+        ],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "rigolo",
+          "angoissant",
+          "brutal",
+          "intense",
+          "famille",
+          "patrimoine",
+          "comedie",
+          "action"
+        ],
+        "parentClosedSlugs": [
+          "rigolo",
+          "cerveau",
+          "festif",
+          "epique",
+          "intense",
+          "angoissant",
+          "brutal",
+          "tendre",
+          "critique",
+          "patrimoine",
+          "action",
+          "animation",
+          "documentaire",
+          "thriller",
+          "polar",
+          "famille",
+          "amitie",
+          "guerre",
+          "religion",
+          "jeunesse",
+          "histoire",
+          "feminisme",
+          "politique",
+          "colonial",
+          "immigration",
+          "lgbt",
+          "amour"
+        ]
+      }
+    },
+    {
+      "title": "Star Wars par L'Orchestre National Capitole Toulouse",
+      "workId": "e:E450",
+      "slot": "concert",
+      "occurrences": 1,
+      "distinctProfiles": 1,
+      "profiles": [
+        "C4"
+      ],
+      "scenarios": {
+        "week": 1
+      },
+      "reasonSource": {
+        "profile": 1
+      },
+      "displayedMoodsBench": [
+        "epique"
+      ],
+      "catalogue": {
+        "programme_id": "P1622",
+        "event_id": "E450",
+        "film_id": "",
+        "date": "2026-09-24",
+        "parentTitle": "Star Wars par L'Orchestre National Capitole Toulouse",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "epique"
+        ],
+        "parentTasteMoods": [],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "epique",
+          "classique",
+          "aventure"
+        ],
+        "parentClosedSlugs": [
+          "classique",
+          "aventure"
+        ]
+      }
+    },
+    {
+      "title": "Un putain de conte de fée",
+      "workId": "e:T900037",
+      "slot": "theatre",
+      "occurrences": 1,
+      "distinctProfiles": 1,
+      "profiles": [
+        "C5"
+      ],
+      "scenarios": {
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 1
+      },
+      "displayedMoodsBench": [
+        "rigolo",
+        "tendre"
+      ],
+      "catalogue": {
+        "programme_id": "P9101",
+        "event_id": "E649",
+        "film_id": "",
+        "date": "2026-12-30",
+        "parentTitle": "Un putain de conte de fée",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "rigolo",
+          "absurde"
+        ],
+        "parentTasteMoods": [
+          "rigolo",
+          "absurde"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "rigolo",
+          "absurde",
+          "comedie",
+          "standup",
+          "histoire"
+        ],
+        "parentClosedSlugs": [
+          "rigolo",
+          "absurde",
+          "standup",
+          "comedie",
+          "histoire"
+        ]
+      }
+    },
+    {
+      "title": "Vector Seven",
+      "workId": "e:E411",
+      "slot": "concert",
+      "occurrences": 1,
+      "distinctProfiles": 1,
+      "profiles": [
+        "C7"
+      ],
+      "scenarios": {
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 1
+      },
+      "displayedMoodsBench": [
+        "sombre",
+        "intense",
+        "dansant",
+        "festif"
+      ],
+      "catalogue": {
+        "programme_id": "P1559",
+        "event_id": "E411",
+        "film_id": "",
+        "date": "2026-10-17",
+        "parentTitle": "Cybersynth 2026 : Vector Seven + Neon Paradise + DJ set Neon Kult",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "sombre",
+          "intense",
+          "dansant",
+          "festif"
+        ],
+        "parentTasteMoods": [
+          "sombre",
+          "intense",
+          "dansant",
+          "festif"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "sombre",
+          "intense",
+          "dansant",
+          "festif",
+          "electro",
+          "metal"
+        ],
+        "parentClosedSlugs": [
+          "sombre",
+          "intense",
+          "dansant",
+          "festif",
+          "electro",
+          "metal"
+        ]
+      }
+    },
+    {
+      "title": "Vendredi 25 et",
+      "workId": "e:TMP0635",
+      "slot": "theatre",
+      "occurrences": 1,
+      "distinctProfiles": 1,
+      "profiles": [
+        "C7"
+      ],
+      "scenarios": {
+        "week": 1
+      },
+      "reasonSource": {
+        "profile": 1
+      },
+      "displayedMoodsBench": [
+        "sombre",
+        "poetique"
+      ],
+      "catalogue": {
+        "programme_id": "TMPP1714",
+        "event_id": "TMP0635",
+        "film_id": "",
+        "date": "2026-09-26",
+        "parentTitle": "Vendredi 25 et",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "sombre",
+          "poetique"
+        ],
+        "parentTasteMoods": [],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "sombre",
+          "poetique",
+          "danse",
+          "deuil"
+        ],
+        "parentClosedSlugs": [
+          "danse",
+          "deuil"
+        ]
+      }
+    },
+    {
+      "title": "Xandria",
+      "workId": "e:E402",
+      "slot": "concert",
+      "occurrences": 1,
+      "distinctProfiles": 1,
+      "profiles": [
+        "B6"
+      ],
+      "scenarios": {
+        "month": 1
+      },
+      "reasonSource": {
+        "profile": 1
+      },
+      "displayedMoodsBench": [
+        "intense",
+        "poetique"
+      ],
+      "catalogue": {
+        "programme_id": "P1545",
+        "event_id": "E402",
+        "film_id": "",
+        "date": "2026-09-28",
+        "parentTitle": "Xandria + Seven Spires + Tulip",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "intense",
+          "poetique"
+        ],
+        "parentTasteMoods": [
+          "intense",
+          "poetique"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "intense",
+          "poetique",
+          "rock",
+          "metal",
+          "classique"
+        ],
+        "parentClosedSlugs": [
+          "intense",
+          "poetique",
+          "rock",
+          "metal",
+          "classique"
+        ]
+      }
+    },
+    {
+      "title": "À bicyclette !",
+      "workId": "f:F0525",
+      "slot": "cine",
+      "occurrences": 1,
+      "distinctProfiles": 1,
+      "profiles": [
+        "C1"
+      ],
+      "scenarios": {
+        "friday": 1
+      },
+      "reasonSource": {
+        "profile": 1
+      },
+      "displayedMoodsBench": [
+        "rigolo",
+        "epique"
+      ],
+      "catalogue": {
+        "programme_id": "PTMP_L128_136_09252000",
+        "event_id": "ETMP_L128_323031_0925",
+        "film_id": "F0525",
+        "date": "2026-09-25",
+        "parentTitle": "À bicyclette !",
+        "parentLooksUmbrella": false,
+        "ownTasteMoods": [
+          "rigolo",
+          "epique"
+        ],
+        "parentTasteMoods": [
+          "rigolo",
+          "epique"
+        ],
+        "inheritedTasteMoodsOnly": [],
+        "moodsOnlyViaParent": false,
+        "ownClosedSlugs": [
+          "rigolo",
+          "epique",
+          "comedie",
+          "drame",
+          "voyage"
+        ],
+        "parentClosedSlugs": [
+          "rigolo",
+          "epique",
+          "comedie",
+          "drame",
+          "voyage"
+        ]
+      }
+    }
+  ]
+}
