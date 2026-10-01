@@ -68,6 +68,17 @@ export default function ConfidentialitePage() {
           clics.
         </p>
         <p>
+          <span className="font-medium">Avis.</span> Le bouton «&nbsp;Un avis&nbsp;?&nbsp;»
+          envoie ce texte, seul, à OpenAI (États-Unis) pour une réponse courte.
+          On le garde 90&nbsp;jours. Compte connecté&nbsp;: une empreinte du
+          compte, pas l’e-mail en clair, et pas le cookie visiteur. Sans
+          compte&nbsp;: le cookie <span className="font-medium">cc_vid</span>{' '}
+          s’il existe déjà. Jamais les deux sur la même ligne. Supprimer le
+          compte retire les avis liés à cette empreinte. Sans compte, le texte
+          part au bout de 90&nbsp;jours. Effacement avant ce délai&nbsp;: le
+          contact juste après.
+        </p>
+        <p>
           <span className="font-medium">Tes droits.</span> Accès, rectification,
           opposition, suppression (bouton «&nbsp;Supprimer mon compte&nbsp;»
           sur cette page). Contact :{' '}
@@ -128,7 +139,9 @@ export default function ConfidentialitePage() {
         <p>
           <span className="font-medium">cc_vid</span> est posé au premier
           signal, pas au chargement. HttpOnly, SameSite=Lax, Secure. On ne le
-          relie jamais à Google ni à Neon.
+          relie jamais à un compte Google, ni aux goûts en base. Seule
+          exception&nbsp;: un avis sans compte peut le garder, seul,
+          90&nbsp;jours.
         </p>
 
         <p>
@@ -228,6 +241,12 @@ export default function ConfidentialitePage() {
                   </td>
                   <td className="py-2 pr-3">Consentement (même porte P8)</td>
                   <td className="py-2">TTL&nbsp;21&nbsp;j serveur</td>
+                </tr>
+                <tr className="border-b border-culture-line/70">
+                  <td className="py-2 pr-3">Avis et idées</td>
+                  <td className="py-2 pr-3">Lire les retours sur le produit</td>
+                  <td className="py-2 pr-3">Intérêt légitime</td>
+                  <td className="py-2">90&nbsp;jours</td>
                 </tr>
                 <tr>
                   <td className="py-2 pr-3">Choix de consentement</td>

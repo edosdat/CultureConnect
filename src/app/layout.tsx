@@ -3,6 +3,7 @@ import { DM_Sans, Fraunces } from 'next/font/google';
 import SiteNav from '@/components/SiteNav';
 import Providers from '@/components/Providers';
 import SiteFooter from '@/components/SiteFooter';
+import FeedbackChat from '@/components/FeedbackChat';
 import { auth, isGoogleAuthConfigured } from '@/auth';
 import type { Session } from 'next-auth';
 import { publicAppOrigin } from '@/lib/sharePreviewImage';
@@ -96,6 +97,7 @@ export default async function RootLayout({
           <SiteNav />
           {children}
           <SiteFooter />
+          <FeedbackChat />
         </Providers>
       </body>
     </html>

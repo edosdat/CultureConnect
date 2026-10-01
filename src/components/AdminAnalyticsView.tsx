@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 import type { AdminAnalyticsSnapshot } from '@/lib/adminAnalyticsLoad';
 import AdminDataTables from '@/components/AdminDataTables';
 import { adminCsvFilename, loginPopulationShare } from '@/lib/adminAnalytics';
@@ -186,6 +187,14 @@ export default function AdminAnalyticsView({
       <p className="mt-2 text-sm text-culture-muted">
         Fenêtre Paris {from} → {to}. Neon {snap.sources.neon ? 'ok' : 'off'} · KV{' '}
         {snap.sources.kv ? 'ok' : 'off'}. 0 GA / PostHog.
+      </p>
+      <p className="mt-3 text-sm">
+        <Link
+          href="/admin/feedback"
+          className="text-culture-terracotta underline-offset-2 hover:underline"
+        >
+          Avis et idées
+        </Link>
       </p>
 
       <SectionBlock title={SECTION_COPY.trafic.title} intro={SECTION_COPY.trafic.intro}>
