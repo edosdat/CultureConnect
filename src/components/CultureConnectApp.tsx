@@ -85,6 +85,7 @@ import {
   top3PaintMode,
   theatreRows,
   top3IdentitySet,
+  excludeWorksFromPool,
   visibleTop3Items,
   type HomeCardOpen,
 } from '@/lib/displayHome';
@@ -1637,10 +1638,37 @@ export default function CultureConnectApp({
       cineSource.filter(hide),
     );
   }, [pourToiItems, cineSource, blockedWorks]);
-  const top3Cards = useMemo(
-    () => visibleTop3Items(pourToiFilled),
-    [pourToiFilled],
+
+  // —— Mes recos de la semaine: ALWAYS scope=semaine profile pool (≠ chip-scoped home Top3)
+  // Computed before home Top3 so we can demote sheet works from the home surface.
+  const weekRecoKey = useMemo(
+    () => recoPoolKey('semaine', null, selectedCommune, 'profile'),
+    [selectedCommune],
   );
+  const weekPourToiRaw = useMemo(() => {
+    if (sessionStatus !== 'authenticated' || recoWiped) return [];
+    return recoPoolByKey[weekRecoKey] ?? [];
+  }, [sessionStatus, recoWiped, recoPoolByKey, weekRecoKey]);
+  const weekPourToiFilled = useMemo(() => {
+    // Keep week pool pure — do not fill from chip-scoped cineSource.
+    if (blockedWorks.size === 0) return weekPourToiRaw;
+    const hide = (item: DayItem) => !itemBlockedByWorkKeys(item, blockedWorks);
+    return weekPourToiRaw.filter(hide);
+  }, [weekPourToiRaw, blockedWorks]);
+  const weekTop3Cards = useMemo(
+    () => visibleTop3Items(weekPourToiFilled),
+    [weekPourToiFilled],
+  );
+
+  const top3Cards = useMemo(() => {
+    // Authenticated: never show Mes recos week sheet works on home Top3
+    // (two pools, zéro mélange — even when home chip is also semaine).
+    const pool =
+      sessionStatus === 'authenticated' && weekTop3Cards.length > 0
+        ? excludeWorksFromPool(pourToiFilled, weekTop3Cards)
+        : pourToiFilled;
+    return visibleTop3Items(pool);
+  }, [pourToiFilled, weekTop3Cards, sessionStatus]);
   const top3ImpressionKeys = useMemo(
     () => top3Cards.map(impressionItemKey).filter(Boolean),
     [top3Cards],
@@ -2122,25 +2150,7 @@ export default function CultureConnectApp({
     [blockedWorks],
   );
 
-  // —— Mes recos de la semaine: ALWAYS scope=semaine profile pool (≠ chip-scoped home Top3)
-  const weekRecoKey = useMemo(
-    () => recoPoolKey('semaine', null, selectedCommune, 'profile'),
-    [selectedCommune],
-  );
-  const weekPourToiRaw = useMemo(() => {
-    if (sessionStatus !== 'authenticated' || recoWiped) return [];
-    return recoPoolByKey[weekRecoKey] ?? [];
-  }, [sessionStatus, recoWiped, recoPoolByKey, weekRecoKey]);
-  const weekPourToiFilled = useMemo(() => {
-    // Keep week pool pure — do not fill from chip-scoped cineSource.
-    if (blockedWorks.size === 0) return weekPourToiRaw;
-    const hide = (item: DayItem) => !itemBlockedByWorkKeys(item, blockedWorks);
-    return weekPourToiRaw.filter(hide);
-  }, [weekPourToiRaw, blockedWorks]);
-  const weekTop3Cards = useMemo(
-    () => visibleTop3Items(weekPourToiFilled),
-    [weekPourToiFilled],
-  );
+  // weekRecoKey / weekTop3Cards: defined above (before home top3Cards demote).
   const weekPoolReady = Object.prototype.hasOwnProperty.call(
     recoPoolByKey,
     weekRecoKey,
