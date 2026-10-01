@@ -807,13 +807,9 @@ describe('P3 not_interested', () => {
     assert.equal(shouldPromptLogin([pass]), false);
   });
 
-  it('wires a discrete control on Top 3 and home rail cards, not the fiche', async () => {
+  it('keeps not_interested backend but strips × UI from catalogue surfaces', async () => {
     const card = await readFile(
       new URL('../components/SeanceCard.tsx', import.meta.url),
-      'utf8',
-    );
-    const control = await readFile(
-      new URL('../components/PasPourMoiControl.tsx', import.meta.url),
       'utf8',
     );
     const grid = await readFile(
@@ -832,17 +828,19 @@ describe('P3 not_interested', () => {
       new URL('../components/CultureConnectApp.tsx', import.meta.url),
       'utf8',
     );
-    assert.match(control, /aria-label="Pas pour moi"/);
-    assert.match(control, /data-testid="pas-pour-moi"/);
-    assert.match(control, /data-signal-kind="not_interested"/);
-    assert.match(card, /PasPourMoiControl/);
-    assert.match(card, /onNotInterested/);
-    assert.match(grid, /onNotInterested=\{onNotInterested\}/);
-    assert.match(rail, /PasPourMoiControl/);
+    assert.equal(card.includes('PasPourMoiControl'), false);
+    assert.equal(card.includes('onNotInterested'), false);
+    assert.equal(card.includes('Pas pour moi'), false);
+    assert.equal(grid.includes('onNotInterested'), false);
+    assert.equal(rail.includes('PasPourMoiControl'), false);
+    assert.equal(rail.includes('onNotInterested'), false);
     assert.equal(detail.includes('PasPourMoiControl'), false);
     assert.equal(detail.includes('not_interested'), false);
-    assert.match(app, /trackItem\(item, 'not_interested'\)/);
+    assert.equal(app.includes('PasPourMoiControl'), false);
+    assert.equal(app.includes('onNotInterested'), false);
+    assert.equal(app.includes("trackItem(item, 'not_interested')"), false);
+    // Backend filtering of recorded signals stays (Top 3 / recommendSlice).
+    assert.match(app, /notInterestedBlockKeys/);
     assert.match(app, /visibleTop3Items\(pourToiFilled\)/);
-    assert.match(app, /onNotInterested=\{dismissWork\}/);
   });
 });

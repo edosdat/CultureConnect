@@ -59,7 +59,6 @@ import CategoryBadge from './CategoryBadge';
 import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 import FilmVersionBadge from './FilmVersionBadge';
 import PressBadge from './PressBadge';
-import PasPourMoiControl from './PasPourMoiControl';
 import FilmPoster from './FilmPoster';
 import ShareSocial from './ShareSocial';
 import EventCtaRow from './EventCtaRow';
@@ -140,9 +139,6 @@ type Props = {
   onReserve?: (item: DayItem) => void;
   onSelectLive?: (key: string) => void;
   origin?: GeoPos | null;
-  /** P3 « pas pour moi » on the home rail thumbs. Not the hero fiche. */
-  onNotInterested?: (item: DayItem) => void;
-  notInterested?: (item: DayItem) => boolean;
 };
 
 function posterUrl(item: DayItem): string {
@@ -161,8 +157,6 @@ function FilmThumb({
   onSelect,
   active,
   distanceKm,
-  onNotInterested,
-  notInterested = false,
 }: {
   row: DenseRow;
   /** Touchstart: remember this film before the strip can jump. */
@@ -171,15 +165,12 @@ function FilmThumb({
   active?: boolean;
   /** Default (nearest) cinema km only — never a pile of salles. */
   distanceKm?: string | null;
-  onNotInterested?: (item: DayItem) => void;
-  notInterested?: boolean;
 }) {
   const item = row.item;
   const image = posterUrl(item);
   const title = rowDisplayTitle(row);
   const when = seanceWhen(item, row.earliestHeure);
   return (
-    <div className="relative w-[7.5rem] shrink-0 sm:w-[8.5rem]">
     <button
       type="button"
       data-thumb-key={row.groupKey}
@@ -203,7 +194,7 @@ function FilmThumb({
         else onSelect();
       }}
       aria-current={active ? 'true' : undefined}
-      className="group flex w-full flex-col touch-manipulation text-left focus-visible:!outline-none"
+      className="group flex w-[7.5rem] shrink-0 flex-col touch-manipulation text-left focus-visible:!outline-none sm:w-[8.5rem]"
     >
       <div
         className={
@@ -255,14 +246,6 @@ function FilmThumb({
         </p>
       ) : null}
     </button>
-    {onNotInterested ? (
-      <PasPourMoiControl
-        pressed={notInterested}
-        onDismiss={() => onNotInterested(item)}
-        className="absolute right-1 top-1"
-      />
-    ) : null}
-    </div>
   );
 }
 
@@ -323,8 +306,6 @@ export default function CinemaCarousel({
   onReserve,
   onSelectLive,
   origin = null,
-  onNotInterested,
-  notInterested,
 }: Props) {
   const copy = PACK_COPY[pack];
   const seancesDomId = `${pack}-seances`;
@@ -874,8 +855,6 @@ export default function CinemaCarousel({
                 : minKmLabel(row.seances, origin) ??
                   itemKmLabel(row.item, origin)
             }
-            onNotInterested={onNotInterested}
-            notInterested={notInterested?.(row.item) ?? false}
           />
         ))}
         {hasMore || loadingMore ? (
