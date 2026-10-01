@@ -7,11 +7,14 @@ import {
   readSignalsConsent,
   type SignalsConsent,
 } from '@/lib/signalsConsent';
+import { digestTestWindowOpen } from '@/lib/digestTestWindow';
 import { useSignals } from './SignalsProvider';
 
 /**
  * P8 architecture #1 — bandeau with « Refuser tout » and « Accepter tout »
  * at the same visual level. Shown only while consent is undecided.
+ * Hidden while `digestTestWindowOpen()` (until 2026-12-01 00:00 Paris).
+ * Do not write `accepted` for the visitor while the bandeau is hidden.
  */
 export default function SignalsConsentBanner() {
   const { acceptSignalsConsent, refuseSignalsConsent } = useSignals();
@@ -29,6 +32,7 @@ export default function SignalsConsentBanner() {
     return () => window.removeEventListener(SIGNALS_CONSENT_EVENT, onConsent);
   }, []);
 
+  if (digestTestWindowOpen()) return null;
   if (choice === 'loading' || choice !== null) return null;
 
   return (

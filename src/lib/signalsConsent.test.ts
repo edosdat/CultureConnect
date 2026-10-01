@@ -12,6 +12,7 @@ import {
 } from './signalsConsent';
 import { COOKIE_MAX_AGE_SEC, GUEST_STORAGE_KEY } from './signals';
 import { VID_TTL_SEC } from './guestId';
+import { DIGEST_OPT_IN_GATE_AT, digestTestWindowOpen } from './digestTestWindow';
 
 type CookieJar = Map<string, string>;
 
@@ -176,6 +177,63 @@ describe('P8 — bandeau equal Refuser / Accepter + notice Art.21 + registre', (
       'utf8',
     );
     assert.match(src, /SignalsConsentBanner/);
+    assert.match(src, /<TasteCookieNotice \/>/);
+    assert.equal(src.includes('digestTestWindowOpen'), false);
+  });
+
+  it('hides the CMP while the test window is open and restores it at the gate', async () => {
+    const RealDate = Date;
+    function withFrozenNow<T>(iso: string, fn: () => T): T {
+      const frozen = RealDate.parse(iso);
+      function FrozenDate(this: Date, ...args: ConstructorParameters<typeof Date>) {
+        if (!new.target) return RealDate();
+        if (args.length === 0) return new RealDate(frozen);
+        return new RealDate(...args);
+      }
+      FrozenDate.now = () => frozen;
+      FrozenDate.parse = RealDate.parse;
+      FrozenDate.UTC = RealDate.UTC;
+      FrozenDate.prototype = RealDate.prototype;
+      Object.setPrototypeOf(FrozenDate, RealDate);
+      globalThis.Date = FrozenDate as DateConstructor;
+      try {
+        return fn();
+      } finally {
+        globalThis.Date = RealDate;
+      }
+    }
+
+    assert.equal(
+      DIGEST_OPT_IN_GATE_AT,
+      RealDate.parse('2026-12-01T00:00:00+01:00'),
+    );
+    assert.equal(
+      withFrozenNow('2026-10-01T12:00:00+02:00', () => digestTestWindowOpen()),
+      true,
+    );
+    assert.equal(
+      withFrozenNow('2026-12-01T00:00:00+01:00', () => digestTestWindowOpen()),
+      false,
+    );
+
+    const banner = await readFile(
+      new URL('../components/SignalsConsentBanner.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(banner, /if \(digestTestWindowOpen\(\)\) return null;/);
+    assert.equal(banner.includes('writeSignalsConsent'), false);
+    const notice = await readFile(
+      new URL('../components/TasteCookieNotice.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.equal(notice.includes('digestTestWindowOpen'), false);
+    const docs = await readFile(
+      new URL('../../docs/design-brief.md', import.meta.url),
+      'utf8',
+    );
+    assert.match(docs, /SignalsConsentBanner/);
+    assert.match(docs, /TasteCookieNotice/);
+    assert.match(docs, /1er décembre 2026, 00:00 Europe\/Paris/);
   });
 
   it('confidentialite names prénom, champ libre, clics + Art.21 + registre + durées', async () => {
@@ -189,6 +247,9 @@ describe('P8 — bandeau equal Refuser / Accepter + notice Art.21 + registre', (
     assert.match(conf, /Droit d&apos;opposition \(article 21\)/);
     assert.match(conf, /Registre des traitements/);
     assert.match(conf, /cc_signals_consent/);
+    assert.match(conf, /bandeau de choix n&apos;est pas affiché/);
+    assert.match(conf, /n&apos;enregistre pas un accord à ta place/);
+    assert.match(conf, /1er décembre 2026, 00:00/);
     assert.match(conf, /≤&nbsp;13/);
     assert.match(conf, /≤&nbsp;25/);
     assert.match(conf, /~6&nbsp;mois/);
