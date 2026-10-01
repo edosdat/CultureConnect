@@ -156,6 +156,16 @@ Chaque mail porte :
 
 Le clic n’exige pas de login Google. La page répond « Tu ne recevras plus le digeste. » et lie vers [Confidentialité](/confidentialite), où la case « Envoie-moi 3 idées par mail » réabonne (`unsubscribed_at` effacé).
 
+## Popup 1ère connexion (fenêtre test)
+
+Après une session Google, une carte (pas une modale) explique le test : digeste perso chaque jeudi, usage au naturel, arrêt en un clic dans le mail. La case « Envoie-moi 3 idées par mail » est nommée : elle ne filtre pas avant le 1er décembre 2026.
+
+Une fois par compte. Fermer écrit `mail_consent.seen = true` et un drapeau local `cc_digest_test_intro`. Le POST est `{ seen: true }` seul : `opted_in` et `unsubscribed_at` ne bougent pas. La liste Relance ne change pas.
+
+La carte ne s’affiche plus à partir du 1er décembre 2026 à 00:00 (Europe/Paris), le même instant que le gate `opted_in`.
+
+Aperçu sans compte, sans écrire le drapeau : `/?apercu=digeste`.
+
 Jeton (HMAC-SHA256) :
 
 1. `email` = trim + minuscules.

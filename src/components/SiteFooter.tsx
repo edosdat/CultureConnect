@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import TasteCookieNotice from './TasteCookieNotice';
 import SignalsConsentBanner from './SignalsConsentBanner';
+import DigestTestIntro from './DigestTestIntro';
 
 export default function SiteFooter() {
   return (
@@ -17,6 +18,7 @@ export default function SiteFooter() {
         </p>
       </footer>
       <SignalsConsentBanner />
+      <DigestTestIntro />
     </>
   );
 }
