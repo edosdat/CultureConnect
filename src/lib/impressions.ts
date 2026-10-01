@@ -169,10 +169,11 @@ export function validateImpressionClientPayload(
   if (!Array.isArray(o.itemKeys) || !Array.isArray(o.positions)) return null;
   if (o.itemKeys.length === 0) return null;
   if (o.itemKeys.length !== o.positions.length) return null;
-  if (o.itemKeys.length > IMPRESSION_LIST_MAX) return null;
+  // Truncate oversized lists (pack caps 80 > LIST_MAX 40) instead of 400.
+  const limit = Math.min(o.itemKeys.length, IMPRESSION_LIST_MAX);
   const itemKeys: string[] = [];
   const positions: number[] = [];
-  for (let i = 0; i < o.itemKeys.length; i += 1) {
+  for (let i = 0; i < limit; i += 1) {
     const k = o.itemKeys[i];
     const p = o.positions[i];
     if (typeof k !== 'string' || !k.trim()) return null;

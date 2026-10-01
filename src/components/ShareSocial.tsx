@@ -4,16 +4,21 @@ import { useCallback, useEffect, useState } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import type { DayItem } from '@/lib/types';
 import {
+  applyRsvpToggle,
   circleEnvieLine,
   circleGoingLine,
   DAUGHTER_NOTICE,
-  isRsvpKind,
   motherCountersLabel,
   RSVP_LOGIN_ERROR,
   visibleMotherStats,
   type RsvpKind,
   type TokenSocialPayload,
 } from '@/lib/shareRsvp';
+import {
+  fetchMotherStats,
+  parseMotherStatsPayload,
+  rememberMotherStats,
+} from '@/lib/motherStatsClient';
 
 type Props = {
   item: DayItem;
@@ -52,6 +57,11 @@ export default function ShareSocial({ item, token }: Props) {
   return <MotherStatsBlock key={item.key} itemKey={item.key} />;
 }
 
+/**
+ * Mother (home heroes + fiche sans ?t=).
+ * Paint Envie / J’y vais immediately — no skeleton cascade across carousels.
+ * mine/stats hydrate via batched POST /api/share/event/stats.
+ */
 function MotherStatsBlock({ itemKey }: { itemKey: string }) {
   const { data: session, status } = useSession();
   const authed = status === 'authenticated' && Boolean(session?.user);
@@ -61,38 +71,34 @@ function MotherStatsBlock({ itemKey }: { itemKey: string }) {
   const [busy, setBusy] = useState(false);
   const [nudge, setNudge] = useState(false);
 
-  const loadStats = useCallback(async (isCurrent: () => boolean) => {
-    try {
-      const res = await fetch(`/api/share/event/${encodeURIComponent(itemKey)}/stats`, {
-        credentials: 'same-origin',
-      });
-      if (!isCurrent()) return;
-      const data: unknown = res.ok ? await res.json() : null;
-      if (!isCurrent()) return;
-      setStats(visibleMotherStats(data as MotherStats | null));
-      const rawMine =
-        data && typeof data === 'object' && 'mine' in data
-          ? (data as { mine?: unknown }).mine
-          : null;
-      setMine(isRsvpKind(rawMine) ? rawMine : null);
-    } catch {
-      if (isCurrent()) setStats(null);
-    } finally {
-      if (isCurrent()) setSettled(true);
-    }
-  }, [itemKey]);
+  const applyPayload = useCallback(
+    (payload: { envie: number; going: number; mine: RsvpKind | null }) => {
+      setStats(visibleMotherStats(payload));
+      setMine(payload.mine);
+      rememberMotherStats(itemKey, payload);
+    },
+    [itemKey],
+  );
 
   useEffect(() => {
     let cancelled = false;
-    setStats(null);
-    setMine(null);
-    setSettled(false);
     setNudge(false);
-    void loadStats(() => !cancelled);
+    setSettled(false);
+    void (async () => {
+      try {
+        const payload = await fetchMotherStats(itemKey);
+        if (cancelled) return;
+        applyPayload(payload);
+      } catch {
+        if (!cancelled) setStats(null);
+      } finally {
+        if (!cancelled) setSettled(true);
+      }
+    })();
     return () => {
       cancelled = true;
     };
-  }, [loadStats]);
+  }, [itemKey, applyPayload]);
 
   async function tap(kind: RsvpKind) {
     if (status === 'loading' || busy) return;
@@ -100,6 +106,11 @@ function MotherStatsBlock({ itemKey }: { itemKey: string }) {
       setNudge(true);
       return;
     }
+    const prevMine = mine;
+    const prevStats = stats;
+    const nextMine = applyRsvpToggle(mine, kind);
+    // Optimistic fill — disable only while the network confirms.
+    setMine(nextMine);
     setBusy(true);
     try {
       const res = await fetch('/api/share', {
@@ -109,25 +120,44 @@ function MotherStatsBlock({ itemKey }: { itemKey: string }) {
         body: JSON.stringify({ kind, itemKey }),
       });
       if (res.status === 401) {
+        setMine(prevMine);
+        setStats(prevStats);
         setNudge(true);
         return;
       }
-      if (!res.ok) return;
-      const data = (await res.json()) as { kind?: unknown };
-      setMine(isRsvpKind(data.kind) ? data.kind : null);
-      await loadStats(() => true);
+      if (!res.ok) {
+        setMine(prevMine);
+        setStats(prevStats);
+        return;
+      }
+      const data: unknown = await res.json();
+      const raw =
+        data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
+      // POST returns kind + counters — no second stats round-trip.
+      applyPayload(
+        parseMotherStatsPayload({
+          envie: raw.envie,
+          going: raw.going,
+          mine: raw.kind,
+        }),
+      );
     } catch {
-      /* stay */
+      setMine(prevMine);
+      setStats(prevStats);
     } finally {
       setBusy(false);
     }
   }
 
-  if (!settled) return <SocialSkeleton />;
   const label = stats ? motherCountersLabel(stats.envie, stats.going) : '';
 
   return (
-    <section data-testid="share-rsvp-mother" className="mt-2">
+    <section
+      data-testid="share-rsvp-mother"
+      data-rsvp-pending={settled ? undefined : ''}
+      aria-busy={settled ? undefined : true}
+      className="mt-2"
+    >
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -210,6 +240,9 @@ function DaughterRsvp({ item, token }: { item: DayItem; token: string }) {
       setNudge(true);
       return;
     }
+    const prevMine = mine;
+    const nextMine = applyRsvpToggle(mine, kind);
+    setMine(nextMine);
     setBusy(true);
     try {
       const res = await fetch('/api/share', {
@@ -219,15 +252,19 @@ function DaughterRsvp({ item, token }: { item: DayItem; token: string }) {
         body: JSON.stringify({ kind, token, itemKey: item.key }),
       });
       if (res.status === 401) {
+        setMine(prevMine);
         setNudge(true);
         return;
       }
-      if (!res.ok) return;
+      if (!res.ok) {
+        setMine(prevMine);
+        return;
+      }
       const data = (await res.json()) as { kind?: RsvpKind | null };
       setMine(data.kind ?? null);
       await loadSocial();
     } catch {
-      /* stay */
+      setMine(prevMine);
     } finally {
       setBusy(false);
     }
@@ -242,6 +279,7 @@ function DaughterRsvp({ item, token }: { item: DayItem; token: string }) {
       ? motherCountersLabel(social.envie, social.going)
       : '';
 
+  // Daughter deep-link: keep S1 skeleton until social settles (single instance).
   if (!settled) return <SocialSkeleton />;
 
   return (

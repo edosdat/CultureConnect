@@ -11,6 +11,7 @@ import {
   isImpressionSurface,
   parseImpressionLine,
   positionsForKeys,
+  IMPRESSION_LIST_MAX,
   validateImpressionClientPayload,
 } from './impressions';
 import { GUEST_SIGNAL_FIFO_CAP } from './guestSignals';
@@ -83,6 +84,21 @@ describe('P2 — impression line schema', () => {
       }),
       null,
     );
+  });
+
+
+  it('truncates oversized itemKeys instead of rejecting (pack cap 80 > 40)', () => {
+    const keys = Array.from({ length: 45 }, (_, i) => `e:${i}`);
+    const positions = keys.map((_, i) => i + 1);
+    const parsed = validateImpressionClientPayload({
+      surface: 'section',
+      scope: 'theatre:tous',
+      itemKeys: keys,
+      positions,
+    });
+    assert.ok(parsed);
+    assert.equal(parsed!.itemKeys.length, IMPRESSION_LIST_MAX);
+    assert.equal(parsed!.positions.length, IMPRESSION_LIST_MAX);
   });
 
   it('uses dedicated KV key, not cc_signals_v1', () => {
@@ -186,6 +202,7 @@ describe('P2 — storage + consent guards (source)', () => {
       'utf8',
     );
     assert.match(probe, /hasAcceptedSignalsConsent/);
+    assert.match(probe, /IMPRESSION_LIST_MAX/);
     assert.match(probe, /\/api\/impressions/);
     assert.equal(probe.includes(GUEST_STORAGE_KEY), false);
     assert.equal(probe.includes('trackItem'), false);
