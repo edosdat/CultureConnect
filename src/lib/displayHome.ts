@@ -441,10 +441,10 @@ export function homeSectionFrameStyle(
 }
 
 /**
- * Stack between QUAND/QUOI, city row, list-wait, and Top 3.
- * Tight on mobile so the first screen has no empty hole.
+ * Stack between the filter band, Voir le mois, list-wait, and Top 3.
+ * 6px at every width — `sm:space-y-3` (12px) pushed Ville away from the axes.
  */
-export const HOME_CHROME_STACK_CLASS = 'space-y-1.5 sm:space-y-3';
+export const HOME_CHROME_STACK_CLASS = 'space-y-1.5';
 
 /** Compact chrome around Top 3; desktop keeps a bit more padding. */
 export const TOP3_SECTION_CLASS =
@@ -528,6 +528,7 @@ export type Top3SectionOpts = {
   wiped: boolean;
   cardCount: number;
   selectedCategories?: readonly string[];
+  selectedGenres?: readonly string[];
   committedTitle?: string;
   phraseActive?: boolean;
 };
@@ -536,10 +537,11 @@ export type Top3PaintMode = 'hidden' | 'skeleton' | 'cards';
 
 /**
  * Home Top 3 row.
- * Category chips filter the grid only — the section stays (skeleton or cards).
+ * Hide when any QUOI category chip or any genre chip is active.
  * Hide on wipe, committed title leftover, or phrase.
- * Date chips, commune, and salle alone keep the section (if cards).
- * While reco is not ready, keep the shell so first paint is not blank.
+ * Date chips, commune, salle, and near-me alone keep the section (if cards).
+ * Clearing QUOI (genres drop via retainSelectedGenreChips) may bring it back.
+ * While reco is not ready and no category or genre is on, keep the shell.
  */
 export function shouldShowTop3Section(opts: Top3SectionOpts): boolean {
   return top3PaintMode(opts) !== 'hidden';
@@ -548,23 +550,31 @@ export function shouldShowTop3Section(opts: Top3SectionOpts): boolean {
 /**
  * First paint: skeleton as soon as the section is allowed.
  * Real cards only after recoReady. Never wait on reco to show the shell.
- * `selectedCategories` is accepted and ignored: a QUOI chip must not hide Top 3.
+ * A QUOI chip or a genre chip hides the whole section (heading, cards,
+ * guest CTA), including before recoReady. Do not fall through to a
+ * 1-card heading (« top 1 »): the block unmounts.
+ * QUAND alone is not a hide signal. Boot chrome has no category: the shell stays.
  */
 export function top3PaintMode(opts: Top3SectionOpts): Top3PaintMode {
   if (opts.wiped) return 'hidden';
   if ((opts.committedTitle || '').trim()) return 'hidden';
   if (opts.phraseActive) return 'hidden';
+  if ((opts.selectedCategories?.length ?? 0) > 0) return 'hidden';
+  if ((opts.selectedGenres?.length ?? 0) > 0) return 'hidden';
   if (!opts.ready) return 'skeleton';
   return opts.cardCount > 0 ? 'cards' : 'hidden';
 }
 
-/** H2 for the reco row. Matches visible card count; 0 is hidden by the caller. */
+/**
+ * H2 for the reco row. Always « Top 3 » — never « top 1 » / « top 2 ».
+ * cardCount is ignored: a QUAND-only day with one card still reads Top 3.
+ * The caller hides the section when cardCount is 0.
+ */
 export function top3Heading(
-  cardCount: number,
+  _cardCount: number,
   signedIn = false,
 ): string {
-  const n = cardCount === 1 || cardCount === 2 || cardCount === 3 ? cardCount : 3;
-  return signedIn ? `Mon top ${n} du moment` : `Le top ${n} du moment`;
+  return signedIn ? 'Mon top 3 du moment' : 'Le top 3 du moment';
 }
 
 /** Live home `recommendSlice` limit (P1). Pass explicitly — engine default is 6. */

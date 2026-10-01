@@ -9,7 +9,7 @@ type Props = {
   /** `tous` / null = no chip pressed (tout à venir). */
   scope: TimeScopeId | null;
   onChange: (scope: TimeScopeId) => void;
-  /** Buttons only — parent `.cc-axes__group` wraps in the compact column. */
+  /** Buttons only — parent `.cc-axes__group` wraps inside the column band. */
   hideLabel?: boolean;
 };
 

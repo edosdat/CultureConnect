@@ -166,7 +166,7 @@ function FixedSlotsGrid({
         data-top3-count={count}
         data-top3-carousel={carousel ? '' : undefined}
         aria-roledescription={carousel ? 'carousel' : undefined}
-        aria-label={carousel ? `Le top ${count} du moment` : undefined}
+        aria-label={carousel ? 'Le top 3 du moment' : undefined}
       >
         {visible.map((item, i) => (
           <li key={item.key} className={top3CardFrameClass(count)}>

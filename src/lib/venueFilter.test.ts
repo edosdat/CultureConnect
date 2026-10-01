@@ -84,7 +84,7 @@ describe('Salle chip', () => {
     );
   });
 
-  it('is a dropdown beside the axes, not a Filtres-gated chip rail', () => {
+  it('is a dropdown in the dense band, not a Filtres-gated chip rail', () => {
     const ui = readFileSync(join(here, '../components/VenueFilter.tsx'), 'utf8');
     const app = readFileSync(
       join(here, '../components/CultureConnectApp.tsx'),
@@ -93,13 +93,28 @@ describe('Salle chip', () => {
     assert.match(ui, /aria-haspopup="listbox"/);
     assert.match(ui, /SALLE_CHIP_LABEL/);
     assert.match(ui, /SALLE_ALL_LABEL/);
+    assert.match(ui, /data-salle-slot/);
     assert.equal(ui.includes('basis-full'), false);
     assert.equal(ui.includes('>Salles<'), false);
+    const bandAt = app.indexOf('className="cc-filter-band"');
+    const cityAt = app.indexOf('<CityFilter');
+    const nearAt = app.indexOf('<NearMeChip');
     const moreAt = app.indexOf('cc-axes__more');
-    const slotAt = app.indexOf('data-salle-slot');
-    const genresAt = app.indexOf('Genres: mobile');
-    assert.ok(moreAt > 0 && slotAt > moreAt && genresAt > slotAt);
+    const venueAt = app.indexOf('<VenueFilter');
+    const genresAt = app.indexOf('GENRES: second band');
+    const monthAt = app.indexOf('Voir le mois');
+    assert.ok(bandAt > 0 && cityAt > bandAt && nearAt > cityAt);
+    assert.ok(venueAt > nearAt && moreAt > venueAt);
+    assert.ok(genresAt > moreAt && monthAt > genresAt);
+    assert.match(app, /cc-filter-band__place[\s\S]{0,2500}<VenueFilter/);
+    assert.match(app, /cc-axes__group cc-axes__group--scroll/);
+    assert.match(app, /cc-filter-band__facets/);
+    assert.match(app, /selectedCategories\.length > 0 && facetsOpen/);
+    assert.match(app, /hideWhenNoCategory/);
     assert.equal(app.includes("showFiltersMobile ? 'flex' : 'hidden'"), false);
+    assert.equal(app.includes('md:flex'), false);
+    assert.equal(app.includes('md:hidden'), false);
+    assert.equal(app.includes('data-salle-slot'), false);
     assert.match(ui, /placeVenueMenu/);
     assert.match(ui, /createPortal/);
     assert.match(ui, /overflow-y-auto/);
@@ -166,16 +181,34 @@ describe('placeVenueMenu', () => {
 });
 
 describe('home axes column', () => {
-  it('keeps QUAND then QUOI stacked at every width', () => {
+  it('keeps QUAND then QUOI stacked and glues the band at 6px', () => {
     const css = readFileSync(join(here, '../app/globals.css'), 'utf8');
-    const start = css.indexOf('QUAND then QUOI');
+    const start = css.indexOf('Filter band');
     const end = css.indexOf('.cine-hero-frame');
     assert.ok(start > 0 && end > start);
     const axes = css.slice(start, end);
+    assert.match(axes, /\.cc-filter-band \{[^}]*flex-direction:\s*column/);
+    assert.match(axes, /\.cc-filter-band \{[^}]*gap:\s*0\.375rem/);
     assert.match(axes, /\.cc-axes-row \{[^}]*flex-direction:\s*column/);
     assert.match(axes, /\.cc-axes \{[^}]*flex-direction:\s*column/);
-    assert.equal(css.includes('overflow-x: auto'), false);
+    assert.match(axes, /\.cc-axes__group \{[^}]*gap:\s*0\.375rem/);
+    assert.match(axes, /\.cc-axes__chip \{[^}]*padding:\s*0\.2rem 0\.55rem/);
+    assert.match(axes, /\.cc-filter-band__facets \{[^}]*gap:\s*0\.375rem/);
+    assert.match(axes, /\.cc-genre-scroll \{[^}]*overflow-x:\s*auto/);
+    assert.match(axes, /\.cc-filter-band__place \{[^}]*flex-wrap:\s*nowrap/);
+    assert.match(axes, /\.cc-filter-band__place \{[^}]*overflow-x:\s*auto/);
+    assert.match(
+      axes,
+      /\.cc-axes__group\.cc-axes__group--scroll \{[^}]*flex-wrap:\s*nowrap/,
+    );
+    assert.match(
+      axes,
+      /\.cc-axes__group\.cc-axes__group--scroll \{[^}]*overflow-x:\s*auto/,
+    );
+    assert.equal(axes.includes('display: contents'), false);
     assert.equal(css.includes('flex-direction: row'), false);
+    const outside = css.slice(0, start) + css.slice(end);
+    assert.equal(outside.includes('overflow-x: auto'), false);
   });
 });
 

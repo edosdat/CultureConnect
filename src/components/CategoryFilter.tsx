@@ -76,7 +76,7 @@ export default function CategoryFilter({
       </>
     );
 
-    /* Home: no wrapper — parent `.cc-axes__group` wraps in the compact column. */
+    /* Home: no wrapper — parent `.cc-axes__group` wraps in the column band. */
     if (variant === 'home') return buttons;
 
     return (

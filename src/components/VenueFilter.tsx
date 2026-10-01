@@ -269,6 +269,7 @@ export default function VenueFilter({
     return (
       <div
         ref={rootRef}
+        data-salle-slot=""
         className="relative inline-flex min-w-0 shrink-0 items-center gap-1"
       >
         <button

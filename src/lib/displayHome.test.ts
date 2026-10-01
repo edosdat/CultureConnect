@@ -53,6 +53,7 @@ import {
   TOP3_RAIL_THUMB_CLASS,
   TOP3_SECTION_CLASS,
   top3CardFrameClass,
+  top3Heading,
   top3GridClass,
   top3IndicatorLabel,
   top3PaintMode,
@@ -1266,43 +1267,48 @@ describe('search example chips', () => {
   });
 });
 
-describe('shouldShowTop3Section — keep on category / date, hide on search', () => {
+describe('shouldShowTop3Section — hide on QUOI or genre, keep on date', () => {
   const shown = {
     ready: true,
     wiped: false,
     cardCount: 3,
   };
 
-  it('stays visible with no filters, date chips, or commune/salle alone', () => {
+  it('stays visible with no QUOI or genre (date, commune, salle, near-me are not hide signals)', () => {
     assert.equal(shouldShowTop3Section(shown), true);
     assert.equal(
       shouldShowTop3Section({
         ...shown,
         selectedCategories: [],
+        selectedGenres: [],
         committedTitle: '',
         phraseActive: false,
       }),
       true,
     );
     assert.equal(
-      shouldShowTop3Section({ ...shown, selectedCategories: [] }),
+      shouldShowTop3Section({
+        ...shown,
+        selectedCategories: [],
+        selectedGenres: [],
+      }),
       true,
-      'empty QUOI list is not a hide signal',
+      'empty QUOI and genre lists are not a hide signal',
     );
   });
 
-  it('keeps cards on category chips (grid filters alone)', () => {
+  it('hides when a QUOI category or a genre chip is on', () => {
     assert.equal(
       shouldShowTop3Section({ ...shown, selectedCategories: ['cinema'] }),
-      true,
+      false,
     );
     assert.equal(
       top3PaintMode({ ...shown, selectedCategories: ['cinema'] }),
-      'cards',
+      'hidden',
     );
     assert.equal(
       shouldShowTop3Section({ ...shown, selectedCategories: ['musique'] }),
-      true,
+      false,
     );
     assert.equal(
       shouldShowTop3Section({
@@ -1310,15 +1316,60 @@ describe('shouldShowTop3Section — keep on category / date, hide on search', ()
         selectedCategories: ['theatre'],
         committedTitle: '',
       }),
-      true,
+      false,
     );
     assert.equal(
       shouldShowTop3Section({
         ...shown,
         selectedCategories: ['enfants_famille'],
       }),
-      true,
+      false,
     );
+    assert.equal(
+      shouldShowTop3Section({ ...shown, selectedGenres: ['jazz'] }),
+      false,
+    );
+    assert.equal(
+      top3PaintMode({
+        ...shown,
+        selectedCategories: [],
+        selectedGenres: ['humour'],
+      }),
+      'hidden',
+    );
+    assert.equal(
+      top3PaintMode({
+        ready: true,
+        wiped: false,
+        cardCount: 1,
+        selectedGenres: ['animation'],
+      }),
+      'hidden',
+      'a genre must hide the section, not collapse it to top 1',
+    );
+    assert.equal(
+      shouldShowTop3Section({
+        ...shown,
+        cardCount: 1,
+        selectedGenres: ['documentaire'],
+      }),
+      false,
+    );
+  });
+
+  it('QUAND-only with one card still paints the section as Top 3', () => {
+    const quandOnly = {
+      ready: true,
+      wiped: false,
+      cardCount: 1,
+      selectedCategories: [] as string[],
+      selectedGenres: [] as string[],
+    };
+    assert.equal(shouldShowTop3Section(quandOnly), true);
+    assert.equal(top3PaintMode(quandOnly), 'cards');
+    assert.equal(top3Heading(1), 'Le top 3 du moment');
+    assert.equal(top3Heading(1, true), 'Mon top 3 du moment');
+    assert.equal(top3Heading(2), 'Le top 3 du moment');
   });
 
   it('hides on committed search or phrase', () => {
@@ -1336,11 +1387,22 @@ describe('shouldShowTop3Section — keep on category / date, hide on search', ()
     );
   });
 
-  it('keeps Top 3 on a category even with a date; search still hides', () => {
+  it('hides on a category; clearing QUOI brings Top 3 back; search still hides', () => {
     assert.equal(
       shouldShowTop3Section({
         ...shown,
         selectedCategories: ['cinema'],
+        selectedGenres: [],
+        committedTitle: '',
+        phraseActive: false,
+      }),
+      false,
+    );
+    assert.equal(
+      shouldShowTop3Section({
+        ...shown,
+        selectedCategories: [],
+        selectedGenres: [],
         committedTitle: '',
         phraseActive: false,
       }),
@@ -1364,11 +1426,12 @@ describe('shouldShowTop3Section — keep on category / date, hide on search', ()
     );
   });
 
-  it('returns when search is cleared (a category alone never hid it)', () => {
+  it('returns when search and QUOI are cleared; a category still hides', () => {
     assert.equal(
       shouldShowTop3Section({
         ...shown,
         selectedCategories: [],
+        selectedGenres: [],
         committedTitle: '   ',
         phraseActive: false,
       }),
@@ -1381,7 +1444,7 @@ describe('shouldShowTop3Section — keep on category / date, hide on search', ()
         committedTitle: '   ',
         phraseActive: false,
       }),
-      true,
+      false,
     );
   });
 
@@ -1396,6 +1459,7 @@ describe('shouldShowTop3Section — keep on category / date, hide on search', ()
         wiped: true,
         cardCount: 3,
         selectedCategories: [],
+        selectedGenres: [],
       }),
       false,
     );
@@ -1416,13 +1480,32 @@ describe('shouldShowTop3Section — keep on category / date, hide on search', ()
     );
   });
 
-  it('keeps skeleton on a category chip before recoReady; search/phrase stay hidden (#55)', () => {
+  it('hides before recoReady when QUOI or genre is on; search/phrase stay hidden', () => {
     assert.equal(
       top3PaintMode({
         ready: false,
         wiped: false,
         cardCount: 0,
         selectedCategories: ['cinema'],
+      }),
+      'hidden',
+    );
+    assert.equal(
+      top3PaintMode({
+        ready: false,
+        wiped: false,
+        cardCount: 0,
+        selectedGenres: ['jazz'],
+      }),
+      'hidden',
+    );
+    assert.equal(
+      top3PaintMode({
+        ready: false,
+        wiped: false,
+        cardCount: 0,
+        selectedCategories: [],
+        selectedGenres: [],
       }),
       'skeleton',
     );
@@ -1502,6 +1585,7 @@ describe('Home chrome → Top 3 gap', () => {
   it('keeps a tight stack between filters and Top 3', () => {
     assert.ok(HOME_CHROME_STACK_CLASS.includes('space-y-1.5'));
     assert.equal(HOME_CHROME_STACK_CLASS.includes('space-y-2.5'), false);
+    assert.equal(HOME_CHROME_STACK_CLASS.includes('space-y-3'), false);
     assert.ok(TOP3_SECTION_CLASS.includes('py-1.5'));
     assert.ok(TOP3_SECTION_CLASS.includes('space-y-1'));
     assert.equal(TOP3_SECTION_CLASS.includes('py-2.5'), false);
