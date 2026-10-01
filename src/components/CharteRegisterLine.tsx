@@ -15,7 +15,8 @@ type Props = {
 
 /**
  * Page-level charte labels. The parent passes one already-resolved register
- * for the view — this component does not look at cards or category chips.
+ * for the view — this component does not look at cards. The Enfants chip
+ * selects the register upstream.
  */
 export default function CharteRegisterLine({ register, copy }: Props) {
   return (

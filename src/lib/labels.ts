@@ -13,7 +13,7 @@ export const CATEGORIE_LABELS: Record<string, string> = {
   concert: 'Concert',
   conference: 'Conférence',
   danse: 'Danse',
-  enfants_famille: 'Enfants / familles',
+  enfants_famille: 'Enfants',
   expo_patrimoine: 'Expo & patrimoine',
   expo_spectacle: 'Expo / spectacle',
   exposition: 'Exposition',

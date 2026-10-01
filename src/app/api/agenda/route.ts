@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import {
   AGENDA_HTTP_CACHE_CONTROL,
   agendaGetIsAddressed,
-  parseAvecEnfantsFlag,
 } from '@/lib/agendaParams';
 import {
   loadHomeWindow,
@@ -154,9 +153,6 @@ export async function GET(req: Request) {
     date_to,
     recoUpcoming,
     recoProfile: null,
-    avecEnfants:
-      parseAvecEnfantsFlag(url.searchParams.get('enfants')) ||
-      parseAvecEnfantsFlag(url.searchParams.get('avec_enfants')),
   });
 
   return agendaJson(result);
@@ -176,8 +172,6 @@ export async function POST(req: Request) {
     month?: unknown;
     profile?: unknown;
     excludeWorkIds?: unknown;
-    enfants?: unknown;
-    avec_enfants?: unknown;
   } = {};
   try {
     body = (await req.json()) as typeof body;
@@ -208,11 +202,6 @@ export async function POST(req: Request) {
     recoUpcoming,
     recoProfile: parseRecoProfile(body.profile),
     excludeWorkIds: parseExcludeWorkIds(body.excludeWorkIds),
-    avecEnfants:
-      parseAvecEnfantsFlag(body.enfants) ||
-      parseAvecEnfantsFlag(body.avec_enfants) ||
-      parseAvecEnfantsFlag(url.searchParams.get('enfants')) ||
-      parseAvecEnfantsFlag(url.searchParams.get('avec_enfants')),
   });
   return agendaJson(result);
 }

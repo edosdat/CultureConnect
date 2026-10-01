@@ -14,12 +14,12 @@ describe('charte copy registry', () => {
     assert.equal(CHARTE_COPY.enfants.deuxSoirs, 'Plus que deux dates');
   });
 
-  it('mode off → default register', () => {
+  it('Enfants chip off → default register', () => {
     assert.equal(charteRegister(false), 'default');
     assert.deepEqual(charteCopy(false), CHARTE_COPY.default);
   });
 
-  it('mode on → enfants register', () => {
+  it('Enfants chip on → enfants register', () => {
     assert.equal(charteRegister(true), 'enfants');
     assert.deepEqual(charteCopy(true), CHARTE_COPY.enfants);
   });
@@ -30,26 +30,20 @@ describe('charte copy registry', () => {
       { categorie: 'cinema', publicCible: 'Interdit - 16 ans' },
       { categorie: 'musique', publicCible: 'tout_public' },
     ];
-    for (const avecEnfants of [false, true]) {
-      const copy = charteCopy(avecEnfants);
+    for (const chipOn of [false, true]) {
+      const copy = charteCopy(chipOn);
       const labels = mixed.map(() => copy);
       assert.equal(new Set(labels.map((row) => row.mesCrushs)).size, 1);
       assert.equal(new Set(labels.map((row) => row.deuxSoirs)).size, 1);
       assert.equal(
         labels[0].mesCrushs,
-        avecEnfants ? 'Mes plans' : 'Mes crushs',
+        chipOn ? 'Mes plans' : 'Mes crushs',
       );
     }
   });
-
-  it('the enfants_famille chip alone does not select the enfants register', () => {
-    const chipOnModeOff = charteCopy(false);
-    assert.equal(chipOnModeOff.mesCrushs, 'Mes crushs');
-    assert.equal(chipOnModeOff.deuxSoirs, 'Plus que deux soirs pour conclure');
-  });
 });
 
-describe('charte copy is wired once from the mode flag', () => {
+describe('charte copy is wired once from the Enfants chip', () => {
   const app = readFileSync(
     new URL('../components/CultureConnectApp.tsx', import.meta.url),
     'utf8',
@@ -67,9 +61,11 @@ describe('charte copy is wired once from the mode flag', () => {
     'utf8',
   );
 
-  it('the home resolves the register from avecEnfants only', () => {
-    assert.match(app, /charteRegister\(avecEnfants\)/);
-    assert.match(app, /charteCopy\(avecEnfants\)/);
+  it('the home resolves the register from the Enfants chip only', () => {
+    assert.match(app, /enfantsChipOn/);
+    assert.match(app, /charteRegister\(enfantsChipOn\)/);
+    assert.match(app, /charteCopy\(enfantsChipOn\)/);
+    assert.equal(app.includes('avecEnfants'), false);
     assert.equal(app.includes("? 'Mes plans'"), false);
     assert.equal(app.includes('? "Mes plans"'), false);
     assert.equal(app.includes('Mes crushs'), false);
@@ -82,27 +78,21 @@ describe('charte copy is wired once from the mode flag', () => {
     assert.match(line, /copy\.deuxSoirs/);
     assert.equal(line.includes('avecEnfants'), false);
     assert.equal(line.includes('enfants_famille'), false);
-    assert.equal(line.includes('?'), false);
   });
 
-  it('first paint uses the default register, same block as the live home', () => {
+  it('cards and grids never pick a register', () => {
+    assert.equal(card.includes('charteRegister'), false);
+    assert.equal(card.includes('charteCopy'), false);
+    assert.equal(grid.includes('charteRegister'), false);
+    assert.equal(grid.includes('charteCopy'), false);
+  });
+
+  it('the boot chrome stays on the default register', () => {
     const boot = readFileSync(
-      new URL('../components/HomeTop3BootFallback.tsx', import.meta.url),
+      new URL('../components/HomeBootChrome.tsx', import.meta.url),
       'utf8',
     );
-    assert.match(boot, /<CharteRegisterLine register="default" copy=\{CHARTE_COPY\.default\}/);
     assert.equal(boot.includes('avecEnfants'), false);
-    assert.equal(boot.includes('Mes crushs'), false);
-    assert.equal(boot.includes('Mes plans'), false);
-  });
-
-  it('cards and the grid do not carry these labels', () => {
-    for (const src of [card, grid]) {
-      assert.equal(src.includes('Mes crushs'), false);
-      assert.equal(src.includes('Mes plans'), false);
-      assert.equal(src.includes('Plus que deux soirs pour conclure'), false);
-      assert.equal(src.includes('Plus que deux dates'), false);
-      assert.equal(src.includes('charteCopy'), false);
-    }
+    assert.equal(boot.includes('enfantsChipOn'), false);
   });
 });

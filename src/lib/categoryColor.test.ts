@@ -185,6 +185,7 @@ describe('S8.3 resolved form (post-B4)', () => {
     assert.equal(catKeyFromInput('--cc-cat-famille'), 'enfants');
     assert.equal(catCssVar('Cinéma'), '--cat-cine');
     assert.equal(catCssVar('Enfants / familles'), '--cat-enfants');
+    assert.equal(catCssVar('Enfants'), '--cat-enfants');
   });
 });
 

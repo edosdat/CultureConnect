@@ -1,6 +1,7 @@
 /**
- * Charte vocabulary that follows the « Avec les enfants » mode.
- * One object per register. Callers never branch on a card or on a chip.
+ * Charte vocabulary that follows the Enfants chip (QUOI).
+ * One object per register. Callers never branch on a card.
+ * The removed « Avec les enfants » séance mode no longer selects a register.
  */
 
 export type CharteRegister = 'default' | 'enfants';
@@ -25,13 +26,13 @@ export const CHARTE_COPY: Record<CharteRegister, CharteCopy> = {
 
 /**
  * Register for the current view.
- * `avecEnfants` is the request flag (`enfants=1` / `avec_enfants=1`), never a `cats` value.
+ * `enfantsChipActive` is true when the Enfants QUOI chip (`enfants_famille`) is on.
  */
-export function charteRegister(avecEnfants: boolean): CharteRegister {
-  return avecEnfants ? 'enfants' : 'default';
+export function charteRegister(enfantsChipActive: boolean): CharteRegister {
+  return enfantsChipActive ? 'enfants' : 'default';
 }
 
 /** Copy for the whole view. Item fields are not an input. */
-export function charteCopy(avecEnfants: boolean): CharteCopy {
-  return CHARTE_COPY[charteRegister(avecEnfants)];
+export function charteCopy(enfantsChipActive: boolean): CharteCopy {
+  return CHARTE_COPY[charteRegister(enfantsChipActive)];
 }
