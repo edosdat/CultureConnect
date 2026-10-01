@@ -389,7 +389,9 @@ Source : capture desktop https://culture-connect-2q8c-three.vercel.app/
 
 ## Addendum — popup 1ère connexion (test digeste, oct. 2026)
 
-Carte flottante sous la nav, centrée, largeur max ~24rem. Pas de voile. Le conteneur est `pointer-events-none` : l’agenda reste cliquable. `aria-modal="false"`. Le bandeau cookies reste en bas.
+Carte flottante sous la nav, centrée, largeur max ~24rem. Pas de voile. Le conteneur est `pointer-events-none` : l’agenda reste cliquable. `aria-modal="false"`. Quand le bandeau cookies est affiché, il reste en bas.
+
+Le bandeau CMP (`SignalsConsentBanner`) est masqué tant que `digestTestWindowOpen()` (jusqu’au 1er décembre 2026, 00:00 Europe/Paris, `DIGEST_OPT_IN_GATE_AT`). L’avis discret `TasteCookieNotice` reste. On n’écrit pas `accepted` à la place de la personne. Le popup digeste n’est pas ce consentement.
 
 Fermer : « OK, je parcours », « Fermer », ou Échap (Échap laisse la feuille Mes goûts ouverte). Une fois par compte. L’aperçu `/?apercu=digeste` montre la carte sans poser le drapeau.
 

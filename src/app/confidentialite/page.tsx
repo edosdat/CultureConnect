@@ -128,7 +128,9 @@ export default function ConfidentialitePage() {
         <p>
           <span className="font-medium">Cookies.</span> Cookies distincts,
           jamais joints. Le traceur de goûts n&apos;est posé qu&apos;après
-          «&nbsp;Accepter tout&nbsp;».
+          «&nbsp;Accepter tout&nbsp;». Jusqu&apos;au 1er décembre 2026, 00:00
+          (heure de Paris), le bandeau de choix n&apos;est pas affiché. On
+          n&apos;enregistre pas un accord à ta place.
         </p>
         <p>
           <span className="font-medium">cc_signals_v1</span> : 14&nbsp;j (≤&nbsp;13
