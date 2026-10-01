@@ -11,6 +11,13 @@ type Props = {
   onChange: (lieuId: string | null) => void;
   /** Compact chip that expands select (home P0) vs stacked block */
   variant?: 'inline' | 'block';
+  /**
+   * Selected QUOI category ids — Salles stays hidden until at least one is set
+   * (same gate as GenreChips hideWhenNoCategory).
+   */
+  selectedMains?: string[];
+  /** When true, hide entirely until a QUOI category is selected. */
+  hideWhenNoCategory?: boolean;
 };
 
 function lieuMatches(lieu: Lieu, qNorm: string): boolean {
@@ -26,6 +33,8 @@ export default function VenueFilter({
   selectedLieuId,
   onChange,
   variant = 'inline',
+  selectedMains = [],
+  hideWhenNoCategory = false,
 }: Props) {
   const [open, setOpen] = useState(Boolean(selectedLieuId));
   const [query, setQuery] = useState('');
@@ -90,6 +99,11 @@ export default function VenueFilter({
     }
     return base;
   }, [lieux, qNorm, selected]);
+
+  // After hooks — mirror GenreChips hideWhenNoCategory.
+  if (hideWhenNoCategory && selectedMains.length === 0) {
+    return null;
+  }
 
   if (lieux.length === 0 && !selectedLieuId) return null;
 
