@@ -14,11 +14,18 @@ import {
   itemBlockedByWorkKeys,
   notInterestedBlockKeys,
   profileHasChipWeight,
+  workBlockKeysOfItem,
 } from '@/lib/reco';
 import {
   extractMoods,
+  profileHasPositiveTastes,
   profileHasZeroWeights,
 } from '@/lib/signals';
+import {
+  markMesRecosWeekShown,
+  mesRecosWeekAlreadyShown,
+  type MesRecosCopyState,
+} from '@/lib/mesRecosWeek';
 import { signIn, useSession } from 'next-auth/react';
 import {
   formatHomeEventsCounter,
@@ -118,6 +125,13 @@ const MonthCalendarDrawer = dynamic(() => import('./MonthCalendarDrawer'), {
 const TastesOverlayHost = dynamic(() => import('./TastesOverlayHost'), {
   ssr: false,
 });
+const MesRecosSheet = dynamic(() => import('./MesRecosSheet'), {
+  ssr: false,
+});
+import {
+  CLOSE_MES_RECOS_EVENT,
+  OPEN_MES_RECOS_EVENT,
+} from './mesRecosUiEvents';
 const LoginNudge = dynamic(() => import('./LoginNudge'), { ssr: false });
 import CinemaCarousel from './CinemaCarousel';
 import {
@@ -258,8 +272,11 @@ const RECO_BOOT_SCOPES = ['tous', 'soir', 'aujourdhui', 'weekend', 'semaine'] as
 /** Reco cards are keyed by window so Ce soir never paints boot/tous cards. */
 function excludeWorkIdsForReco(
   signals: Parameters<typeof notInterestedBlockKeys>[0] | undefined,
+  extra: ReadonlySet<string> = new Set(),
 ): string[] {
-  return [...notInterestedBlockKeys(signals ?? [])];
+  const ids = notInterestedBlockKeys(signals ?? []);
+  for (const key of extra) ids.add(key);
+  return [...ids];
 }
 
 function recoPoolKey(
@@ -449,6 +466,16 @@ export default function CultureConnectApp({
     deepLinkBoot.expoFocusKey,
   );
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  /** P3 — hide the œuvre before the taste round-trip lands (sheet Mes recos only). */
+  const [optimisticNotInterested, setOptimisticNotInterested] = useState<
+    ReadonlySet<string>
+  >(() => new Set());
+
+  /** Plan C — Mes recos de la semaine (week pool sheet; ≠ home Top3 chips). */
+  const [mesRecosOpen, setMesRecosOpen] = useState(false);
+  const mesRecosAutoOpenedRef = useRef(false);
+  const optimisticNotInterestedRef = useRef(optimisticNotInterested);
+  optimisticNotInterestedRef.current = optimisticNotInterested;
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedLieuId, setSelectedLieuId] = useState<string | null>(null);
   const [selectedCommune, setSelectedCommune] = useState<string | null>('Toulouse');
@@ -1104,6 +1131,7 @@ export default function CultureConnectApp({
               : undefined,
             excludeWorkIds: excludeWorkIdsForReco(
               tasteStateRef.current?.signalsRecent,
+              optimisticNotInterestedRef.current,
             ),
           }),
         });
@@ -1182,8 +1210,9 @@ export default function CultureConnectApp({
                 themes: profile.themes,
               },
               excludeWorkIds: excludeWorkIdsForReco(
-                tasteStateRef.current?.signalsRecent,
-              ),
+              tasteStateRef.current?.signalsRecent,
+              optimisticNotInterestedRef.current,
+            ),
             }),
           });
           if (!res.ok) return;
@@ -1567,6 +1596,7 @@ export default function CultureConnectApp({
   ]);
   const packFilmIds = useMemo(() => {
     const ids = new Set<string>();
+
     for (const item of nouveautesItems) {
       const fid = filmIdOfItem(item);
       if (fid) ids.add(fid);
@@ -1592,10 +1622,11 @@ export default function CultureConnectApp({
       : filterSeancesForActiveFilters(nouveautesItems, activeFilter);
     return packSourceItems(fromList, fromNouv, titleLeftover);
   }, [listItems, nouveautesItems, activeFilter, searching, titleLeftover]);
-  const blockedWorks = useMemo(
-    () => notInterestedBlockKeys(tasteState?.signalsRecent ?? []),
-    [tasteState],
-  );
+  const blockedWorks = useMemo(() => {
+    const ids = notInterestedBlockKeys(tasteState?.signalsRecent ?? []);
+    for (const key of optimisticNotInterested) ids.add(key);
+    return ids;
+  }, [tasteState, optimisticNotInterested]);
   const pourToiFilled = useMemo(() => {
     if (blockedWorks.size === 0) {
       return fillEmptyCineFromPool(pourToiItems, cineSource);
@@ -2075,6 +2106,96 @@ export default function CultureConnectApp({
   /** Top 3: always open the fiche by key (full catalogue / `?e=`), never pack-focus. */
   function handleSelectTop3(key: string) {
     applyHomeCardOpen(resolveHomeCardOpen(key, null, 'top3'));
+  }
+
+  const dismissWork = useCallback((item: DayItem) => {
+    trackItem(item, 'not_interested');
+    setOptimisticNotInterested((prev) => {
+      const next = new Set(prev);
+      for (const key of workBlockKeysOfItem(item)) next.add(key);
+      return next;
+    });
+  }, [trackItem]);
+
+  const workIsNotInterested = useCallback(
+    (item: DayItem) => itemBlockedByWorkKeys(item, blockedWorks),
+    [blockedWorks],
+  );
+
+  // —— Mes recos de la semaine: ALWAYS scope=semaine profile pool (≠ chip-scoped home Top3)
+  const weekRecoKey = useMemo(
+    () => recoPoolKey('semaine', null, selectedCommune, 'profile'),
+    [selectedCommune],
+  );
+  const weekPourToiRaw = useMemo(() => {
+    if (sessionStatus !== 'authenticated' || recoWiped) return [];
+    return recoPoolByKey[weekRecoKey] ?? [];
+  }, [sessionStatus, recoWiped, recoPoolByKey, weekRecoKey]);
+  const weekPourToiFilled = useMemo(() => {
+    // Keep week pool pure — do not fill from chip-scoped cineSource.
+    if (blockedWorks.size === 0) return weekPourToiRaw;
+    const hide = (item: DayItem) => !itemBlockedByWorkKeys(item, blockedWorks);
+    return weekPourToiRaw.filter(hide);
+  }, [weekPourToiRaw, blockedWorks]);
+  const weekTop3Cards = useMemo(
+    () => visibleTop3Items(weekPourToiFilled),
+    [weekPourToiFilled],
+  );
+  const weekPoolReady = Object.prototype.hasOwnProperty.call(
+    recoPoolByKey,
+    weekRecoKey,
+  );
+  const mesRecosCopyState: MesRecosCopyState = useMemo(() => {
+    if (weekTop3Cards.length === 0 && weekPoolReady) return 'empty';
+    if (profileHasPositiveTastes(tasteState?.profile)) return 'warm';
+    return 'cold';
+  }, [weekTop3Cards.length, weekPoolReady, tasteState]);
+
+  const closeMesRecos = useCallback(() => {
+    setMesRecosOpen(false);
+    // Closing (chrome × / CTA / Esc / card→fiche) consumes the Paris week.
+    markMesRecosWeekShown();
+  }, []);
+
+  const openMesRecosManual = useCallback(() => {
+    // Menu « Mes recos » — reopen WITHOUT consuming / re-gating the week.
+    setMesRecosOpen(true);
+  }, []);
+
+  useEffect(() => {
+    function onOpen() {
+      openMesRecosManual();
+    }
+    function onClose() {
+      closeMesRecos();
+    }
+    window.addEventListener(OPEN_MES_RECOS_EVENT, onOpen);
+    window.addEventListener(CLOSE_MES_RECOS_EVENT, onClose);
+    return () => {
+      window.removeEventListener(OPEN_MES_RECOS_EVENT, onOpen);
+      window.removeEventListener(CLOSE_MES_RECOS_EVENT, onClose);
+    };
+  }, [openMesRecosManual, closeMesRecos]);
+
+  // Auto-popup 1× / Paris calendar week after Google login (guest = never).
+  useEffect(() => {
+    if (sessionStatus !== 'authenticated') {
+      mesRecosAutoOpenedRef.current = false;
+      return;
+    }
+    if (mesRecosAutoOpenedRef.current) return;
+    if (mesRecosWeekAlreadyShown()) return;
+    if (recoKind !== 'profile') return;
+    // Prefer week pool paint; if only home reco is ready, still open (cold/empty OK).
+    if (!weekPoolReady && !recoReady) return;
+    mesRecosAutoOpenedRef.current = true;
+    markMesRecosWeekShown(); // « montré » = sheet mounted
+    setMesRecosOpen(true);
+  }, [sessionStatus, weekPoolReady, recoReady, recoKind]);
+
+  function handleSelectMesRecosCard(key: string) {
+    closeMesRecos();
+    handleSelectTop3(key);
   }
 
   const listEmpty =
@@ -3306,6 +3427,16 @@ export default function CultureConnectApp({
       </div>
 
       <TastesOverlayHost />
+
+      <MesRecosSheet
+        open={mesRecosOpen}
+        onClose={closeMesRecos}
+        cards={weekTop3Cards}
+        copyState={mesRecosCopyState}
+        onSelectCard={handleSelectMesRecosCard}
+        onNotInterested={dismissWork}
+        notInterested={workIsNotInterested}
+      />
 
       <ProposeSpectacleSheet
         open={proposeOpen}

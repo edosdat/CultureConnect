@@ -807,7 +807,7 @@ describe('P3 not_interested', () => {
     assert.equal(shouldPromptLogin([pass]), false);
   });
 
-  it('keeps not_interested backend but strips × UI from catalogue surfaces', async () => {
+  it('keeps catalogue free of ×; sheet Mes recos may use PasPourMoi', async () => {
     const card = await readFile(
       new URL('../components/SeanceCard.tsx', import.meta.url),
       'utf8',
@@ -828,19 +828,28 @@ describe('P3 not_interested', () => {
       new URL('../components/CultureConnectApp.tsx', import.meta.url),
       'utf8',
     );
-    assert.equal(card.includes('PasPourMoiControl'), false);
-    assert.equal(card.includes('onNotInterested'), false);
-    assert.equal(card.includes('Pas pour moi'), false);
+    const sheet = await readFile(
+      new URL('../components/MesRecosSheet.tsx', import.meta.url),
+      'utf8',
+    );
+    // Optional prop on SeanceCard for sheet only — never passed from grid/rails.
+    assert.match(card, /PasPourMoiControl/);
+    assert.match(card, /onNotInterested/);
     assert.equal(grid.includes('onNotInterested'), false);
     assert.equal(rail.includes('PasPourMoiControl'), false);
     assert.equal(rail.includes('onNotInterested'), false);
     assert.equal(detail.includes('PasPourMoiControl'), false);
     assert.equal(detail.includes('not_interested'), false);
-    assert.equal(app.includes('PasPourMoiControl'), false);
-    assert.equal(app.includes('onNotInterested'), false);
-    assert.equal(app.includes("trackItem(item, 'not_interested')"), false);
-    // Backend filtering of recorded signals stays (Top 3 / recommendSlice).
+    // Home catalogue / Top3 in app must not wire onNotInterested on SeanceGrid.
+    const top3Block = app.slice(
+      app.indexOf('data-top3=""'),
+      app.indexOf('data-top3=""') + 1200,
+    );
+    assert.equal(top3Block.includes('onNotInterested'), false);
+    assert.match(sheet, /onNotInterested/);
+    assert.match(app, /trackItem\(item, 'not_interested'\)/);
     assert.match(app, /notInterestedBlockKeys/);
     assert.match(app, /visibleTop3Items\(pourToiFilled\)/);
+    assert.match(app, /recoPoolKey\('semaine'/);
   });
 });
