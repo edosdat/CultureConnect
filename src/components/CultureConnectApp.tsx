@@ -3038,14 +3038,14 @@ export default function CultureConnectApp({
               </div>
             </div>
           </div>
-          {/* Salle sits outside the scrolling axes so it stays on screen
-              (desktop overflow-x, mobile wrap). Not behind Filtres.
+          {/* Salle sits after the compact QUAND/QUOI column (sibling of
+              .cc-axes, not inside a scroller). Not behind Filtres.
               Options = every upcoming venue in the active category
               and commune (agenda venuesForCategoryMenu). */}
           {selectedCategories.length > 0 ? (
             <div
               data-salle-slot=""
-              className="flex shrink-0 self-start md:self-center"
+              className="flex min-w-0 max-w-full shrink-0 self-start"
             >
               <VenueFilter
                 lieux={venueOptions}
