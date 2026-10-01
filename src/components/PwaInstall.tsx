@@ -437,7 +437,7 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
-    const hadController = Boolean(navigator.serviceWorker.controller);
+    let sawController = Boolean(navigator.serviceWorker.controller);
     let reloading = false;
     let pendingReload = false;
     let registration: ServiceWorkerRegistration | null = null;
@@ -454,7 +454,10 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
     }
 
     function onController() {
-      if (!hadController || reloading) return;
+      if (!sawController || reloading) {
+        sawController = true;
+        return;
+      }
       pendingReload = true;
       trySoftReload();
     }

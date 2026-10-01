@@ -112,7 +112,7 @@ describe('pwa refresh while open', () => {
     assert.match(ui, /visibilitychange/);
     assert.match(ui, /data-testid="pwa-shell-refresh"/);
     assert.match(ui, /SHELL_UPDATE_TIP/);
-    assert.match(ui, /if \(!hadController/);
+    assert.match(ui, /if \(!sawController/);
     assert.match(app, /AGENDA_REFRESH_EVENT/);
     assert.match(app, /mergeRowsByKey/);
     assert.match(app, /cache:\s*'no-store'/);
