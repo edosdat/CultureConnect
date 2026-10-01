@@ -8,6 +8,9 @@ import { normalizeCommune } from './commune';
 import {
   SALLE_ALL_LABEL,
   SALLE_CHIP_LABEL,
+  VENUE_MENU_MAX_PX,
+  VENUE_MENU_Z,
+  placeVenueMenu,
   retainSelectedLieuId,
   venueChipShown,
   venueFilterVisible,
@@ -97,6 +100,82 @@ describe('Salle chip', () => {
     const genresAt = app.indexOf('Genres: mobile');
     assert.ok(moreAt > 0 && slotAt > moreAt && genresAt > slotAt);
     assert.equal(app.includes("showFiltersMobile ? 'flex' : 'hidden'"), false);
+    assert.match(ui, /placeVenueMenu/);
+    assert.match(ui, /createPortal/);
+    assert.match(ui, /overflow-y-auto/);
+    assert.match(ui, /VENUE_MENU_Z/);
+  });
+});
+
+describe('placeVenueMenu', () => {
+  const view = { viewportWidth: 1200, viewportHeight: 800 };
+
+  it('opens under the chip when there is room below', () => {
+    const box = placeVenueMenu({
+      ...view,
+      rect: { top: 120, bottom: 156, left: 40 },
+    });
+    assert.equal(box.top, 160);
+    assert.equal(box.bottom, null);
+    assert.equal(box.left, 40);
+    assert.equal(box.width, 320);
+    assert.equal(box.maxHeight, VENUE_MENU_MAX_PX);
+  });
+
+  it('flips above the chip when space below is tight and space above is larger', () => {
+    const box = placeVenueMenu({
+      ...view,
+      rect: { top: 700, bottom: 736, left: 40 },
+    });
+    assert.equal(box.top, null);
+    assert.equal(box.bottom, 800 - 700 + 4);
+    assert.equal(box.maxHeight, VENUE_MENU_MAX_PX);
+  });
+
+  it('stays below and shortens maxHeight when the space above is smaller', () => {
+    const box = placeVenueMenu({
+      viewportWidth: 390,
+      viewportHeight: 700,
+      rect: { top: 80, bottom: 560, left: 16 },
+    });
+    assert.equal(box.top, 564);
+    assert.equal(box.bottom, null);
+    assert.equal(box.maxHeight, 700 - 560 - 4 - 8);
+  });
+
+  it('clamps the menu inside the viewport horizontally', () => {
+    const box = placeVenueMenu({
+      viewportWidth: 400,
+      viewportHeight: 800,
+      rect: { top: 200, bottom: 236, left: 300 },
+    });
+    assert.equal(box.width, 320);
+    assert.equal(box.left, 400 - 320 - 8);
+    const narrow = placeVenueMenu({
+      viewportWidth: 280,
+      viewportHeight: 800,
+      rect: { top: 200, bottom: 236, left: -40 },
+    });
+    assert.equal(narrow.width, 280 - 16);
+    assert.equal(narrow.left, 8);
+  });
+
+  it('keeps the open menu above the cookie banner and the digest intro', () => {
+    assert.ok(VENUE_MENU_Z >= 80);
+  });
+});
+
+describe('home axes column', () => {
+  it('keeps QUAND then QUOI stacked at every width', () => {
+    const css = readFileSync(join(here, '../app/globals.css'), 'utf8');
+    const start = css.indexOf('QUAND then QUOI');
+    const end = css.indexOf('.cine-hero-frame');
+    assert.ok(start > 0 && end > start);
+    const axes = css.slice(start, end);
+    assert.match(axes, /\.cc-axes-row \{[^}]*flex-direction:\s*column/);
+    assert.match(axes, /\.cc-axes \{[^}]*flex-direction:\s*column/);
+    assert.equal(css.includes('overflow-x: auto'), false);
+    assert.equal(css.includes('flex-direction: row'), false);
   });
 });
 

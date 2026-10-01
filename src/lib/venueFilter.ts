@@ -55,3 +55,66 @@ export function retainSelectedLieuId(
 export function venueFilterVisible(selectedMains: string[]): boolean {
   return selectedMains.length > 0;
 }
+
+/** Preferred menu height (16rem). Below this, the side with more room wins. */
+export const VENUE_MENU_MAX_PX = 256;
+const VENUE_MENU_GAP_PX = 4;
+const VENUE_MENU_EDGE_PX = 8;
+/**
+ * Open menu stacks above the cookie banner (z-60) and the digest intro (z-70)
+ * so the list stays clickable. Page chrome stays lower (sticky z-20, chat z-40).
+ */
+export const VENUE_MENU_Z = 80;
+
+export type VenueMenuBox = {
+  left: number;
+  width: number;
+  maxHeight: number;
+  /** Set when the menu opens under the chip. */
+  top: number | null;
+  /** Set when the menu flips above the chip. Distance from the viewport bottom. */
+  bottom: number | null;
+};
+
+/**
+ * Fixed position for the Salle menu. Flips above the chip when the space
+ * below is tighter than the preferred height and the space above is larger.
+ * maxHeight is the room on the chosen side. Left/width stay inside the viewport.
+ */
+export function placeVenueMenu(args: {
+  rect: { top: number; bottom: number; left: number };
+  viewportWidth: number;
+  viewportHeight: number;
+}): VenueMenuBox {
+  const edge = VENUE_MENU_EDGE_PX;
+  const gap = VENUE_MENU_GAP_PX;
+  const width = Math.min(320, Math.max(0, args.viewportWidth - edge * 2));
+  let left = args.rect.left;
+  if (left + width > args.viewportWidth - edge) {
+    left = args.viewportWidth - width - edge;
+  }
+  if (left < edge) left = edge;
+
+  const spaceBelow = args.viewportHeight - args.rect.bottom - gap;
+  const spaceAbove = args.rect.top - gap;
+  const flipUp = spaceBelow < VENUE_MENU_MAX_PX && spaceAbove > spaceBelow;
+  const room = Math.max(0, (flipUp ? spaceAbove : spaceBelow) - edge);
+  const maxHeight = Math.min(VENUE_MENU_MAX_PX, room);
+
+  if (flipUp) {
+    return {
+      left,
+      width,
+      maxHeight,
+      top: null,
+      bottom: args.viewportHeight - args.rect.top + gap,
+    };
+  }
+  return {
+    left,
+    width,
+    maxHeight,
+    top: args.rect.bottom + gap,
+    bottom: null,
+  };
+}

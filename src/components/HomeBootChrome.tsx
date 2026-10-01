@@ -22,14 +22,14 @@ function homeBootMonthLabel(now = new Date()): string {
  * Reserved at ~380px (Design LAYOUT_JUMP):
  * - sticky search: h-10 + py-1.5 + border-b + mb-2 (~61px); ↵ always visible
  * - no SEARCH_EXAMPLES (retired)
- * - .cc-axes: two wrapping groups on <md — QUAND then QUOI, labels on
- *   (~2 wrap rows each at 380px, Filtres with Quoi)
+ * - .cc-axes: two wrapping groups — QUAND then QUOI, compact column at
+ *   every width (labels on; Filtres with Quoi on <md)
  * - Toulouse + Près de moi + Voir le mois (Paris month; wraps)
  * - HomeListWaitSlot: overlay (no flow well; dots are 12px)
  *
  * SiteNav is already in the root layout. GenreFilter and the Salle chip
- * are absent here (no QUOI yet). Live: Salle is pinned beside the axes
- * (outside the horizontal scroller), not behind Filtres.
+ * are absent here (no QUOI yet). Live: Salle sits after the column,
+ * not behind Filtres.
  * Chips / city / wait slot are siblings of [data-top3].
  */
 export default function HomeBootChrome({ children }: { children: ReactNode }) {

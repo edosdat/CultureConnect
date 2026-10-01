@@ -1,13 +1,17 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { Lieu } from '@/lib/types';
 import { formatLieuAffiche } from '@/lib/labels';
 import { normalizeFr } from '@/lib/signals';
 import {
   SALLE_ALL_LABEL,
   SALLE_CHIP_LABEL,
+  VENUE_MENU_Z,
+  placeVenueMenu,
   venueChipShown,
+  type VenueMenuBox,
 } from '@/lib/venueFilter';
 
 type Props = {
@@ -45,12 +49,9 @@ export default function VenueFilter({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const [box, setBox] = useState<{
-    top: number;
-    left: number;
-    width: number;
-  } | null>(null);
+  const [box, setBox] = useState<VenueMenuBox | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const mainsKey = selectedMains.join(',');
@@ -76,12 +77,13 @@ export default function VenueFilter({
       const el = buttonRef.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
-      const width = Math.min(320, window.innerWidth - 16);
-      let left = r.left;
-      if (left + width > window.innerWidth - 8) {
-        left = Math.max(8, window.innerWidth - width - 8);
-      }
-      setBox({ top: r.bottom + 4, left, width });
+      setBox(
+        placeVenueMenu({
+          rect: { top: r.top, bottom: r.bottom, left: r.left },
+          viewportWidth: window.innerWidth,
+          viewportHeight: window.innerHeight,
+        }),
+      );
     };
     place();
     window.addEventListener('resize', place);
@@ -95,7 +97,10 @@ export default function VenueFilter({
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (e: PointerEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setOpen(false);
     };
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false);
@@ -158,17 +163,19 @@ export default function VenueFilter({
     setOpen(false);
   };
 
-  const menu =
+  const menuEl =
     open && box ? (
       <div
+        ref={menuRef}
         id="cc-venue"
         style={{
           position: 'fixed',
-          top: box.top,
+          top: box.top ?? undefined,
+          bottom: box.bottom ?? undefined,
           left: box.left,
           width: box.width,
-          zIndex: 40,
-          maxHeight: `min(16rem, calc(100dvh - ${box.top}px - 12px))`,
+          zIndex: VENUE_MENU_Z,
+          maxHeight: box.maxHeight,
         }}
         className="flex flex-col overflow-hidden rounded-xl border border-culture-line bg-culture-surface shadow-card"
       >
@@ -244,6 +251,11 @@ export default function VenueFilter({
         </ul>
       </div>
     ) : null;
+
+  const menu =
+    menuEl && typeof document !== 'undefined'
+      ? createPortal(menuEl, document.body)
+      : null;
 
   const triggerClass =
     (variant === 'inline'
