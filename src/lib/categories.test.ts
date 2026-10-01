@@ -171,12 +171,20 @@ describe('matchesEnfantsChipContent', () => {
     );
   });
 
-  it('does not steal concerts via a famille mood tag', () => {
+  it('LOCK: musique / expo with kids audience tags join the Enfants chip', () => {
     assert.equal(
       matchesEnfantsChipContent({
         categorie: 'concert',
         genre: 'chanson_variete',
         tags: 'famille',
+      }),
+      true,
+    );
+    assert.equal(
+      matchesEnfantsChipContent({
+        categorie: 'concert',
+        genre: 'metal',
+        tags: 'rock',
       }),
       false,
     );

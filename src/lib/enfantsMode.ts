@@ -6,8 +6,11 @@ import {
 import type { DayItem } from './types';
 
 /**
- * Mode « Avec les enfants » — séance-level request flag, not a `cats` value.
- * Age-restricted séances are excluded before any inclusion rule.
+ * Family-slot helpers kept for a future option *under* the Enfants chip.
+ * Product LOCK 2026-10-01: the « Avec les enfants » séance-mode catalog is
+ * removed. Do not re-wire `applyAvecEnfantsMode` as a second rail / request
+ * flag. The sole path is the Enfants QUOI chip (`enfants_famille`) with
+ * unitary densified cards.
  */
 
 const FAMILY_WEEKDAYS = new Set([0, 3, 6]); // dimanche, mercredi, samedi

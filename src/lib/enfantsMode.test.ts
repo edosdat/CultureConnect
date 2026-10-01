@@ -1,15 +1,12 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { matchesMainCategories } from './categories';
-import { loadCultureData } from './data';
+import { readFileSync } from 'node:fs';
+import { matchesEnfantsChipContent, matchesMainCategories } from './categories';
 import {
-  agendaListCacheKeyParts,
   buildAgendaParams,
   listFetchShouldSkipBootGps,
-  parseAvecEnfantsFlag,
 } from './agendaParams';
-import { queryAgenda, type AgendaQueryInput } from './agendaQuery';
-import { itemsForDateRange } from './events';
+import { densify, densifiedCardCount } from './densify';
 import {
   applyAvecEnfantsMode,
   avecEnfantsCreneau,
@@ -19,10 +16,7 @@ import {
 } from './enfantsMode';
 import { isAgeRestrictedSeance } from './categories';
 import type { DayItem, Evenement, ProgrammeItem } from './types';
-import { hideSeancesBeforeToday, parisParts, upcomingRange } from './timeScope';
-
-/** Mercredi 30/09/2026 10:00 Paris. */
-const NOW = new Date('2026-09-30T08:00:00.000Z');
+import { enfantsRows } from './displayHome';
 
 function ev(partial: Partial<Evenement> & Pick<Evenement, 'event_id' | 'categorie' | 'titre'>): Evenement {
   return {
@@ -53,6 +47,7 @@ function seance(opts: {
   publicCible?: string;
   parentPublicCible?: string;
   title?: string;
+  filmId?: string;
 }): DayItem {
   const evenement = ev({
     event_id: `e-${opts.id}`,
@@ -83,6 +78,7 @@ function seance(opts: {
     artiste_id: '',
     form: opts.form,
     public_cible: opts.publicCible,
+    film_id: opts.filmId,
   };
   return {
     kind: 'programme',
@@ -94,335 +90,199 @@ function seance(opts: {
   };
 }
 
-function intersectsCats(item: DayItem, cats: string[]): boolean {
-  if (!seanceMatchesAvecEnfantsMode(item)) return false;
-  if (item.kind !== 'programme') return false;
-  return matchesMainCategories(
-    item.evenement?.categorie ?? '',
-    item.programme.genre || item.evenement?.genre || '',
-    cats,
-    {
-      tags: item.evenement?.tags || '',
-      publicCible: seancePublicCible(item),
-    },
+describe('product LOCK — Enfants chip sole path', () => {
+  const app = readFileSync(
+    new URL('../components/CultureConnectApp.tsx', import.meta.url),
+    'utf8',
   );
-}
+  const route = readFileSync(
+    new URL('../app/api/agenda/route.ts', import.meta.url),
+    'utf8',
+  );
+  const paramsSrc = readFileSync(
+    new URL('./agendaParams.ts', import.meta.url),
+    'utf8',
+  );
+  const querySrc = readFileSync(
+    new URL('./agendaQuery.ts', import.meta.url),
+    'utf8',
+  );
 
-describe('seanceMatchesAvecEnfantsMode', () => {
-  it('keeps a jeune_public screening and drops the same work at night', () => {
-    const family = seance({
-      id: 'sun-11',
-      day: '2026-10-04',
-      heure: '11:00',
-      publicCible: 'jeune_public',
-      parentPublicCible: 'tout_public',
-    });
-    const night = seance({
-      id: 'sat-22',
-      day: '2026-10-03',
-      heure: '22:00',
-      publicCible: 'tout_public',
-      parentPublicCible: 'jeune_public',
-    });
-    assert.equal(seanceMatchesAvecEnfantsMode(family), true);
-    assert.equal(seancePublicCible(family), 'jeune_public');
-    assert.equal(seanceMatchesAvecEnfantsMode(night), false);
-    assert.equal(seancePublicCible(night), 'tout_public');
+  it('removes the « Avec les enfants » mode UI and request flag', () => {
+    assert.equal(app.includes('Avec les enfants'), false);
+    assert.equal(app.includes('data-enfants-mode'), false);
+    assert.equal(app.includes('avecEnfants'), false);
+    assert.equal(app.includes('oneCardPerSeance'), false);
+    assert.equal(route.includes('avecEnfants'), false);
+    assert.equal(paramsSrc.includes('avecEnfants'), false);
+    assert.equal(paramsSrc.includes('parseAvecEnfantsFlag'), false);
+    assert.equal(querySrc.includes('avecEnfants'), false);
+    assert.equal(querySrc.includes('applyAvecEnfantsMode'), false);
   });
 
-  it('keeps a form=enfants œuvre at any hour', () => {
-    const late = seance({
-      id: 'kids-22',
-      day: '2026-10-02',
-      heure: '22:15',
-      cat: 'enfants_famille',
-      genre: 'atelier_mediation',
-      form: 'enfants',
-      publicCible: 'tout_public',
-    });
-    assert.equal(seanceMatchesAvecEnfantsMode(late), true);
-    assert.equal(avecEnfantsCreneau(late), 'soir');
-  });
-
-  it('never keeps an age-restricted séance, whatever the chips would say', () => {
-    const interdit = seance({
-      id: 'ban',
-      day: '2026-10-04',
-      heure: '11:00',
-      cat: 'enfants_famille',
-      genre: 'animation_jeune_public',
-      form: 'enfants',
-      tags: 'famille',
-      publicCible: 'Interdit - 12 ans avec avertissement',
-      parentPublicCible: 'jeune_public',
-    });
-    const seize = seance({
-      id: 'ban-16',
-      day: '2026-10-04',
-      heure: '15:00',
-      publicCible: 'Interdit - 16 ans',
-    });
-    assert.equal(seanceMatchesAvecEnfantsMode(interdit), false);
-    assert.equal(seanceMatchesAvecEnfantsMode(seize), false);
-    assert.equal(intersectsCats(interdit, ['enfants_famille']), false);
-    assert.equal(intersectsCats(interdit, ['cinema', 'enfants_famille']), false);
-    assert.equal(intersectsCats(seize, []), false);
-  });
-
-  it('surfaces tout_public before 18:00 on mercredi, samedi and dimanche only', () => {
-    const sunday = seance({
-      id: 'sun-tp',
-      day: '2026-10-04',
-      heure: '17:30',
-      publicCible: 'tout_public',
-    });
-    const wednesday = seance({
-      id: 'wed-tp',
-      day: '2026-09-30',
-      heure: '14:00',
-      publicCible: 'tout_public',
-    });
-    const saturdayNight = seance({
-      id: 'sat-tp',
-      day: '2026-10-03',
-      heure: '18:00',
-      publicCible: 'tout_public',
-    });
-    const friday = seance({
-      id: 'fri-tp',
-      day: '2026-10-02',
-      heure: '11:00',
-      publicCible: 'tout_public',
-    });
-    const noClock = seance({
-      id: 'sun-noclock',
-      day: '2026-10-04',
-      heure: '',
-      publicCible: 'tout_public',
-    });
-    assert.equal(isFamilyToutPublicSlot(sunday), true);
-    assert.equal(seanceMatchesAvecEnfantsMode(sunday), true);
-    assert.equal(seanceMatchesAvecEnfantsMode(wednesday), true);
-    assert.equal(seanceMatchesAvecEnfantsMode(saturdayNight), false);
-    assert.equal(seanceMatchesAvecEnfantsMode(friday), false);
-    assert.equal(seanceMatchesAvecEnfantsMode(noClock), false);
-  });
-
-  it('includes jeune_public even when the œuvre is not classified enfants', () => {
-    const adultFilm = seance({
-      id: 'jp-adult',
-      day: '2026-10-02',
-      heure: '21:00',
-      cat: 'cinema',
-      genre: 'fiction',
-      publicCible: 'jeune_public',
-    });
-    assert.equal(seanceMatchesAvecEnfantsMode(adultFilm), true);
-  });
-
-  it('intersects with category chips instead of unioning them', () => {
-    const cine = seance({
-      id: 'cine-sun',
-      day: '2026-10-04',
-      heure: '11:00',
-      cat: 'cinema',
-      genre: 'fiction',
-      publicCible: 'tout_public',
-    });
-    const music = seance({
-      id: 'music-sun',
-      day: '2026-10-04',
-      heure: '16:00',
-      cat: 'musique',
-      genre: 'jazz_blues',
-      publicCible: 'tout_public',
-    });
-    assert.equal(intersectsCats(cine, []), true);
-    assert.equal(intersectsCats(music, []), true);
-    assert.equal(intersectsCats(cine, ['musique']), false);
-    assert.equal(intersectsCats(music, ['musique']), true);
-    assert.equal(intersectsCats(cine, ['cinema']), true);
-    assert.equal(intersectsCats(music, ['cinema']), false);
-  });
-});
-
-describe('applyAvecEnfantsMode sort', () => {
-  it('orders by date proximity, then matin / après-midi before soir', () => {
-    const items = [
-      seance({
-        id: 'sun-soir',
-        day: '2026-10-04',
-        heure: '20:00',
-        cat: 'enfants_famille',
-        genre: 'atelier_mediation',
-        form: 'enfants',
-      }),
-      seance({
-        id: 'sun-matin',
-        day: '2026-10-04',
-        heure: '11:00',
-        publicCible: 'jeune_public',
-      }),
-      seance({
-        id: 'sat-aprem',
-        day: '2026-10-03',
-        heure: '16:00',
-        publicCible: 'tout_public',
-      }),
-      seance({
-        id: 'wed-soir',
-        day: '2026-10-07',
-        heure: '21:00',
-        cat: 'enfants_famille',
-        genre: 'atelier_mediation',
-        form: 'enfants',
-      }),
-      seance({
-        id: 'sun-aprem',
-        day: '2026-10-04',
-        heure: '15:10',
-        publicCible: 'jeune_public',
-      }),
-    ];
-    const once = applyAvecEnfantsMode(items).map((item) => item.key);
-    const twice = applyAvecEnfantsMode([...items].reverse()).map((item) => item.key);
-    assert.deepEqual(once, [
-      'p:sat-aprem',
-      'p:sun-matin',
-      'p:sun-aprem',
-      'p:sun-soir',
-      'p:wed-soir',
-    ]);
-    assert.deepEqual(twice, once);
-  });
-});
-
-describe('enfants query flag', () => {
-  it('is a dedicated flag, not a cat value', () => {
+  it('does not send enfants=1 as a mode flag', () => {
     const params = buildAgendaParams({
       scope: 'tous',
       commune: 'Toulouse',
       q: '',
-      cats: ['musique'],
+      cats: ['enfants_famille'],
       genres: [],
       lieuId: null,
       selectedDate: null,
       year: 2026,
-      month: 9,
-      avecEnfants: true,
+      month: 10,
     });
-    assert.equal(params.get('enfants'), '1');
+    assert.equal(params.get('enfants'), null);
     assert.equal(params.get('avec_enfants'), null);
-    assert.equal(params.get('cat'), 'musique');
-    assert.equal(params.get('cat')?.includes('enfants'), false);
-    assert.equal(parseAvecEnfantsFlag('1'), true);
-    assert.equal(parseAvecEnfantsFlag('avec_enfants'), false);
-    assert.equal(parseAvecEnfantsFlag(null), false);
+    assert.equal(params.get('cat'), 'enfants_famille');
   });
 
-  it('changes the list cache key and is not swallowed by the boot GPS skip', () => {
-    const base = {
-      scope: 'tous',
-      selectedDate: null,
-      year: 2026,
-      month: 9,
-      cats: [] as string[],
-      commune: 'Toulouse',
-      lieuId: null,
-      genres: [] as string[],
-      parisDay: '2026-09-30',
-    };
-    const off = agendaListCacheKeyParts(base).join('|');
-    const on = agendaListCacheKeyParts({ ...base, avecEnfants: true }).join('|');
-    assert.notEqual(off, on);
-    assert.ok(on.endsWith('enfants'));
-    assert.equal(listFetchShouldSkipBootGps(true, 'tous', 0, '', true), false);
+  it('boot GPS skip no longer has a kids-mode escape hatch', () => {
     assert.equal(listFetchShouldSkipBootGps(true, 'tous', 0), true);
+    assert.equal(listFetchShouldSkipBootGps(true, 'tous', 1), false);
+  });
+
+  it('Enfants chip densifies same film_id → unitary card (no Cars×5)', () => {
+    const cars = [
+      seance({
+        id: 'c1',
+        day: '2026-10-04',
+        heure: '10:00',
+        genre: 'animation_jeune_public',
+        title: 'Cars',
+        filmId: 'F-CARS',
+        publicCible: 'jeune_public',
+      }),
+      seance({
+        id: 'c2',
+        day: '2026-10-04',
+        heure: '14:00',
+        genre: 'animation_jeune_public',
+        title: 'Cars',
+        filmId: 'F-CARS',
+        publicCible: 'jeune_public',
+      }),
+      seance({
+        id: 'c3',
+        day: '2026-10-05',
+        heure: '11:00',
+        genre: 'animation_jeune_public',
+        title: 'Cars',
+        filmId: 'F-CARS',
+        publicCible: 'jeune_public',
+      }),
+      seance({
+        id: 'c4',
+        day: '2026-10-05',
+        heure: '16:00',
+        genre: 'animation_jeune_public',
+        title: 'Cars',
+        filmId: 'F-CARS',
+        publicCible: 'jeune_public',
+      }),
+      seance({
+        id: 'c5',
+        day: '2026-10-06',
+        heure: '10:30',
+        genre: 'animation_jeune_public',
+        title: 'Cars',
+        filmId: 'F-CARS',
+        publicCible: 'jeune_public',
+      }),
+    ];
+    assert.equal(cars.length, 5);
+    assert.equal(densifiedCardCount(cars), 1);
+    assert.equal(densify(cars).length, 1);
+    const rows = enfantsRows(cars, new Set(), { includeCrossCatKids: true });
+    assert.equal(rows.length, 1);
+  });
+
+  it('chip keeps E1 age-restrict exclusion', () => {
+    assert.equal(
+      matchesEnfantsChipContent({
+        categorie: 'enfants_famille',
+        publicCible: 'Interdit - 16 ans',
+      }),
+      false,
+    );
+    assert.equal(
+      matchesMainCategories('cinema', 'animation_jeune_public', ['enfants_famille'], {
+        publicCible: 'Interdit - 12 ans',
+      }),
+      false,
+    );
+  });
+
+  it('chip is transversal on musique / expo audience tags', () => {
+    assert.equal(
+      matchesEnfantsChipContent({
+        categorie: 'musique',
+        genre: 'chanson',
+        tags: 'enfants',
+        publicCible: 'jeune_public',
+      }),
+      true,
+    );
+    assert.equal(
+      matchesEnfantsChipContent({
+        categorie: 'exposition',
+        genre: 'expo_art',
+        publicCible: 'famille',
+      }),
+      true,
+    );
+    assert.equal(
+      matchesEnfantsChipContent({
+        categorie: 'musique',
+        genre: 'metal',
+        publicCible: 'tout_public',
+      }),
+      false,
+    );
   });
 });
 
-function windowInput(extra: Partial<AgendaQueryInput>): AgendaQueryInput {
-  return {
-    scope: 'tous',
-    commune: null,
-    q: '',
-    cats: [],
-    genres: [],
-    lieuId: null,
-    selectedDate: null,
-    year: 2026,
-    month: 9,
-    ...extra,
-  };
-}
+describe('family-slot helpers (future option under Enfants chip)', () => {
+  it('reads séance public_cible before the parent event', () => {
+    const item = seance({
+      id: 'pc',
+      day: '2026-10-04',
+      heure: '11:00',
+      publicCible: 'jeune_public',
+      parentPublicCible: 'Interdit - 16 ans',
+    });
+    assert.equal(seancePublicCible(item), 'jeune_public');
+    assert.equal(isAgeRestrictedSeance(seancePublicCible(item)), false);
+  });
 
-describe('Avec les enfants on the current window', () => {
-  it('returns at least 137 séances and zero age-restricted rows', () => {
-    const paris = parisParts(NOW);
-    assert.equal(paris.iso, '2026-09-30');
-    const data = loadCultureData();
-    const range = upcomingRange(paris.iso, data.maxIso);
-    const raw = hideSeancesBeforeToday(
-      itemsForDateRange(
-        data.programmeWithContext,
-        data.events,
-        range.startIso,
-        range.endIso,
-        [],
-        [],
-        [],
-        true,
-      ),
-      paris.iso,
-    );
-    const filtered = applyAvecEnfantsMode(raw);
-    const leaked = filtered.filter((item) =>
-      isAgeRestrictedSeance(seancePublicCible(item)),
-    );
-    const rawInterdits = raw.filter((item) =>
-      isAgeRestrictedSeance(seancePublicCible(item)),
-    );
-    assert.ok(
-      rawInterdits.length >= 400,
-      `expected ~410 interdits in the window, got ${rawInterdits.length}`,
-    );
-    assert.equal(leaked.length, 0);
-    assert.ok(
-      filtered.length >= 137,
-      `expected ≥137 séances, got ${filtered.length}`,
-    );
+  it('classifies créneaux and family tout_public slots', () => {
+    const matin = seance({ id: 'm', day: '2026-10-04', heure: '11:00', publicCible: 'tout_public' });
+    const soir = seance({ id: 's', day: '2026-10-04', heure: '20:00', publicCible: 'tout_public' });
+    assert.equal(avecEnfantsCreneau(matin), 'matin');
+    assert.equal(avecEnfantsCreneau(soir), 'soir');
+    assert.equal(isFamilyToutPublicSlot(matin), true);
+    assert.equal(isFamilyToutPublicSlot(soir), false);
+  });
 
-    const listed = queryAgenda(windowInput({ avecEnfants: true }), NOW);
-    assert.equal(listed.total, filtered.length);
-
-    const musicRaw = applyAvecEnfantsMode(
-      hideSeancesBeforeToday(
-        itemsForDateRange(
-          data.programmeWithContext,
-          data.events,
-          range.startIso,
-          range.endIso,
-          ['musique'],
-          [],
-          [],
-          true,
-        ),
-        paris.iso,
-      ),
+  it('keeps applyAvecEnfantsMode as a pure helper (not a product rail)', () => {
+    const kids = seance({
+      id: 'k',
+      day: '2026-10-04',
+      heure: '11:00',
+      genre: 'animation_jeune_public',
+      publicCible: 'jeune_public',
+    });
+    const banned = seance({
+      id: 'b',
+      day: '2026-10-04',
+      heure: '11:00',
+      publicCible: 'Interdit - 12 ans',
+    });
+    assert.equal(seanceMatchesAvecEnfantsMode(kids), true);
+    assert.equal(seanceMatchesAvecEnfantsMode(banned), false);
+    assert.deepEqual(
+      applyAvecEnfantsMode([banned, kids]).map((i) => i.key),
+      ['p:k'],
     );
-    const music = queryAgenda(
-      windowInput({ avecEnfants: true, cats: ['musique'] }),
-      NOW,
-    );
-    assert.equal(music.total, musicRaw.length);
-    assert.ok(music.total < listed.total);
-
-    const cine = queryAgenda(
-      windowInput({ avecEnfants: true, cats: ['cinema'] }),
-      NOW,
-    );
-    assert.ok(cine.total > 0);
-    assert.ok(cine.total < listed.total);
-    assert.ok(cine.total + music.total <= listed.total);
   });
 });

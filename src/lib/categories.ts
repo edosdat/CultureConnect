@@ -23,7 +23,7 @@ export const MAIN_CATEGORIES: ReadonlyArray<{
   { id: 'festival', label: 'Festival' },
   { id: 'cinema', label: 'Cinéma' },
   { id: 'expo_patrimoine', label: 'Expo & patrimoine' },
-  { id: 'enfants_famille', label: 'Enfants / familles' },
+  { id: 'enfants_famille', label: 'Enfants' },
 ] as const;
 
 /** Home primary axis — living vs cinema (other buckets stay in Filtres). */
@@ -42,7 +42,7 @@ export const EXTRA_CATEGORY_CHIPS: ReadonlyArray<{
 }> = [
   { id: 'festival', label: 'Festival' },
   { id: 'expo_patrimoine', label: 'Expo & patrimoine' },
-  { id: 'enfants_famille', label: 'Enfants / familles' },
+  { id: 'enfants_famille', label: 'Enfants' },
 ] as const;
 
 export const MAIN_CATEGORY_LABELS: Record<MainCategoryId, string> = {
@@ -51,7 +51,7 @@ export const MAIN_CATEGORY_LABELS: Record<MainCategoryId, string> = {
   festival: 'Festival',
   cinema: 'Cinéma',
   expo_patrimoine: 'Expo & patrimoine',
-  enfants_famille: 'Enfants / familles',
+  enfants_famille: 'Enfants',
 };
 
 /** Normalized evenements.categorie → main UI bucket (autre intentionally unmapped). */
@@ -334,8 +334,8 @@ function hasEnfantsAudienceTag(fields: EnfantsChipFields): boolean {
 
 /**
  * Enfants chip predicate: cat enfants_famille / ateliers, plus kids films
- * (`animation_jeune_public`) and jeune-public theatre (genre or
- * tags famille|enfants|jeune_public). Adult thriller / concert stay out.
+ * (`animation_jeune_public`), jeune-public theatre, and transversal
+ * tags/public_cible on Ciné / Théâtre / Musique / Expo. Adult thriller stay out.
  */
 export function matchesEnfantsChipContent(fields: EnfantsChipFields): boolean {
   if (isAgeRestrictedSeance(fields.publicCible)) return false;
@@ -344,7 +344,13 @@ export function matchesEnfantsChipContent(fields: EnfantsChipFields): boolean {
   const mains = mainsForItem(categorie, genre);
   if (mains.includes('enfants_famille')) return true;
   if (isEnfantsChipGenre(genre)) return true;
-  if (mains.includes('cinema') || mains.includes('theatre_danse')) {
+  // Transversal tag filter: kids audience on Ciné / Théâtre / Musique / Expo.
+  if (
+    mains.includes('cinema') ||
+    mains.includes('theatre_danse') ||
+    mains.includes('musique') ||
+    mains.includes('expo_patrimoine')
+  ) {
     return hasEnfantsAudienceTag(fields);
   }
   return false;
