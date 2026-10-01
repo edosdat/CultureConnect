@@ -3,18 +3,48 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import {
+  BUG_QUESTION,
+  BUG_STUB,
+  BUG_SUBTYPES,
+  SUGGESTION_QUESTION,
+  SUGGESTION_STUB,
+  SUGGESTION_SUBTYPES,
+  clearStub,
+  fieldForTrack,
+} from '@/lib/feedbackChips';
 
-const GREETING = 'Une phrase suffit. Avis ou idée.';
+const GREETING =
+  'Bienvenue sur Plan C — on est en phase de test. Ce robot est là pour recueillir tes impressions (suggestion ou bug). Dis-moi ce que tu penses.';
 const MODEL_LINE = 'Texte → modèle (US) pour une réponse courte.';
 const RETENTION =
   'On garde ce texte 90 jours. N’écris pas ton e-mail dedans.';
 const LAUNCHER_LABEL = 'Un avis ?';
 const ICON_SRC = '/plan-c-icon-LOCK-v3-violet.jpg';
+/** Swap the file in /public. Static, ≤64px, no sound. Hidden under `sm`. */
+const WELCOME_STICKER_SRC = '/feedback-welcome-c-wink.svg';
 
 const CHIPS = [
-  { label: 'Suggestion', kind: 'idee' },
-  { label: 'Bug', kind: 'bug' },
-] as const;
+  {
+    label: 'Bug',
+    kind: 'bug' as const,
+    stub: BUG_STUB,
+    question: BUG_QUESTION,
+    subtypes: BUG_SUBTYPES,
+  },
+  {
+    label: 'Suggestion',
+    kind: 'idee' as const,
+    stub: SUGGESTION_STUB,
+    question: SUGGESTION_QUESTION,
+    subtypes: SUGGESTION_SUBTYPES,
+  },
+];
+
+const KIND_ASK = 'kind-ask';
+
+const CHIP_CLASS =
+  'inline-flex min-h-10 items-center rounded-full px-3 text-xs font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta disabled:opacity-50 ';
 
 type ChipKind = (typeof CHIPS)[number]['kind'];
 type Msg = { id: string; role: 'bot' | 'user'; text: string };
@@ -61,9 +91,11 @@ export default function FeedbackChat() {
   const listRef = useRef<HTMLOListElement>(null);
   const endRef = useRef<HTMLLIElement>(null);
   const seq = useRef(0);
+  const caretRef = useRef<number | null>(null);
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [kind, setKind] = useState<ChipKind | null>(null);
+  const [subtype, setSubtype] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [messages, setMessages] = useState<Msg[]>([
@@ -96,6 +128,17 @@ export default function FeedbackChat() {
   }, [open, messages]);
 
   useEffect(() => {
+    const pos = caretRef.current;
+    if (pos == null) return;
+    const el = inputRef.current;
+    caretRef.current = null;
+    if (!el) return;
+    el.focus();
+    const at = Math.min(pos, el.value.length);
+    el.setSelectionRange(at, at);
+  }, [text]);
+
+  useEffect(() => {
     if (!open) return;
     inputRef.current?.focus();
     function onKey(ev: KeyboardEvent) {
@@ -106,6 +149,8 @@ export default function FeedbackChat() {
   }, [open]);
 
   if (pathname?.startsWith('/admin')) return null;
+
+  const active = CHIPS.find((chip) => chip.kind === kind) ?? null;
 
   async function onSubmit(ev: FormEvent) {
     ev.preventDefault();
@@ -136,6 +181,7 @@ export default function FeedbackChat() {
       seq.current += 1;
       const n = seq.current;
       setKind(null);
+      setSubtype(null);
       setMessages((prev) => [
         ...prev,
         { id: `u${n}`, role: 'user', text: pending },
@@ -160,15 +206,26 @@ export default function FeedbackChat() {
           id={panelId}
           role="dialog"
           aria-label="Un avis, une idée"
-          className="pointer-events-auto w-full rounded-2xl border border-culture-line bg-culture-surface p-3 shadow-card"
+          className="pointer-events-auto max-h-[min(32rem,calc(100dvh-4.5rem))] w-full overflow-y-auto rounded-2xl border border-culture-line bg-culture-surface p-3 shadow-card"
         >
-          <div className="flex items-start justify-between gap-3">
-            <h2 className="font-display text-lg leading-tight text-culture-ink">
-              Un avis, une idée
-            </h2>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <h2 className="font-display text-lg leading-tight text-culture-ink">
+                Un avis, une idée
+              </h2>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={WELCOME_STICKER_SRC}
+                alt=""
+                width={48}
+                height={48}
+                draggable={false}
+                className="hidden h-12 w-12 shrink-0 sm:block"
+              />
+            </div>
             <button
               type="button"
-              className="rounded-full px-2 py-1 text-xs text-culture-muted hover:text-culture-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta"
+              className="shrink-0 rounded-full px-2 py-1 text-xs text-culture-muted hover:text-culture-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta"
               onClick={() => setOpen(false)}
             >
               Fermer
@@ -194,7 +251,7 @@ export default function FeedbackChat() {
                 className={
                   msg.role === 'user'
                     ? 'ml-6 rounded-2xl bg-culture-ink px-3 py-2 text-sm text-culture-cream'
-                    : 'mr-6 rounded-2xl bg-culture-sand px-3 py-2 text-sm text-culture-ink'
+                    : 'mr-6 whitespace-normal break-words rounded-2xl bg-culture-sand px-3 py-2 text-sm text-culture-ink'
                 }
               >
                 {msg.text}
@@ -203,7 +260,7 @@ export default function FeedbackChat() {
             <li ref={endRef} data-feedback-end="" aria-hidden="true" className="h-px" />
           </ol>
           <form onSubmit={onSubmit} className="mt-3">
-            <div className="flex gap-2" role="group" aria-label="Type de message">
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Type de message">
               {CHIPS.map((chip) => {
                 const on = kind === chip.kind;
                 return (
@@ -213,11 +270,29 @@ export default function FeedbackChat() {
                     aria-pressed={on}
                     disabled={sending}
                     onClick={() => {
-                      setKind((cur) => (cur === chip.kind ? null : chip.kind));
+                      if (kind === chip.kind) {
+                        setKind(null);
+                        setSubtype(null);
+                        setText((cur) => clearStub(cur, chip.stub));
+                        setMessages((prev) => prev.filter((msg) => msg.id !== KIND_ASK));
+                      } else {
+                        const previous = CHIPS.find((item) => item.kind === kind);
+                        const next = fieldForTrack(text, previous?.stub ?? null, chip.stub);
+                        setKind(chip.kind);
+                        setSubtype(null);
+                        if (next !== text) {
+                          caretRef.current = next.length;
+                          setText(next);
+                        }
+                        setMessages((prev) => [
+                          ...prev.filter((msg) => msg.id !== KIND_ASK),
+                          { id: KIND_ASK, role: 'bot', text: chip.question },
+                        ]);
+                      }
                       inputRef.current?.focus();
                     }}
                     className={
-                      'inline-flex min-h-10 items-center rounded-full px-3 text-xs font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta disabled:opacity-50 ' +
+                      CHIP_CLASS +
                       (on
                         ? 'bg-culture-ink text-culture-cream'
                         : 'border border-culture-line bg-white text-culture-muted hover:text-culture-ink')
@@ -228,6 +303,37 @@ export default function FeedbackChat() {
                 );
               })}
             </div>
+            {active ? (
+              <div
+                className="mt-2 flex flex-wrap gap-2"
+                role="group"
+                aria-label={active.kind === 'bug' ? 'Type de bug' : 'Type de suggestion'}
+              >
+                {active.subtypes.map((label) => {
+                  const on = subtype === label;
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      aria-pressed={on}
+                      disabled={sending}
+                      onClick={() => {
+                        setSubtype((cur) => (cur === label ? null : label));
+                        inputRef.current?.focus();
+                      }}
+                      className={
+                        CHIP_CLASS +
+                        (on
+                          ? 'border border-culture-terracotta bg-culture-terracotta text-culture-ink'
+                          : 'border border-culture-line bg-white text-culture-muted hover:text-culture-ink')
+                      }
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
             <label htmlFor={inputId} className="sr-only">
               Ton avis ou ton idée
             </label>
