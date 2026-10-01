@@ -52,6 +52,7 @@ import {
   retainSelectedGenreChips,
   visibleGenreChipSlugs,
 } from '@/lib/genreChipMatch';
+import { retainSelectedLieuId } from '@/lib/venueFilter';
 import {
   cineFirstPaint,
   cineRows,
@@ -1551,6 +1552,13 @@ export default function CultureConnectApp({
     );
   }, [selectedCategories, genresLegend]);
 
+  // Plan C: drop salle when QUOI cleared or salle left category-adapted options.
+  useEffect(() => {
+    setSelectedLieuId((prev) =>
+      retainSelectedLieuId(prev, selectedCategories, venueOptions),
+    );
+  }, [selectedCategories, venueOptions]);
+
   const genreChipSlugs = useMemo(
     () => visibleGenreChipSlugs(availableGenreSlugs, selectedGenres),
     [availableGenreSlugs, selectedGenres],
@@ -2718,6 +2726,13 @@ export default function CultureConnectApp({
     setSelectedCategories(next);
     if (next.length === 0) {
       setSelectedGenres([]);
+      setSelectedLieuId(null);
+      setVenueOptions(initialVenues);
+    } else {
+      // Drop stale all-cat / previous-cat salle list until agenda responds
+      // with venues that have upcoming events in the active category.
+      setSelectedLieuId(null);
+      setVenueOptions([]);
     }
     // Grid filter only — L() must not increment cats (chip stays chip_cat).
     for (const chip of added) {
@@ -2910,7 +2925,7 @@ export default function CultureConnectApp({
           />
         </div>
 
-        {/* Toulouse + Salles + month (Venue gated by Filtres on mobile) */}
+        {/* Toulouse + Salles + month (Salles: QUOI gate + Filtres on mobile) */}
         <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             {showAdminCounts ? (
@@ -2950,10 +2965,15 @@ export default function CultureConnectApp({
                 onToggle={handleNearMeToggle}
               />
             </div>
+            {/* Salles: category gate primary (hidden when no QUOI);
+                mobile still behind Filtres. Options = venues with upcoming
+                events in the active category (agenda venuesFromWindow). */}
             <div
               className={
-                (showFiltersMobile ? 'flex' : 'hidden') +
-                ' min-w-0 flex-wrap items-center gap-2 md:flex'
+                selectedCategories.length === 0
+                  ? 'hidden'
+                  : (showFiltersMobile ? 'flex' : 'hidden') +
+                    ' min-w-0 flex-wrap items-center gap-2 md:flex'
               }
             >
               <VenueFilter
@@ -2961,6 +2981,8 @@ export default function CultureConnectApp({
                 selectedLieuId={selectedLieuId}
                 onChange={setSelectedLieuId}
                 variant="inline"
+                selectedMains={selectedCategories}
+                hideWhenNoCategory
               />
             </div>
           </div>
