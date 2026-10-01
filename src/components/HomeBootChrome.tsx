@@ -27,8 +27,9 @@ function homeBootMonthLabel(now = new Date()): string {
  * - Toulouse + Près de moi + Voir le mois (Paris month; wraps)
  * - HomeListWaitSlot: overlay (no flow well; dots are 12px)
  *
- * SiteNav is already in the root layout. GenreFilter is null without QUOI.
- * Chips / city / wait slot are siblings of [data-top3] (same as live).
+ * SiteNav is already in the root layout. GenreFilter and the Salle chip
+ * are absent here (no QUOI yet). Live: Salle sits in QUOI after a category,
+ * not behind Filtres. Chips / city / wait slot are siblings of [data-top3].
  */
 export default function HomeBootChrome({ children }: { children: ReactNode }) {
   const monthLabel = homeBootMonthLabel();

@@ -2883,6 +2883,22 @@ export default function CultureConnectApp({
                 onChange={handleCategoriesChange}
                 variant="home"
               />
+              {/* Salle: next to QUOI, including mobile. Not behind Filtres.
+                  Options = every upcoming venue in the active category
+                  and commune (agenda venuesForCategoryMenu). */}
+              <VenueFilter
+                lieux={venueOptions}
+                selectedLieuId={selectedLieuId}
+                onChange={setSelectedLieuId}
+                variant="inline"
+                selectedMains={selectedCategories}
+                hideWhenNoCategory
+                loading={
+                  listFetchInFlight &&
+                  selectedCategories.length > 0 &&
+                  venueOptions.length === 0
+                }
+              />
               <div className="cc-axes__more md:hidden">
                 <button
                   type="button"
@@ -2925,7 +2941,7 @@ export default function CultureConnectApp({
           />
         </div>
 
-        {/* Toulouse + Salles + month (Salles: QUOI gate + Filtres on mobile) */}
+        {/* Toulouse + month. Salle lives in the QUOI group. */}
         <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             {showAdminCounts ? (
@@ -2963,26 +2979,6 @@ export default function CultureConnectApp({
                 active={nearMeActive}
                 pending={nearMePending}
                 onToggle={handleNearMeToggle}
-              />
-            </div>
-            {/* Salles: category gate primary (hidden when no QUOI);
-                mobile still behind Filtres. Options = venues with upcoming
-                events in the active category (agenda venuesFromWindow). */}
-            <div
-              className={
-                selectedCategories.length === 0
-                  ? 'hidden'
-                  : (showFiltersMobile ? 'flex' : 'hidden') +
-                    ' min-w-0 flex-wrap items-center gap-2 md:flex'
-              }
-            >
-              <VenueFilter
-                lieux={venueOptions}
-                selectedLieuId={selectedLieuId}
-                onChange={setSelectedLieuId}
-                variant="inline"
-                selectedMains={selectedCategories}
-                hideWhenNoCategory
               />
             </div>
           </div>
