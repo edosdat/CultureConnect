@@ -493,11 +493,14 @@ describe('feedback surfaces', () => {
     assert.match(layout, /FeedbackChat/);
     assert.equal(
       widget.includes(
-        'Bienvenue sur Plan C — on est en phase de test… Dis-moi ce que tu penses.',
+        'Bienvenue sur Plan C — on est en phase de test. Ce robot est là pour recueillir tes impressions (suggestion ou bug). Dis-moi ce que tu penses.',
       ),
       true,
     );
     assert.equal(widget.includes('Une phrase suffit'), false);
+    assert.equal(widget.includes('phase de test…'), false);
+    assert.equal(widget.includes('line-clamp'), false);
+    assert.equal(widget.includes('truncate'), false);
     assert.equal(widget.includes('balance'), false);
     assert.match(widget, /id: 'greet', role: 'bot', text: GREETING/);
     assert.match(widget, /feedback-welcome-c-wink\.svg/);

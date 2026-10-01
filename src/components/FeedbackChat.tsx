@@ -15,7 +15,7 @@ import {
 } from '@/lib/feedbackChips';
 
 const GREETING =
-  'Bienvenue sur Plan C — on est en phase de test… Dis-moi ce que tu penses.';
+  'Bienvenue sur Plan C — on est en phase de test. Ce robot est là pour recueillir tes impressions (suggestion ou bug). Dis-moi ce que tu penses.';
 const MODEL_LINE = 'Texte → modèle (US) pour une réponse courte.';
 const RETENTION =
   'On garde ce texte 90 jours. N’écris pas ton e-mail dedans.';
@@ -251,7 +251,7 @@ export default function FeedbackChat() {
                 className={
                   msg.role === 'user'
                     ? 'ml-6 rounded-2xl bg-culture-ink px-3 py-2 text-sm text-culture-cream'
-                    : 'mr-6 rounded-2xl bg-culture-sand px-3 py-2 text-sm text-culture-ink'
+                    : 'mr-6 whitespace-normal break-words rounded-2xl bg-culture-sand px-3 py-2 text-sm text-culture-ink'
                 }
               >
                 {msg.text}
