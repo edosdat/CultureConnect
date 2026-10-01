@@ -4,12 +4,15 @@ import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const GREETING = 'Une phrase suffit. Avis ou idée.';
+const GREETING =
+  'Bienvenue sur Plan C — on est en phase de test. Ce robot est là pour recueillir tes impressions (suggestion ou bug). Dis-moi ce que tu penses.';
 const MODEL_LINE = 'Texte → modèle (US) pour une réponse courte.';
 const RETENTION =
   'On garde ce texte 90 jours. N’écris pas ton e-mail dedans.';
 const LAUNCHER_LABEL = 'Un avis ?';
 const ICON_SRC = '/plan-c-icon-LOCK-v3-violet.jpg';
+/** Swap the file in /public. Static, ≤64px, no sound. Hidden under `sm`. */
+const WELCOME_STICKER_SRC = '/feedback-welcome-c-wink.svg';
 
 const CHIPS = [
   { label: 'Suggestion', kind: 'idee' },
@@ -162,13 +165,24 @@ export default function FeedbackChat() {
           aria-label="Un avis, une idée"
           className="pointer-events-auto w-full rounded-2xl border border-culture-line bg-culture-surface p-3 shadow-card"
         >
-          <div className="flex items-start justify-between gap-3">
-            <h2 className="font-display text-lg leading-tight text-culture-ink">
-              Un avis, une idée
-            </h2>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <h2 className="font-display text-lg leading-tight text-culture-ink">
+                Un avis, une idée
+              </h2>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={WELCOME_STICKER_SRC}
+                alt=""
+                width={48}
+                height={48}
+                draggable={false}
+                className="hidden h-12 w-12 shrink-0 sm:block"
+              />
+            </div>
             <button
               type="button"
-              className="rounded-full px-2 py-1 text-xs text-culture-muted hover:text-culture-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta"
+              className="shrink-0 rounded-full px-2 py-1 text-xs text-culture-muted hover:text-culture-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta"
               onClick={() => setOpen(false)}
             >
               Fermer

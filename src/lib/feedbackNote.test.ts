@@ -481,6 +481,17 @@ describe('feedback surfaces', () => {
     const vercel = readFileSync(new URL('../../vercel.json', import.meta.url), 'utf8');
 
     assert.match(layout, /FeedbackChat/);
+    assert.equal(
+      widget.includes(
+        'Bienvenue sur Plan C — on est en phase de test. Ce robot est là pour recueillir tes impressions (suggestion ou bug). Dis-moi ce que tu penses.',
+      ),
+      true,
+    );
+    assert.equal(widget.includes('Une phrase suffit'), false);
+    assert.equal(widget.includes('balance'), false);
+    assert.match(widget, /id: 'greet', role: 'bot', text: GREETING/);
+    assert.match(widget, /feedback-welcome-c-wink\.svg/);
+    assert.match(widget, /hidden h-12 w-12 shrink-0 sm:block/);
     assert.match(widget, /Un avis \?/);
     assert.match(widget, /aria-label=\{LAUNCHER_LABEL\}/);
     assert.match(widget, /plan-c-icon-LOCK-v3-violet\.jpg/);
