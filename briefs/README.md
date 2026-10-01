@@ -38,3 +38,4 @@ Statuts : **À faire** · **En cours** · **Fait (#PR)** · **Bloqué** · **Rem
 | 6 | `chip-enfants-films-theatre.md` | À confirmer | idem |
 | — | `tagging-methode-v2.md` | Remplacé | par `tags-v2-evenements-et-profils.md` |
 | — | tip Relance digeste 2 fenêtres (`sam_dim` / `lun_ven`) | Fait (#206) | API `POST /api/agenda?reco=1` + `digest=relance`. Sheet Mes recos et Top 3 inchangés (max 3). |
+| — | tip digeste : liste comptes Google + unsub 1 clic | En cours | Fenêtre test jusqu'au 2026-12-01 : pas de gate `opted_in`. HOLD merge soft + GO. |

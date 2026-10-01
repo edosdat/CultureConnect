@@ -44,12 +44,13 @@ export default function ConfidentialitePage() {
           «&nbsp;Pour toi&nbsp;».
         </p>
         <p>
-          <span className="font-medium">Mails.</span> Si tu coches « Envoie-moi
-          3 idées par mail », on t&apos;envoie 3 sorties et un lien vers
-          l&apos;agenda. Pas plus d&apos;un mail par semaine. Base : ton
-          consentement, pas le login Google. Tu retires quand tu veux, lien 1
-          clic dans chaque mail. On n&apos;écrit pas aux comptes qui n&apos;ont
-          pas coché.
+          <span className="font-medium">Mails.</span> Jusqu&apos;au 1er
+          décembre 2026, le digeste (3 sorties, pas plus d&apos;un mail par
+          semaine) part aux comptes Google qui ont un e-mail, même sans la
+          case « Envoie-moi 3 idées par mail ». Tu l&apos;arrêtes en un clic,
+          lien dans chaque mail, sans te reconnecter. À partir du 1er décembre
+          2026, seuls les comptes qui ont coché la case le reçoivent. La case
+          sert aussi à le recevoir à nouveau après un désabonnement.
         </p>
         <div className="rounded-2xl border border-culture-line bg-white px-4 py-3">
           <MailIdeasCheckbox className="flex items-start gap-2 text-sm leading-snug text-culture-ink" />

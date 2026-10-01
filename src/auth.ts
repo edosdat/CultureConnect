@@ -1,6 +1,7 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
 import { recordGoogleLogin } from '@/lib/adminCounters';
+import { rememberGoogleAccount } from '@/lib/googleAccountStore';
 import {
   clearAccountTasteCookie,
   readAccountTaste,
@@ -169,9 +170,21 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
     },
   },
   events: {
-    async signIn() {
-      // First-party login count (KV INCR by Paris day). No email / vid stored.
+    async signIn(message) {
+      // First-party login count (KV INCR by Paris day). No vid stored.
       await recordGoogleLogin();
+      const provider = message.account?.provider;
+      if (provider && provider !== 'google') return;
+      const profile = message.profile as { email?: string } | undefined;
+      const email =
+        (typeof message.user?.email === 'string' && message.user.email) ||
+        (typeof profile?.email === 'string' && profile.email) ||
+        '';
+      try {
+        await rememberGoogleAccount(email);
+      } catch {
+        console.error('google account remember failed');
+      }
     },
     async signOut() {
       // Cookie only — Neon account_tastes row must stay.
