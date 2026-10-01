@@ -20,13 +20,19 @@ import {
   CRIOS_SAFARI_NOTE,
   CRIOS_SAFARI_PATH,
   CRIOS_SAFARI_STEPS,
-  a2hsSurface,
+  IOS_A2HS_ALT_HINT,
+  IOS_A2HS_LABEL,
+  IOS_DISMISS_TO_SHARE,
+  IOS_SHARE_HINT,
+  IOS_SHARE_LABEL,
+  a2hsSurfaceForClient,
   copySafariHandoffUrl,
   detectPwaInstalled,
+  iosSheetBottomGapPx,
   isChromeIosClient,
   isHandheldClient,
-  isIosClient,
   localDayStamp,
+  safariBottomChromePx,
   safariHandoffUrl,
   shouldAwaitInstallPrompt,
   shouldShowDailyA2hs,
@@ -116,21 +122,30 @@ function AddGlyph() {
   );
 }
 
+function DownArrow() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v13" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7 13l5 6 5-6" />
+    </svg>
+  );
+}
+
 function InstallSheet({
-  ios,
-  chromeIos,
   promptReady,
   onInstall,
   onClose,
 }: {
-  ios: boolean;
-  chromeIos: boolean;
   promptReady: boolean;
   onInstall: () => void;
   onClose: () => void;
 }) {
-  const surface = a2hsSurface({ ios, chromeIos, promptReady });
+  const surface = a2hsSurfaceForClient({
+    ...clientSignals(),
+    promptReady,
+  });
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const [bottomGap, setBottomGap] = useState(() => iosSheetBottomGapPx(0));
   const pageUrl = typeof window === 'undefined' ? '' : safariHandoffUrl(window.location.href);
 
   async function onCopyLink() {
@@ -146,7 +161,32 @@ function InstallSheet({
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  useEffect(() => {
+    if (surface !== 'ios-steps') return;
+    function measure() {
+      const vv = window.visualViewport;
+      const chrome = safariBottomChromePx({
+        innerHeight: window.innerHeight,
+        visualViewportHeight: vv?.height ?? window.innerHeight,
+        visualViewportOffsetTop: vv?.offsetTop ?? 0,
+      });
+      setBottomGap(iosSheetBottomGapPx(chrome));
+    }
+    measure();
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', measure);
+    vv?.addEventListener('scroll', measure);
+    window.addEventListener('resize', measure);
+    return () => {
+      vv?.removeEventListener('resize', measure);
+      vv?.removeEventListener('scroll', measure);
+      window.removeEventListener('resize', measure);
+    };
+  }, [surface]);
+
   if (typeof document === 'undefined') return null;
+
+  const clearSafariBar = surface === 'ios-steps';
 
   return createPortal(
     <div className="fixed inset-0 z-[160] flex items-end justify-center sm:items-end" role="presentation">
@@ -154,7 +194,8 @@ function InstallSheet({
         type="button"
         tabIndex={-1}
         aria-label="Fermer"
-        className="absolute inset-0 bg-culture-ink/15"
+        className="absolute inset-x-0 top-0 bg-culture-ink/15"
+        style={{ bottom: clearSafariBar ? bottomGap : 0 }}
         onClick={onClose}
       />
       <div
@@ -163,7 +204,12 @@ function InstallSheet({
         aria-labelledby="pwa-install-title"
         data-testid="pwa-install-sheet"
         data-pwa-surface={surface}
-        className="relative m-3 mb-[max(0.75rem,env(safe-area-inset-bottom))] w-full max-w-sm rounded-2xl border border-culture-line/80 bg-white/80 p-4 shadow-card backdrop-blur-md"
+        className={
+          clearSafariBar
+            ? 'relative m-3 w-full max-w-sm rounded-2xl border border-culture-line/80 bg-white/80 p-4 shadow-card backdrop-blur-md'
+            : 'relative m-3 mb-[max(0.75rem,env(safe-area-inset-bottom))] w-full max-w-sm rounded-2xl border border-culture-line/80 bg-white/80 p-4 shadow-card backdrop-blur-md'
+        }
+        style={clearSafariBar ? { marginBottom: bottomGap } : undefined}
       >
         <h2 id="pwa-install-title" className="font-display text-lg font-semibold text-culture-ink">
           Ajoute Plan C
@@ -223,19 +269,27 @@ function InstallSheet({
         ) : null}
         {surface === 'ios-steps' ? (
           <ol data-testid="pwa-install-ios" className="mt-3 space-y-2 text-sm text-culture-ink">
-            <li className="flex items-center gap-2">
+            <li data-testid="pwa-ios-step-share" className="flex items-center gap-2">
               <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-culture-soft text-culture-clay">
                 <ShareGlyph />
               </span>
               <span>
-                <span className="font-medium">Partager</span>
+                <span className="font-medium">{IOS_SHARE_LABEL}</span>
+                <span data-testid="pwa-ios-share-hint" className="mt-0.5 block text-culture-muted">
+                  {IOS_SHARE_HINT}
+                </span>
               </span>
             </li>
-            <li className="flex items-center gap-2">
+            <li data-testid="pwa-ios-step-a2hs" className="flex items-center gap-2">
               <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-culture-soft text-culture-clay">
                 <AddGlyph />
               </span>
-              <span className="font-medium">Ajouter à l’écran d’accueil</span>
+              <span>
+                <span className="font-medium">{IOS_A2HS_LABEL}</span>
+                <span data-testid="pwa-ios-a2hs-alt" className="mt-0.5 block text-culture-muted">
+                  {IOS_A2HS_ALT_HINT}
+                </span>
+              </span>
             </li>
           </ol>
         ) : null}
@@ -246,11 +300,25 @@ function InstallSheet({
         ) : null}
         <button
           type="button"
+          data-testid={clearSafariBar ? 'pwa-ios-dismiss-share' : undefined}
           onClick={onClose}
-          className="mt-3 block w-full py-1 text-center text-sm text-culture-muted hover:text-culture-ink"
+          className={
+            clearSafariBar
+              ? 'mt-3 block w-full py-1 text-center text-sm font-medium text-culture-ink hover:text-culture-clay'
+              : 'mt-3 block w-full py-1 text-center text-sm text-culture-muted hover:text-culture-ink'
+          }
         >
-          Plus tard
+          {clearSafariBar ? IOS_DISMISS_TO_SHARE : 'Plus tard'}
         </button>
+        {clearSafariBar ? (
+          <div
+            data-testid="pwa-ios-share-arrow"
+            className="pointer-events-none absolute left-1/2 top-full mt-1 grid h-8 w-8 -translate-x-1/2 place-items-center rounded-full bg-white text-culture-ink shadow-card"
+            aria-hidden
+          >
+            <DownArrow />
+          </div>
+        ) : null}
       </div>
     </div>,
     document.body,
@@ -260,8 +328,6 @@ function InstallSheet({
 export default function PwaInstallProvider({ children }: { children: ReactNode }) {
   const [installed, setInstalled] = useState<boolean | null>(null);
   const [open, setOpen] = useState(false);
-  const [ios, setIos] = useState(false);
-  const [chromeIos, setChromeIos] = useState(false);
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
 
   const rememberPrompt = useCallback((event?: Event) => {
@@ -322,8 +388,6 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
   useEffect(() => {
     let cancelled = false;
     const signals = clientSignals();
-    setIos(isIosClient(signals));
-    setChromeIos(isChromeIosClient(signals));
 
     const timer = window.setTimeout(() => {
       void (async () => {
@@ -383,6 +447,7 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
     if (installed) setOpen(false);
   }, [installed]);
 
+  /** Account menu and the daily offer open this same sheet. Surface comes from the live UA. */
   const openInstall = useCallback(() => {
     setOpen(true);
   }, []);
@@ -414,8 +479,6 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
       {children}
       {open && installed !== true ? (
         <InstallSheet
-          ios={ios}
-          chromeIos={chromeIos}
           promptReady={Boolean(promptEvent)}
           onInstall={onInstall}
           onClose={() => setOpen(false)}

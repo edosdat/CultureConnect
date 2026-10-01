@@ -36,6 +36,28 @@ export const CRIOS_COPY_FAILED =
 /** Gestures that happen in Safari, after the link is pasted. Not page buttons. */
 export const CRIOS_SAFARI_STEPS = ['Partager', 'Ajouter à l’écran d’accueil'] as const;
 
+/**
+ * Share-sheet row on French iOS. Apple’s label is « Sur l’écran d’accueil ».
+ * Some versions still show « Ajouter à l’écran d’accueil » — same gesture.
+ */
+export const IOS_SHARE_LABEL = 'Partager';
+export const IOS_A2HS_LABEL = 'Sur l’écran d’accueil';
+export const IOS_A2HS_LABEL_ALT = 'Ajouter à l’écran d’accueil';
+export const IOS_SHARE_HINT = 'Touche Partager dans la barre du bas Safari.';
+export const IOS_A2HS_ALT_HINT =
+  'Parfois « Ajouter à l’écran d’accueil » : c’est le même geste.';
+export const IOS_DISMISS_TO_SHARE = 'Fermer pour toucher Partager';
+
+/** Steps for real Safari (not CriOS). Not tappable actions. */
+export const IOS_SAFARI_STEPS = [
+  { id: 'share', label: IOS_SHARE_LABEL, detail: IOS_SHARE_HINT },
+  { id: 'a2hs', label: IOS_A2HS_LABEL, detail: IOS_A2HS_ALT_HINT },
+] as const;
+
+/** Leaves the Safari bottom bar (and the down arrow) outside the sheet. */
+export const IOS_SAFARI_BAR_MIN_GAP_PX = 96;
+export const IOS_SAFARI_ARROW_PX = 28;
+
 export type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
@@ -96,6 +118,44 @@ export function shouldAwaitInstallPrompt(input: { chromeIos: boolean }): boolean
   return !input.chromeIos;
 }
 
+const A2HS_APOSTROPHE = /[\u2019\u2018\u02BC\u2032]/g;
+
+/** Both French share-sheet wordings name the same Add to Home Screen row. */
+export function acceptsIosA2hsLabel(label: string): boolean {
+  const folded = (label || '')
+    .normalize('NFKC')
+    .replace(A2HS_APOSTROPHE, "'")
+    .replace(/[«»"“”]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+  return folded === "sur l'écran d'accueil" || folded === "ajouter à l'écran d'accueil";
+}
+
+/**
+ * Pixels of browser chrome sitting under the visual viewport.
+ * On iPhone Safari this is the bottom bar that holds Partager.
+ */
+export function safariBottomChromePx(input: {
+  innerHeight: number;
+  visualViewportHeight: number;
+  visualViewportOffsetTop: number;
+}): number {
+  const { innerHeight, visualViewportHeight, visualViewportOffsetTop } = input;
+  if (![innerHeight, visualViewportHeight, visualViewportOffsetTop].every((n) => Number.isFinite(n))) {
+    return 0;
+  }
+  const raw = innerHeight - visualViewportHeight - visualViewportOffsetTop;
+  if (raw <= 0) return 0;
+  return Math.round(raw);
+}
+
+/** Sheet offset so the Safari share control stays visible under the card. */
+export function iosSheetBottomGapPx(chromePx: number): number {
+  const chrome = Number.isFinite(chromePx) && chromePx > 0 ? Math.round(chromePx) : 0;
+  return Math.max(IOS_SAFARI_BAR_MIN_GAP_PX, chrome + IOS_SAFARI_ARROW_PX);
+}
+
 /** Page address to paste into Safari. Rejects non-http(s) URLs. */
 export function safariHandoffUrl(href: string): string {
   try {
@@ -151,6 +211,23 @@ export function a2hsSurface(input: {
   if (input.ios) return 'ios-steps';
   if (input.promptReady) return 'android-prompt';
   return 'fallback';
+}
+
+/**
+ * Daily sheet and the account menu (`openInstall`) share this decision.
+ * A Safari iPhone UA is never `crios-safari`: that token is `CriOS` only.
+ */
+export function a2hsSurfaceForClient(input: {
+  userAgent: string;
+  platform?: string;
+  maxTouchPoints?: number;
+  promptReady: boolean;
+}): A2hsSurface {
+  return a2hsSurface({
+    ios: isIosClient(input),
+    chromeIos: isChromeIosClient({ userAgent: input.userAgent }),
+    promptReady: input.promptReady,
+  });
 }
 
 export function accountInstallItem(installed: boolean | null): AccountInstallItem {

@@ -11,16 +11,29 @@ import {
   CRIOS_SAFARI_PATH,
   CRIOS_SAFARI_STEPS,
   INSTALL_PROMPT_CAPTURE_SCRIPT,
+  IOS_A2HS_ALT_HINT,
+  IOS_A2HS_LABEL,
+  IOS_A2HS_LABEL_ALT,
+  IOS_DISMISS_TO_SHARE,
+  IOS_SAFARI_ARROW_PX,
+  IOS_SAFARI_BAR_MIN_GAP_PX,
+  IOS_SAFARI_STEPS,
+  IOS_SHARE_HINT,
+  IOS_SHARE_LABEL,
   a2hsSurface,
+  a2hsSurfaceForClient,
+  acceptsIosA2hsLabel,
   accountInstallItem,
   copySafariHandoffUrl,
   detectPwaInstalled,
+  iosSheetBottomGapPx,
   isChromeIosClient,
   isHandheldClient,
   isInstalledDisplay,
   isIosClient,
   localDayStamp,
   readInstalledRelated,
+  safariBottomChromePx,
   safariHandoffUrl,
   shouldAwaitInstallPrompt,
   shouldShowDailyA2hs,
@@ -220,6 +233,95 @@ describe('install detection', () => {
     assert.equal(await copySafariHandoffUrl('blob:https://x/1', async () => {}), false);
   });
 
+  it('keeps a Safari iPhone on ios-steps, never crios-safari or Installer', () => {
+    const safariUas = [
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1',
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1',
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1',
+      'Mozilla/5.0 (iPad; CPU OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1',
+      'Mozilla/5.0 (iPod touch; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
+    ];
+    for (const userAgent of safariUas) {
+      for (const promptReady of [false, true]) {
+        const surface = a2hsSurfaceForClient({ userAgent, promptReady });
+        assert.equal(surface, 'ios-steps', userAgent);
+        assert.notEqual(surface, 'crios-safari');
+        assert.notEqual(surface, 'android-prompt');
+      }
+    }
+
+    const ipadDesktop = a2hsSurfaceForClient({
+      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Safari/605.1.15',
+      platform: 'MacIntel',
+      maxTouchPoints: 5,
+      promptReady: true,
+    });
+    assert.equal(ipadDesktop, 'ios-steps');
+
+    const crios =
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/131.0.6778.73 Mobile/15E148 Safari/604.1';
+    assert.equal(a2hsSurfaceForClient({ userAgent: crios, promptReady: false }), 'crios-safari');
+    assert.equal(a2hsSurfaceForClient({ userAgent: crios, promptReady: true }), 'crios-safari');
+
+    const androidChrome =
+      'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.6778.73 Mobile Safari/537.36';
+    assert.equal(a2hsSurfaceForClient({ userAgent: androidChrome, promptReady: true }), 'android-prompt');
+    assert.equal(a2hsSurfaceForClient({ userAgent: androidChrome, promptReady: false }), 'fallback');
+    assert.equal(isChromeIosClient({ userAgent: safariUas[0] }), false);
+    assert.equal(isIosClient({ userAgent: safariUas[0] }), true);
+  });
+
+  it('names the French Safari row Sur l’écran d’accueil and still accepts Ajouter', () => {
+    assert.equal(IOS_SHARE_LABEL, 'Partager');
+    assert.equal(IOS_A2HS_LABEL, 'Sur l’écran d’accueil');
+    assert.equal(IOS_A2HS_LABEL_ALT, 'Ajouter à l’écran d’accueil');
+    assert.match(IOS_SHARE_HINT, /barre du bas Safari/);
+    assert.match(IOS_A2HS_ALT_HINT, /Ajouter à l’écran d’accueil/);
+    assert.equal(IOS_DISMISS_TO_SHARE, 'Fermer pour toucher Partager');
+    assert.deepEqual(
+      IOS_SAFARI_STEPS.map((step) => step.label),
+      ['Partager', 'Sur l’écran d’accueil'],
+    );
+    assert.equal(acceptsIosA2hsLabel(IOS_A2HS_LABEL), true);
+    assert.equal(acceptsIosA2hsLabel(IOS_A2HS_LABEL_ALT), true);
+    assert.equal(acceptsIosA2hsLabel("Sur l'écran d'accueil"), true);
+    assert.equal(acceptsIosA2hsLabel('  ajouter à l’écran d’accueil  '), true);
+    assert.equal(acceptsIosA2hsLabel('« Sur l’écran d’accueil »'), true);
+    assert.equal(acceptsIosA2hsLabel('Copier le lien'), false);
+    assert.equal(acceptsIosA2hsLabel('Installer'), false);
+    assert.equal(acceptsIosA2hsLabel(''), false);
+  });
+
+  it('lifts the Safari sheet above the bottom bar', () => {
+    assert.equal(
+      safariBottomChromePx({
+        innerHeight: 800,
+        visualViewportHeight: 720,
+        visualViewportOffsetTop: 0,
+      }),
+      80,
+    );
+    assert.equal(
+      safariBottomChromePx({
+        innerHeight: 700,
+        visualViewportHeight: 700,
+        visualViewportOffsetTop: 0,
+      }),
+      0,
+    );
+    assert.equal(
+      safariBottomChromePx({
+        innerHeight: Number.NaN,
+        visualViewportHeight: 700,
+        visualViewportOffsetTop: 0,
+      }),
+      0,
+    );
+    assert.equal(iosSheetBottomGapPx(0), IOS_SAFARI_BAR_MIN_GAP_PX);
+    assert.equal(iosSheetBottomGapPx(80), 80 + IOS_SAFARI_ARROW_PX);
+    assert.ok(iosSheetBottomGapPx(0) >= IOS_SAFARI_ARROW_PX);
+  });
+
   it('hides the account item until detection, then disables it once installed', () => {
     assert.equal(accountInstallItem(null), 'pending');
     assert.equal(accountInstallItem(false), 'download');
@@ -250,19 +352,38 @@ describe('service worker freshness only', () => {
     const layout = readFileSync(path.join(process.cwd(), 'src/app/layout.tsx'), 'utf8');
     assert.match(menu, /Télécharger l’appli/);
     assert.match(menu, /Déjà installée/);
+    assert.match(menu, /openInstall\(\)/);
+    assert.doesNotMatch(menu, /pwa-install-sheet|crios-safari|ios-steps/);
     assert.match(ui, /Installer Plan C/);
-    assert.match(ui, /Ajouter à l’écran d’accueil/);
+    assert.match(ui, /IOS_A2HS_LABEL/);
+    assert.match(ui, /IOS_A2HS_ALT_HINT/);
     assert.doesNotMatch(ui + menu, /vapid|pushManager|Notification/i);
 
-    const criosStart = ui.indexOf("surface === 'crios-safari'");
-    const iosStart = ui.indexOf("surface === 'ios-steps'");
-    assert.ok(criosStart > 0 && iosStart > criosStart);
+    const criosStart = ui.indexOf("{surface === 'crios-safari'");
+    const iosStart = ui.indexOf("{surface === 'ios-steps'");
+    const fallbackStart = ui.indexOf("{surface === 'fallback'");
+    assert.ok(criosStart > 0 && iosStart > criosStart && fallbackStart > iosStart);
     const crios = ui.slice(criosStart, iosStart);
+    const ios = ui.slice(iosStart, fallbackStart);
     assert.match(crios, /CRIOS_SAFARI_PATH/);
     assert.match(crios, /CRIOS_COPY_LINK_LABEL/);
     assert.match(crios, /data-testid="pwa-copy-link"/);
     assert.match(crios, /data-testid="pwa-safari-url"/);
     assert.doesNotMatch(crios, /Installer Plan C|pwa-install-button|onInstall/);
+    assert.match(ios, /data-testid="pwa-install-ios"/);
+    assert.match(ios, /data-testid="pwa-ios-step-share"/);
+    assert.match(ios, /data-testid="pwa-ios-step-a2hs"/);
+    assert.match(ios, /data-testid="pwa-ios-share-hint"/);
+    assert.match(ios, /data-testid="pwa-ios-a2hs-alt"/);
+    assert.match(ios, /IOS_SHARE_LABEL/);
+    assert.match(ios, /IOS_SHARE_HINT/);
+    assert.match(ios, /IOS_A2HS_LABEL/);
+    assert.doesNotMatch(ios, /CRIOS_COPY_LINK_LABEL|pwa-copy-link|Installer Plan C|pwa-install-button/);
+    assert.match(ui, /data-testid="pwa-ios-share-arrow"/);
+    assert.match(ui, /data-testid=\{clearSafariBar \? 'pwa-ios-dismiss-share'/);
+    assert.match(ui, /a2hsSurfaceForClient/);
+    assert.match(ui, /openInstall = useCallback/);
+    assert.equal(ui.split('<InstallSheet').length - 1, 1);
     assert.match(ui, /shouldAwaitInstallPrompt/);
     assert.ok(layout.indexOf('INSTALL_PROMPT_CAPTURE_SCRIPT') < layout.indexOf('<Providers'));
   });
