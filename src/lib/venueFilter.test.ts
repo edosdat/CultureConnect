@@ -104,8 +104,9 @@ describe('Salle chip', () => {
     const genresAt = app.indexOf('GENRES: second band');
     const monthAt = app.indexOf('Voir le mois');
     assert.ok(bandAt > 0 && cityAt > bandAt && nearAt > cityAt);
-    assert.ok(moreAt > nearAt && venueAt > moreAt);
-    assert.ok(genresAt > venueAt && monthAt > genresAt);
+    assert.ok(venueAt > nearAt && moreAt > venueAt);
+    assert.ok(genresAt > moreAt && monthAt > genresAt);
+    assert.match(app, /cc-filter-band__place[\s\S]{0,2500}<VenueFilter/);
     assert.match(app, /cc-axes__group cc-axes__group--scroll/);
     assert.match(app, /cc-filter-band__facets/);
     assert.match(app, /selectedCategories\.length > 0 && facetsOpen/);
@@ -194,13 +195,15 @@ describe('home axes column', () => {
     assert.match(axes, /\.cc-axes__chip \{[^}]*padding:\s*0\.2rem 0\.55rem/);
     assert.match(axes, /\.cc-filter-band__facets \{[^}]*gap:\s*0\.375rem/);
     assert.match(axes, /\.cc-genre-scroll \{[^}]*overflow-x:\s*auto/);
+    assert.match(axes, /\.cc-filter-band__place \{[^}]*flex-wrap:\s*nowrap/);
+    assert.match(axes, /\.cc-filter-band__place \{[^}]*overflow-x:\s*auto/);
     assert.match(
       axes,
-      /@media \(max-width: 767px\) \{[^}]*\.cc-axes__group--scroll \{[^}]*flex-wrap:\s*nowrap/,
+      /\.cc-axes__group\.cc-axes__group--scroll \{[^}]*flex-wrap:\s*nowrap/,
     );
     assert.match(
       axes,
-      /@media \(max-width: 767px\) \{[^}]*\.cc-axes__group--scroll \{[^}]*overflow-x:\s*auto/,
+      /\.cc-axes__group\.cc-axes__group--scroll \{[^}]*overflow-x:\s*auto/,
     );
     assert.equal(axes.includes('display: contents'), false);
     assert.equal(css.includes('flex-direction: row'), false);

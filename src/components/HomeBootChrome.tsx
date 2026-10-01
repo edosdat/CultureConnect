@@ -22,8 +22,8 @@ function homeBootMonthLabel(now = new Date()): string {
  * Reserved at ~380px (Design LAYOUT_JUMP):
  * - sticky search: h-10 + py-1.5 + border-b + mb-2 (~61px); ↵ always visible
  * - no SEARCH_EXAMPLES (retired)
- * - .cc-filter-band: Ville + Près de moi, then column QUAND → QUOI.
- *   Below md each axis is one scroll row (›). No Filtres (no category yet).
+ * - .cc-filter-band: Ville + Près de moi on one nowrap line, then QUAND → QUOI
+ *   each as one scroll row (›). No Filtres and no Salle (no category yet).
  *   Gap 6px, no empty row.
  * - Voir le mois sits outside the band (Paris month)
  * - HomeListWaitSlot: overlay (no flow well; dots are 12px)

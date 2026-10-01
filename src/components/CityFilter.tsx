@@ -34,7 +34,7 @@ export default function CityFilter({
     return (
       <div
         className={
-          'inline-flex min-w-0 flex-wrap items-center gap-1.5' +
+          'inline-flex shrink-0 flex-nowrap items-center gap-1.5' +
           (inactive ? ' opacity-40' : '')
         }
       >

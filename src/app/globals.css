@@ -171,12 +171,10 @@ body {
   background: linear-gradient(135deg, #b8d4d5, #e8e0d6);
 }
 
-/* Filter band: Ville + Près de moi, then #221 column QUAND → QUOI.
-   Below md each axis is one nowrap scroll row (› affordance, no edge clip).
-   Desktop keeps wrap — chips are not forced to scroll.
-   Salle + GENRES sit in one disclosure row, only after a category and
-   only while Filtres is open. Gap 6px (≤8px). No empty wrapper.
-   Voir le mois stays outside (chrome stack 6px, ≤12px). */
+/* Filter band: Ville + Près de moi + Salle share ONE nowrap line.
+   QUAND and QUOI are each one nowrap scroll row (never wrap to 2 lines).
+   GENRES stay in the Filtres disclosure, only after a category.
+   Gap 6px (≤8px). Voir le mois stays outside (chrome stack 6px, ≤12px). */
 .cc-filter-band {
   display: flex;
   flex-direction: column;
@@ -187,11 +185,14 @@ body {
 }
 .cc-filter-band__place {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 0.375rem;
   width: 100%;
   min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
 }
 .cc-filter-band__facets {
   display: flex;
@@ -239,6 +240,16 @@ body {
   width: 100%;
   min-width: 0;
 }
+/* Beats `.cc-axes__group` wrap at every width, including 380. */
+.cc-axes__group.cc-axes__group--scroll {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  width: auto;
+  flex: 1 1 auto;
+  min-width: 0;
+}
 .cc-genre-scroll {
   flex-wrap: nowrap;
   overflow-x: auto;
@@ -266,14 +277,6 @@ body {
 }
 /* › sits beside the scroller so the last chip is not covered or clipped. */
 @media (max-width: 767px) {
-  .cc-axes__group--scroll {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: thin;
-    width: auto;
-    flex: 1 1 auto;
-  }
   .cc-scroll-shell::after {
     content: "›";
     flex: 0 0 auto;

@@ -3024,6 +3024,21 @@ export default function CultureConnectApp({
               pending={nearMePending}
               onToggle={handleNearMeToggle}
             />
+            {/* Salle shares the Ville line (#205: null until a category).
+                Menu flips via placeVenueMenu (#221). */}
+            <VenueFilter
+              lieux={venueOptions}
+              selectedLieuId={selectedLieuId}
+              onChange={setSelectedLieuId}
+              variant="inline"
+              selectedMains={selectedCategories}
+              hideWhenNoCategory
+              loading={
+                listFetchInFlight &&
+                selectedCategories.length > 0 &&
+                venueOptions.length === 0
+              }
+            />
           </div>
           <div className="cc-axes-row">
             <div className="cc-axes">
@@ -3079,24 +3094,9 @@ export default function CultureConnectApp({
               </div>
             </div>
           </div>
-          {/* Salle + GENRES: one disclosure row, only while Filtres is open.
-              Salle stays null until a category is on (#205). Menu flips
-              via placeVenueMenu (#221). Closed disclosure leaves no row. */}
+          {/* GENRES: disclosure row only while Filtres is open. */}
           {selectedCategories.length > 0 && facetsOpen ? (
             <div id="cc-filter-facets" className="cc-filter-band__facets">
-              <VenueFilter
-                lieux={venueOptions}
-                selectedLieuId={selectedLieuId}
-                onChange={setSelectedLieuId}
-                variant="inline"
-                selectedMains={selectedCategories}
-                hideWhenNoCategory
-                loading={
-                  listFetchInFlight &&
-                  selectedCategories.length > 0 &&
-                  venueOptions.length === 0
-                }
-              />
               <div className="cc-filter-band__genres">
                 {/* GENRES: second band only when a category is on. */}
                 <GenreFilter
