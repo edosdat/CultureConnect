@@ -1176,12 +1176,14 @@ export default function CultureConnectApp({
   ]);
 
   // After mount, a taste profile prefetches boot scopes (same POST reco=1). Guest stays on boot.
+  // Semaine first — Mes recos sheet must paint from cache/pool without waiting on other scopes.
   // Do not cancel successful writes — JWT/tasteState identity must not drop a finished POST.
   useEffect(() => {
     if (recoKind !== 'profile') return;
     const commune = selectedCommune;
     const profile = tasteStateRef.current?.profile;
     if (!profile) return;
+    const profileSnapshot = profile;
     const jobs = RECO_BOOT_SCOPES.map((scope) => {
       const day = recoKeyDay(scope, null, initialParisIso);
       return {
@@ -1191,50 +1193,63 @@ export default function CultureConnectApp({
       };
     }).filter((job) => recoPoolByKeyRef.current[job.key] === undefined);
     if (jobs.length === 0) return;
-    void Promise.all(
-      jobs.map(async (job) => {
-        try {
-          const params = new URLSearchParams();
-          params.set('reco', '1');
-          const res = await fetch(`/api/agenda?${params.toString()}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              scope: job.scope,
-              date: job.day,
-              commune,
-              year,
-              month,
-              profile: {
-                moods: profile.moods,
-                genres: profile.genres,
-                themes: profile.themes,
-              },
-              excludeWorkIds: excludeWorkIdsForReco(
+    // Prioritize semaine so Mes recos open is quasi-instant after login.
+    const semaineFirst = [
+      ...jobs.filter((j) => j.scope === 'semaine'),
+      ...jobs.filter((j) => j.scope !== 'semaine'),
+    ];
+    async function fetchRecoJob(job: (typeof jobs)[number]) {
+      try {
+        const params = new URLSearchParams();
+        params.set('reco', '1');
+        const res = await fetch(`/api/agenda?${params.toString()}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scope: job.scope,
+            date: job.day,
+            commune,
+            year,
+            month,
+            profile: {
+              moods: profileSnapshot.moods,
+              genres: profileSnapshot.genres,
+              themes: profileSnapshot.themes,
+            },
+            excludeWorkIds: excludeWorkIdsForReco(
               tasteStateRef.current?.signalsRecent,
               optimisticNotInterestedRef.current,
             ),
-            }),
-          });
-          if (!res.ok) return;
-          const data = (await res.json()) as AgendaListResponse;
-          if (recoWipedRef.current) return;
-          setRecoPoolByKey((prev) => {
-            const next = {
-              ...prev,
-              [job.key]: data.items ?? [],
-            };
-            recoFetchedKeysRef.current.add(job.key);
-            if (recoKindRef.current === 'profile') {
-              writeProfileRecoCache(initialParisIso, commune, next);
-            }
-            return next;
-          });
-        } catch {
-          /* leave key empty */
-        }
-      }),
-    );
+          }),
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as AgendaListResponse;
+        if (recoWipedRef.current) return;
+        setRecoPoolByKey((prev) => {
+          const next = {
+            ...prev,
+            [job.key]: data.items ?? [],
+          };
+          recoFetchedKeysRef.current.add(job.key);
+          if (recoKindRef.current === 'profile') {
+            writeProfileRecoCache(initialParisIso, commune, next);
+          }
+          return next;
+        });
+      } catch {
+        /* leave key empty */
+      }
+    }
+    void (async () => {
+      const first = semaineFirst[0];
+      const rest = semaineFirst.slice(1);
+      if (first?.scope === 'semaine') {
+        await fetchRecoJob(first);
+        await Promise.all(rest.map(fetchRecoJob));
+      } else {
+        await Promise.all(semaineFirst.map(fetchRecoJob));
+      }
+    })();
   }, [recoKind, selectedCommune, year, month, initialParisIso]);
 
   // Reload first-paint: merge public profile card cache (no tastes / email).
@@ -2169,8 +2184,16 @@ export default function CultureConnectApp({
 
   const openMesRecosManual = useCallback(() => {
     // Menu « Mes recos » — reopen WITHOUT consuming / re-gating the week.
+    // Open immediately; sheet paints cached week cards or a light local loading state.
     setMesRecosOpen(true);
   }, []);
+
+  // Prefetch MesRecosSheet chunk as soon as we know the user is signed in
+  // (dynamic() otherwise waits until first open — feels slow on iPad Safari).
+  useEffect(() => {
+    if (sessionStatus !== 'authenticated') return;
+    void import('./MesRecosSheet');
+  }, [sessionStatus]);
 
   useEffect(() => {
     function onOpen() {
@@ -2196,7 +2219,8 @@ export default function CultureConnectApp({
     if (mesRecosAutoOpenedRef.current) return;
     if (mesRecosWeekAlreadyShown()) return;
     if (recoKind !== 'profile') return;
-    // Prefer week pool paint; if only home reco is ready, still open (cold/empty OK).
+    // Prefer week pool ready (instant cards). Fall back: open with local loading
+    // once any profile reco is ready so login never waits on a blank screen.
     if (!weekPoolReady && !recoReady) return;
     mesRecosAutoOpenedRef.current = true;
     markMesRecosWeekShown(); // « montré » = sheet mounted
@@ -3443,6 +3467,7 @@ export default function CultureConnectApp({
         onClose={closeMesRecos}
         cards={weekTop3Cards}
         copyState={mesRecosCopyState}
+        poolReady={weekPoolReady}
         onSelectCard={handleSelectMesRecosCard}
         onNotInterested={dismissWork}
         notInterested={workIsNotInterested}

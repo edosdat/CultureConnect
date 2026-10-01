@@ -16,6 +16,8 @@ type Props = {
   onClose: () => void;
   cards: DayItem[];
   copyState: MesRecosCopyState;
+  /** False while semaine|profile pool is still in flight — sheet opens immediately with a light local loading state. */
+  poolReady?: boolean;
   onSelectCard: (key: string) => void;
   onNotInterested: (item: DayItem) => void;
   notInterested: (item: DayItem) => boolean;
@@ -24,12 +26,16 @@ type Props = {
 /**
  * Bottom/centered sheet « Mes recos de la semaine ».
  * × chrome = close (no negative signal). × on cards = Pas pour moi (P3).
+ * Cards always stack in a single column (sm panel max-w-[440px] — never
+ * a 3-up poster rail). Full-width default SeanceCard (not the home rail).
+ * Opens immediately; poolReady=false shows a light local pulse until cards land.
  */
 export default function MesRecosSheet({
   open,
   onClose,
   cards,
   copyState,
+  poolReady = true,
   onSelectCard,
   onNotInterested,
   notInterested,
@@ -137,26 +143,34 @@ export default function MesRecosSheet({
           {subtitle}
         </p>
         <div className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 pb-2">
-          {cards.length === 0 ? (
+          {!poolReady && cards.length === 0 ? (
+            <ul
+              className="grid grid-cols-1 gap-3"
+              data-mes-recos-loading=""
+              aria-busy="true"
+              aria-live="polite"
+            >
+              {[0, 1, 2].map((i) => (
+                <li
+                  key={i}
+                  className="h-28 w-full min-w-0 animate-pulse rounded-card bg-culture-cream"
+                />
+              ))}
+            </ul>
+          ) : cards.length === 0 ? (
             <p className="py-6 text-sm text-culture-muted">{subtitle}</p>
           ) : (
             <ul
-              className={
-                cards.length === 1
-                  ? 'grid grid-cols-1 gap-3'
-                  : cards.length === 2
-                    ? 'grid grid-cols-2 gap-3'
-                    : 'grid grid-cols-3 gap-2 sm:gap-3'
-              }
+              className="grid grid-cols-1 gap-3"
               data-mes-recos-cards={cards.length}
             >
               {cards.map((item, i) => (
-                <li key={item.key} className="min-w-0">
+                <li key={item.key} className="min-w-0 w-full">
                   <SeanceCard
                     item={item}
                     showDate
                     onSelect={onSelectCard}
-                    variant="rail"
+                    variant="default"
                     source="top3"
                     priority={i === 0}
                     onNotInterested={onNotInterested}

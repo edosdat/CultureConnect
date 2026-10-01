@@ -114,10 +114,22 @@ describe('Mes recos Plan C wiring (source contracts)', () => {
     assert.match(sheet, /Mes recos de la semaine/);
     assert.match(sheet, /PasPourMoi|onNotInterested/);
     assert.match(sheet, /data-mes-recos-chrome-close/);
+    // iPad/sm: always single-column stack — never a 3-up poster rail
+    assert.match(sheet, /grid grid-cols-1 gap-3/);
+    assert.equal(/grid-cols-[23]/.test(sheet), false);
+    assert.match(sheet, /variant="default"/);
+    assert.equal(/variant="rail"/.test(sheet), false);
+    // Open-immediate loading pulse while semaine pool in flight
+    assert.match(sheet, /data-mes-recos-loading/);
+    assert.match(sheet, /poolReady/);
     // Week pool key is always semaine|profile — never the chip-scoped visibleRecoKey
     assert.match(app, /recoPoolKey\('semaine', null, selectedCommune, 'profile'\)/);
     assert.match(app, /<MesRecosSheet/);
+    assert.match(app, /poolReady=\{weekPoolReady\}/);
     assert.match(app, /markMesRecosWeekShown/);
+    // Perf: semaine-first boot prefetch + dynamic chunk preload on auth
+    assert.match(app, /j\.scope === 'semaine'/);
+    assert.match(app, /void import\('\.\/MesRecosSheet'\)/);
     // Home Top3 SeanceGrid (fixedSlots) must NOT pass onNotInterested
     const top3Block = app.slice(
       app.indexOf('data-top3=""'),
