@@ -15,17 +15,15 @@ export const INSTALL_PROMPT_CAPTURE_SCRIPT =
   "(function(){if(/CriOS/i.test(navigator.userAgent||''))return;window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__plancInstallPrompt=e;window.dispatchEvent(new Event('planc-bip'));});})();";
 
 /**
- * LOCK. Install happens in Safari’s own chrome, not via `navigator.share`
- * and not via a button on this sheet. On iPad the share icon is in the top bar.
+ * Chrome on iOS cannot install. Handoff is « Copier le lien », then Safari.
+ * Wording kept from #210 / #212. Not the in-Safari iPhone or iPad sheet.
  */
-export const SAFARI_TOP_A2HS_PATH =
-  'Barre Safari en haut → icône Partager (carré + flèche) → Sur l’écran d’accueil';
-
-/** Visible path on the Chrome-iOS sheet. Safari is the only install that works. */
-export const CRIOS_SAFARI_PATH = `Ouvre dans Safari. ${SAFARI_TOP_A2HS_PATH}`;
+export const CRIOS_SAFARI_PATH =
+  'Ouvre dans Safari → Partager → Sur l’écran d’accueil';
 
 /** Same path in a full sentence, for the sheet body. */
-export const CRIOS_SAFARI_COPY = `Ouvre Plan C dans Safari. ${SAFARI_TOP_A2HS_PATH}.`;
+export const CRIOS_SAFARI_COPY =
+  'Sur iPhone, ouvre Plan C dans Safari, puis Partager → Sur l’écran d’accueil.';
 
 /** Why tapping Share inside Chrome is not enough. */
 export const CRIOS_SAFARI_NOTE =
@@ -33,34 +31,43 @@ export const CRIOS_SAFARI_NOTE =
 
 export const CRIOS_COPY_LINK_LABEL = 'Copier le lien';
 export const CRIOS_COPIED_LABEL = 'Lien copié';
-export const CRIOS_COPIED_HINT = `Colle-le dans Safari. ${SAFARI_TOP_A2HS_PATH}.`;
+export const CRIOS_COPIED_HINT =
+  'Colle-le dans Safari, puis Partager → Sur l’écran d’accueil.';
 export const CRIOS_COPY_FAILED =
   'Le lien n’a pas été copié. Sélectionne l’adresse, puis colle-la dans Safari.';
 
-/** Gestures in Safari’s top bar, after the link is pasted. Not page buttons. */
-export const CRIOS_SAFARI_STEPS = [
-  'Barre Safari en haut : icône Partager (carré + flèche)',
-  'Sur l’écran d’accueil',
+/** Gestures that happen in Safari, after the link is pasted. Not page buttons. */
+export const CRIOS_SAFARI_STEPS = ['Partager', 'Sur l’écran d’accueil'] as const;
+
+/** Safari iPhone. Share lives in the bottom bar. Not a button on this sheet. */
+export const IPHONE_SAFARI_PATH = 'Partager, barre en bas → Sur l’écran d’accueil';
+export const IPHONE_SHARE_LABEL = 'Partager';
+export const IPHONE_SHARE_DETAIL = 'Barre Safari, en bas.';
+export const IPHONE_A2HS_LABEL = 'Sur l’écran d’accueil';
+export const IPHONE_A2HS_HINT = 'Dans le menu Partager. Pas un bouton ici.';
+export const IPHONE_SAFARI_STEPS = [
+  { id: 'share', label: IPHONE_SHARE_LABEL, detail: IPHONE_SHARE_DETAIL },
+  { id: 'a2hs', label: IPHONE_A2HS_LABEL, detail: IPHONE_A2HS_HINT },
 ] as const;
 
 /**
- * French Safari chrome. The share control is the square-and-arrow in the top bar.
- * « Sur l’écran d’accueil » is the row inside that menu. The older « Ajouter… »
- * wording is still recognized, never shown. Neither step is a button here.
+ * Safari iPad. Share is the square-and-arrow in the top toolbar.
+ * Never `navigator.share`, never a beige button on this sheet.
  */
-export const IOS_SHARE_LABEL = 'Icône Partager (carré + flèche)';
-export const IOS_SHARE_DETAIL = 'Barre Safari, en haut.';
-export const IOS_A2HS_LABEL = 'Sur l’écran d’accueil';
-/** Same LOCK path, already inside Safari. */
-export const IOS_SAFARI_PATH = SAFARI_TOP_A2HS_PATH;
-/** Step 2 is a row in Safari’s share menu, not a control on this page. */
-export const IOS_A2HS_HINT = 'Dans le menu Partager. Pas un bouton ici.';
-
-/** Steps for real Safari (not CriOS). Text only — not tappable. */
-export const IOS_SAFARI_STEPS = [
-  { id: 'share', label: IOS_SHARE_LABEL, detail: IOS_SHARE_DETAIL },
-  { id: 'a2hs', label: IOS_A2HS_LABEL, detail: IOS_A2HS_HINT },
+export const IPAD_SAFARI_PATH =
+  'Barre Safari en haut → icône Partager (carré + flèche) → Sur l’écran d’accueil';
+export const IPAD_SHARE_LABEL = 'Icône Partager (carré + flèche)';
+export const IPAD_SHARE_DETAIL = 'Barre Safari, en haut.';
+export const IPAD_A2HS_LABEL = 'Sur l’écran d’accueil';
+export const IPAD_A2HS_HINT = 'Dans le menu Partager. Pas un bouton ici.';
+export const IPAD_SAFARI_STEPS = [
+  { id: 'share', label: IPAD_SHARE_LABEL, detail: IPAD_SHARE_DETAIL },
+  { id: 'a2hs', label: IPAD_A2HS_LABEL, detail: IPAD_A2HS_HINT },
 ] as const;
+
+/** Android Chromium, only when `beforeinstallprompt` was stored. */
+export const ANDROID_INSTALL_LABEL = 'Installer Plan C';
+export const ANDROID_INSTALL_HINT = 'Un raccourci sur l’écran d’accueil.';
 
 /** Scrim stays off the bottom browser chrome. */
 export const IOS_SAFARI_BAR_MIN_GAP_PX = 96;
@@ -72,7 +79,12 @@ export type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 };
 
-export type A2hsSurface = 'android-prompt' | 'ios-steps' | 'crios-safari' | 'fallback';
+export type A2hsSurface =
+  | 'android-prompt'
+  | 'safari-iphone'
+  | 'safari-ipad'
+  | 'crios-safari'
+  | 'fallback';
 
 export type AccountInstallItem = 'pending' | 'download' | 'installed';
 
@@ -122,8 +134,25 @@ export function isChromeIosClient(input: { userAgent: string }): boolean {
   return /CriOS/i.test(input.userAgent || '');
 }
 
+/**
+ * iPad, including iPadOS desktop mode (Macintosh UA, MacIntel, touch).
+ * An iPhone or iPod token wins, so a phone is never classed as a tablet.
+ */
+export function isIpadClient(input: {
+  userAgent: string;
+  platform?: string;
+  maxTouchPoints?: number;
+}): boolean {
+  const ua = input.userAgent || '';
+  if (/iPhone|iPod/i.test(ua)) return false;
+  if (/iPad/i.test(ua)) return true;
+  if ((input.platform || '') === 'MacIntel' && (input.maxTouchPoints || 0) > 1) return true;
+  return false;
+}
+
 export type IosInstallFlags = {
   ios: boolean;
+  ipad: boolean;
   chromeIos: boolean;
 };
 
@@ -135,6 +164,7 @@ export function iosInstallFlags(input: {
 }): IosInstallFlags {
   return {
     ios: isIosClient(input),
+    ipad: isIpadClient(input),
     chromeIos: isChromeIosClient({ userAgent: input.userAgent }),
   };
 }
@@ -145,6 +175,7 @@ export function iosInstallFlags(input: {
  */
 export function canShowNativeInstallButton(input: {
   ios: boolean;
+  ipad?: boolean;
   chromeIos?: boolean;
   promptReady: boolean;
 }): boolean {
@@ -154,6 +185,7 @@ export function canShowNativeInstallButton(input: {
 /** `skip` is the dead click: no prompt, or the surface is not the Android one. */
 export function nativeInstallTap(input: {
   ios: boolean;
+  ipad?: boolean;
   chromeIos?: boolean;
   promptReady: boolean;
 }): 'prompt' | 'skip' {
@@ -168,6 +200,7 @@ export function sheetSurfaceWhenOpening(input: {
   if (!input.flags) return null;
   return a2hsSurface({
     ios: input.flags.ios,
+    ipad: input.flags.ipad,
     chromeIos: input.flags.chromeIos,
     promptReady: input.promptReady,
   });
@@ -259,17 +292,19 @@ export function shouldShowDailyA2hs(input: {
 }
 
 /**
- * iOS never gets a fake install button. Chrome iOS is its own surface:
- * no `beforeinstallprompt`, and Add to Home Screen usually needs Safari.
- * Other Chromium gets the native prompt only when the event was stored.
+ * One surface per client. CriOS wins over Safari, iPad over iPhone.
+ * Android gets the native prompt only when the event was stored.
+ * Nobody on iOS gets a fake Installer or a `navigator.share` button.
  */
 export function a2hsSurface(input: {
   ios: boolean;
+  ipad?: boolean;
   chromeIos?: boolean;
   promptReady: boolean;
 }): A2hsSurface {
   if (input.chromeIos) return 'crios-safari';
-  if (input.ios) return 'ios-steps';
+  if (input.ipad) return 'safari-ipad';
+  if (input.ios) return 'safari-iphone';
   if (input.promptReady) return 'android-prompt';
   return 'fallback';
 }
@@ -286,6 +321,7 @@ export function a2hsSurfaceForClient(input: {
 }): A2hsSurface {
   return a2hsSurface({
     ios: isIosClient(input),
+    ipad: isIpadClient(input),
     chromeIos: isChromeIosClient({ userAgent: input.userAgent }),
     promptReady: input.promptReady,
   });

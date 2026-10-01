@@ -20,9 +20,13 @@ import {
   CRIOS_SAFARI_NOTE,
   CRIOS_SAFARI_PATH,
   CRIOS_SAFARI_STEPS,
-  IOS_SAFARI_PATH,
-  IOS_SAFARI_STEPS,
+  ANDROID_INSTALL_HINT,
+  ANDROID_INSTALL_LABEL,
   IOS_SAFARI_TOP_MIN_GAP_PX,
+  IPAD_SAFARI_PATH,
+  IPAD_SAFARI_STEPS,
+  IPHONE_SAFARI_PATH,
+  IPHONE_SAFARI_STEPS,
   a2hsSurface,
   canShowNativeInstallButton,
   copySafariHandoffUrl,
@@ -124,6 +128,43 @@ function AddGlyph() {
   );
 }
 
+function SafariGuide({
+  rootTestId,
+  pathTestId,
+  path,
+  steps,
+}: {
+  rootTestId: string;
+  pathTestId: string;
+  path: string;
+  steps: readonly { id: string; label: string; detail: string }[];
+}) {
+  return (
+    <div data-testid={rootTestId}>
+      <p data-testid={pathTestId} className="mt-2 text-sm font-medium text-culture-ink">
+        {path}
+      </p>
+      <ol data-testid={`${rootTestId}-steps`} className="mt-3 list-decimal space-y-3 pl-5 text-sm text-culture-ink">
+        {steps.map((step) => (
+          <li key={step.id} data-testid={`${rootTestId}-step-${step.id}`} data-tap="inert">
+            <span className="inline-flex items-start gap-2">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-culture-soft text-culture-clay">
+                {step.id === 'share' ? <ShareGlyph /> : <AddGlyph />}
+              </span>
+              <span>
+                <span className="font-medium">{step.label}</span>
+                <span data-testid={`${rootTestId}-detail-${step.id}`} className="mt-0.5 block text-culture-muted">
+                  {step.detail}
+                </span>
+              </span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 function InstallSheet({
   flags,
   promptReady,
@@ -155,7 +196,7 @@ function InstallSheet({
   }, [onClose]);
 
   useEffect(() => {
-    if (surface !== 'ios-steps') return;
+    if (surface !== 'safari-iphone' && surface !== 'safari-ipad') return;
     function measure() {
       const vv = window.visualViewport;
       const chrome = safariBottomChromePx({
@@ -179,17 +220,19 @@ function InstallSheet({
 
   if (typeof document === 'undefined') return null;
 
-  const clearSafariBar = surface === 'ios-steps';
+  const safariIphone = surface === 'safari-iphone';
+  const safariIpad = surface === 'safari-ipad';
+  const anchor = safariIpad ? 'top-mid' : safariIphone ? 'above-bottom' : 'bottom';
 
   return createPortal(
     <div
       className={
-        clearSafariBar
+        safariIphone || safariIpad
           ? 'fixed inset-0 z-[160] flex items-start justify-center'
           : 'fixed inset-0 z-[160] flex items-end justify-center'
       }
-      data-pwa-anchor={clearSafariBar ? 'top-mid' : 'bottom'}
-      style={clearSafariBar ? { paddingTop: IOS_SAFARI_TOP_MIN_GAP_PX } : undefined}
+      data-pwa-anchor={anchor}
+      style={safariIpad ? { paddingTop: IOS_SAFARI_TOP_MIN_GAP_PX } : undefined}
       role="presentation"
     >
       <button
@@ -198,9 +241,11 @@ function InstallSheet({
         aria-label="Fermer"
         className="absolute inset-x-0 bg-culture-ink/15"
         style={
-          clearSafariBar
+          safariIpad
             ? { top: IOS_SAFARI_TOP_MIN_GAP_PX, bottom: bottomGap }
-            : { top: 0, bottom: 0 }
+            : safariIphone
+              ? { top: 0, bottom: bottomGap }
+              : { top: 0, bottom: 0 }
         }
         onClick={onClose}
       />
@@ -211,8 +256,8 @@ function InstallSheet({
         data-testid="pwa-install-sheet"
         data-pwa-surface={surface}
         className={
-          clearSafariBar
-            ? 'relative mx-3 w-full max-w-sm rounded-2xl border border-culture-line/80 bg-white/80 p-4 shadow-card backdrop-blur-md'
+          safariIphone || safariIpad
+            ? 'relative mx-3 mt-[max(0.75rem,env(safe-area-inset-top))] w-full max-w-sm rounded-2xl border border-culture-line/80 bg-white/80 p-4 shadow-card backdrop-blur-md'
             : 'relative m-3 mb-[max(0.75rem,env(safe-area-inset-bottom))] w-full max-w-sm rounded-2xl border border-culture-line/80 bg-white/80 p-4 shadow-card backdrop-blur-md'
         }
       >
@@ -220,17 +265,17 @@ function InstallSheet({
           Ajoute Plan C
         </h2>
         {showInstall ? (
-          <>
-            <p className="mt-1 text-sm text-culture-muted">Un raccourci sur l’écran d’accueil.</p>
+          <div data-testid="pwa-android-prompt">
+            <p className="mt-1 text-sm text-culture-muted">{ANDROID_INSTALL_HINT}</p>
             <button
               type="button"
               data-testid="pwa-install-button"
               onClick={onInstall}
               className="mt-3 min-h-10 w-full rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-white hover:bg-culture-clay"
             >
-              Installer Plan C
+              {ANDROID_INSTALL_LABEL}
             </button>
-          </>
+          </div>
         ) : null}
         {surface === 'crios-safari' ? (
           <div data-testid="pwa-install-crios">
@@ -272,32 +317,21 @@ function InstallSheet({
             </ol>
           </div>
         ) : null}
-        {surface === 'ios-steps' ? (
-          <div data-testid="pwa-install-ios">
-            <p data-testid="pwa-ios-safari-path" className="mt-2 text-sm font-medium text-culture-ink">
-              {IOS_SAFARI_PATH}
-            </p>
-            <ol data-testid="pwa-ios-steps" className="mt-3 list-decimal space-y-3 pl-5 text-sm text-culture-ink">
-              {IOS_SAFARI_STEPS.map((step) => (
-                <li key={step.id} data-testid={`pwa-ios-step-${step.id}`} data-tap="inert">
-                  <span className="inline-flex items-start gap-2">
-                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-culture-soft text-culture-clay">
-                      {step.id === 'share' ? <ShareGlyph /> : <AddGlyph />}
-                    </span>
-                    <span>
-                      <span className="font-medium">{step.label}</span>
-                      <span
-                        data-testid={step.id === 'share' ? 'pwa-ios-share-detail' : 'pwa-ios-a2hs-hint'}
-                        className="mt-0.5 block text-culture-muted"
-                      >
-                        {step.detail}
-                      </span>
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </div>
+        {surface === 'safari-iphone' ? (
+          <SafariGuide
+            rootTestId="pwa-iphone-safari"
+            pathTestId="pwa-iphone-safari-path"
+            path={IPHONE_SAFARI_PATH}
+            steps={IPHONE_SAFARI_STEPS}
+          />
+        ) : null}
+        {surface === 'safari-ipad' ? (
+          <SafariGuide
+            rootTestId="pwa-ipad-safari"
+            pathTestId="pwa-ipad-safari-path"
+            path={IPAD_SAFARI_PATH}
+            steps={IPAD_SAFARI_STEPS}
+          />
         ) : null}
         {surface === 'fallback' ? (
           <p data-testid="pwa-install-fallback" className="mt-2 text-sm text-culture-muted">
@@ -306,7 +340,9 @@ function InstallSheet({
         ) : null}
         <button
           type="button"
-          data-testid={clearSafariBar ? 'pwa-ios-dismiss' : undefined}
+          data-testid={
+            safariIpad ? 'pwa-ipad-dismiss' : safariIphone ? 'pwa-iphone-dismiss' : undefined
+          }
           onClick={onClose}
           className="mt-3 block w-full py-1 text-center text-sm text-culture-muted hover:text-culture-ink"
         >
