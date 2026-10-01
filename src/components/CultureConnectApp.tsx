@@ -97,6 +97,8 @@ import HomeSection from './HomeSection';
 import ListImpressionProbe from './ListImpressionProbe';
 import { impressionItemKey } from '@/lib/impressions';
 import HomeAccroche from './HomeAccroche';
+import CharteRegisterLine from './CharteRegisterLine';
+import { charteCopy, charteRegister } from '@/lib/charteCopy';
 import PackRailSkeleton, { PackRailEmpty } from './PackRailSkeleton';
 import {
   ProposeEmptyCard,
@@ -1835,6 +1837,9 @@ export default function CultureConnectApp({
   const enfantsModePending = avecEnfants !== listAvecEnfants;
   /** Home rails stay hidden while the kids list is showing or still loading. */
   const showHomeRails = !avecEnfants && !listAvecEnfants;
+  /** One register for the whole view. The enfants chip does not select it. */
+  const register = charteRegister(avecEnfants);
+  const copy = charteCopy(avecEnfants);
 
   const isGuestReco = recoKind === 'guest';
   const reasonFor = useCallback(
@@ -2849,6 +2854,8 @@ export default function CultureConnectApp({
             />
           ) : null}
         </MonthCalendarDrawer>
+
+        <CharteRegisterLine register={register} copy={copy} />
 
         {showTop3Section && !avecEnfants ? (
         <section
