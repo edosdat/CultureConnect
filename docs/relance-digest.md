@@ -116,7 +116,37 @@ curl -sS 'https://<host>/api/mail-digest/recipients' \
 
 `userId` est l’e-mail normalisé : c’est la seule clé de compte durable (`token.sub` n’est pas stocké).
 
-Pour le corps du mail, Relance rappelle `POST /api/agenda?reco=1&digest=relance` avec le profil du compte. Cet endpoint de liste ne score pas.
+Cet endpoint de liste ne score pas. Le corps du mail part de `GET /api/mail-digest/profiles`, puis `POST /api/agenda?reco=1&digest=relance`.
+
+### Profils
+
+`GET /api/mail-digest/profiles`
+
+Même `Authorization: Bearer` que la liste (`RELANCE_DIGEST_SECRET`, ou `CRON_SECRET` si le premier n’est pas posé). Les deux sont acceptés quand les deux sont posés. Secret absent ou faux : **401**. Base illisible : **503** — ne pas envoyer sur des profils inventés.
+
+Même destinataires que `/api/mail-digest/recipients` (même fenêtre, désabonnés exclus). Pour chaque e-mail, jointure `account_tastes` sur `user_key` (trim + minuscules). Pas de ligne, ou un `state` illisible : `profile` vide et `excludeWorkIds` vide. Le compte reste dans la liste.
+
+`profile` est le corps du POST digeste : `moods`, `genres`, `themes` (`weight` + `pct`), lus comme le compte dans l’app. Pas d’e-mail dans `profile`, pas de signaux bruts, pas de texte libre. `excludeWorkIds` reprend les œuvres « pas pour moi » encore dans les 40 derniers signaux (`f:` / `e:` / `p:`). `commune` est `null` : la ville choisie dans l’agenda n’est pas stockée sur le compte. `null` = métropole. Cet endpoint ne score pas.
+
+```bash
+curl -sS 'https://<host>/api/mail-digest/profiles' \
+  -H "Authorization: Bearer $RELANCE_DIGEST_SECRET"
+```
+
+```json
+{
+  "count": 1,
+  "users": [
+    {
+      "userId": "ada@example.com",
+      "email": "ada@example.com",
+      "profile": { "moods": {}, "genres": {}, "themes": {} },
+      "excludeWorkIds": [],
+      "commune": null
+    }
+  ]
+}
+```
 
 ### Désabonnement 1 clic
 

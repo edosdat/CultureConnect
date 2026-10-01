@@ -8,10 +8,13 @@ import { readdir, readFile } from 'fs/promises';
 import path from 'path';
 import { VercelPool } from '@vercel/postgres';
 import {
+  digestRecoFieldsFromTaste,
+  emptyDigestRecoProfile,
   isDigestRecipient,
   isGoogleMailKey,
   mailDigestSecrets,
   verifyMailUnsubToken,
+  type DigestRecoProfile,
 } from '@/lib/mailDigest';
 import {
   listMailConsentFileRows,
@@ -23,6 +26,16 @@ import { listGoogleAccountFileEmails } from '@/lib/googleAccountStore';
 export type DigestRecipient = {
   userId: string;
   email: string;
+};
+
+/** One digest recipient plus the taste row Relance needs to score. */
+export type DigestProfileUser = {
+  userId: string;
+  email: string;
+  profile: DigestRecoProfile;
+  excludeWorkIds: string[];
+  /** Agenda city is not stored on the account. `null` = métropole. */
+  commune: null;
 };
 
 export type MailUnsubStatus = 'ok' | 'invalid' | 'unconfigured' | 'error';
@@ -54,6 +67,20 @@ export const DIGEST_RECIPIENTS_SQL = `
   LEFT JOIN mail_consent m
     ON lower(btrim(m.user_key)) = a.email
   ORDER BY a.email ASC
+`;
+
+/**
+ * Taste rows for the recipient emails only.
+ * `user_key` is matched trim + lower, same key as the recipient list.
+ */
+export const DIGEST_TASTES_BY_EMAIL_SQL = `
+  SELECT DISTINCT ON (lower(btrim(user_key)))
+         lower(btrim(user_key)) AS email,
+         state
+  FROM account_tastes
+  WHERE user_key IS NOT NULL
+    AND lower(btrim(user_key)) = ANY($1::text[])
+  ORDER BY lower(btrim(user_key)), updated_at DESC
 `;
 
 function postgresUrl(): string | undefined {
@@ -196,6 +223,78 @@ async function listFromFiles(now: Date): Promise<DigestRecipient[]> {
     };
   });
   return toRecipients(rows, now);
+}
+
+function unwrapTasteState(raw: unknown, depth = 0): unknown {
+  if (typeof raw !== 'string' || depth > 2) return raw;
+  try {
+    return unwrapTasteState(JSON.parse(raw), depth + 1);
+  } catch {
+    return null;
+  }
+}
+
+async function tasteStatesFromFiles(want: ReadonlySet<string>): Promise<Map<string, unknown>> {
+  const out = new Map<string, unknown>();
+  if (want.size === 0) return out;
+  let names: string[] = [];
+  try {
+    names = await readdir(tasteDir());
+  } catch {
+    return out;
+  }
+  for (const name of names) {
+    if (!name.endsWith('.json')) continue;
+    try {
+      const raw = JSON.parse(await readFile(path.join(tasteDir(), name), 'utf8')) as {
+        key?: unknown;
+        state?: unknown;
+      };
+      const email = typeof raw.key === 'string' ? raw.key.trim().toLowerCase() : '';
+      if (!isGoogleMailKey(email) || !want.has(email)) continue;
+      out.set(email, raw.state ?? null);
+    } catch {
+      /* skip */
+    }
+  }
+  return out;
+}
+
+async function tasteStatesByEmail(emails: readonly string[]): Promise<Map<string, unknown>> {
+  const want = new Set(emails);
+  const pg = await ensureTables();
+  if (!pg) return tasteStatesFromFiles(want);
+  if (want.size === 0) return new Map();
+  const { rows } = await pg.query<{ email: string | null; state: unknown }>(
+    DIGEST_TASTES_BY_EMAIL_SQL,
+    [[...want]],
+  );
+  const out = new Map<string, unknown>();
+  for (const row of rows) {
+    const email = typeof row.email === 'string' ? row.email.trim().toLowerCase() : '';
+    if (!want.has(email) || out.has(email)) continue;
+    out.set(email, unwrapTasteState(row.state));
+  }
+  return out;
+}
+
+export async function listDigestProfiles(now = new Date()): Promise<DigestProfileUser[]> {
+  const recipients = await listDigestRecipients(now);
+  const states = await tasteStatesByEmail(recipients.map((row) => row.email));
+  return recipients.map((row) => {
+    const stored = states.get(row.email);
+    const fields =
+      stored === undefined
+        ? { profile: emptyDigestRecoProfile(), excludeWorkIds: [] as string[] }
+        : digestRecoFieldsFromTaste(unwrapTasteState(stored));
+    return {
+      userId: row.userId,
+      email: row.email,
+      profile: fields.profile,
+      excludeWorkIds: fields.excludeWorkIds,
+      commune: null,
+    };
+  });
 }
 
 export async function listDigestRecipients(now = new Date()): Promise<DigestRecipient[]> {
