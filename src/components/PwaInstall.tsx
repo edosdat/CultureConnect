@@ -7,6 +7,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
@@ -63,15 +64,27 @@ import {
   readShellReloadSignals,
   shellReloadIsSafe,
 } from '@/lib/pwaRefresh';
+import {
+  canOpenA2hsSheet,
+  getOverlayStack,
+  getServerOverlayStack,
+  registerA2hsSheetCloser,
+  setA2hsSheetBlocking,
+  stickyInstallHidden,
+  subscribeOverlayStack,
+} from '@/lib/overlayStack';
 
 type PwaInstallValue = {
   /** `null` until the client has checked standalone / related apps. */
   installed: boolean | null;
+  /** Install sheet is up. The sticky bar hides for that focus. */
+  sheetOpen: boolean;
   openInstall: () => void;
 };
 
 const PwaInstallContext = createContext<PwaInstallValue>({
   installed: null,
+  sheetOpen: false,
   openInstall: () => {},
 });
 
@@ -400,14 +413,25 @@ function InstallSheet({
   );
 }
 
+function useOverlayStack() {
+  return useSyncExternalStore(subscribeOverlayStack, getOverlayStack, getServerOverlayStack);
+}
+
 /**
  * Sticky strip directly under the site header. Always on while the app
  * is not installed — phone and desktop. Tap opens the install sheet.
- * No dismiss control: « Plus tard » only closes that sheet.
+ * Hidden while the digeste or the install sheet is open; back on dismiss.
+ * No dismiss control on the strip itself.
  */
 export function A2hsDownloadBar() {
-  const { installed, openInstall } = usePwaInstall();
-  const show = shouldShowA2hsBar({ installed });
+  const { installed, sheetOpen, openInstall } = usePwaInstall();
+  const overlay = useOverlayStack();
+  const show =
+    shouldShowA2hsBar({ installed }) &&
+    !stickyInstallHidden({
+      digestOpen: overlay.digestOpen,
+      a2hsSheetOpen: sheetOpen || overlay.a2hsSheetOpen,
+    });
 
   useEffect(() => {
     const root = document.documentElement;
@@ -426,7 +450,7 @@ export function A2hsDownloadBar() {
   return (
     <div
       data-testid="pwa-download-bar"
-      className="sticky top-0 z-[35] flex h-11 items-center gap-2.5 border-b border-culture-terracotta/[0.12] bg-culture-cream px-3"
+      className="sticky top-0 z-[45] flex h-11 items-center gap-2.5 border-b border-culture-terracotta/[0.12] bg-culture-cream px-3"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -600,12 +624,22 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
   }, []);
 
   useEffect(() => {
-    if (installed) setOpen(false);
+    if (installed) {
+      setA2hsSheetBlocking(false);
+      setOpen(false);
+    }
   }, [installed]);
 
-  /** Account menu. Flags are set in this turn, before the sheet paints. */
+  useEffect(() => registerA2hsSheetCloser(() => {
+    setA2hsSheetBlocking(false);
+    setOpen(false);
+  }), []);
+
+  /** Account menu and the sticky bar. Never while the digeste is up. */
   const openInstall = useCallback(() => {
+    if (!canOpenA2hsSheet({ digestOpen: getOverlayStack().digestOpen })) return;
     setInstallFlags(iosInstallFlags(clientSignals()));
+    setA2hsSheetBlocking(true);
     setOpen(true);
   }, []);
 
@@ -629,8 +663,8 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
   }, [installFlags, promptEvent]);
 
   const value = useMemo(
-    () => ({ installed, openInstall }),
-    [installed, openInstall],
+    () => ({ installed, sheetOpen: open, openInstall }),
+    [installed, open, openInstall],
   );
 
   return (
@@ -641,7 +675,10 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
           flags={installFlags}
           promptReady={Boolean(promptEvent)}
           onInstall={onInstall}
-          onClose={() => setOpen(false)}
+          onClose={() => {
+            setA2hsSheetBlocking(false);
+            setOpen(false);
+          }}
         />
       ) : null}
       {shellUpdateReady ? (

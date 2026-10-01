@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type FormEvent } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -13,6 +13,12 @@ import {
   clearStub,
   fieldForTrack,
 } from '@/lib/feedbackChips';
+import {
+  feedbackOpenAllowed,
+  getOverlayStack,
+  getServerOverlayStack,
+  subscribeOverlayStack,
+} from '@/lib/overlayStack';
 
 const GREETING =
   'Bienvenue sur Plan C — on est en phase de test. Ce robot est là pour recueillir tes impressions (suggestion ou bug). Dis-moi ce que tu penses.';
@@ -93,6 +99,9 @@ export default function FeedbackChat() {
   const seq = useRef(0);
   const caretRef = useRef<number | null>(null);
   const [open, setOpen] = useState(false);
+  const overlay = useSyncExternalStore(subscribeOverlayStack, getOverlayStack, getServerOverlayStack);
+  const a2hsSheetOpen = overlay.a2hsSheetOpen;
+  const panelOpen = open && feedbackOpenAllowed({ a2hsSheetOpen });
   const [text, setText] = useState('');
   const [kind, setKind] = useState<ChipKind | null>(null);
   const [subtype, setSubtype] = useState<string | null>(null);
@@ -101,6 +110,10 @@ export default function FeedbackChat() {
   const [messages, setMessages] = useState<Msg[]>([
     { id: 'greet', role: 'bot', text: GREETING },
   ]);
+
+  useEffect(() => {
+    if (a2hsSheetOpen) setOpen(false);
+  }, [a2hsSheetOpen]);
 
   useEffect(() => {
     if (pathname?.startsWith('/admin')) return;
@@ -201,7 +214,7 @@ export default function FeedbackChat() {
       data-feedback-dock=""
       className="pointer-events-none fixed bottom-[max(1rem,env(safe-area-inset-bottom,0px))] right-4 z-40 flex w-[min(100vw-2rem,22rem)] flex-col items-end gap-2"
     >
-      {open ? (
+      {panelOpen ? (
         <section
           id={panelId}
           role="dialog"
@@ -367,11 +380,14 @@ export default function FeedbackChat() {
       <button
         type="button"
         data-feedback="launcher"
-        aria-expanded={open}
-        aria-controls={open ? panelId : undefined}
+        aria-expanded={panelOpen}
+        aria-controls={panelOpen ? panelId : undefined}
         aria-label={LAUNCHER_LABEL}
         className="pointer-events-auto grid h-12 w-12 place-items-center overflow-hidden rounded-full border border-culture-line bg-culture-surface p-0 shadow-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          if (!feedbackOpenAllowed({ a2hsSheetOpen })) return;
+          setOpen((v) => !v);
+        }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img

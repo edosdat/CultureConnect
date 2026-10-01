@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useTastesUi } from './Providers';
+import { dismissA2hsSheetForDigest, setDigestBlocking } from '@/lib/overlayStack';
 import {
   DIGEST_TEST_INTRO_COPY as COPY,
   DIGEST_TEST_INTRO_PREVIEW,
@@ -31,6 +32,12 @@ export default function DigestTestIntro() {
   const [open, setOpen] = useState(false);
   const previewDismissed = useRef(false);
 
+  const showDigest = useCallback(() => {
+    dismissA2hsSheetForDigest();
+    setDigestBlocking(true);
+    setOpen(true);
+  }, []);
+
   const dismiss = useCallback(() => {
     if (previewQuery) {
       previewDismissed.current = true;
@@ -38,26 +45,30 @@ export default function DigestTestIntro() {
       writeDigestIntroSeen(email);
       void postSeen();
     }
+    setDigestBlocking(false);
     setOpen(false);
   }, [email, previewQuery]);
 
   useEffect(() => {
     if (!digestTestWindowOpen()) {
+      setDigestBlocking(false);
       setOpen(false);
       return;
     }
     if (previewQuery) {
-      if (!previewDismissed.current) setOpen(true);
+      if (!previewDismissed.current) showDigest();
       return;
     }
     previewDismissed.current = false;
     const quiet =
       pathname.startsWith('/admin') || pathname.startsWith('/mail/unsub');
     if (quiet || status !== 'authenticated' || !email) {
+      setDigestBlocking(false);
       setOpen(false);
       return;
     }
     if (readDigestIntroSeen(email)) {
+      setDigestBlocking(false);
       setOpen(false);
       void syncSeenOnce(email);
       return;
@@ -70,18 +81,21 @@ export default function DigestTestIntro() {
         if (cancelled) return;
         if (data?.seen === true) {
           writeDigestIntroSeen(email);
+          setDigestBlocking(false);
           setOpen(false);
           return;
         }
-        setOpen(true);
+        showDigest();
       })
       .catch(() => {
-        if (!cancelled) setOpen(true);
+        if (!cancelled) showDigest();
       });
     return () => {
       cancelled = true;
     };
-  }, [email, pathname, previewQuery, status]);
+  }, [email, pathname, previewQuery, showDigest, status]);
+
+  useEffect(() => () => setDigestBlocking(false), []);
 
   useEffect(() => {
     if (!open) return;

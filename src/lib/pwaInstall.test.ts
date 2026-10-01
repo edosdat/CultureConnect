@@ -57,6 +57,13 @@ import {
   a2hsBarShowsHint,
 } from './pwaInstall';
 import {
+  canOpenA2hsSheet,
+  feedbackOpenAllowed,
+  pushPromptAllowed,
+  stickyInstallHidden,
+  toastBlockedByModal,
+} from './overlayStack';
+import {
   PWA_BACKGROUND_COLOR,
   PWA_ICONS,
   PWA_ID,
@@ -119,6 +126,24 @@ describe('sticky A2HS bar', () => {
     assert.equal(A2HS_BAR_ICON_SRC, '/plan-c-icon-LOCK-v3-violet.jpg');
     assert.ok(A2HS_BAR_ICON_PX >= 20 && A2HS_BAR_ICON_PX <= 24);
     assert.equal(A2HS_BAR_OFFSET_VAR, '--a2hs-bar-h');
+  });
+});
+
+describe('overlay stack', () => {
+  it('keeps a single blocking surface and hides the sticky bar under it', () => {
+    assert.equal(stickyInstallHidden({ digestOpen: false, a2hsSheetOpen: false }), false);
+    assert.equal(stickyInstallHidden({ digestOpen: true, a2hsSheetOpen: false }), true);
+    assert.equal(stickyInstallHidden({ digestOpen: false, a2hsSheetOpen: true }), true);
+    assert.equal(canOpenA2hsSheet({ digestOpen: false }), true);
+    assert.equal(canOpenA2hsSheet({ digestOpen: true }), false);
+    assert.equal(feedbackOpenAllowed({ a2hsSheetOpen: false }), true);
+    assert.equal(feedbackOpenAllowed({ a2hsSheetOpen: true }), false);
+    assert.equal(pushPromptAllowed({ digestOpen: false, a2hsSheetOpen: false }), true);
+    assert.equal(pushPromptAllowed({ digestOpen: true, a2hsSheetOpen: false }), false);
+    assert.equal(pushPromptAllowed({ digestOpen: false, a2hsSheetOpen: true }), false);
+    assert.equal(toastBlockedByModal({ digestOpen: false, a2hsSheetOpen: false }), false);
+    assert.equal(toastBlockedByModal({ digestOpen: true, a2hsSheetOpen: false }), true);
+    assert.equal(toastBlockedByModal({ digestOpen: false, a2hsSheetOpen: true }), true);
   });
 });
 
@@ -501,7 +526,11 @@ describe('service worker freshness only', () => {
     assert.match(ui, /data-testid="pwa-download-bar-icon"/);
     assert.match(ui, /onClick=\{openInstall\}/);
     assert.match(ui, /shouldShowA2hsBar/);
-    assert.match(ui, /sticky top-0 z-\[35\]/);
+    assert.match(ui, /sticky top-0 z-\[45\]/);
+    assert.match(ui, /stickyInstallHidden/);
+    assert.match(ui, /canOpenA2hsSheet/);
+    assert.ok(ui.indexOf('canOpenA2hsSheet') < ui.indexOf('setOpen(true)'));
+    assert.match(ui, /setA2hsSheetBlocking\(false\)/);
     assert.match(ui, /h-11/);
     assert.match(ui, /min-h-9/);
     assert.match(ui, /px-3/);
@@ -535,5 +564,18 @@ describe('service worker freshness only', () => {
     assert.doesNotMatch(home, /data-testid="pwa-download-bar"/);
     assert.match(menu, /Télécharger l’appli/);
     assert.match(menu, /openInstall\(\)/);
+
+    const digest = readFileSync(path.join(process.cwd(), 'src/components/DigestTestIntro.tsx'), 'utf8');
+    const feedback = readFileSync(path.join(process.cwd(), 'src/components/FeedbackChat.tsx'), 'utf8');
+    const share = readFileSync(path.join(process.cwd(), 'src/components/ShareButton.tsx'), 'utf8');
+    assert.match(digest, /dismissA2hsSheetForDigest/);
+    assert.match(digest, /setDigestBlocking\(true\)/);
+    assert.match(digest, /z-\[70\]/);
+    assert.match(feedback, /feedbackOpenAllowed/);
+    assert.match(feedback, /z-40/);
+    assert.match(ui, /z-\[160\]/);
+    assert.match(share, /toastBlockedByModal/);
+    assert.match(share, /z-50/);
+    assert.doesNotMatch(share, /z-\[200\]/);
   });
 });

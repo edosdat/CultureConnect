@@ -14,6 +14,11 @@ import {
 } from '@/lib/shareToken';
 import { rememberGuestCreatedToken } from '@/lib/guestShareTeaser';
 import { useSignals } from './SignalsProvider';
+import {
+  getOverlayStack,
+  subscribeOverlayStack,
+  toastBlockedByModal,
+} from '@/lib/overlayStack';
 
 type Props = {
   item: DayItem;
@@ -29,6 +34,7 @@ let toastNode: HTMLDivElement | null = null;
 let toastHideTimer: number | null = null;
 let toastUntil = 0;
 let toastResumeBound = false;
+let toastWaitingForModal = false;
 
 function toastElement(): HTMLDivElement | null {
   if (typeof document === 'undefined') return null;
@@ -38,7 +44,7 @@ function toastElement(): HTMLDivElement | null {
   el.setAttribute('aria-live', 'polite');
   el.setAttribute('data-testid', TOAST_TESTID);
   el.className =
-    'pointer-events-none fixed bottom-5 left-1/2 z-[200] w-[min(92vw,20rem)] -translate-x-1/2 rounded-full bg-culture-ink px-4 py-2.5 text-center text-sm font-medium text-white shadow-lg';
+    'pointer-events-none fixed bottom-5 left-1/2 z-50 w-[min(92vw,20rem)] -translate-x-1/2 rounded-full bg-culture-ink px-4 py-2.5 text-center text-sm font-medium text-white shadow-lg';
   el.textContent = 'Lien copié';
   document.body.appendChild(el);
   toastNode = el;
@@ -54,6 +60,12 @@ function hideShareCopiedToast() {
 }
 
 function showShareCopiedToast() {
+  if (toastBlockedByModal(getOverlayStack())) {
+    toastWaitingForModal = true;
+    hideShareCopiedToast();
+    return;
+  }
+  toastWaitingForModal = false;
   const el = toastElement();
   if (!el) return;
   el.style.display = 'block';
@@ -75,6 +87,9 @@ function bindShareToastResume() {
     if (document.visibilityState === 'visible') resumeShareCopiedToast();
   });
   window.addEventListener('pageshow', resumeShareCopiedToast);
+  subscribeOverlayStack(() => {
+    if (toastWaitingForModal) showShareCopiedToast();
+  });
 }
 
 type MintedShare = { url: string; token?: string; created: boolean };
