@@ -2,7 +2,9 @@
  * Salle filter (Plan C): a chip after QUOI in the column band (#221)
  * opens a dropdown of every venue with an upcoming event in that category.
  * Shown only once a category is on (#205). Not a rail of salle chips.
- * Not behind the mobile Filtres gate. Menu flip (space below) unchanged.
+ * The home band keeps the chip inside the Filtres disclosure (one row
+ * with GENRES) so a category does not add two facet rows at once.
+ * Menu flip (space below) unchanged.
  *
  * Ciné / Théâtre stay visible while the list loads. Musique and the other
  * cats appear only when that category actually has salles.

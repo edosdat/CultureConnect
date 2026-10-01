@@ -3,7 +3,6 @@
 import type { GenreLegend } from '@/lib/types';
 import {
   genreBelongsToMains,
-  labelMainCategory,
   mainFromGenreSlug,
 } from '@/lib/categories';
 import { genreChipsPaint } from '@/lib/genreChipMatch';
@@ -22,9 +21,6 @@ type Props = {
   /** Filtered genre options are still computing — never show the empty copy. */
   loading?: boolean;
 };
-
-/** Mock: 3 stacked pills, longest → shortest, under live GENRES chrome. */
-const SKELETON_PILL_WIDTHS = ['w-[60%]', 'w-[45%]', 'w-[30%]'] as const;
 
 function syntheticLegend(slug: string): GenreLegend {
   return {
@@ -84,18 +80,6 @@ export default function GenreFilter({
   // Selected chips are merged into availableSlugs by the parent (sticky Jazz).
   const allVisible = available;
 
-  const byMain = new Map<string, GenreLegend[]>();
-  for (const g of allVisible) {
-    const main =
-      selectedMains.find((m) => belongsToSelectedMains(g, [m])) ?? 'autre';
-    const list = byMain.get(main) ?? [];
-    list.push(g);
-    byMain.set(main, list);
-  }
-
-  const mainsOrder = selectedMains.filter((m) => byMain.has(m));
-  const useGroups = mainsOrder.length > 1;
-
   function toggle(slug: string) {
     if (selected.includes(slug)) {
       onChange(selected.filter((s) => s !== slug));
@@ -113,7 +97,7 @@ export default function GenreFilter({
         onClick={() => toggle(g.slug)}
         aria-pressed={active}
         className={
-          'shrink-0 rounded-full border px-2.5 py-1.5 text-xs transition ' +
+          'cc-axes__chip shrink-0 whitespace-nowrap rounded-full border transition ' +
           (active
             ? 'border-culture-sage bg-culture-sage text-white shadow-sm'
             : 'border-culture-line bg-culture-surface text-culture-ink hover:border-culture-sage/60')
@@ -124,85 +108,52 @@ export default function GenreFilter({
     );
   }
 
+  const paint = genreChipsPaint({
+    selectedMains,
+    availableCount: allVisible.length,
+    loading,
+  });
+  const chips =
+    paint === 'loading'
+      ? selected.map((slug) => renderChip(resolve(slug)))
+      : allVisible
+          .slice()
+          .sort((a, b) => a.label_fr.localeCompare(b.label_fr, 'fr'))
+          .map(renderChip);
+
   return (
-    <div className="min-w-0 space-y-1.5">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-culture-muted">
-          Genres
-        </p>
-        {selected.length > 0 && (
+    <div
+      className="cc-scroll-shell min-w-0"
+      data-genres-state={paint === 'loading' ? 'loading' : allVisible.length === 0 ? 'empty' : 'ready'}
+      role={paint === 'loading' ? 'status' : undefined}
+      aria-live={paint === 'loading' ? 'polite' : undefined}
+      aria-busy={paint === 'loading' ? true : undefined}
+    >
+      <div className="cc-axes__group cc-genre-scroll" role="group" aria-label="Genres">
+        <p className="sr-only">Genres</p>
+        {selected.length > 0 ? (
           <button
             type="button"
             onClick={() => onChange([])}
-            className="text-xs text-culture-terracotta hover:underline"
+            className="cc-axes__chip shrink-0 whitespace-nowrap rounded-full text-culture-terracotta hover:underline"
           >
             Tout effacer
           </button>
+        ) : null}
+        {paint === 'loading' ? (
+          <span className="cc-genre-skel h-7 w-24 shrink-0 rounded-full" aria-hidden />
+        ) : null}
+        {paint === 'loading' ? (
+          <p className="sr-only">Chargement…</p>
+        ) : null}
+        {paint !== 'loading' && allVisible.length === 0 ? (
+          <p className="shrink-0 whitespace-nowrap text-xs text-culture-muted/80">
+            Aucun genre pour cette sélection
+          </p>
+        ) : (
+          chips
         )}
       </div>
-
-      {genreChipsPaint({
-        selectedMains,
-        availableCount: allVisible.length,
-        loading,
-      }) === 'loading' ? (
-        <div
-          className="space-y-1.5"
-          role="status"
-          aria-live="polite"
-          aria-busy="true"
-          data-genres-state="loading"
-        >
-          {selected.length > 0 ? (
-            <div className="flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {selected.map((slug) => renderChip(resolve(slug)))}
-            </div>
-          ) : null}
-          <div className="flex max-w-sm flex-col gap-1.5" aria-hidden>
-            {SKELETON_PILL_WIDTHS.map((w) => (
-              <span
-                key={w}
-                className={`cc-genre-skel h-7 ${w} rounded-full`}
-              />
-            ))}
-          </div>
-          <p className="text-center text-xs text-culture-muted/80">
-            Chargement…
-          </p>
-        </div>
-      ) : allVisible.length === 0 ? (
-        <p
-          className="text-sm text-culture-muted/80"
-          data-genres-state="empty"
-        >
-          Aucun genre pour cette sélection
-        </p>
-      ) : useGroups ? (
-        <div className="space-y-3" data-genres-state="ready">
-          {mainsOrder.map((main) => {
-            const items = byMain.get(main) ?? [];
-            items.sort((a, b) => a.label_fr.localeCompare(b.label_fr, 'fr'));
-            return (
-              <div key={main} className="space-y-1.5">
-                <p className="text-xs font-medium text-culture-muted/80">
-                  {labelMainCategory(main)}
-                </p>
-                <div className="flex flex-wrap gap-1.5">{items.map(renderChip)}</div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div
-          className="flex gap-1.5 overflow-x-auto pb-0.5 sm:flex-wrap sm:overflow-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          data-genres-state="ready"
-        >
-          {allVisible
-            .slice()
-            .sort((a, b) => a.label_fr.localeCompare(b.label_fr, 'fr'))
-            .map(renderChip)}
-        </div>
-      )}
     </div>
   );
 }

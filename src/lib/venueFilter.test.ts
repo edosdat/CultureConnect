@@ -106,8 +106,13 @@ describe('Salle chip', () => {
     assert.ok(bandAt > 0 && cityAt > bandAt && nearAt > cityAt);
     assert.ok(moreAt > nearAt && venueAt > moreAt);
     assert.ok(genresAt > venueAt && monthAt > genresAt);
+    assert.match(app, /cc-axes__group cc-axes__group--scroll/);
+    assert.match(app, /cc-filter-band__facets/);
+    assert.match(app, /selectedCategories\.length > 0 && facetsOpen/);
+    assert.match(app, /hideWhenNoCategory/);
     assert.equal(app.includes("showFiltersMobile ? 'flex' : 'hidden'"), false);
     assert.equal(app.includes('md:flex'), false);
+    assert.equal(app.includes('md:hidden'), false);
     assert.equal(app.includes('data-salle-slot'), false);
     assert.match(ui, /placeVenueMenu/);
     assert.match(ui, /createPortal/);
@@ -187,9 +192,20 @@ describe('home axes column', () => {
     assert.match(axes, /\.cc-axes \{[^}]*flex-direction:\s*column/);
     assert.match(axes, /\.cc-axes__group \{[^}]*gap:\s*0\.375rem/);
     assert.match(axes, /\.cc-axes__chip \{[^}]*padding:\s*0\.2rem 0\.55rem/);
+    assert.match(axes, /\.cc-filter-band__facets \{[^}]*gap:\s*0\.375rem/);
+    assert.match(axes, /\.cc-genre-scroll \{[^}]*overflow-x:\s*auto/);
+    assert.match(
+      axes,
+      /@media \(max-width: 767px\) \{[^}]*\.cc-axes__group--scroll \{[^}]*flex-wrap:\s*nowrap/,
+    );
+    assert.match(
+      axes,
+      /@media \(max-width: 767px\) \{[^}]*\.cc-axes__group--scroll \{[^}]*overflow-x:\s*auto/,
+    );
     assert.equal(axes.includes('display: contents'), false);
-    assert.equal(css.includes('overflow-x: auto'), false);
     assert.equal(css.includes('flex-direction: row'), false);
+    const outside = css.slice(0, start) + css.slice(end);
+    assert.equal(outside.includes('overflow-x: auto'), false);
   });
 });
 

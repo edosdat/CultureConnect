@@ -498,7 +498,10 @@ export default function CultureConnectApp({
   const searchDrivenRef = useRef({ scope: false, cat: false });
   const lastSearchChipsRef = useRef({ scope: '', date: '', cat: '' });
   const [showMonthPanel, setShowMonthPanel] = useState(false);
-  const [showFiltersMobile, setShowFiltersMobile] = useState(false);
+  const [facetsOpen, setFacetsOpen] = useState(false);
+  useEffect(() => {
+    if (selectedCategories.length === 0) setFacetsOpen(false);
+  }, [selectedCategories]);
   const [visibleCount, setVisibleCount] = useState(AGENDA_PAGE_SIZE);
 
   const [listItems, setListItems] = useState<DayItem[]>(initialItems);
@@ -3024,78 +3027,89 @@ export default function CultureConnectApp({
           </div>
           <div className="cc-axes-row">
             <div className="cc-axes">
-              <div className="cc-axes__group">
-                <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
-                  Quand
-                </p>
-                <TimeScopeBar
-                  scope={timeScope}
-                  onChange={handleScopeChange}
-                  hideLabel
-                />
+              <div className="cc-scroll-shell">
+                <div className="cc-axes__group cc-axes__group--scroll">
+                  <p className="cc-axes__label max-md:sr-only text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
+                    Quand
+                  </p>
+                  <TimeScopeBar
+                    scope={timeScope}
+                    onChange={handleScopeChange}
+                    hideLabel
+                  />
+                </div>
               </div>
               <div
                 role="separator"
                 aria-hidden
                 className="cc-axes__rule"
               />
-              <div className="cc-axes__group">
-                <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
-                  Quoi
-                </p>
-                <CategoryFilter
-                  selected={selectedCategories}
-                  onChange={handleCategoriesChange}
-                  variant="home"
-                />
-                <div className="cc-axes__more md:hidden">
-                  <button
-                    type="button"
-                    onClick={() => setShowFiltersMobile((v) => !v)}
-                    className="cc-axes__chip inline-flex items-center gap-1 rounded-full border border-culture-line bg-culture-surface font-medium text-culture-ink hover:border-culture-terracotta/50"
-                    aria-expanded={showFiltersMobile}
-                  >
-                    Filtres
-                    {filterBadge > 0 ? (
-                      <span className="rounded-full bg-culture-terracotta px-1.5 text-xs text-white">
-                        {filterBadge}
-                      </span>
-                    ) : null}
-                    <span aria-hidden className="text-culture-muted">
-                      {showFiltersMobile ? '▴' : '▾'}
-                    </span>
-                  </button>
+              <div className="cc-scroll-shell">
+                <div className="cc-axes__group cc-axes__group--scroll">
+                  <p className="cc-axes__label max-md:sr-only text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
+                    Quoi
+                  </p>
+                  <CategoryFilter
+                    selected={selectedCategories}
+                    onChange={handleCategoriesChange}
+                    variant="home"
+                  />
+                  {selectedCategories.length > 0 ? (
+                    <div className="cc-axes__more">
+                      <button
+                        type="button"
+                        onClick={() => setFacetsOpen((v) => !v)}
+                        className="cc-axes__chip inline-flex items-center gap-1 rounded-full border border-culture-line bg-culture-surface font-medium text-culture-ink hover:border-culture-terracotta/50"
+                        aria-expanded={facetsOpen}
+                        aria-controls="cc-filter-facets"
+                      >
+                        Filtres
+                        {filterBadge > 0 ? (
+                          <span className="rounded-full bg-culture-terracotta px-1.5 text-xs text-white">
+                            {filterBadge}
+                          </span>
+                        ) : null}
+                        <span aria-hidden className="text-culture-muted">
+                          {facetsOpen ? '▴' : '▾'}
+                        </span>
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>
-            {/* Salle after Quoi (#205/#221). Null until a category is on —
-                no wrapper, so a closed chip leaves no empty row.
-                Not behind Filtres. Menu flips via placeVenueMenu. */}
-            <VenueFilter
-              lieux={venueOptions}
-              selectedLieuId={selectedLieuId}
-              onChange={setSelectedLieuId}
-              variant="inline"
-              selectedMains={selectedCategories}
-              hideWhenNoCategory
-              loading={
-                listFetchInFlight &&
-                selectedCategories.length > 0 &&
-                venueOptions.length === 0
-              }
-            />
           </div>
-          {/* GENRES: second band only when a category is on. */}
-          {selectedCategories.length > 0 ? (
-            <GenreFilter
-              availableSlugs={genreChipSlugs}
-              legend={genresLegend}
-              selected={selectedGenres}
-              onChange={handleGenresChange}
-              selectedMains={selectedCategories}
-              hideWhenNoCategory
-              loading={genresLoading}
-            />
+          {/* Salle + GENRES: one disclosure row, only while Filtres is open.
+              Salle stays null until a category is on (#205). Menu flips
+              via placeVenueMenu (#221). Closed disclosure leaves no row. */}
+          {selectedCategories.length > 0 && facetsOpen ? (
+            <div id="cc-filter-facets" className="cc-filter-band__facets">
+              <VenueFilter
+                lieux={venueOptions}
+                selectedLieuId={selectedLieuId}
+                onChange={setSelectedLieuId}
+                variant="inline"
+                selectedMains={selectedCategories}
+                hideWhenNoCategory
+                loading={
+                  listFetchInFlight &&
+                  selectedCategories.length > 0 &&
+                  venueOptions.length === 0
+                }
+              />
+              <div className="cc-filter-band__genres">
+                {/* GENRES: second band only when a category is on. */}
+                <GenreFilter
+                  availableSlugs={genreChipSlugs}
+                  legend={genresLegend}
+                  selected={selectedGenres}
+                  onChange={handleGenresChange}
+                  selectedMains={selectedCategories}
+                  hideWhenNoCategory
+                  loading={genresLoading}
+                />
+              </div>
+            </div>
           ) : null}
         </div>
 

@@ -22,14 +22,15 @@ function homeBootMonthLabel(now = new Date()): string {
  * Reserved at ~380px (Design LAYOUT_JUMP):
  * - sticky search: h-10 + py-1.5 + border-b + mb-2 (~61px); ↵ always visible
  * - no SEARCH_EXAMPLES (retired)
- * - .cc-filter-band: Ville + Près de moi, then column QUAND → QUOI
- *   (labels on; Filtres with Quoi on <md). Gap 6px, no empty row.
+ * - .cc-filter-band: Ville + Près de moi, then column QUAND → QUOI.
+ *   Below md each axis is one scroll row (›). No Filtres (no category yet).
+ *   Gap 6px, no empty row.
  * - Voir le mois sits outside the band (Paris month)
  * - HomeListWaitSlot: overlay (no flow well; dots are 12px)
  *
  * SiteNav is already in the root layout. GenreFilter and the Salle chip
- * are absent here (no QUOI yet). Live: Salle sits after Quoi inside the
- * band once a category is on (#205/#221), not behind Filtres.
+ * are absent here (no QUOI yet). Live: Salle + GENRES share one disclosure
+ * row after Filtres is opened (#205/#221 menu flip unchanged).
  * Chips / wait slot are siblings of [data-top3].
  */
 export default function HomeBootChrome({ children }: { children: ReactNode }) {
@@ -76,47 +77,45 @@ export default function HomeBootChrome({ children }: { children: ReactNode }) {
           </div>
           <div className="cc-axes-row">
             <div className="cc-axes">
-              <div className="cc-axes__group">
-                <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
-                  Quand
-                </p>
-                {TIME_SCOPE_CHIPS.map(({ id, label }) => (
-                  <span
-                    key={id}
-                    className="cc-axes__chip shrink-0 whitespace-nowrap rounded-full border border-culture-line bg-culture-surface font-medium text-culture-ink"
-                  >
-                    {label}
-                  </span>
-                ))}
-              </div>
-              <span className="cc-axes__rule" />
-              <div className="cc-axes__group">
-                <p className="cc-axes__label text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
-                  Quoi
-                </p>
-                {homeCats.map(({ id, label }) => {
-                  const tint = `var(${MAIN_CAT_CSS_VAR[id]})`;
-                  return (
+              <div className="cc-scroll-shell">
+                <div className="cc-axes__group cc-axes__group--scroll">
+                  <p className="cc-axes__label max-md:sr-only text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
+                    Quand
+                  </p>
+                  {TIME_SCOPE_CHIPS.map(({ id, label }) => (
                     <span
                       key={id}
-                      className="cc-axes__chip shrink-0 whitespace-nowrap rounded-full"
-                      style={{
-                        borderWidth: 1.5,
-                        borderStyle: 'solid',
-                        borderColor: tint,
-                        backgroundColor: 'var(--cc-surface)',
-                        color: 'var(--cc-ink)',
-                      }}
+                      className="cc-axes__chip shrink-0 whitespace-nowrap rounded-full border border-culture-line bg-culture-surface font-medium text-culture-ink"
                     >
                       {label}
                     </span>
-                  );
-                })}
-                <div className="cc-axes__more md:hidden">
-                  <span className="cc-axes__chip inline-flex items-center gap-1 rounded-full border border-culture-line bg-culture-surface font-medium text-culture-ink">
-                    Filtres
-                    <span className="text-culture-muted">▾</span>
-                  </span>
+                  ))}
+                </div>
+              </div>
+              <span className="cc-axes__rule" />
+              <div className="cc-scroll-shell">
+                <div className="cc-axes__group cc-axes__group--scroll">
+                  <p className="cc-axes__label max-md:sr-only text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
+                    Quoi
+                  </p>
+                  {homeCats.map(({ id, label }) => {
+                    const tint = `var(${MAIN_CAT_CSS_VAR[id]})`;
+                    return (
+                      <span
+                        key={id}
+                        className="cc-axes__chip shrink-0 whitespace-nowrap rounded-full"
+                        style={{
+                          borderWidth: 1.5,
+                          borderStyle: 'solid',
+                          borderColor: tint,
+                          backgroundColor: 'var(--cc-surface)',
+                          color: 'var(--cc-ink)',
+                        }}
+                      >
+                        {label}
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             </div>
