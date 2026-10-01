@@ -12,6 +12,7 @@ import {
   type SignalsConsent,
 } from '@/lib/signalsConsent';
 import {
+  IMPRESSION_LIST_MAX,
   impressionFingerprint,
   positionsForKeys,
   type ImpressionSurface,
@@ -69,7 +70,11 @@ export default function ListImpressionProbe({
   scopeRef.current = scope;
 
   useEffect(() => {
-    const keys = keysRef.current.map((k) => (k || '').trim()).filter(Boolean);
+    // HOME_PACK_WIRE_CAP is 80; server rejects > IMPRESSION_LIST_MAX (40) with 400.
+    const keys = keysRef.current
+      .map((k) => (k || '').trim())
+      .filter(Boolean)
+      .slice(0, IMPRESSION_LIST_MAX);
     if (keys.length === 0) return;
 
     const fp = impressionFingerprint(surfaceRef.current, scopeRef.current, keys);
@@ -93,9 +98,10 @@ export default function ListImpressionProbe({
         observer.disconnect();
         observer = null;
       }
+      const rawPos = posRef.current;
       const pos =
-        posRef.current && posRef.current.length === keys.length
-          ? posRef.current
+        rawPos && rawPos.length >= keys.length
+          ? rawPos.slice(0, keys.length)
           : positionsForKeys(keys);
       postImpression({
         surface: surfaceRef.current,

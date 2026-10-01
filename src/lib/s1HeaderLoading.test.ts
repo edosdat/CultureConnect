@@ -122,7 +122,12 @@ describe('S1 deep-link share — fiche + photo first, social skeleton', () => {
     );
     assert.match(social, /share-social-pending/);
     assert.match(social, /cc-s1-skbtn/);
+    // Daughter deep-link keeps S1 skeleton; mother heroes paint immediately
+    // (batched stats) so cold home does not cascade skbtn → filled.
     assert.match(social, /if \(!settled\) return <SocialSkeleton/);
+    assert.match(social, /fetchMotherStats/);
+    assert.match(social, /data-rsvp-pending/);
+    assert.match(social, /applyRsvpToggle/);
     assert.equal(/Matching A/i.test(social), false);
 
     const detail = await readFile(

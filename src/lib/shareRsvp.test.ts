@@ -737,12 +737,32 @@ describe('B3b source contract', () => {
       new URL('../app/api/share/event/[itemKey]/stats/route.ts', import.meta.url),
       'utf8',
     );
-    assert.match(stats, /eventRsvpStats/);
+    assert.match(stats, /listEventRsvps/);
+    assert.match(stats, /motherStatsFromRsvps/);
     assert.match(stats, /envie/);
     assert.match(stats, /going/);
     assert.match(stats, /mine/);
     assert.match(stats, /viewerMotherKind/);
+    // Single read — no double listEventRsvps via eventRsvpStats.
+    assert.equal(stats.includes('eventRsvpStats'), false);
     assert.equal(stats.includes('firstName'), false);
+
+    const batch = await readFile(
+      new URL('../app/api/share/event/stats/route.ts', import.meta.url),
+      'utf8',
+    );
+    assert.match(batch, /keys/);
+    assert.match(batch, /listEventRsvps/);
+    assert.match(batch, /results/);
+    assert.match(batch, /MAX_KEYS/);
+
+    const client = await readFile(
+      new URL('./motherStatsClient.ts', import.meta.url),
+      'utf8',
+    );
+    assert.match(client, /\/api\/share\/event\/stats/);
+    assert.match(client, /MAX_BATCH/);
+    assert.match(client, /fetchMotherStats/);
 
     const ui = await readFile(
       new URL('../components/ShareSocial.tsx', import.meta.url),
@@ -759,7 +779,8 @@ describe('B3b source contract', () => {
     assert.match(ui, /data-testid="mother-rsvp-going"/);
     assert.match(ui, /JSON\.stringify\(\{ kind, itemKey \}\)/);
     assert.match(ui, /visibleMotherStats/);
-    assert.match(ui, /setStats\(null\)/);
+    assert.match(ui, /fetchMotherStats/);
+    assert.match(ui, /applyRsvpToggle/);
     assert.match(ui, /key=\{item\.key\}/);
     assert.match(ui, /setMine\(data\.inCircle \? data\.mine : null\)/);
     assert.match(ui, /aria-pressed=\{mine === 'envie'\}/);

@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { normalizeDeepLinkId } from '@/lib/deepLink';
 import { isAllowedSignalOrigin } from '@/lib/guestSignals';
-import { viewerMotherKind } from '@/lib/shareRsvp';
-import { emailHash, eventRsvpStats, listEventRsvps } from '@/lib/shareStore';
+import { motherStatsFromRsvps, viewerMotherKind } from '@/lib/shareRsvp';
+import { emailHash, listEventRsvps } from '@/lib/shareStore';
 import { workIdForItemKey } from '@/lib/shareRsvpWork';
 import { sessionSharerEmail } from '@/lib/shareToken';
 
@@ -27,15 +27,13 @@ export async function GET(
     return jsonError('itemKey invalide', 400);
   }
   const workId = workIdForItemKey(itemKey) || itemKey;
-  const stats = await eventRsvpStats({ itemKey, workId });
+  // One Neon/KV read (avoid a second list for counters + mine).
+  const rsvps = await listEventRsvps({ itemKey, workId });
+  const stats = motherStatsFromRsvps(rsvps);
   const session = await auth();
   const email = sessionSharerEmail(session?.user);
   const mine = email
-    ? viewerMotherKind(
-        (await listEventRsvps({ itemKey, workId })).filter(
-          (r) => r.emailHash === emailHash(email),
-        ),
-      )
+    ? viewerMotherKind(rsvps.filter((r) => r.emailHash === emailHash(email)))
     : null;
   return NextResponse.json({ envie: stats.envie, going: stats.going, mine });
 }
