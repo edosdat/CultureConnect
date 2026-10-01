@@ -11,6 +11,8 @@ import MailIdeasCheckbox from './MailIdeasCheckbox';
 import ActivityInbox from './ActivityInbox';
 import GuestTeaserBell from './GuestTeaserBell';
 import { showHomeEventsCounter } from '@/lib/homeEventsCounter';
+import { accountInstallItem } from '@/lib/pwaInstall';
+import { usePwaInstall } from './PwaInstall';
 
 const AUTH_HINT_KEY = 'cc_auth_hint';
 
@@ -77,6 +79,8 @@ function AvatarFace({
 export default function AuthButtons() {
   const { data: session, status } = useSession();
   const { googleAuthEnabled, openTastes } = useTastesUi();
+  const { installed, openInstall } = usePwaInstall();
+  const installItem = accountInstallItem(installed);
   const { loginNudgeReady, loginNudgeDismissed, dismissLoginNudge } = useSignals();
   const [providersOk, setProvidersOk] = useState<boolean | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -217,6 +221,34 @@ export default function AuthButtons() {
             >
               Mes goûts
             </button>
+            {installItem === 'download' ? (
+              <button
+                type="button"
+                role="menuitem"
+                data-account-control="telecharger-appli"
+                onPointerDown={holdMenu}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  openInstall();
+                  window.setTimeout(() => setMenuOpen(false), 0);
+                }}
+                className="block w-full px-3 py-2 text-left text-[13px] text-culture-ink hover:bg-culture-cream"
+              >
+                Télécharger l’appli
+              </button>
+            ) : null}
+            {installItem === 'installed' ? (
+              <button
+                type="button"
+                role="menuitem"
+                disabled
+                data-account-control="deja-installee"
+                className="block w-full cursor-default px-3 py-2 text-left text-[13px] text-culture-muted"
+              >
+                Déjà installée
+              </button>
+            ) : null}
             {showHomeEventsCounter(user?.email) ? (
               <Link
                 href="/admin/analytics"

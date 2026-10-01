@@ -14,6 +14,7 @@ import { SessionProvider } from 'next-auth/react';
 import SignalsProvider from './SignalsProvider';
 import ShareVisitProvider from './ShareVisitProvider';
 import FavoritesProvider from './FavoritesProvider';
+import PwaInstallProvider from './PwaInstall';
 import {
   CLOSE_TASTES_EVENT,
   OPEN_TASTES_EVENT,
@@ -94,7 +95,7 @@ export default function Providers({
         <ShareVisitProvider>
           <FavoritesProvider>
             <TastesUiContext.Provider value={value}>
-              {children}
+              <PwaInstallProvider>{children}</PwaInstallProvider>
             </TastesUiContext.Provider>
           </FavoritesProvider>
         </ShareVisitProvider>
