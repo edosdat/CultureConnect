@@ -26,6 +26,7 @@ import CategoryBadge from './CategoryBadge';
 import TheatreUrgenceBadge from './TheatreUrgenceBadge';
 import FilmVersionBadge from './FilmVersionBadge';
 import PressBadge from './PressBadge';
+import PasPourMoiControl from './PasPourMoiControl';
 
 export type SeanceCardVariant = 'default' | 'rail' | 'live' | 'compact';
 
@@ -48,6 +49,9 @@ type Props = {
   distanceKm?: string | null;
   /** First Top 3 card — eager + high fetch for LCP after reco paints. */
   priority?: boolean;
+  /** P3 — sheet Mes recos only. Catalogue / rails omit this. */
+  onNotInterested?: (item: DayItem) => void;
+  notInterested?: boolean;
 };
 
 function cardPitch(item: DayItem): string {
@@ -76,6 +80,8 @@ export default function SeanceCard({
   reason = null,
   distanceKm = null,
   priority = false,
+  onNotInterested,
+  notInterested = false,
 }: Props) {
   const resolved: SeanceCardVariant = variant ?? (compact ? 'compact' : 'default');
   const catKey = catKeyOfItem(item);
@@ -315,19 +321,28 @@ export default function SeanceCard({
   );
 
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(item.key)}
-      data-cat-key={catKey}
-      className={
-        'group flex w-full min-w-0 overflow-hidden rounded-card border border-culture-line border-l-4 bg-culture-surface text-left shadow-card transition duration-200 ease-out ' +
-        (resolved === 'rail' ? 'h-full flex-row items-stretch ' : 'flex-col ') +
-        (resolved === 'compact' ? 'hover:shadow-md' : 'hover:-translate-y-0.5 hover:shadow-md')
-      }
-      style={accentStyle}
-    >
-      {media}
-      {body}
-    </button>
+    <div className="relative h-full min-w-0 w-full">
+      <button
+        type="button"
+        onClick={() => onSelect(item.key)}
+        data-cat-key={catKey}
+        className={
+          'group flex w-full min-w-0 overflow-hidden rounded-card border border-culture-line border-l-4 bg-culture-surface text-left shadow-card transition duration-200 ease-out ' +
+          (resolved === 'rail' ? 'h-full flex-row items-stretch ' : 'flex-col ') +
+          (resolved === 'compact' ? 'hover:shadow-md' : 'hover:-translate-y-0.5 hover:shadow-md')
+        }
+        style={accentStyle}
+      >
+        {media}
+        {body}
+      </button>
+      {onNotInterested ? (
+        <PasPourMoiControl
+          pressed={notInterested}
+          onDismiss={() => onNotInterested(item)}
+          className="absolute bottom-1 right-1"
+        />
+      ) : null}
+    </div>
   );
 }

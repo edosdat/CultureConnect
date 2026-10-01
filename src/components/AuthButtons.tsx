@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useTastesUi } from './Providers';
 import { requestOpenTastes } from './tastesUiEvents';
+import { requestOpenMesRecos } from './mesRecosUiEvents';
 import { useSignals } from './SignalsProvider';
 import MailIdeasCheckbox from './MailIdeasCheckbox';
 import ActivityInbox from './ActivityInbox';
@@ -193,10 +194,26 @@ export default function AuthButtons() {
             <button
               type="button"
               role="menuitem"
+              data-account-control="mes-recos-menu"
+              aria-label="Ouvrir mes recommandations de la semaine"
+              onPointerDown={holdMenu}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                requestOpenMesRecos();
+                window.setTimeout(() => setMenuOpen(false), 0);
+              }}
+              className="block w-full bg-culture-cream px-3 py-2 text-left text-[13px] font-semibold text-culture-ink hover:bg-culture-sand"
+            >
+              Mes recos
+            </button>
+            <button
+              type="button"
+              role="menuitem"
               data-account-control="mes-gouts-menu"
               onPointerDown={holdMenu}
               onClick={openSheetFromClick}
-              className="block w-full bg-culture-cream px-3 py-2 text-left text-[13px] font-semibold text-culture-ink hover:bg-culture-sand"
+              className="block w-full px-3 py-2 text-left text-[13px] text-culture-ink hover:bg-culture-cream"
             >
               Mes goûts
             </button>
