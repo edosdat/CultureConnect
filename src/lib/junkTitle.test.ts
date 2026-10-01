@@ -6,6 +6,7 @@ import Papa from 'papaparse';
 import {
   isDateOnlyTitle,
   isJunkTitle,
+  isTruncatedDateTitle,
   junkTitleReason,
 } from './junkTitle';
 import { isPublishableEvent, isPublishableProgrammeName } from './publishable';
@@ -70,6 +71,29 @@ describe('isJunkTitle', () => {
       ),
       'date_only',
     );
+  });
+
+  it('flags truncated date-range fragments (soft #192 R2)', () => {
+    assert.equal(junkTitleReason('Mercredi 30 septembre et'), 'truncated_date');
+    assert.equal(junkTitleReason('Du jeudi 8 au'), 'truncated_date');
+    assert.equal(junkTitleReason('Vendredi 25 et'), 'truncated_date');
+    assert.equal(
+      junkTitleReason('Les Lancers de Fil : Triplicata – Du jeudi 01 au'),
+      'truncated_date',
+    );
+    assert.equal(
+      junkTitleReason('Stella et la magie de Yule – Du mercredi 30 septembre au'),
+      'truncated_date',
+    );
+    assert.equal(
+      junkTitleReason("Tout-Jeune Public : En'corps ! – Les mercredi 21 et"),
+      'truncated_date',
+    );
+    assert.equal(isTruncatedDateTitle('Du jeudi 8 au'), true);
+    // Real titles without truncated suffix stay
+    assert.equal(isJunkTitle('Les Lancers de Fil : Triplicata'), false);
+    assert.equal(isJunkTitle('Amir et les miroirs'), false);
+    assert.equal(isJunkTitle('Jean de la Lune'), false);
   });
 
   it('flags pagination scrape leftovers', () => {

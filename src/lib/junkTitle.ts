@@ -44,6 +44,26 @@ const DATE_TITLE = new RegExp(
 
 const ISO_DATE_TITLE = /^\d{4}-\d{2}-\d{2}(?:[ t]\d{2}:\d{2})?$/;
 
+/**
+ * Truncated scrape date fragments (Grand Rond / Fil à Plomb txt_sweep).
+ * Matched on normalizeJunkTitle (alnum tokens) so en-dash / punctuation drop out.
+ *
+ * Pure titles: « Mercredi 30 septembre et », « Vendredi 25 et », « Du jeudi 8 au ».
+ * Suffix on a real name: « … – Du jeudi 01 au », « … – Du mercredi 30 septembre au »,
+ * « … – Les mercredi 21 et ».
+ */
+const TRUNCATED_DATE_CORE = [
+  // « du jeudi 8 au » / « du mercredi 30 septembre au »
+  `du\\s+(?:${WEEKDAY_ALT})\\s+\\d{1,2}(?:\\s+(?:${MONTH_ALT}))?\\s+au`,
+  // « mercredi 30 septembre et » / « vendredi 25 et »
+  `(?:${WEEKDAY_ALT})\\s+\\d{1,2}(?:\\s+(?:${MONTH_ALT}))?\\s+et`,
+  // « les mercredi 21 et »
+  `les\\s+(?:${WEEKDAY_ALT})\\s+\\d{1,2}\\s+et`,
+].join('|');
+
+const TRUNCATED_DATE_ONLY = new RegExp(`^(?:${TRUNCATED_DATE_CORE})$`);
+const TRUNCATED_DATE_SUFFIX = new RegExp(`(?:${TRUNCATED_DATE_CORE})$`);
+
 /** Exact normalised title ∈ bare scrape category labels (not real works). */
 const BARE_CATEGORIES = new Set([
   'theatre',
@@ -84,6 +104,7 @@ const EVENT_COUNT_TITLE = /^\d+\s+evenements?(?:\s+\d+)?$/;
 
 export type JunkTitleReason =
   | 'date_only'
+  | 'truncated_date'
   | 'pagination'
   | 'event_count'
   | 'bare_category'
@@ -123,6 +144,17 @@ export function isDateOnlyTitle(title: string): boolean {
   return DATE_TITLE.test(t) || ISO_DATE_TITLE.test(t);
 }
 
+/**
+ * Incomplete date-range scrape leftovers (pure fragment or trailing suffix).
+ * Ex. « Mercredi 30 septembre et », « Du jeudi 8 au »,
+ * « Les Lancers de Fil : Triplicata – Du jeudi 01 au ».
+ */
+export function isTruncatedDateTitle(title: string): boolean {
+  const norm = normalizeJunkTitle(title);
+  if (!norm) return false;
+  return TRUNCATED_DATE_ONLY.test(norm) || TRUNCATED_DATE_SUFFIX.test(norm);
+}
+
 function isMonthTimeTitle(norm: string): boolean {
   if (MONTH_THEN_A.test(norm)) return true;
   return MONTH_AT_START.test(norm) && TIME_IN_TITLE.test(norm);
@@ -131,6 +163,7 @@ function isMonthTimeTitle(norm: string): boolean {
 /** Why this title is junk, or null if it looks like a real work title. */
 export function junkTitleReason(title: string): JunkTitleReason | null {
   if (isDateOnlyTitle(title)) return 'date_only';
+  if (isTruncatedDateTitle(title)) return 'truncated_date';
   const norm = normalizeJunkTitle(title);
   if (!norm) return 'empty_title';
   if (norm.includes('pagination')) return 'pagination';
