@@ -20,12 +20,9 @@ import {
   CRIOS_SAFARI_NOTE,
   CRIOS_SAFARI_PATH,
   CRIOS_SAFARI_STEPS,
-  IOS_A2HS_HINT,
-  IOS_A2HS_LABEL,
-  IOS_DISMISS_TO_SHARE,
   IOS_SAFARI_PATH,
-  IOS_SHARE_LABEL,
-  IOS_SHARE_UNAVAILABLE,
+  IOS_SAFARI_STEPS,
+  IOS_SAFARI_TOP_MIN_GAP_PX,
   a2hsSurface,
   canShowNativeInstallButton,
   copySafariHandoffUrl,
@@ -38,7 +35,6 @@ import {
   nativeInstallTap,
   safariBottomChromePx,
   safariHandoffUrl,
-  shareIosInstallPage,
   shouldAwaitInstallPrompt,
   shouldShowDailyA2hs,
   type BeforeInstallPromptEvent,
@@ -109,11 +105,21 @@ async function copyPageForSafari(): Promise<boolean> {
   return copyViaTextarea(url);
 }
 
-function DownArrow() {
+function ShareGlyph() {
   return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v13" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M7 13l5 6 5-6" />
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v9" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.5 6.5 12 3l3.5 3.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 10.5h-.5A1.5 1.5 0 0 0 6 12v6.5A1.5 1.5 0 0 0 7.5 20h9a1.5 1.5 0 0 0 1.5-1.5V12a1.5 1.5 0 0 0-1.5-1.5H16" />
+    </svg>
+  );
+}
+
+function AddGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+      <rect x="4" y="4" width="16" height="16" rx="3" />
+      <path strokeLinecap="round" d="M12 8v8M8 12h8" />
     </svg>
   );
 }
@@ -132,24 +138,12 @@ function InstallSheet({
   const surface = a2hsSurface({ ...flags, promptReady });
   const showInstall = canShowNativeInstallButton({ ...flags, promptReady });
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
-  const [shareFallback, setShareFallback] = useState(
-    () => typeof navigator === 'undefined' || typeof navigator.share !== 'function',
-  );
   const [bottomGap, setBottomGap] = useState(() => iosSheetBottomGapPx(0));
   const pageUrl = typeof window === 'undefined' ? '' : safariHandoffUrl(window.location.href);
 
   async function onCopyLink() {
     const ok = await copyPageForSafari();
     setCopyState(ok ? 'copied' : 'failed');
-  }
-
-  async function onIosShare() {
-    if (typeof navigator.share !== 'function') {
-      setShareFallback(true);
-      return;
-    }
-    const result = await shareIosInstallPage(window.location.href, (data) => navigator.share(data));
-    if (result === 'unavailable') setShareFallback(true);
   }
 
   useEffect(() => {
@@ -194,15 +188,20 @@ function InstallSheet({
           ? 'fixed inset-0 z-[160] flex items-start justify-center'
           : 'fixed inset-0 z-[160] flex items-end justify-center'
       }
-      data-pwa-anchor={clearSafariBar ? 'top' : 'bottom'}
+      data-pwa-anchor={clearSafariBar ? 'top-mid' : 'bottom'}
+      style={clearSafariBar ? { paddingTop: IOS_SAFARI_TOP_MIN_GAP_PX } : undefined}
       role="presentation"
     >
       <button
         type="button"
         tabIndex={-1}
         aria-label="Fermer"
-        className="absolute inset-x-0 top-0 bg-culture-ink/15"
-        style={{ bottom: clearSafariBar ? bottomGap : 0 }}
+        className="absolute inset-x-0 bg-culture-ink/15"
+        style={
+          clearSafariBar
+            ? { top: IOS_SAFARI_TOP_MIN_GAP_PX, bottom: bottomGap }
+            : { top: 0, bottom: 0 }
+        }
         onClick={onClose}
       />
       <div
@@ -213,7 +212,7 @@ function InstallSheet({
         data-pwa-surface={surface}
         className={
           clearSafariBar
-            ? 'relative m-3 mt-[max(0.75rem,env(safe-area-inset-top))] w-full max-w-sm rounded-2xl border border-culture-line/80 bg-white/80 p-4 shadow-card backdrop-blur-md'
+            ? 'relative mx-3 w-full max-w-sm rounded-2xl border border-culture-line/80 bg-white/80 p-4 shadow-card backdrop-blur-md'
             : 'relative m-3 mb-[max(0.75rem,env(safe-area-inset-bottom))] w-full max-w-sm rounded-2xl border border-culture-line/80 bg-white/80 p-4 shadow-card backdrop-blur-md'
         }
       >
@@ -278,28 +277,26 @@ function InstallSheet({
             <p data-testid="pwa-ios-safari-path" className="mt-2 text-sm font-medium text-culture-ink">
               {IOS_SAFARI_PATH}
             </p>
-            {shareFallback ? (
-              <p data-testid="pwa-ios-share-fallback" className="mt-2 text-sm text-culture-ink">
-                {IOS_SHARE_UNAVAILABLE}
-              </p>
-            ) : (
-              <button
-                type="button"
-                data-testid="pwa-ios-share"
-                onClick={() => {
-                  void onIosShare();
-                }}
-                className="mt-3 min-h-10 w-full rounded-full border border-culture-line bg-white px-5 py-2.5 text-sm font-semibold text-culture-ink hover:bg-culture-cream"
-              >
-                {IOS_SHARE_LABEL}
-              </button>
-            )}
-            <p data-testid="pwa-ios-step-a2hs" data-tap="inert" className="mt-3 text-sm text-culture-ink">
-              <span className="font-medium">{IOS_A2HS_LABEL}</span>
-              <span data-testid="pwa-ios-a2hs-hint" className="mt-0.5 block text-culture-muted">
-                {IOS_A2HS_HINT}
-              </span>
-            </p>
+            <ol data-testid="pwa-ios-steps" className="mt-3 list-decimal space-y-3 pl-5 text-sm text-culture-ink">
+              {IOS_SAFARI_STEPS.map((step) => (
+                <li key={step.id} data-testid={`pwa-ios-step-${step.id}`} data-tap="inert">
+                  <span className="inline-flex items-start gap-2">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-culture-soft text-culture-clay">
+                      {step.id === 'share' ? <ShareGlyph /> : <AddGlyph />}
+                    </span>
+                    <span>
+                      <span className="font-medium">{step.label}</span>
+                      <span
+                        data-testid={step.id === 'share' ? 'pwa-ios-share-detail' : 'pwa-ios-a2hs-hint'}
+                        className="mt-0.5 block text-culture-muted"
+                      >
+                        {step.detail}
+                      </span>
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ol>
           </div>
         ) : null}
         {surface === 'fallback' ? (
@@ -309,27 +306,13 @@ function InstallSheet({
         ) : null}
         <button
           type="button"
-          data-testid={clearSafariBar ? 'pwa-ios-dismiss-share' : undefined}
+          data-testid={clearSafariBar ? 'pwa-ios-dismiss' : undefined}
           onClick={onClose}
-          className={
-            clearSafariBar
-              ? 'mt-3 block w-full py-1 text-center text-sm font-medium text-culture-ink hover:text-culture-clay'
-              : 'mt-3 block w-full py-1 text-center text-sm text-culture-muted hover:text-culture-ink'
-          }
+          className="mt-3 block w-full py-1 text-center text-sm text-culture-muted hover:text-culture-ink"
         >
-          {clearSafariBar ? IOS_DISMISS_TO_SHARE : 'Plus tard'}
+          Plus tard
         </button>
       </div>
-      {clearSafariBar ? (
-        <div
-          data-testid="pwa-ios-share-arrow"
-          className="pointer-events-none absolute left-1/2 z-10 grid h-8 w-8 -translate-x-1/2 place-items-center rounded-full bg-white text-culture-ink shadow-card"
-          style={{ bottom: Math.max(12, bottomGap - 44) }}
-          aria-hidden
-        >
-          <DownArrow />
-        </div>
-      ) : null}
     </div>,
     document.body,
   );
