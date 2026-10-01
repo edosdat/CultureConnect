@@ -39,4 +39,4 @@ Statuts : **À faire** · **En cours** · **Fait (#PR)** · **Bloqué** · **Rem
 | — | `tagging-methode-v2.md` | Remplacé | par `tags-v2-evenements-et-profils.md` |
 | — | tip Relance digeste 2 fenêtres (`sam_dim` / `lun_ven`) | Fait (#206) | API `POST /api/agenda?reco=1` + `digest=relance`. Sheet Mes recos et Top 3 inchangés (max 3). |
 | — | tip digeste : liste comptes Google + unsub 1 clic | En cours | Fenêtre test jusqu'au 2026-12-01 : pas de gate `opted_in`. HOLD merge soft + GO. |
-| — | tip Bot chat feedback V0 | En cours | Widget avis/idées, OpenAI borné, Neon. HOLD merge jusqu'au GO. |
+| — | tip Bot chat feedback V0 | En cours | PATCH soft RGPD sur #215 (notice, purge cron, pas de xAI). HOLD merge jusqu'au GO. |

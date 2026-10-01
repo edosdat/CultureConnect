@@ -25,6 +25,7 @@ import {
   resetFeedbackStoreForTests,
 } from './feedbackStore';
 import { submitFeedback, type SubmitFeedbackInput } from './feedbackSubmit';
+import { GET as purgeFeedback } from '../app/api/feedback/purge/route';
 
 const noopReply = async () => null;
 
@@ -70,6 +71,10 @@ describe('feedback text', () => {
     assert.equal((body || '').includes('0612345678'), false);
     assert.equal(sanitizeFeedbackBody('  a '), null);
     assert.equal(sanitizeFeedbackBody(12), null);
+    // FR-centric: a US number is not the phone shape we strip.
+    const us = sanitizeFeedbackBody('call 212-555-0199 please');
+    assert.equal(us?.includes('[téléphone]'), false);
+    assert.match(us || '', /212-555-0199/);
 
     assert.equal(sanitizeFeedbackReply('On entraîne le modèle avec ça.'), null);
     assert.equal(sanitizeFeedbackReply('Voir https://example.com'), null);
@@ -322,6 +327,51 @@ describe('feedback store', { concurrency: 1 }, () => {
     );
   });
 
+  it('purges expired rows only with the cron bearer', async () => {
+    const prev = process.env.CRON_SECRET;
+    delete process.env.CRON_SECRET;
+    try {
+      const missing = await purgeFeedback(
+        new Request('http://127.0.0.1/api/feedback/purge'),
+      );
+      assert.equal(missing.status, 401);
+
+      process.env.CRON_SECRET = 'cron-test-secret';
+      const wrong = await purgeFeedback(
+        new Request('http://127.0.0.1/api/feedback/purge', {
+          headers: { authorization: 'Bearer nope' },
+        }),
+      );
+      assert.equal(wrong.status, 401);
+
+      const old = new Date(Date.now() - 91 * 24 * 60 * 60 * 1000).toISOString();
+      await insertFeedbackNote({
+        kind: 'avis',
+        body: 'ligne cron a effacer',
+        userKey: null,
+        ccVid: 'v_cronvid12',
+        reply: null,
+        createdAt: old,
+      });
+      const ok = await purgeFeedback(
+        new Request('http://127.0.0.1/api/feedback/purge', {
+          headers: { authorization: 'Bearer cron-test-secret' },
+        }),
+      );
+      assert.equal(ok.status, 200);
+      const body = (await ok.json()) as { deleted?: number };
+      assert.equal((body.deleted ?? 0) >= 1, true);
+      const notes = await listFeedbackForAdmin();
+      assert.equal(
+        notes.some((note) => note.body.includes('ligne cron')),
+        false,
+      );
+    } finally {
+      if (prev === undefined) delete process.env.CRON_SECRET;
+      else process.env.CRON_SECRET = prev;
+    }
+  });
+
   it('does not put an e-mail on the admin shape', () => {
     const note = toAdminFeedbackNote({
       id: '1',
@@ -338,7 +388,7 @@ describe('feedback store', { concurrency: 1 }, () => {
 });
 
 describe('feedback surfaces', () => {
-  it('mounts the widget, gates admin lecture, and states retention without a training claim', () => {
+  it('mounts the widget, gates admin lecture, and states the RGPD notice', () => {
     const widget = readFileSync(
       new URL('../components/FeedbackChat.tsx', import.meta.url),
       'utf8',
@@ -365,15 +415,22 @@ describe('feedback surfaces', () => {
       new URL('../app/confidentialite/page.tsx', import.meta.url),
       'utf8',
     );
+    const purgeRoute = readFileSync(
+      new URL('../app/api/feedback/purge/route.ts', import.meta.url),
+      'utf8',
+    );
+    const vercel = readFileSync(new URL('../../vercel.json', import.meta.url), 'utf8');
 
     assert.match(layout, /FeedbackChat/);
     assert.match(widget, /Un avis \?/);
     assert.match(widget, /90 jours/);
     assert.match(widget, /N’écris pas ton e-mail/);
+    assert.match(widget, /modèle \(US\)/);
     assert.equal(widget.includes('OPENAI'), false);
     assert.equal(widget.includes('feedbackAi'), false);
     assert.equal(widget.includes('cc_vid'), false);
     assert.match(widget, /\/admin/);
+    assert.doesNotMatch(widget, /entraîn|training|fine-?tun/i);
 
     assert.match(page, /isAdminSession/);
     assert.match(page, /notFound\(\)/);
@@ -384,12 +441,27 @@ describe('feedback surfaces', () => {
     assert.match(ai, /import 'server-only'/);
     assert.match(ai, /OPENAI_API_KEY/);
     assert.match(ai, /max_tokens: FEEDBACK_MAX_TOKENS/);
+    assert.equal(ai.includes('XAI_API_KEY'), false);
+    assert.equal(ai.includes('x.ai'), false);
     assert.match(del, /deleteFeedbackForEmail/);
+    assert.match(purgeRoute, /CRON_SECRET/);
+    assert.match(purgeRoute, /bearerAuthorizesDigest/);
+    assert.match(purgeRoute, /status: 401/);
+    assert.match(vercel, /\/api\/feedback\/purge/);
 
     assert.match(conf, /Un avis/);
     assert.match(conf, /90&nbsp;jours/);
     assert.match(conf, /empreinte/);
     assert.match(conf, /Avis et idées/);
-    assert.doesNotMatch(widget + conf, /entraîn|training|fine-?tun/i);
+    assert.match(conf, /Neon \(Paris\)/);
+    assert.match(conf, /OpenAI \(États-Unis\)/);
+    assert.match(conf, /garanties adaptées/);
+    assert.match(conf, /\(DPA\)/);
+    assert.match(conf, /\(SCC\)/);
+    assert.match(conf, /ne sert pas à entraîner/);
+    assert.match(conf, /intérêt légitime/);
+    assert.match(conf, /pas un consentement séparé/);
+    assert.match(conf, /seulement en écrivant/);
+    assert.match(conf, /Intérêt légitime/);
   });
 });

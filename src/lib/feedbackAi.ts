@@ -11,8 +11,6 @@ export const FEEDBACK_MAX_TOKENS = 80;
 export type FeedbackAiEnv = {
   OPENAI_API_KEY?: string;
   OPENAI_MODEL?: string;
-  XAI_API_KEY?: string;
-  XAI_MODEL?: string;
 };
 
 export type FeedbackAiReply = {
@@ -22,22 +20,12 @@ export type FeedbackAiReply = {
 
 function aiEnv(env: FeedbackAiEnv): { url: string; key: string; model: string } | null {
   const openai = (env.OPENAI_API_KEY || '').trim();
-  if (openai) {
-    return {
-      url: 'https://api.openai.com/v1/chat/completions',
-      key: openai,
-      model: (env.OPENAI_MODEL || '').trim() || 'gpt-4o-mini',
-    };
-  }
-  const xai = (env.XAI_API_KEY || '').trim();
-  if (xai) {
-    return {
-      url: 'https://api.x.ai/v1/chat/completions',
-      key: xai,
-      model: (env.XAI_MODEL || '').trim() || 'grok-2-latest',
-    };
-  }
-  return null;
+  if (!openai) return null;
+  return {
+    url: 'https://api.openai.com/v1/chat/completions',
+    key: openai,
+    model: (env.OPENAI_MODEL || '').trim() || 'gpt-4o-mini',
+  };
 }
 
 const SYSTEM = [
@@ -59,8 +47,6 @@ export async function replyToFeedback(
     deps?.env ?? {
       OPENAI_API_KEY: process.env.OPENAI_API_KEY,
       OPENAI_MODEL: process.env.OPENAI_MODEL,
-      XAI_API_KEY: process.env.XAI_API_KEY,
-      XAI_MODEL: process.env.XAI_MODEL,
     },
   );
   if (!env) {

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const GREETING = 'Une phrase suffit. Avis ou idée.';
+const MODEL_LINE = 'Texte → modèle (US) pour une réponse courte.';
 const RETENTION =
   'On garde ce texte 90 jours. N’écris pas ton e-mail dedans.';
 
@@ -102,7 +103,7 @@ export default function FeedbackChat() {
             </button>
           </div>
           <p className="mt-1 text-xs leading-snug text-culture-muted">
-            {RETENTION}{' '}
+            {MODEL_LINE}{' '}
             <Link
               href="/confidentialite"
               className="underline-offset-2 hover:text-culture-ink hover:underline"
@@ -110,6 +111,7 @@ export default function FeedbackChat() {
               Confidentialité
             </Link>
           </p>
+          <p className="mt-1 text-xs leading-snug text-culture-muted">{RETENTION}</p>
           <ol className="mt-3 max-h-52 space-y-2 overflow-y-auto">
             {messages.map((msg) => (
               <li

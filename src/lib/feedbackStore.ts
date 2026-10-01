@@ -190,17 +190,23 @@ function normalizeInsert(input: FeedbackInsert): StoredFeedback {
   };
 }
 
-export async function purgeExpiredFeedback(now = Date.now()): Promise<void> {
+/** Deletes rows older than 90 days. Returns how many rows were removed. */
+export async function purgeExpiredFeedback(now = Date.now()): Promise<number> {
   const cutoff = feedbackRetentionCutoff(now);
   if (backend() === 'file') {
     const rows = await readFileRows();
     const kept = rows.filter((row) => row.createdAt >= cutoff);
-    if (kept.length !== rows.length) await writeFileRows(kept);
-    return;
+    const deleted = rows.length - kept.length;
+    if (deleted > 0) await writeFileRows(kept);
+    return deleted;
   }
   const pg = await ensureTable();
-  if (!pg) return;
-  await pg.query(`DELETE FROM feedback_notes WHERE created_at < $1`, [cutoff]);
+  if (!pg) throw new Error('postgres unavailable');
+  const result = await pg.query<{ id: string }>(
+    `DELETE FROM feedback_notes WHERE created_at < $1 RETURNING id`,
+    [cutoff],
+  );
+  return result.rows.length;
 }
 
 export async function insertFeedbackNote(input: FeedbackInsert): Promise<StoredFeedback> {

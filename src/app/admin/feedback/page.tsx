@@ -46,8 +46,10 @@ export default async function AdminFeedbackPage() {
       </p>
       <h1 className="mt-1 font-display text-3xl text-culture-ink">Avis et idées</h1>
       <p className="mt-2 text-sm text-culture-muted">
-        90 jours, puis suppression. Empreinte de compte ou cc_vid, jamais les
-        deux. Pas d’e-mail.
+        90 jours, puis suppression. Purge quotidienne (cron). L’envoi et cette
+        page purgent aussi : sans l’un ni l’autre, une ligne périmée peut
+        rester jusqu’au prochain passage. Empreinte de compte ou cc_vid, jamais
+        les deux. Pas d’e-mail.
       </p>
       <p className="mt-3 text-sm">
         <Link

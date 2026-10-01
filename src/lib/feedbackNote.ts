@@ -26,6 +26,11 @@ export type FeedbackActor = {
   ccVid: string | null;
 };
 
+/**
+ * French-centric on purpose, not a full PII filter.
+ * E-mails in Latin script, and French phone shapes (+33 / 0X XX XX XX XX).
+ * Another country's number can remain in the stored text.
+ */
 const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
 const PHONE_RE = /(?:\+33|0)\s*[1-9](?:[\s.-]*\d{2}){4}/g;
 const LONG_DIGITS_RE = /\d{8,}/g;

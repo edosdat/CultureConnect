@@ -70,13 +70,21 @@ export default function ConfidentialitePage() {
         <p>
           <span className="font-medium">Avis.</span> Le bouton «&nbsp;Un avis&nbsp;?&nbsp;»
           envoie ce texte, seul, à OpenAI (États-Unis) pour une réponse courte.
-          On le garde 90&nbsp;jours. Compte connecté&nbsp;: une empreinte du
-          compte, pas l’e-mail en clair, et pas le cookie visiteur. Sans
-          compte&nbsp;: le cookie <span className="font-medium">cc_vid</span>{' '}
-          s’il existe déjà. Jamais les deux sur la même ligne. Supprimer le
-          compte retire les avis liés à cette empreinte. Sans compte, le texte
-          part au bout de 90&nbsp;jours. Effacement avant ce délai&nbsp;: le
-          contact juste après.
+          On le garde chez Neon (Paris), 90&nbsp;jours. Compte connecté&nbsp;:
+          une empreinte du compte, pas l’e-mail en clair, et pas le cookie
+          visiteur. Sans compte&nbsp;: le cookie{' '}
+          <span className="font-medium">cc_vid</span> s’il existe déjà. Jamais
+          les deux sur la même ligne. Transfert hors UE&nbsp;: contrat de
+          sous-traitance (DPA) et clauses contractuelles types (SCC), des
+          garanties adaptées. Ce texte ne sert pas à entraîner un modèle.
+          Base&nbsp;: intérêt légitime, la même que le registre, pour lire les
+          retours et rédiger la réponse. Ce n’est pas un consentement séparé&nbsp;:
+          envoyer lance le traitement. Tu peux t’y opposer en n’envoyant pas,
+          ou en écrivant au contact juste après. Compte connecté&nbsp;:
+          «&nbsp;Supprimer mon compte&nbsp;» retire les avis liés à cette
+          empreinte. Sans compte&nbsp;: pas de bouton. L’effacement avant
+          90&nbsp;jours se fait seulement en écrivant à ce contact. Sinon le
+          texte part au bout de 90&nbsp;jours.
         </p>
         <p>
           <span className="font-medium">Tes droits.</span> Accès, rectification,
@@ -244,7 +252,9 @@ export default function ConfidentialitePage() {
                 </tr>
                 <tr className="border-b border-culture-line/70">
                   <td className="py-2 pr-3">Avis et idées</td>
-                  <td className="py-2 pr-3">Lire les retours sur le produit</td>
+                  <td className="py-2 pr-3">
+                    Lire les retours et rédiger la réponse courte
+                  </td>
                   <td className="py-2 pr-3">Intérêt légitime</td>
                   <td className="py-2">90&nbsp;jours</td>
                 </tr>

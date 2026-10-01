@@ -97,6 +97,8 @@ export async function submitFeedback(
       createdAt: new Date(now).toISOString(),
     });
     try {
+      // Backstop if the daily cron (GET /api/feedback/purge) did not run.
+      // A missed cron leaves expired rows until the next write or admin open.
       await purgeExpiredFeedback(now);
     } catch {
       /* the new row is already stored */
