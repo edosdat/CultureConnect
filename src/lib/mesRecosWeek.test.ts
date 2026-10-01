@@ -10,6 +10,8 @@ import {
   parisWeekMondayIso,
   parseMesRecosWeekRecord,
   readMesRecosWeekRecord,
+  relanceDigestMode,
+  relanceDigestRange,
 } from './mesRecosWeek';
 
 describe('parisIsoWeekKey (Europe/Paris Mon→Sun)', () => {
@@ -78,6 +80,59 @@ describe('mesRecosWeek storage gate', () => {
     // Next Paris week → gate resets
     const nextMon = new Date('2026-10-04T22:30:00.000Z');
     assert.equal(mesRecosWeekAlreadyShown(nextMon), false);
+  });
+});
+
+describe('relance digest windows (Europe/Paris week)', () => {
+  const thu = new Date('2026-10-01T10:00:00.000Z'); // Thu W40, 12:00 Paris
+  const fri = new Date('2026-10-02T08:00:00.000Z'); // Fri 10:00 Paris
+  const sun = new Date('2026-10-04T10:00:00.000Z');
+  const nextMon = new Date('2026-10-04T22:30:00.000Z'); // Mon 00:30 Paris
+
+  it('splits the sheet week into lun–ven and sam–dim', () => {
+    assert.equal(parisWeekMondayIso(thu), '2026-09-28');
+    assert.deepEqual(relanceDigestRange('lun_ven', thu), {
+      startIso: '2026-09-28',
+      endIso: '2026-10-02',
+      days: [
+        '2026-09-28',
+        '2026-09-29',
+        '2026-09-30',
+        '2026-10-01',
+        '2026-10-02',
+      ],
+    });
+    assert.deepEqual(relanceDigestRange('sam_dim', thu).days, [
+      '2026-10-03',
+      '2026-10-04',
+    ]);
+  });
+
+  it('keeps Friday out of sam–dim (chip weekend would include it)', () => {
+    const we = relanceDigestRange('sam_dim', fri);
+    assert.deepEqual(we.days, ['2026-10-03', '2026-10-04']);
+    assert.equal(we.days.includes('2026-10-02'), false);
+    assert.equal(relanceDigestRange('lun_ven', fri).endIso, '2026-10-02');
+  });
+
+  it('stays on the same Monday through Sunday, then rolls', () => {
+    assert.equal(relanceDigestRange('sam_dim', sun).startIso, '2026-10-03');
+    assert.equal(relanceDigestRange('lun_ven', sun).startIso, '2026-09-28');
+    assert.equal(relanceDigestRange('lun_ven', nextMon).startIso, '2026-10-05');
+    assert.deepEqual(relanceDigestRange('sam_dim', nextMon).days, [
+      '2026-10-10',
+      '2026-10-11',
+    ]);
+  });
+
+  it('accepts digest=relance on body or query, rejects anything else', () => {
+    assert.equal(relanceDigestMode(undefined, null), 'absent');
+    assert.equal(relanceDigestMode('relance', null), 'relance');
+    assert.equal(relanceDigestMode(undefined, 'relance'), 'relance');
+    assert.equal(relanceDigestMode('relance', 'relance'), 'relance');
+    assert.equal(relanceDigestMode('weekend', null), 'invalid');
+    assert.equal(relanceDigestMode(undefined, '1'), 'invalid');
+    assert.equal(relanceDigestMode('relance', 'sam_dim'), 'invalid');
   });
 });
 

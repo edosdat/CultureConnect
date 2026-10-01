@@ -5,7 +5,7 @@
  * calendar date (e.g. `2026-W40`). Device-local localStorage only — not
  * `cc_signals_v1`. Another browser may show a 2nd popup in the same week.
  */
-import { addDaysIso, parisParts } from '@/lib/timeScope';
+import { addDaysIso, daysBetween, parisParts, type DateRange } from '@/lib/timeScope';
 
 export const MES_RECOS_WEEK_STORAGE_KEY = 'cc_mes_recos_week_v1';
 
@@ -119,3 +119,60 @@ export function mesRecosSubtitle(state: MesRecosCopyState): string {
 
 export const MES_RECOS_SHEET_TITLE = 'Mes recos de la semaine';
 export const MES_RECOS_CTA = 'Voir l’agenda';
+
+/**
+ * Relance digeste — two civil windows of the same Europe/Paris week
+ * as `parisWeekMondayIso` / `parisIsoWeekKey` (Mon→Sun).
+ *
+ * Not the home chip `weekend` (that chip includes Friday when today is Friday).
+ * Sheet « Mes recos » stays on `scope=semaine` and still shows at most 3.
+ */
+export const RELANCE_DIGEST_TIMEZONE = 'Europe/Paris' as const;
+
+export const RELANCE_DIGEST_WINDOWS = ['sam_dim', 'lun_ven'] as const;
+
+export type RelanceDigestWindowId = (typeof RELANCE_DIGEST_WINDOWS)[number];
+
+/** Sat–Sun (`sam_dim`) or Mon–Fri (`lun_ven`) of the Paris week containing `now`. */
+export function relanceDigestRange(
+  id: RelanceDigestWindowId,
+  now = new Date(),
+): DateRange {
+  const monday = parisWeekMondayIso(now);
+  if (id === 'lun_ven') {
+    const friday = addDaysIso(monday, 4);
+    return {
+      startIso: monday,
+      endIso: friday,
+      days: daysBetween(monday, friday),
+    };
+  }
+  const saturday = addDaysIso(monday, 5);
+  const sunday = addDaysIso(monday, 6);
+  return {
+    startIso: saturday,
+    endIso: sunday,
+    days: [saturday, sunday],
+  };
+}
+
+export type RelanceDigestMode = 'relance' | 'absent' | 'invalid';
+
+/**
+ * `digest=relance` on the JSON body and/or the query string.
+ * Any other present value is invalid (do not fall through to catalogue).
+ */
+export function relanceDigestMode(
+  bodyDigest: unknown,
+  queryDigest: string | null | undefined,
+): RelanceDigestMode {
+  const query = (queryDigest || '').trim();
+  const bodyPresent =
+    bodyDigest !== undefined && bodyDigest !== null && bodyDigest !== '';
+  const queryPresent = query.length > 0;
+  if (!bodyPresent && !queryPresent) return 'absent';
+  const bodyOk = !bodyPresent || bodyDigest === 'relance';
+  const queryOk = !queryPresent || query === 'relance';
+  if (bodyOk && queryOk) return 'relance';
+  return 'invalid';
+}
