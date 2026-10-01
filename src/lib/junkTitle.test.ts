@@ -1,5 +1,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import Papa from 'papaparse';
 import {
   isDateOnlyTitle,
   isJunkTitle,
@@ -58,6 +61,43 @@ describe('isJunkTitle', () => {
     assert.equal(junkTitleReason('Les infos pratiques'), 'placeholder');
   });
 
+  it('flags bare month names as exact titles (M1)', () => {
+    assert.equal(junkTitleReason('septembre'), 'bare_month');
+    assert.equal(isJunkTitle('septembre'), true);
+    assert.equal(junkTitleReason('Octobre'), 'bare_month');
+  });
+
+  it('flags month-led placeholders with a/au or a time (M1)', () => {
+    assert.equal(junkTitleReason('octobre à 19h et'), 'month_time');
+    assert.equal(junkTitleReason("OCTOBRE au BUV'ART"), 'month_time');
+    assert.equal(isJunkTitle('octobre à 21h et'), true);
+  });
+
+  it('flags empty / whitespace-only titles (M1)', () => {
+    assert.equal(junkTitleReason(''), 'empty_title');
+    assert.equal(junkTitleReason('   '), 'empty_title');
+    assert.equal(isJunkTitle(''), true);
+  });
+
+  it('keeps real titles that contain a month, category, or digits (M1)', () => {
+    assert.equal(isJunkTitle('Un dimanche de septembre'), false);
+    assert.equal(isJunkTitle('Le Théâtre du Soleil'), false);
+    assert.equal(isJunkTitle('4.48 Psychose'), false);
+    assert.equal(junkTitleReason('Un dimanche de septembre'), null);
+  });
+
+  it('does not junk PRIO0018 atelier with a date suffix (M1)', () => {
+    const titre =
+      "Atelier D'écritures Le Lab' des mots - 29 septembre - 18h30 > 20h30";
+    assert.equal(isJunkTitle(titre), false);
+    assert.equal(junkTitleReason(titre), null);
+    // Brief residual short form — still a real atelier, not month-led junk.
+    assert.equal(
+      isJunkTitle("Atelier D'écritures Le Lab' des mots - 29 sep"),
+      false,
+    );
+  });
+
   it('keeps Bord de scène (live catalogue series, not a placeholder)', () => {
     assert.equal(isJunkTitle('Bord de scène'), false);
     assert.equal(junkTitleReason('Bord de scène'), null);
@@ -88,12 +128,17 @@ describe('publishable + programmeRow junk filter', () => {
       isPublishableEvent({ ...baseEv, titre: 'Vendredi 02 octobre 2026 - 20H30' }),
       false,
     );
+    assert.equal(
+      isPublishableEvent({ ...baseEv, titre: 'septembre' }),
+      false,
+    );
   });
 
   it('isPublishableProgrammeName rejects junk nom_item', () => {
     assert.equal(isPublishableProgrammeName('Toc Toc'), true);
     assert.equal(isPublishableProgrammeName('1 évènement 11'), false);
     assert.equal(isPublishableProgrammeName('Complet'), false);
+    assert.equal(isPublishableProgrammeName('octobre à 19h et'), false);
   });
 
   it('normalizeProgrammeRows drops junk nom_item rows', () => {
@@ -125,8 +170,44 @@ describe('publishable + programmeRow junk filter', () => {
         date: '2026-10-02',
         film_id: '',
       },
+      {
+        programme_id: 'P4',
+        event_id: 'T900717',
+        lieu_id: 'L050',
+        nom_item: 'septembre',
+        type_item: 'spectacle',
+        date: '2026-10-07',
+        film_id: '',
+      },
     ]);
     assert.equal(rows.length, 1);
     assert.equal(rows[0]?.nom_item, 'Toc Toc');
+  });
+});
+
+describe('M1 catalogue integration', () => {
+  it('after load, T900717 produces 0 séances', () => {
+    const text = fs.readFileSync(
+      path.join(process.cwd(), 'data', 'programme.csv'),
+      'utf-8',
+    );
+    const parsed = Papa.parse<Record<string, string>>(text, {
+      header: true,
+      skipEmptyLines: true,
+    });
+    const rawT900717 = parsed.data.filter(
+      (row) => (row.event_id || '').trim() === 'T900717',
+    );
+    assert.ok(
+      rawT900717.length > 0,
+      'fixture: programme.csv still has T900717 rows before filter',
+    );
+    assert.ok(
+      rawT900717.every((row) => (row.nom_item || '').trim().toLowerCase() === 'septembre'),
+      'fixture: T900717 rows are bare « septembre »',
+    );
+    const rows = normalizeProgrammeRows(parsed.data);
+    const kept = rows.filter((row) => row.event_id === 'T900717');
+    assert.equal(kept.length, 0);
   });
 });
