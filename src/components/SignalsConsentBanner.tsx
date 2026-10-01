@@ -35,6 +35,7 @@ export default function SignalsConsentBanner() {
     <div
       role="dialog"
       aria-label="Consentement aux goûts sur cet appareil"
+      data-consent-banner=""
       className="fixed inset-x-0 bottom-0 z-[60] border-t border-culture-line bg-culture-surface/95 p-4 shadow-[0_-8px_24px_rgba(28,25,23,0.08)] backdrop-blur-sm"
     >
       <div className="mx-auto flex max-w-3xl flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">

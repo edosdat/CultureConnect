@@ -31,7 +31,7 @@ function aiEnv(env: FeedbackAiEnv): { url: string; key: string; model: string } 
 const SYSTEM = [
   'Tu réponds à un avis ou une idée sur Plan C, agenda culturel à Toulouse.',
   'JSON strict, pas de prose hors JSON.',
-  'kind: avis | idee | autre.',
+  'kind: avis | idee | bug | autre.',
   'reply: une seule phrase, tutoiement, français, 140 caractères max, sans lien, sans e-mail, sans promesse.',
   'N’invente pas une fonctionnalité. N’évoque pas l’entraînement d’un modèle.',
 ].join(' ');
