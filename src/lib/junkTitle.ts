@@ -35,8 +35,9 @@ const DATE_SEGMENT = `(?:(?:${WEEKDAY_ALT})\\s+)?\\d{1,2}\\s+(?:${MONTH_ALT})\\s
 
 /**
  * One or more date(+time) segments, optional trailing « + de dates ».
- * Catches single-date (L1), multi-date concatenations (M1 hole), and
- * typo months (fvrier / dcembre).
+ * Catches single-date (L1), multi-date concatenations (M1 hole),
+ * typo months (fvrier / dcembre), and Soft #192 « + de dates » residues.
+ * Whole-title only — real works with a date in the name stay publishable.
  */
 const DATE_TITLE = new RegExp(
   `^(?:${DATE_SEGMENT}\\s*)+(?:\\+\\s*de\\s*dates)?$`,

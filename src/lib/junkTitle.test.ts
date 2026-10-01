@@ -251,6 +251,107 @@ describe('publishable + programmeRow junk filter', () => {
   });
 });
 
+
+describe('Soft #192 live FAIL residues (filter + CSV belt)', () => {
+  const softFails = [
+    {
+      titre: 'Mercredi 30 septembre et',
+      reason: 'truncated_date' as const,
+      note: 'pre-R2 TMP0636 titre; repaired to Jean de la Lune on main',
+    },
+    {
+      titre: 'Les Lancers de Fil : Triplicata – Du jeudi 01 au',
+      reason: 'truncated_date' as const,
+      note: 'T900687 duplicate of clean E154',
+    },
+    {
+      titre:
+        'Mardi 29 septembre 2026 - 20H30 Mercredi 30 septembre 2026 - 20H30 + de dates',
+      reason: 'date_only' as const,
+      note: 'E134',
+    },
+    {
+      titre:
+        'Mardi 20 octobre 2026 - 10H00 Mardi 20 octobre 2026 - 11H00 + de dates',
+      reason: 'date_only' as const,
+      note: 'E118',
+    },
+    {
+      titre: 'Du jeudi 8 au',
+      reason: 'truncated_date' as const,
+      note: 'TMP0639',
+    },
+  ];
+
+  it('isJunkTitle + isPublishableEvent reject every Soft FAIL string', () => {
+    for (const { titre, reason } of softFails) {
+      assert.equal(junkTitleReason(titre), reason, titre);
+      assert.equal(isJunkTitle(titre), true, titre);
+      assert.equal(
+        isPublishableEvent({
+          titre,
+          statut: 'programmé',
+          categorie: 'theatre_danse',
+          publication: 'agenda',
+        }),
+        false,
+        titre,
+      );
+      assert.equal(isPublishableProgrammeName(titre), false, titre);
+    }
+  });
+
+  it('keeps repaired Soft PASS titles publishable', () => {
+    assert.equal(isJunkTitle('Jean de la Lune'), false);
+    assert.equal(isJunkTitle('Les Lancers de Fil : Triplicata'), false);
+    assert.equal(
+      isPublishableEvent({
+        titre: 'Jean de la Lune',
+        statut: 'programmé',
+        categorie: 'theatre_danse',
+        publication: 'agenda',
+      }),
+      true,
+    );
+  });
+
+  it('CSV belt: Soft residue event_ids are publication=masque', () => {
+    const text = fs.readFileSync(
+      path.join(process.cwd(), 'data', 'evenements.csv'),
+      'utf-8',
+    );
+    const parsed = Papa.parse<Record<string, string>>(text, {
+      header: true,
+      skipEmptyLines: true,
+    });
+    const byId = new Map(
+      parsed.data.map((row) => [(row.event_id || '').trim(), row]),
+    );
+    for (const id of [
+      'E134',
+      'E118',
+      'E137',
+      'E115',
+      'E092',
+      'E083',
+      'T900687',
+      'TMP0639',
+    ]) {
+      const row = byId.get(id);
+      assert.ok(row, `missing ${id}`);
+      assert.equal(
+        (row!.publication || '').trim(),
+        'masque',
+        `${id} should be masque (titre=${row!.titre})`,
+      );
+    }
+    const jean = byId.get('TMP0636');
+    assert.ok(jean);
+    assert.equal(jean!.titre, 'Jean de la Lune');
+    assert.notEqual((jean!.publication || '').trim(), 'masque');
+  });
+});
+
 describe('M1 catalogue integration', () => {
   it('after load, T900717 produces 0 séances', () => {
     const text = fs.readFileSync(
