@@ -763,7 +763,8 @@ describe('top 3 adaptive layout', () => {
         cardCount: 3,
         selectedCategories: ['cinema'],
       }),
-      false,
+      true,
+      'a category chip keeps Top 3; only the grid filters',
     );
     assert.equal(
       shouldShowTop3Section({
