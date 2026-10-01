@@ -7,7 +7,13 @@
  * From that instant, the same list requires `opted_in = true`.
  */
 import { createHash, createHmac, timingSafeEqual } from 'crypto';
+import {
+  DIGEST_OPT_IN_GATE_AT,
+  digestOptInGateActive,
+} from '@/lib/digestTestWindow';
 import { parseTasteState, type TasteEntry } from '@/lib/signals';
+
+export { DIGEST_OPT_IN_GATE_AT, digestOptInGateActive };
 
 export const DIGEST_UNSUB_PURPOSE = 'digest-unsub';
 
@@ -114,13 +120,6 @@ export function isGoogleMailKey(value: string): boolean {
   if (domain.startsWith('.') || domain.endsWith('.')) return false;
   if (/\s/.test(email)) return false;
   return true;
-}
-
-/** 1 Dec 2026 00:00 Europe/Paris. Opt-in gate starts at this instant. */
-export const DIGEST_OPT_IN_GATE_AT = Date.parse('2026-12-01T00:00:00+01:00');
-
-export function digestOptInGateActive(now = new Date()): boolean {
-  return now.getTime() >= DIGEST_OPT_IN_GATE_AT;
 }
 
 /**

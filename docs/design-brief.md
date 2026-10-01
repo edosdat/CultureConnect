@@ -384,3 +384,13 @@ Source : capture desktop https://culture-connect-2q8c-three.vercel.app/
 
 ### Screenshot
 `/workspace/cc-shots/home-desktop.png`
+
+---
+
+## Addendum — popup 1ère connexion (test digeste, oct. 2026)
+
+Carte flottante sous la nav, centrée, largeur max ~24rem. Pas de voile. Le conteneur est `pointer-events-none` : l’agenda reste cliquable. `aria-modal="false"`. Le bandeau cookies reste en bas.
+
+Fermer : « OK, je parcours », « Fermer », ou Échap (Échap laisse la feuille Mes goûts ouverte). Une fois par compte. L’aperçu `/?apercu=digeste` montre la carte sans poser le drapeau.
+
+Texte verrouillé dans `src/lib/digestTestIntro.ts`. Tokens `culture` déjà en prod (pas la migration `planc`). Pas de case à cocher sur la carte : la case vit dans Mes goûts et Confidentialité, et ne gate pas le mail avant le 1er décembre 2026.

@@ -25,6 +25,7 @@ import {
   unsubscribeByMailToken,
 } from './mailDigestRecipients';
 import {
+  readMailFlags,
   resetMailConsentPoolForTests,
   unsubscribeMailDigest,
   writeMailFlags,
@@ -240,6 +241,19 @@ describe('digest file list + one-click unsub', () => {
     assert.deepEqual(afterOptIn, [
       { userId: 'ada@example.com', email: 'ada@example.com' },
     ]);
+  });
+
+  it('seen=true does not opt out and does not drop the test-window list', async () => {
+    await rememberGoogleAccount('ada@example.com');
+    await writeMailFlags('ada@example.com', { seen: true });
+    const flags = await readMailFlags('ada@example.com');
+    assert.equal(flags.seen, true);
+    assert.equal(flags.opted, false);
+    assert.equal(flags.unsubscribedAt, null);
+    assert.deepEqual(await listDigestRecipients(DURING), [
+      { userId: 'ada@example.com', email: 'ada@example.com' },
+    ]);
+    assert.deepEqual(await listDigestRecipients(AFTER), []);
   });
 
   it('one-click token unsubscribes without a session and a second click stays out', async () => {
