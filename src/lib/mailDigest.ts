@@ -7,8 +7,74 @@
  * From that instant, the same list requires `opted_in = true`.
  */
 import { createHash, createHmac, timingSafeEqual } from 'crypto';
+import { parseTasteState, type TasteEntry } from '@/lib/signals';
 
 export const DIGEST_UNSUB_PURPOSE = 'digest-unsub';
+
+/** Moods / genres / themes only — same shape as the digest POST `profile`. */
+export type DigestRecoProfile = {
+  moods: Record<string, TasteEntry>;
+  genres: Record<string, TasteEntry>;
+  themes: Record<string, TasteEntry>;
+};
+
+export function emptyDigestRecoProfile(): DigestRecoProfile {
+  return { moods: {}, genres: {}, themes: {} };
+}
+
+/**
+ * « Pas pour moi » keys the agenda POST already accepts (`f:` / `e:` / `p:`).
+ * Same membership as `notInterestedBlockKeys`.
+ */
+function notInterestedExcludeIds(
+  signals: readonly {
+    kind: string;
+    film_id?: string;
+    event_id?: string;
+    programme_id?: string;
+  }[],
+): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const push = (id: string) => {
+    if (!id || seen.has(id)) return;
+    seen.add(id);
+    out.push(id);
+  };
+  for (const signal of signals) {
+    if (signal.kind !== 'not_interested') continue;
+    const film = (signal.film_id || '').trim();
+    if (film) push(`f:${film}`);
+    const ev = (signal.event_id || '').trim();
+    if (ev) push(`e:${ev}`);
+    const prog = (signal.programme_id || '').trim();
+    if (prog) push(`p:${prog}`);
+  }
+  return out;
+}
+
+/**
+ * Account taste row → body Relance can POST as `digest=relance`.
+ * Missing or unreadable state → empty profile, no excluded works.
+ * No email, no raw signals, no `tastesText`.
+ */
+export function digestRecoFieldsFromTaste(raw: unknown): {
+  profile: DigestRecoProfile;
+  excludeWorkIds: string[];
+} {
+  const state = parseTasteState(raw);
+  if (!state) {
+    return { profile: emptyDigestRecoProfile(), excludeWorkIds: [] };
+  }
+  return {
+    profile: {
+      moods: state.profile.moods,
+      genres: state.profile.genres,
+      themes: state.profile.themes,
+    },
+    excludeWorkIds: notInterestedExcludeIds(state.signalsRecent),
+  };
+}
 
 /** Secrets Relance may present as `Authorization: Bearer`. Order is preference for signing. */
 export function mailDigestSecrets(): string[] {
