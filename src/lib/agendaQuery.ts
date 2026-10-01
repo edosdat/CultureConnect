@@ -14,7 +14,7 @@ import type {
 } from './types';
 import { loadCultureData } from './data';
 import { catsAllowCinemaPack, mainFromForm } from './categories';
-import { filterItemsByCommune, normalizeCommune } from './commune';
+import { filterItemsByCommune } from './commune';
 import {
   cinemaDisplayStem,
   cinemaStemsCompatible,
