@@ -23,20 +23,26 @@ import {
   IOS_A2HS_ALT_HINT,
   IOS_A2HS_LABEL,
   IOS_DISMISS_TO_SHARE,
+  IOS_NOT_A_BUTTON,
+  IOS_SAFARI_PATH,
   IOS_SHARE_HINT,
   IOS_SHARE_LABEL,
-  a2hsSurfaceForClient,
+  a2hsSurface,
+  canShowNativeInstallButton,
   copySafariHandoffUrl,
   detectPwaInstalled,
+  iosInstallFlags,
   iosSheetBottomGapPx,
   isChromeIosClient,
   isHandheldClient,
   localDayStamp,
+  nativeInstallTap,
   safariBottomChromePx,
   safariHandoffUrl,
   shouldAwaitInstallPrompt,
   shouldShowDailyA2hs,
   type BeforeInstallPromptEvent,
+  type IosInstallFlags,
 } from '@/lib/pwaInstall';
 
 type PwaInstallValue = {
@@ -72,16 +78,6 @@ function clientSignals() {
   };
 }
 
-function ShareGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v10" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8.5 6.5 12 3l3.5 3.5" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 11v8h12v-8" />
-    </svg>
-  );
-}
-
 function copyViaTextarea(url: string): boolean {
   try {
     const area = document.createElement('textarea');
@@ -113,15 +109,6 @@ async function copyPageForSafari(): Promise<boolean> {
   return copyViaTextarea(url);
 }
 
-function AddGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-      <rect x="4" y="4" width="16" height="16" rx="4" />
-      <path strokeLinecap="round" d="M12 8v8M8 12h8" />
-    </svg>
-  );
-}
-
 function DownArrow() {
   return (
     <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
@@ -132,18 +119,18 @@ function DownArrow() {
 }
 
 function InstallSheet({
+  flags,
   promptReady,
   onInstall,
   onClose,
 }: {
+  flags: IosInstallFlags;
   promptReady: boolean;
   onInstall: () => void;
   onClose: () => void;
 }) {
-  const surface = a2hsSurfaceForClient({
-    ...clientSignals(),
-    promptReady,
-  });
+  const surface = a2hsSurface({ ...flags, promptReady });
+  const showInstall = canShowNativeInstallButton({ ...flags, promptReady });
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
   const [bottomGap, setBottomGap] = useState(() => iosSheetBottomGapPx(0));
   const pageUrl = typeof window === 'undefined' ? '' : safariHandoffUrl(window.location.href);
@@ -214,7 +201,7 @@ function InstallSheet({
         <h2 id="pwa-install-title" className="font-display text-lg font-semibold text-culture-ink">
           Ajoute Plan C
         </h2>
-        {surface === 'android-prompt' ? (
+        {showInstall ? (
           <>
             <p className="mt-1 text-sm text-culture-muted">Un raccourci sur l’écran d’accueil.</p>
             <button
@@ -268,30 +255,32 @@ function InstallSheet({
           </div>
         ) : null}
         {surface === 'ios-steps' ? (
-          <ol data-testid="pwa-install-ios" className="mt-3 space-y-2 text-sm text-culture-ink">
-            <li data-testid="pwa-ios-step-share" className="flex items-center gap-2">
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-culture-soft text-culture-clay">
-                <ShareGlyph />
-              </span>
-              <span>
-                <span className="font-medium">{IOS_SHARE_LABEL}</span>
+          <div data-testid="pwa-install-ios-block">
+            <p data-testid="pwa-ios-not-a-button" className="mt-2 text-sm text-culture-ink">
+              {IOS_NOT_A_BUTTON}
+            </p>
+            <p data-testid="pwa-ios-safari-path" className="mt-1 text-sm font-medium text-culture-ink">
+              {IOS_SAFARI_PATH}
+            </p>
+            <ol
+              data-testid="pwa-install-ios"
+              data-tap="inert"
+              className="mt-2 list-decimal space-y-1 pl-5 text-sm text-culture-ink"
+            >
+              <li data-testid="pwa-ios-step-share">
+                <span>{IOS_SHARE_LABEL}</span>
                 <span data-testid="pwa-ios-share-hint" className="mt-0.5 block text-culture-muted">
                   {IOS_SHARE_HINT}
                 </span>
-              </span>
-            </li>
-            <li data-testid="pwa-ios-step-a2hs" className="flex items-center gap-2">
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-culture-soft text-culture-clay">
-                <AddGlyph />
-              </span>
-              <span>
-                <span className="font-medium">{IOS_A2HS_LABEL}</span>
+              </li>
+              <li data-testid="pwa-ios-step-a2hs">
+                <span>{IOS_A2HS_LABEL}</span>
                 <span data-testid="pwa-ios-a2hs-alt" className="mt-0.5 block text-culture-muted">
                   {IOS_A2HS_ALT_HINT}
                 </span>
-              </span>
-            </li>
-          </ol>
+              </li>
+            </ol>
+          </div>
         ) : null}
         {surface === 'fallback' ? (
           <p data-testid="pwa-install-fallback" className="mt-2 text-sm text-culture-muted">
@@ -328,6 +317,7 @@ function InstallSheet({
 export default function PwaInstallProvider({ children }: { children: ReactNode }) {
   const [installed, setInstalled] = useState<boolean | null>(null);
   const [open, setOpen] = useState(false);
+  const [installFlags, setInstallFlags] = useState<IosInstallFlags | null>(null);
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
 
   const rememberPrompt = useCallback((event?: Event) => {
@@ -420,7 +410,10 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
         } catch {
           /* private mode: still show this once */
         }
-        if (!cancelled) setOpen(true);
+        if (!cancelled) {
+          setInstallFlags(iosInstallFlags(clientSignals()));
+          setOpen(true);
+        }
       })();
     }, 600);
 
@@ -447,12 +440,15 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
     if (installed) setOpen(false);
   }, [installed]);
 
-  /** Account menu and the daily offer open this same sheet. Surface comes from the live UA. */
+  /** Account menu. Flags are set in this turn, before the sheet paints. */
   const openInstall = useCallback(() => {
+    setInstallFlags(iosInstallFlags(clientSignals()));
     setOpen(true);
   }, []);
 
   const onInstall = useCallback(() => {
+    if (!installFlags) return;
+    if (nativeInstallTap({ ...installFlags, promptReady: Boolean(promptEvent) }) !== 'prompt') return;
     const event = promptEvent;
     if (!event) return;
     void event
@@ -467,7 +463,7 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
         window.__plancInstallPrompt = undefined;
         setPromptEvent(null);
       });
-  }, [promptEvent]);
+  }, [installFlags, promptEvent]);
 
   const value = useMemo(
     () => ({ installed, openInstall }),
@@ -477,8 +473,9 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
   return (
     <PwaInstallContext.Provider value={value}>
       {children}
-      {open && installed !== true ? (
+      {open && installed !== true && installFlags ? (
         <InstallSheet
+          flags={installFlags}
           promptReady={Boolean(promptEvent)}
           onInstall={onInstall}
           onClose={() => setOpen(false)}

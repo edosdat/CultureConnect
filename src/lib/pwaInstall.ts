@@ -43,7 +43,11 @@ export const CRIOS_SAFARI_STEPS = ['Partager', 'Ajouter à l’écran d’accuei
 export const IOS_SHARE_LABEL = 'Partager';
 export const IOS_A2HS_LABEL = 'Sur l’écran d’accueil';
 export const IOS_A2HS_LABEL_ALT = 'Ajouter à l’écran d’accueil';
-export const IOS_SHARE_HINT = 'Touche Partager dans la barre du bas Safari.';
+/** The rows are instructions. Tapping them does not install. */
+export const IOS_NOT_A_BUTTON = 'Ce n’est pas un bouton de Plan C.';
+/** Where the add actually happens. Manager label is « Sur l’écran d’accueil ». */
+export const IOS_SAFARI_PATH = 'Barre Safari → Partager → Sur l’écran d’accueil';
+export const IOS_SHARE_HINT = 'Dans la barre du bas Safari.';
 export const IOS_A2HS_ALT_HINT =
   'Parfois « Ajouter à l’écran d’accueil » : c’est le même geste.';
 export const IOS_DISMISS_TO_SHARE = 'Fermer pour toucher Partager';
@@ -111,6 +115,57 @@ export function isIosClient(input: {
 /** Chrome on iPhone/iPad. The UA token is `CriOS`, including iPad desktop mode. */
 export function isChromeIosClient(input: { userAgent: string }): boolean {
   return /CriOS/i.test(input.userAgent || '');
+}
+
+export type IosInstallFlags = {
+  ios: boolean;
+  chromeIos: boolean;
+};
+
+/** Read before opening the sheet. Defaults of `false` would paint the wrong surface. */
+export function iosInstallFlags(input: {
+  userAgent: string;
+  platform?: string;
+  maxTouchPoints?: number;
+}): IosInstallFlags {
+  return {
+    ios: isIosClient(input),
+    chromeIos: isChromeIosClient({ userAgent: input.userAgent }),
+  };
+}
+
+/**
+ * « Installer Plan C » only when Chromium stored `beforeinstallprompt`.
+ * Safari and Chrome iOS never get that button — a tap there would return early.
+ */
+export function canShowNativeInstallButton(input: {
+  ios: boolean;
+  chromeIos?: boolean;
+  promptReady: boolean;
+}): boolean {
+  return a2hsSurface(input) === 'android-prompt';
+}
+
+/** `skip` is the dead click: no prompt, or the surface is not the Android one. */
+export function nativeInstallTap(input: {
+  ios: boolean;
+  chromeIos?: boolean;
+  promptReady: boolean;
+}): 'prompt' | 'skip' {
+  return canShowNativeInstallButton(input) ? 'prompt' : 'skip';
+}
+
+/** `null` means the UA flags are not ready — do not paint fallback or Installer. */
+export function sheetSurfaceWhenOpening(input: {
+  flags: IosInstallFlags | null;
+  promptReady: boolean;
+}): A2hsSurface | null {
+  if (!input.flags) return null;
+  return a2hsSurface({
+    ios: input.flags.ios,
+    chromeIos: input.flags.chromeIos,
+    promptReady: input.promptReady,
+  });
 }
 
 /** Chrome iOS never emits beforeinstallprompt. Do not wait for it. */

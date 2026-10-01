@@ -15,8 +15,10 @@ import {
   IOS_A2HS_LABEL,
   IOS_A2HS_LABEL_ALT,
   IOS_DISMISS_TO_SHARE,
+  IOS_NOT_A_BUTTON,
   IOS_SAFARI_ARROW_PX,
   IOS_SAFARI_BAR_MIN_GAP_PX,
+  IOS_SAFARI_PATH,
   IOS_SAFARI_STEPS,
   IOS_SHARE_HINT,
   IOS_SHARE_LABEL,
@@ -24,15 +26,19 @@ import {
   a2hsSurfaceForClient,
   acceptsIosA2hsLabel,
   accountInstallItem,
+  canShowNativeInstallButton,
   copySafariHandoffUrl,
   detectPwaInstalled,
+  iosInstallFlags,
   iosSheetBottomGapPx,
   isChromeIosClient,
   isHandheldClient,
   isInstalledDisplay,
   isIosClient,
   localDayStamp,
+  nativeInstallTap,
   readInstalledRelated,
+  sheetSurfaceWhenOpening,
   safariBottomChromePx,
   safariHandoffUrl,
   shouldAwaitInstallPrompt,
@@ -275,6 +281,8 @@ describe('install detection', () => {
     assert.equal(IOS_SHARE_LABEL, 'Partager');
     assert.equal(IOS_A2HS_LABEL, 'Sur l’écran d’accueil');
     assert.equal(IOS_A2HS_LABEL_ALT, 'Ajouter à l’écran d’accueil');
+    assert.equal(IOS_NOT_A_BUTTON, 'Ce n’est pas un bouton de Plan C.');
+    assert.equal(IOS_SAFARI_PATH, 'Barre Safari → Partager → Sur l’écran d’accueil');
     assert.match(IOS_SHARE_HINT, /barre du bas Safari/);
     assert.match(IOS_A2HS_ALT_HINT, /Ajouter à l’écran d’accueil/);
     assert.equal(IOS_DISMISS_TO_SHARE, 'Fermer pour toucher Partager');
@@ -290,6 +298,29 @@ describe('install detection', () => {
     assert.equal(acceptsIosA2hsLabel('Copier le lien'), false);
     assert.equal(acceptsIosA2hsLabel('Installer'), false);
     assert.equal(acceptsIosA2hsLabel(''), false);
+  });
+
+  it('never offers a dead Installer tap on Safari, and waits for UA flags', () => {
+    const safari =
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1';
+    const flags = iosInstallFlags({ userAgent: safari });
+    assert.deepEqual(flags, { ios: true, chromeIos: false });
+    assert.equal(canShowNativeInstallButton({ ...flags, promptReady: true }), false);
+    assert.equal(canShowNativeInstallButton({ ...flags, promptReady: false }), false);
+    assert.equal(nativeInstallTap({ ...flags, promptReady: true }), 'skip');
+    assert.equal(nativeInstallTap({ ios: false, chromeIos: true, promptReady: true }), 'skip');
+    assert.equal(nativeInstallTap({ ios: false, chromeIos: false, promptReady: false }), 'skip');
+    assert.equal(nativeInstallTap({ ios: false, chromeIos: false, promptReady: true }), 'prompt');
+    assert.equal(sheetSurfaceWhenOpening({ flags: null, promptReady: false }), null);
+    assert.equal(sheetSurfaceWhenOpening({ flags: null, promptReady: true }), null);
+    assert.equal(sheetSurfaceWhenOpening({ flags, promptReady: true }), 'ios-steps');
+    assert.equal(
+      sheetSurfaceWhenOpening({
+        flags: { ios: false, chromeIos: false },
+        promptReady: false,
+      }),
+      'fallback',
+    );
   });
 
   it('lifts the Safari sheet above the bottom bar', () => {
@@ -357,6 +388,12 @@ describe('service worker freshness only', () => {
     assert.match(ui, /Installer Plan C/);
     assert.match(ui, /IOS_A2HS_LABEL/);
     assert.match(ui, /IOS_A2HS_ALT_HINT/);
+    assert.match(ui, /IOS_NOT_A_BUTTON/);
+    assert.match(ui, /IOS_SAFARI_PATH/);
+    assert.match(ui, /canShowNativeInstallButton/);
+    assert.match(ui, /\{showInstall \?/);
+    assert.match(ui, /nativeInstallTap/);
+    assert.match(ui, /open && installed !== true && installFlags/);
     assert.doesNotMatch(ui + menu, /vapid|pushManager|Notification/i);
 
     const criosStart = ui.indexOf("{surface === 'crios-safari'");
@@ -378,10 +415,20 @@ describe('service worker freshness only', () => {
     assert.match(ios, /IOS_SHARE_LABEL/);
     assert.match(ios, /IOS_SHARE_HINT/);
     assert.match(ios, /IOS_A2HS_LABEL/);
-    assert.doesNotMatch(ios, /CRIOS_COPY_LINK_LABEL|pwa-copy-link|Installer Plan C|pwa-install-button/);
+    assert.match(ios, /IOS_NOT_A_BUTTON/);
+    assert.match(ios, /IOS_SAFARI_PATH/);
+    assert.match(ios, /data-tap="inert"/);
+    assert.doesNotMatch(ios, /<button|onClick|rounded-full|bg-culture-terracotta|pwa-install-button/);
+    assert.doesNotMatch(ios, /CRIOS_COPY_LINK_LABEL|pwa-copy-link|Installer Plan C/);
     assert.match(ui, /data-testid="pwa-ios-share-arrow"/);
     assert.match(ui, /data-testid=\{clearSafariBar \? 'pwa-ios-dismiss-share'/);
-    assert.match(ui, /a2hsSurfaceForClient/);
+    assert.doesNotMatch(
+      ui.slice(ui.indexOf("data-testid={clearSafariBar ? 'pwa-ios-dismiss-share'"), ui.indexOf('Plus tard')),
+      /bg-culture-terracotta/,
+    );
+    const openBody = ui.slice(ui.indexOf('const openInstall = useCallback'), ui.indexOf('const onInstall'));
+    assert.ok(openBody.indexOf('iosInstallFlags') >= 0);
+    assert.ok(openBody.indexOf('setOpen(true)') > openBody.indexOf('iosInstallFlags'));
     assert.match(ui, /openInstall = useCallback/);
     assert.equal(ui.split('<InstallSheet').length - 1, 1);
     assert.match(ui, /shouldAwaitInstallPrompt/);
