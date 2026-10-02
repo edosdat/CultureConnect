@@ -97,3 +97,43 @@ describe('charte copy is wired once from the Enfants chip', () => {
     assert.equal(boot.includes('enfantsChipOn'), false);
   });
 });
+
+describe('connected home title — Mes crushs only', () => {
+  const app = readFileSync(
+    new URL('../components/CultureConnectApp.tsx', import.meta.url),
+    'utf8',
+  );
+  const boot = readFileSync(
+    new URL('../components/HomeTop3BootFallback.tsx', import.meta.url),
+    'utf8',
+  );
+
+  it('paints CharteRegisterLine only when authenticated', () => {
+    const uses = app.split('<CharteRegisterLine').length - 1;
+    assert.equal(uses, 1);
+    const at = app.indexOf('<CharteRegisterLine');
+    const before = app.slice(Math.max(0, at - 180), at);
+    assert.match(before, /sessionStatus === 'authenticated' \? \(/);
+    assert.equal(app.includes('Mes crushs'), false);
+    assert.equal(app.includes('Mon top 3 du moment'), false);
+  });
+
+  it('omits the Top 3 H2 when authenticated and keeps it for guests', () => {
+    const at = app.indexOf('<h2 className={HOME_SECTION_TITLE_CLASS}>');
+    assert.ok(at > 0);
+    const before = app.slice(Math.max(0, at - 220), at);
+    assert.match(before, /sessionStatus === 'authenticated' \? null : \(/);
+    const block = app.slice(at, app.indexOf('</h2>', at));
+    assert.match(block, /top3Heading\(recoReady \? top3Cards\.length : 3\)/);
+    assert.equal(block.includes('authenticated'), false);
+    assert.equal(block.includes('Mon top 3'), false);
+  });
+
+  it('guest first paint keeps Le top 3 and does not show Mes crushs', () => {
+    assert.match(boot, /Le top 3 du moment/);
+    assert.equal(boot.includes('CharteRegisterLine'), false);
+    assert.equal(boot.includes('Mes crushs'), false);
+    assert.equal(boot.includes('Mon top 3 du moment'), false);
+    assert.equal(boot.includes('CHARTE_COPY'), false);
+  });
+});

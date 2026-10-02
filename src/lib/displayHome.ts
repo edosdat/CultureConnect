@@ -585,6 +585,9 @@ export function top3PaintMode(opts: Top3SectionOpts): Top3PaintMode {
  * H2 for the reco row. Always « Top 3 » — never « top 1 » / « top 2 ».
  * cardCount is ignored: a QUAND-only day with one card still reads Top 3.
  * The caller hides the section when cardCount is 0.
+ * Guest home paints the guest return (« Le top 3 du moment »).
+ * Connected home does not mount this H2: CharteRegisterLine is the sole
+ * title (« Mes crushs » + caption). The signed-in return stays unused there.
  */
 export function top3Heading(
   _cardCount: number,

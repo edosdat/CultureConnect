@@ -1,4 +1,3 @@
-import { CHARTE_COPY } from '@/lib/charteCopy';
 import {
   HOME_SECTION_TITLE_ACCENT_VAR,
   HOME_SECTION_TITLE_CLASS,
@@ -6,7 +5,6 @@ import {
   homeSectionAccentStyle,
   TOP3_SECTION_CLASS,
 } from '@/lib/displayHome';
-import CharteRegisterLine from './CharteRegisterLine';
 import HomeBootChrome from './HomeBootChrome';
 import HomeAccroche from './HomeAccroche';
 import PackRailSkeleton from './PackRailSkeleton';
@@ -19,13 +17,14 @@ import Top3Skeleton from './Top3Skeleton';
  * HomeBootChrome reserves search + the dense filter band + list-wait
  * so Top 3 does not jump. No category on this paint, so the shell stays.
  * Guest CTA is reserved inside the section.
+ * Guest first paint: « Le top 3 du moment » is the only heading.
+ * The connected charte line is not painted on this shell.
  */
 export default function HomeTop3BootFallback() {
   return (
     <main className="mx-auto max-w-7xl min-w-0 overflow-x-hidden px-4 pb-16 pt-3 sm:px-6 sm:pt-6">
       <HomeAccroche />
       <HomeBootChrome>
-        <CharteRegisterLine register="default" copy={CHARTE_COPY.default} />
         <section
           className={TOP3_SECTION_CLASS}
           data-top3=""

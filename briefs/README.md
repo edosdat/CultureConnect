@@ -49,3 +49,4 @@ Statuts : **À faire** · **En cours** · **Fait (#PR)** · **Bloqué** · **Rem
 | — | tip recherche NL → chips | Fait (#231) | Preview sous `#cc-search` + Confirmer. 0 date = catalogue ≥ today Paris. |
 | — | tip auth gate Partager / Envie / J’y vais | Fait (#232) | Sheet « Connexion rapide ». |
 | — | splash PWA cold open V0 | En cours | Path A+B brandé + prefetch `window=home` pendant le splash. HOLD soft+GO. Soft tip No merge. |
+| — | tip Mes crushs home connecté | En cours | Titre connecté = `CharteRegisterLine` seule (Mes crushs + légende). H2 « Mon top 3 » omis. Guest : « Le top 3 du moment » seul. HOLD merge soft+GO. Soft ne merge pas. |

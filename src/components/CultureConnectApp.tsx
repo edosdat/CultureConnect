@@ -3229,7 +3229,9 @@ export default function CultureConnectApp({
           ) : null}
         </MonthCalendarDrawer>
 
-        <CharteRegisterLine register={register} copy={copy} />
+        {sessionStatus === 'authenticated' ? (
+          <CharteRegisterLine register={register} copy={copy} />
+        ) : null}
 
         {showTop3Section && !avecEnfants ? (
         <section
@@ -3238,17 +3240,16 @@ export default function CultureConnectApp({
           data-top3-count={recoReady ? top3Cards.length : undefined}
           data-top3-pending={top3Mode === 'skeleton' ? '' : undefined}
         >
+          {sessionStatus === 'authenticated' ? null : (
           <h2 className={HOME_SECTION_TITLE_CLASS}>
             <span
               className={HOME_SECTION_TITLE_RULE_CLASS}
               style={homeSectionAccentStyle(HOME_SECTION_TITLE_ACCENT_VAR)}
             >
-              {top3Heading(
-                recoReady ? top3Cards.length : 3,
-                sessionStatus === 'authenticated',
-              )}
+              {top3Heading(recoReady ? top3Cards.length : 3)}
             </span>
           </h2>
+          )}
           {sessionStatus !== 'authenticated' ? (
             <Top3GuestCta
               onClick={
