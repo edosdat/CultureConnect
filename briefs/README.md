@@ -49,3 +49,4 @@ Statuts : **À faire** · **En cours** · **Fait (#PR)** · **Bloqué** · **Rem
 | — | tip recherche NL → chips | Fait (#231) | Preview sous `#cc-search` + Confirmer. 0 date = catalogue ≥ today Paris. |
 | — | tip auth gate Partager / Envie / J’y vais | Fait (#232) | Sheet « Connexion rapide ». |
 | — | splash PWA cold open V0 | En cours | Path A+B brandé + prefetch `window=home` pendant le splash. HOLD soft+GO. Soft tip No merge. |
+| — | tip social beat 1 | En cours | Une ligne sous Envie / J’y vais, 1ʳᵉ Envie ou Partager connecté, drapeau `cc_social_tip_b1_seen`. HOLD soft+GO. Soft ne merge pas. |

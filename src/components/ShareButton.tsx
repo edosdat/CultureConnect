@@ -24,6 +24,7 @@ import {
   subscribeOverlayStack,
   toastBlockedByModal,
 } from '@/lib/overlayStack';
+import { notifySocialTip } from '@/lib/socialTipBeat1';
 
 type Props = {
   item: DayItem;
@@ -229,6 +230,7 @@ export default function ShareButton({
 
     // Toast and the share sheet in this turn. Do not wait on POST.
     flashCopied();
+    if (status === 'authenticated') notifySocialTip(buttonRef.current);
 
     const mobile = isLikelyMobile() && typeof navigator.share === 'function';
     const sharePromise = mobile

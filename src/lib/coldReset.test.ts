@@ -158,6 +158,7 @@ describe('cold reset storage prefixes', () => {
       ['cc_share_activity_last_seen', '2026-01-01'],
       ['cc_share_created_tokens', '[]'],
       ['cc_digest_test_intro', '1'],
+      ['cc_social_tip_b1_seen', '1'],
       ['cc_digest_intro_synced', 'a@b.c'],
       ['cc_mes_recos_week_v1', '{}'],
       ['cc.favorites.v1', '[]'],
