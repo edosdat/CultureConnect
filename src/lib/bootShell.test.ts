@@ -2,14 +2,18 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import vm from 'node:vm';
 import {
   BOOT_CATALOGUE_URL,
   BOOT_SHELL_CREAM,
   BOOT_SHELL_HINT,
   BOOT_SHELL_ID,
   BOOT_SHELL_MAX_MS,
+  BOOT_SHELL_MIN_MS,
+  BOOT_SHELL_STANDALONE_RECHECK_MS,
   bootShellHideDelayMs,
   bootShellMotion,
+  bootShellPageShowAction,
   shouldShowBootTheater,
 } from './bootShell';
 import {
@@ -31,21 +35,31 @@ function pngSize(buf: Buffer): { width: number; height: number } {
 }
 
 describe('boot shell hide timing', () => {
-  it('hides as soon as the app is ready', () => {
-    assert.equal(bootShellHideDelayMs({ appReadyAtMs: 420 }), 420);
+  it('holds a ready splash for the minimum dwell so the morph is visible', () => {
+    assert.equal(BOOT_SHELL_MIN_MS, 1200);
+    assert.equal(bootShellHideDelayMs({ appReadyAtMs: 420 }), 1200);
+    assert.equal(bootShellHideDelayMs({ appReadyAtMs: 0 }), 1200);
+    assert.equal(bootShellHideDelayMs({ appReadyAtMs: -20 }), 1200);
+    assert.equal(bootShellHideDelayMs({ appReadyAtMs: 1200 }), 1200);
+  });
+
+  it('hides after the minimum once the app and the catalogue are later', () => {
+    assert.equal(bootShellHideDelayMs({ appReadyAtMs: 1800 }), 1800);
+    assert.equal(
+      bootShellHideDelayMs({
+        appReadyAtMs: 1400,
+        catalogueSettledAtMs: 1600,
+      }),
+      1600,
+    );
   });
 
   it('forces hide at 3.5s when home is still partial or never ready', () => {
     assert.equal(BOOT_SHELL_MAX_MS, 3500);
     assert.equal(bootShellHideDelayMs({ appReadyAtMs: 9000 }), 3500);
+    assert.equal(bootShellHideDelayMs({ appReadyAtMs: 3500 }), 3500);
     assert.equal(bootShellHideDelayMs({ appReadyAtMs: null }), 3500);
     assert.equal(bootShellHideDelayMs({ appReadyAtMs: Number.NaN }), 3500);
-  });
-
-  it('clamps an already-late or negative ready time to the cap', () => {
-    assert.equal(bootShellHideDelayMs({ appReadyAtMs: 3500 }), 3500);
-    assert.equal(bootShellHideDelayMs({ appReadyAtMs: 0 }), 0);
-    assert.equal(bootShellHideDelayMs({ appReadyAtMs: -20 }), 0);
   });
 
   it('holds the splash for the catalogue prefetch and still force-hides at 3.5s', () => {
@@ -61,7 +75,7 @@ describe('boot shell hide timing', () => {
         appReadyAtMs: 400,
         catalogueSettledAtMs: 900,
       }),
-      900,
+      1200,
     );
     assert.equal(
       bootShellHideDelayMs({
@@ -79,6 +93,110 @@ describe('boot shell hide timing', () => {
     );
   });
 });
+
+describe('boot shell pageshow', () => {
+  it('does not hide a live theater on a persisted pageshow', () => {
+    assert.equal(
+      bootShellPageShowAction({ persisted: true, theaterStillUp: true }),
+      'restart-dwell',
+    );
+    assert.equal(
+      bootShellPageShowAction({ persisted: true, theaterStillUp: false }),
+      'keep-hidden',
+    );
+    assert.equal(
+      bootShellPageShowAction({ persisted: false, theaterStillUp: true }),
+      'ignore',
+    );
+  });
+});
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+/** Runs the inline splash script against a tiny document. */
+function bootDocument(standalone: () => boolean) {
+  const attrs: Record<string, string> = {};
+  const timers = new Set<ReturnType<typeof setTimeout>>();
+  const listeners: Record<string, Array<(event: { persisted?: boolean }) => void>> = {};
+  const shell = {
+    removed: false,
+    setAttribute() {},
+    addEventListener() {},
+    remove() {
+      this.removed = true;
+    },
+  };
+  const sandbox: Record<string, unknown> = {
+    document: {
+      documentElement: {
+        setAttribute(key: string, value: string) {
+          attrs[key] = value;
+        },
+        getAttribute(key: string) {
+          return attrs[key];
+        },
+      },
+      body: {
+        setAttribute(key: string, value: string) {
+          attrs[`body:${key}`] = value;
+        },
+      },
+      head: { appendChild() {} },
+      getElementById(id: string) {
+        if (id === BOOT_SHELL_ID && !shell.removed) return shell;
+        return null;
+      },
+      createElement() {
+        return { textContent: '' };
+      },
+    },
+    location: { pathname: '/' },
+    navigator: { standalone: false },
+    matchMedia() {
+      return { matches: standalone() };
+    },
+    fetch() {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      });
+    },
+    setTimeout(fn: () => void, ms?: number) {
+      const id = setTimeout(() => {
+        timers.delete(id);
+        fn();
+      }, ms);
+      timers.add(id);
+      return id;
+    },
+    clearTimeout(id: ReturnType<typeof setTimeout>) {
+      timers.delete(id);
+      clearTimeout(id);
+    },
+    Date,
+    addEventListener(type: string, fn: (event: { persisted?: boolean }) => void) {
+      (listeners[type] ||= []).push(fn);
+    },
+  };
+  sandbox.window = sandbox;
+  vm.createContext(sandbox);
+  vm.runInContext(BOOT_SHELL_SCRIPT, sandbox);
+  return {
+    attrs,
+    sandbox,
+    pageshow(persisted: boolean) {
+      for (const fn of listeners.pageshow || []) fn({ persisted });
+    },
+    dispose() {
+      for (const id of timers) clearTimeout(id);
+      timers.clear();
+    },
+  };
+}
 
 describe('boot shell gate', () => {
   it('shows the theater on a standalone cold document, including iOS navigator.standalone', () => {
@@ -138,6 +256,72 @@ describe('boot shell gate', () => {
   });
 });
 
+describe('boot shell inline script', () => {
+  it('keeps the theater up for the minimum dwell after an early ready', async () => {
+    const boot = bootDocument(() => true);
+    try {
+      assert.equal(boot.attrs['data-cc-boot'], 'on');
+      await delay(20);
+      (boot.sandbox.__ccHideBootShell as () => void)();
+      await delay(400);
+      assert.equal(boot.attrs['data-app-ready'], undefined);
+      await delay(1000);
+      assert.equal(boot.attrs['data-app-ready'], '1');
+    } finally {
+      boot.dispose();
+    }
+  });
+
+  it('rechecks standalone once before killing the shell', async () => {
+    let stand = false;
+    const boot = bootDocument(() => stand);
+    try {
+      await delay(30);
+      assert.equal(boot.attrs['data-cc-boot'], undefined);
+      assert.equal(boot.attrs['data-app-ready'], undefined);
+      (boot.sandbox.__ccHideBootShell as () => void)();
+      assert.equal(boot.attrs['data-app-ready'], undefined);
+      stand = true;
+      await delay(90);
+      assert.equal(boot.attrs['data-cc-boot'], 'on');
+      assert.equal(boot.attrs['data-app-ready'], undefined);
+    } finally {
+      boot.dispose();
+    }
+  });
+
+  it('kills the shell after the recheck when it stays in a browser tab', async () => {
+    const boot = bootDocument(() => false);
+    try {
+      await delay(30);
+      assert.equal(boot.attrs['data-app-ready'], undefined);
+      await delay(90);
+      assert.equal(boot.attrs['data-cc-boot'], undefined);
+      assert.equal(boot.attrs['data-app-ready'], '1');
+    } finally {
+      boot.dispose();
+    }
+  });
+
+  it('restarts the dwell on a persisted pageshow instead of hiding', async () => {
+    const boot = bootDocument(() => true);
+    try {
+      await delay(20);
+      (boot.sandbox.__ccHideBootShell as () => void)();
+      await delay(400);
+      assert.equal(boot.attrs['data-app-ready'], undefined);
+      boot.pageshow(true);
+      assert.equal(boot.attrs['data-app-ready'], undefined);
+      await delay(900);
+      assert.equal(boot.attrs['data-app-ready'], undefined);
+      await delay(450);
+      assert.equal(boot.attrs['data-app-ready'], '1');
+    } finally {
+      boot.dispose();
+    }
+  });
+});
+
 describe('boot shell markup', () => {
   it('stays a small inline shell on the cream ground', () => {
     assert.equal(BOOT_SHELL_CREAM, '#F7F0E8');
@@ -151,13 +335,34 @@ describe('boot shell markup', () => {
     assert.match(BOOT_SHELL_MARKUP, /aria-busy="true"/);
     assert.match(BOOT_SHELL_MARKUP, /aria-labelledby="cc-boot-hint"/);
     assert.match(BOOT_SHELL_SCRIPT, /MAX=3500/);
+    assert.match(BOOT_SHELL_SCRIPT, /MIN=1200/);
+    assert.match(BOOT_SHELL_SCRIPT, /elapsed<MIN/);
+    assert.equal(BOOT_SHELL_STANDALONE_RECHECK_MS, 80);
+    assert.match(BOOT_SHELL_SCRIPT, /RECHECK=80/);
     assert.match(BOOT_SHELL_SCRIPT, /data-app-ready/);
+    assert.match(BOOT_SHELL_SCRIPT, /data-cc-boot/);
     assert.match(BOOT_SHELL_SCRIPT, /display-mode: standalone/);
     assert.equal(BOOT_SHELL_SCRIPT.includes('</'), false);
     assert.equal(BOOT_CATALOGUE_URL, '/api/agenda?window=home');
-    const fetchAt = BOOT_SHELL_SCRIPT.indexOf(`fetch(URL)`);
-    const capAt = BOOT_SHELL_SCRIPT.indexOf('setTimeout(hide,MAX)');
+    const fetchAt = BOOT_SHELL_SCRIPT.indexOf('fetch(URL)');
+    const capAt = BOOT_SHELL_SCRIPT.indexOf('hide();},MAX)');
     assert.ok(fetchAt > 0 && capAt > fetchAt);
+    assert.doesNotMatch(BOOT_SHELL_SCRIPT, /if\(e\.persisted\)hide\(\)/);
+    assert.doesNotMatch(
+      BOOT_SHELL_SCRIPT,
+      /if\(!standalone\(\)\)\{window\.__ccBootDismissed=1;mark\(\);finish\(\);return;\}/,
+    );
+    const show = BOOT_SHELL_SCRIPT.match(
+      /addEventListener\("pageshow",function\(e\)\{(.*?)\}\);/,
+    );
+    assert.ok(show, 'pageshow handler missing');
+    const showHandler = show[1];
+    assert.match(showHandler, /if\(!e\.persisted\)return/);
+    assert.match(showHandler, /if\(state!==0\)\{finish\(\);return;\}/);
+    assert.match(showHandler, /started=Date\.now\(\)/);
+    assert.equal(showHandler.includes('hide()'), false);
+    assert.match(BOOT_SHELL_SCRIPT, /scheduleRecheck\(\)/);
+    assert.doesNotThrow(() => new Function(BOOT_SHELL_SCRIPT));
     assert.match(BOOT_SHELL_SCRIPT, /__ccHomeWindowPrefetch/);
     assert.equal(BOOT_SHELL_SCRIPT.includes('caches.'), false);
   });

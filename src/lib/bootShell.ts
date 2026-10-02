@@ -13,7 +13,21 @@ export const BOOT_SHELL_CREAM = PWA_BACKGROUND_COLOR;
 /** Force-hide even when home is still partial. */
 export const BOOT_SHELL_MAX_MS = 3500;
 
-/** Opacity crossfade. Short so a ready home is not held for the morph. */
+/**
+ * Minimum time the standalone theater stays up once it has started.
+ * A warm catalogue often settles in tens of milliseconds, before the
+ * morph (~1.8s) can be seen after the static iOS startup image.
+ * 1.2s is the locked dwell. The 3.5s cap still force-hides.
+ */
+export const BOOT_SHELL_MIN_MS = 1200;
+
+/**
+ * When the first standalone probe is false, wait once before killing
+ * the shell. display-mode can lag the first paint on iOS and Android.
+ */
+export const BOOT_SHELL_STANDALONE_RECHECK_MS = 80;
+
+/** Opacity crossfade after the minimum dwell. */
 export const BOOT_SHELL_FADE_MS = 180;
 
 export const BOOT_SHELL_ID = 'cc-boot-shell';
@@ -52,10 +66,10 @@ export function bootShellMotion(prefersReducedMotion: boolean): BootShellMotion 
 
 /**
  * Hide once the app can paint and the splash catalogue fetch has settled,
- * and never later than `maxMs`.
+ * but never before `minMs` and never later than `maxMs`.
  *
  * `catalogueSettledAtMs`:
- * - omit it when there is nothing to wait for (hide with the app)
+ * - omit it when there is nothing to wait for (hide with the app, after the minimum)
  * - `null` while `/api/agenda?window=home` is still in flight (hold until the cap)
  * - a timestamp once that response has arrived (or failed)
  *
@@ -65,8 +79,10 @@ export function bootShellHideDelayMs(input: {
   appReadyAtMs: number | null;
   catalogueSettledAtMs?: number | null;
   maxMs?: number;
+  minMs?: number;
 }): number {
   const max = input.maxMs ?? BOOT_SHELL_MAX_MS;
+  const min = input.minMs ?? BOOT_SHELL_MIN_MS;
   if (input.appReadyAtMs == null || !Number.isFinite(input.appReadyAtMs)) {
     return max;
   }
@@ -76,7 +92,22 @@ export function bootShellHideDelayMs(input: {
     input.catalogueSettledAtMs == null
       ? 0
       : Math.max(0, input.catalogueSettledAtMs);
-  return Math.min(Math.max(appAt, catAt), max);
+  return Math.min(Math.max(appAt, catAt, min), max);
+}
+
+/**
+ * bfcache restore (`pageshow` with `persisted`).
+ * An iOS icon relaunch can restore the document while the theater is still up.
+ * That path must not hide immediately: the minimum dwell starts again.
+ * A shell already dismissed stays hidden.
+ */
+export function bootShellPageShowAction(input: {
+  persisted: boolean;
+  theaterStillUp: boolean;
+}): 'ignore' | 'keep-hidden' | 'restart-dwell' {
+  if (!input.persisted) return 'ignore';
+  if (!input.theaterStillUp) return 'keep-hidden';
+  return 'restart-dwell';
 }
 
 type BootWindow = Window & {
