@@ -159,6 +159,8 @@ export type StoredFeedback = {
   ccVid: string | null;
   reply: string | null;
   createdAt: string;
+  /** True when a JPEG sits on the same row. Bytes are not part of this shape. */
+  hasImage?: boolean;
 };
 
 export type AdminFeedbackNote = {
@@ -169,6 +171,7 @@ export type AdminFeedbackNote = {
   createdAt: string;
   actor: 'compte' | 'visiteur' | 'anonyme';
   ref: string | null;
+  hasImage: boolean;
 };
 
 export function toAdminFeedbackNote(row: StoredFeedback): AdminFeedbackNote {
@@ -182,6 +185,7 @@ export function toAdminFeedbackNote(row: StoredFeedback): AdminFeedbackNote {
     body: row.body,
     reply: row.reply,
     createdAt: row.createdAt,
+    hasImage: row.hasImage === true,
   };
   if (row.userKey) return { ...base, actor: 'compte', ref: row.userKey };
   if (row.ccVid) return { ...base, actor: 'visiteur', ref: row.ccVid };

@@ -5,6 +5,11 @@
 import 'server-only';
 import { replyToFeedback, type FeedbackAiReply } from '@/lib/feedbackAi';
 import {
+  feedbackImageErrorCopy,
+  prepareFeedbackImage,
+  type PreparedFeedbackImage,
+} from '@/lib/feedbackImage';
+import {
   FEEDBACK_ACK,
   FEEDBACK_IP_RATE_PER_HOUR,
   FEEDBACK_RATE_PER_HOUR,
@@ -35,11 +40,13 @@ export type SubmitFeedbackInput = {
   now?: number;
   /** Chip or client hint. Unknown values are dropped. */
   kind?: unknown;
+  /** One user-picked image. Never forwarded to the model. */
+  image?: Uint8Array | null;
 };
 
 export type SubmitFeedbackResult =
   | { ok: true; reply: string }
-  | { ok: false; status: 400 | 429 | 503; error: string };
+  | { ok: false; status: 400 | 413 | 429 | 503; error: string };
 
 export async function submitFeedback(
   input: SubmitFeedbackInput,
@@ -47,8 +54,18 @@ export async function submitFeedback(
     reply?: (text: string) => Promise<FeedbackAiReply | null>;
   },
 ): Promise<SubmitFeedbackResult> {
+  let image: PreparedFeedbackImage | null = null;
+  if (input.image && input.image.byteLength > 0) {
+    const prepared = prepareFeedbackImage(input.image);
+    if ('error' in prepared) {
+      const status = prepared.error === 'size' ? 413 : 400;
+      return { ok: false, status, error: feedbackImageErrorCopy(prepared.error) };
+    }
+    image = prepared;
+  }
+
   const body = sanitizeFeedbackBody(input.text);
-  if (!body) return { ok: false, status: 400, error: TOO_SHORT };
+  if (!body && !image) return { ok: false, status: 400, error: TOO_SHORT };
   const chosen = feedbackKind(input.kind);
 
   const now = input.now ?? Date.now();
@@ -84,21 +101,25 @@ export async function submitFeedback(
 
   const replyFn = deps?.reply ?? ((text: string) => replyToFeedback(text));
   let ai: FeedbackAiReply | null = null;
-  try {
-    ai = await replyFn(body);
-  } catch {
-    ai = null;
+  if (body) {
+    try {
+      // Text only. The image stays in Neon and is not sent to the model.
+      ai = await replyFn(body);
+    } catch {
+      ai = null;
+    }
   }
 
   const reply = ai?.reply || FEEDBACK_ACK;
   try {
     await insertFeedbackNote({
       kind: chosen ?? ai?.kind ?? 'autre',
-      body,
+      body: body ?? '',
       userKey: actor.userKey,
       ccVid: actor.ccVid,
       reply,
       createdAt: new Date(now).toISOString(),
+      image: image?.bytes ?? null,
     });
     try {
       // Backstop if the daily cron (GET /api/feedback/purge) did not run.

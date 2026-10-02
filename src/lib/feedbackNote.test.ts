@@ -31,9 +31,18 @@ import {
   toAdminFeedbackNote,
 } from './feedbackNote';
 import {
+  ATTACH_LABEL,
+  FEEDBACK_IMAGE_MAX_BYTES,
+  IMAGE_PERMISSION,
+  IMAGE_SEND_FAIL,
+  IMAGE_TOO_HEAVY,
+  prepareFeedbackImage,
+} from './feedbackImage';
+import {
   deleteFeedbackForEmail,
   insertFeedbackNote,
   listFeedbackForAdmin,
+  readFeedbackImageForAdmin,
   resetFeedbackStoreForTests,
 } from './feedbackStore';
 import { submitFeedback, type SubmitFeedbackInput } from './feedbackSubmit';
@@ -453,6 +462,153 @@ describe('feedback store', { concurrency: 1 }, () => {
     assert.equal(JSON.stringify(note).includes('@'), false);
     assert.equal(note.actor, 'compte');
   });
+
+  it('strips EXIF and refuses anything that is not a jpeg', () => {
+    const token = 'GPS-SECRET-TOKEN';
+    const prepared = prepareFeedbackImage(jpegWithExif(token));
+    assert.equal('error' in prepared, false);
+    if (!('error' in prepared)) {
+      assert.equal(prepared.mime, 'image/jpeg');
+      assert.equal(new TextDecoder().decode(prepared.bytes).includes(token), false);
+    }
+    const gif = new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 1, 0, 1, 0]);
+    const refused = prepareFeedbackImage(gif);
+    assert.equal('error' in refused && refused.error, 'type');
+    const huge = new Uint8Array(FEEDBACK_IMAGE_MAX_BYTES + 1);
+    huge[0] = 0xff;
+    huge[1] = 0xd8;
+    huge[2] = 0xff;
+    const heavy = prepareFeedbackImage(huge);
+    assert.equal('error' in heavy && heavy.error, 'size');
+  });
+
+  it('stores one jpeg with the note, keeps it off the model and the admin list', async () => {
+    const token = 'GPS-SECRET-TOKEN';
+    let seen = '';
+    const res = await submitFeedback(
+      input({
+        text: 'le titre deborde sur mobile',
+        ip: '203.0.113.80',
+        kind: 'bug',
+        image: jpegWithExif(token),
+      }),
+      {
+        reply: async (text) => {
+          seen = text;
+          return { kind: 'avis', reply: 'Bien noté.' };
+        },
+      },
+    );
+    assert.equal(res.ok, true);
+    assert.equal(seen.includes(token), false);
+    assert.match(seen, /titre deborde/);
+
+    const notes = await listFeedbackForAdmin();
+    const row = notes.find((note) => note.body.includes('titre deborde'));
+    assert.equal(row?.hasImage, true);
+    assert.equal(row?.kind, 'bug');
+    assert.equal(JSON.stringify(row).includes(token), false);
+    const image = row ? await readFeedbackImageForAdmin(row.id) : null;
+    assert.equal(image?.mime, 'image/jpeg');
+    assert.equal(new TextDecoder().decode(image?.bytes || new Uint8Array()).includes(token), false);
+
+    const raw = await readFile(path.join(dir, 'notes.json'), 'utf8');
+    assert.equal(raw.includes(token), false);
+
+    let called = false;
+    const alone = await submitFeedback(
+      input({
+        text: '',
+        ip: '203.0.113.81',
+        image: jpegWithExif('OTHER-TOKEN'),
+      }),
+      {
+        reply: async () => {
+          called = true;
+          return null;
+        },
+      },
+    );
+    assert.equal(alone.ok, true);
+    if (alone.ok) assert.equal(alone.reply, FEEDBACK_ACK);
+    assert.equal(called, false);
+    const again = await listFeedbackForAdmin();
+    assert.equal(again.some((note) => note.hasImage && note.body === ''), true);
+  });
+
+  it('refuses a non-image and drops the jpeg when the account or the 90 days go', async () => {
+    let called = false;
+    const gif = await submitFeedback(
+      input({
+        text: 'pas une image merci',
+        ip: '203.0.113.82',
+        image: new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x39, 0x61]),
+      }),
+      {
+        reply: async () => {
+          called = true;
+          return null;
+        },
+      },
+    );
+    assert.equal(gif.ok, false);
+    if (!gif.ok) {
+      assert.equal(gif.status, 400);
+      assert.equal(gif.error, IMAGE_SEND_FAIL);
+    }
+    assert.equal(called, false);
+
+    const heavy = await submitFeedback(
+      input({
+        text: 'trop lourd merci',
+        ip: '203.0.113.83',
+        image: (() => {
+          const bytes = new Uint8Array(FEEDBACK_IMAGE_MAX_BYTES + 1);
+          bytes[0] = 0xff;
+          bytes[1] = 0xd8;
+          bytes[2] = 0xff;
+          return bytes;
+        })(),
+      }),
+      { reply: async () => null },
+    );
+    assert.equal(heavy.ok, false);
+    if (!heavy.ok) {
+      assert.equal(heavy.status, 413);
+      assert.equal(heavy.error, IMAGE_TOO_HEAVY);
+    }
+
+    const email = 'photo@example.com';
+    const kept = await submitFeedback(
+      input({
+        text: 'capture a effacer',
+        email,
+        ip: '203.0.113.84',
+        image: jpegWithExif('ACCOUNT-TOKEN'),
+      }),
+      { reply: async () => null },
+    );
+    assert.equal(kept.ok, true);
+    const before = await listFeedbackForAdmin();
+    const row = before.find((note) => note.body.includes('capture a effacer'));
+    assert.equal(row?.hasImage, true);
+    await deleteFeedbackForEmail(email);
+    assert.equal(row ? await readFeedbackImageForAdmin(row.id) : null, null);
+
+    const old = new Date(Date.now() - 91 * 24 * 60 * 60 * 1000).toISOString();
+    const expired = await insertFeedbackNote({
+      kind: 'bug',
+      body: 'vieille capture',
+      userKey: null,
+      ccVid: 'v_imgold123',
+      reply: null,
+      createdAt: old,
+      image: jpegWithExif('OLD-TOKEN'),
+    });
+    assert.equal(await readFeedbackImageForAdmin(expired.id), null);
+    const notes = await listFeedbackForAdmin();
+    assert.equal(notes.some((note) => note.id === expired.id), false);
+  });
 });
 
 describe('feedback surfaces', () => {
@@ -571,6 +727,37 @@ describe('feedback surfaces', () => {
     assert.match(conf, /pas un consentement séparé/);
     assert.match(conf, /seulement en écrivant/);
     assert.match(conf, /Intérêt légitime/);
+    assert.match(conf, /Elle n’est pas envoyée à OpenAI/);
+
+    const capture = readFileSync(new URL('./feedbackCapture.ts', import.meta.url), 'utf8');
+    const imageRoute = readFileSync(
+      new URL('../app/api/admin/feedback/[id]/image/route.ts', import.meta.url),
+      'utf8',
+    );
+    assert.equal(ATTACH_LABEL, 'Joindre une capture');
+    assert.equal(IMAGE_TOO_HEAVY, 'Image trop lourde (max 5 Mo)');
+    assert.equal(IMAGE_SEND_FAIL, 'Impossible d’envoyer l’image — réessaie');
+    assert.equal(IMAGE_PERMISSION, 'Tu peux autoriser dans Réglages');
+    assert.equal(FEEDBACK_IMAGE_MAX_BYTES, 5 * 1024 * 1024);
+    assert.match(widget, /data-feedback="attach"/);
+    assert.match(widget, /aria-label=\{ATTACH_LABEL\}/);
+    assert.match(widget, /accept="image\/\*"/);
+    assert.match(widget, /type="file"/);
+    assert.equal(widget.includes('capture='), false);
+    assert.equal(widget.includes('multiple'), false);
+    assert.equal(widget.includes('getDisplayMedia'), false);
+    assert.equal(capture.includes('getDisplayMedia'), false);
+    assert.equal(/MediaRecorder|tesseract|webkitNotifications/i.test(widget + capture + submit), false);
+    assert.match(capture, /image\/jpeg/);
+    assert.match(submit, /replyFn\(body\)/);
+    assert.match(submit, /if \(body\)/);
+    assert.match(page, /note\.hasImage/);
+    assert.match(page, /\/api\/admin\/feedback\//);
+    assert.match(imageRoute, /isAdminSession/);
+    assert.match(imageRoute, /status: 404/);
+    assert.match(post, /formData/);
+    assert.equal(ai.includes('image_bytes'), false);
+    assert.equal(ai.includes('prepareFeedbackImage'), false);
   });
 });
 
@@ -602,3 +789,19 @@ describe('feedback chip prefill', () => {
     assert.equal(clearStub(edited, BUG_STUB), edited);
   });
 });
+
+function jpegWithExif(token: string): Uint8Array {
+  const payload = new TextEncoder().encode(`EXIF\0\0${token}`);
+  const len = 2 + payload.length;
+  const bytes = new Uint8Array(2 + 2 + 2 + payload.length + 2);
+  bytes[0] = 0xff;
+  bytes[1] = 0xd8;
+  bytes[2] = 0xff;
+  bytes[3] = 0xe1;
+  bytes[4] = (len >> 8) & 0xff;
+  bytes[5] = len & 0xff;
+  bytes.set(payload, 6);
+  bytes[bytes.length - 2] = 0xff;
+  bytes[bytes.length - 1] = 0xd9;
+  return bytes;
+}

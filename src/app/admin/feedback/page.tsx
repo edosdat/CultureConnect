@@ -86,7 +86,17 @@ export default async function AdminFeedbackPage() {
                   </span>
                 ) : null}
               </p>
-              <p className="mt-2 text-sm leading-relaxed text-culture-ink">{note.body}</p>
+              {note.body ? (
+                <p className="mt-2 text-sm leading-relaxed text-culture-ink">{note.body}</p>
+              ) : null}
+              {note.hasImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={`/api/admin/feedback/${note.id}/image`}
+                  alt="Capture"
+                  className="mt-2 max-h-64 rounded-xl border border-culture-line"
+                />
+              ) : null}
               {note.reply ? (
                 <p className="mt-2 text-sm text-culture-muted">{note.reply}</p>
               ) : null}

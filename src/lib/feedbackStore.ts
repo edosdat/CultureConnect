@@ -9,6 +9,7 @@ import { mkdir, readFile, writeFile } from 'fs/promises';
 import path from 'path';
 import { VercelPool } from '@vercel/postgres';
 import { isValidVid } from '@/lib/guestId';
+import { prepareFeedbackImage, type PreparedFeedbackImage } from '@/lib/feedbackImage';
 import {
   FEEDBACK_ADMIN_CAP,
   assertFeedbackActorExclusive,
@@ -93,6 +94,12 @@ async function ensureTable(): Promise<VercelPool | null> {
         CREATE INDEX IF NOT EXISTS feedback_notes_vid
           ON feedback_notes (cc_vid, created_at DESC)
       `);
+      await pg.query(`
+        ALTER TABLE feedback_notes ADD COLUMN IF NOT EXISTS image_mime TEXT
+      `);
+      await pg.query(`
+        ALTER TABLE feedback_notes ADD COLUMN IF NOT EXISTS image_bytes BYTEA
+      `);
     })().catch((err: unknown) => {
       tableReady = null;
       throw err;
@@ -113,12 +120,21 @@ function asText(value: unknown): string | null {
   return s || null;
 }
 
+function hasImageFlag(row: Record<string, unknown>): boolean {
+  if (row.has_image === true || row.hasImage === true) return true;
+  if (asText(row.image_mime ?? row.imageMime)) return true;
+  if (asText(row.image_b64 ?? row.imageB64)) return true;
+  return false;
+}
+
 function rowFromUnknown(row: Record<string, unknown>): StoredFeedback | null {
   const id = asText(row.id);
-  const body = asText(row.body);
+  const body = typeof row.body === 'string' ? row.body.trim() : '';
   const kind = feedbackKind(row.kind) ?? (asText(row.kind) ? 'autre' : null);
   const createdAt = asIso(row.created_at ?? row.createdAt);
-  if (!id || !body || !kind || !createdAt) return null;
+  const hasImage = hasImageFlag(row);
+  if (!id || !kind || !createdAt) return null;
+  if (!body && !hasImage) return null;
   const userKey = asText(row.user_key ?? row.userKey);
   const ccVid = asText(row.cc_vid ?? row.ccVid);
   if (userKey && ccVid) return null;
@@ -132,10 +148,28 @@ function rowFromUnknown(row: Record<string, unknown>): StoredFeedback | null {
     ccVid,
     reply: asText(row.reply),
     createdAt,
+    hasImage,
   };
 }
 
-async function readFileRows(): Promise<StoredFeedback[]> {
+type FileNote = StoredFeedback & {
+  imageMime: string | null;
+  imageB64: string | null;
+};
+
+const NOTE_ID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function fileNoteFromUnknown(row: Record<string, unknown>): FileNote | null {
+  const base = rowFromUnknown(row);
+  if (!base) return null;
+  const imageMime = asText(row.image_mime ?? row.imageMime);
+  const imageB64 = asText(row.image_b64 ?? row.imageB64);
+  const hasImage = Boolean(imageMime && imageB64);
+  return { ...base, hasImage, imageMime, imageB64 };
+}
+
+async function readFileRows(): Promise<FileNote[]> {
   try {
     const raw = await readFile(storeFile(), 'utf8');
     const parsed = JSON.parse(raw) as { notes?: unknown };
@@ -143,16 +177,16 @@ async function readFileRows(): Promise<StoredFeedback[]> {
     return parsed.notes
       .map((row) =>
         row && typeof row === 'object'
-          ? rowFromUnknown(row as Record<string, unknown>)
+          ? fileNoteFromUnknown(row as Record<string, unknown>)
           : null,
       )
-      .filter((row): row is StoredFeedback => Boolean(row));
+      .filter((row): row is FileNote => Boolean(row));
   } catch {
     return [];
   }
 }
 
-async function writeFileRows(rows: StoredFeedback[]): Promise<void> {
+async function writeFileRows(rows: FileNote[]): Promise<void> {
   await mkdir(storeDir(), { recursive: true });
   await writeFile(storeFile(), JSON.stringify({ notes: rows }), 'utf8');
 }
@@ -165,6 +199,8 @@ export type FeedbackInsert = {
   reply: string | null;
   createdAt?: string;
   id?: string;
+  /** Raw upload. Stored only after JPEG sniff + EXIF strip. */
+  image?: Uint8Array | null;
 };
 
 function normalizeInsert(input: FeedbackInsert): StoredFeedback {
@@ -178,7 +214,8 @@ function normalizeInsert(input: FeedbackInsert): StoredFeedback {
     throw new Error('cc_vid invalide');
   }
   const body = input.body.trim();
-  if (!body) throw new Error('avis vide');
+  const hasImage = Boolean(input.image && input.image.byteLength > 0);
+  if (!body && !hasImage) throw new Error('avis vide');
   return {
     id: input.id || randomUUID(),
     kind: input.kind,
@@ -187,7 +224,15 @@ function normalizeInsert(input: FeedbackInsert): StoredFeedback {
     ccVid,
     reply: input.reply?.trim() || null,
     createdAt: input.createdAt || new Date().toISOString(),
+    hasImage,
   };
+}
+
+function preparedImage(bytes: Uint8Array | null | undefined): PreparedFeedbackImage | null {
+  if (!bytes || bytes.byteLength < 1) return null;
+  const prepared = prepareFeedbackImage(bytes);
+  if ('error' in prepared) throw new Error('image');
+  return prepared;
 }
 
 /** Deletes rows older than 90 days. Returns how many rows were removed. */
@@ -211,18 +256,35 @@ export async function purgeExpiredFeedback(now = Date.now()): Promise<number> {
 
 export async function insertFeedbackNote(input: FeedbackInsert): Promise<StoredFeedback> {
   const row = normalizeInsert(input);
+  const image = preparedImage(input.image);
+  row.hasImage = Boolean(image);
   if (backend() === 'file') {
     const rows = await readFileRows();
-    rows.push(row);
+    rows.push({
+      ...row,
+      imageMime: image?.mime ?? null,
+      imageB64: image ? Buffer.from(image.bytes).toString('base64') : null,
+    });
     await writeFileRows(rows);
     return row;
   }
   const pg = await ensureTable();
   if (!pg) throw new Error('postgres unavailable');
   await pg.query(
-    `INSERT INTO feedback_notes (id, kind, body, user_key, cc_vid, reply, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-    [row.id, row.kind, row.body, row.userKey, row.ccVid, row.reply, row.createdAt],
+    `INSERT INTO feedback_notes
+       (id, kind, body, user_key, cc_vid, reply, created_at, image_mime, image_bytes)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    [
+      row.id,
+      row.kind,
+      row.body,
+      row.userKey,
+      row.ccVid,
+      row.reply,
+      row.createdAt,
+      image?.mime ?? null,
+      image ? Buffer.from(image.bytes) : null,
+    ],
   );
   return row;
 }
@@ -269,7 +331,8 @@ async function listRows(limit: number, now = Date.now()): Promise<StoredFeedback
   const pg = await ensureTable();
   if (!pg) throw new Error('postgres unavailable');
   const result = await pg.query<Record<string, unknown>>(
-    `SELECT id, kind, body, user_key, cc_vid, reply, created_at
+    `SELECT id, kind, body, user_key, cc_vid, reply, created_at,
+            (image_bytes IS NOT NULL) AS has_image
      FROM feedback_notes
      WHERE created_at >= $1
      ORDER BY created_at DESC
@@ -291,6 +354,46 @@ export async function listFeedbackForAdmin(
   }
   const rows = await listRows(limit);
   return rows.map(toAdminFeedbackNote);
+}
+
+function asImageBytes(value: unknown): Uint8Array | null {
+  if (value instanceof Uint8Array) return new Uint8Array(value);
+  if (typeof value === 'string' && value.startsWith('\\x')) {
+    return new Uint8Array(Buffer.from(value.slice(2), 'hex'));
+  }
+  return null;
+}
+
+/** Admin read of one JPEG. Expired rows and everyone else get nothing. */
+export async function readFeedbackImageForAdmin(
+  id: string,
+  now = Date.now(),
+): Promise<PreparedFeedbackImage | null> {
+  if (!NOTE_ID_RE.test(id)) return null;
+  const cutoff = feedbackRetentionCutoff(now);
+  if (backend() === 'file') {
+    const rows = await readFileRows();
+    const row = rows.find((note) => note.id === id && note.createdAt >= cutoff);
+    if (!row?.imageB64 || row.imageMime !== 'image/jpeg') return null;
+    const prepared = prepareFeedbackImage(new Uint8Array(Buffer.from(row.imageB64, 'base64')));
+    if ('error' in prepared) return null;
+    return prepared;
+  }
+  const pg = await ensureTable();
+  if (!pg) throw new Error('postgres unavailable');
+  const result = await pg.query<{ image_mime: unknown; image_bytes: unknown }>(
+    `SELECT image_mime, image_bytes
+     FROM feedback_notes
+     WHERE id = $1 AND created_at >= $2`,
+    [id, cutoff],
+  );
+  const found = result.rows[0];
+  if (!found || asText(found.image_mime) !== 'image/jpeg') return null;
+  const bytes = asImageBytes(found.image_bytes);
+  if (!bytes) return null;
+  const prepared = prepareFeedbackImage(bytes);
+  if ('error' in prepared) return null;
+  return prepared;
 }
 
 export async function deleteFeedbackForEmail(email?: string | null): Promise<void> {
