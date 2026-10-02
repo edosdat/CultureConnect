@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useSession } from 'next-auth/react';
+import { AUTH_GATE_OPEN_EVENT } from '@/lib/authActionGate';
 import type { DayItem } from '@/lib/types';
 import { phraseToTrackPayload } from '@/lib/pourToi';
 import {
@@ -186,6 +187,14 @@ export default function SignalsProvider({ children }: { children: ReactNode }) {
     }
     window.addEventListener(SIGNALS_CHANGED_EVENT, onChange);
     return () => window.removeEventListener(SIGNALS_CHANGED_EVENT, onChange);
+  }, []);
+
+  useEffect(() => {
+    function onAuthGate() {
+      setDismissed(true);
+    }
+    window.addEventListener(AUTH_GATE_OPEN_EVENT, onAuthGate);
+    return () => window.removeEventListener(AUTH_GATE_OPEN_EVENT, onAuthGate);
   }, []);
 
   useEffect(() => {

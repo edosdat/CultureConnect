@@ -1,15 +1,20 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { signIn, useSession } from 'next-auth/react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import type { DayItem } from '@/lib/types';
+import {
+  claimArmedAuthAction,
+  requestAuthGate,
+  shouldDeferAuthResume,
+  showAuthResumeRetry,
+} from '@/lib/authActionGate';
 import {
   applyRsvpToggle,
   circleEnvieLine,
   circleGoingLine,
   DAUGHTER_NOTICE,
   motherCountersLabel,
-  RSVP_LOGIN_ERROR,
   visibleMotherStats,
   type RsvpKind,
   type TokenSocialPayload,
@@ -69,7 +74,8 @@ function MotherStatsBlock({ itemKey }: { itemKey: string }) {
   const [mine, setMine] = useState<RsvpKind | null>(null);
   const [settled, setSettled] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [nudge, setNudge] = useState(false);
+  const ownerRef = useRef<HTMLElement>(null);
+  const flight = useRef(0);
 
   const applyPayload = useCallback(
     (payload: { envie: number; going: number; mine: RsvpKind | null }) => {
@@ -82,17 +88,17 @@ function MotherStatsBlock({ itemKey }: { itemKey: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    setNudge(false);
+    const seen = flight.current;
     setSettled(false);
     void (async () => {
       try {
         const payload = await fetchMotherStats(itemKey);
-        if (cancelled) return;
+        if (cancelled || flight.current !== seen) return;
         applyPayload(payload);
       } catch {
-        if (!cancelled) setStats(null);
+        if (!cancelled && flight.current === seen) setStats(null);
       } finally {
-        if (!cancelled) setSettled(true);
+        if (!cancelled && flight.current === seen) setSettled(true);
       }
     })();
     return () => {
@@ -100,12 +106,13 @@ function MotherStatsBlock({ itemKey }: { itemKey: string }) {
     };
   }, [itemKey, applyPayload]);
 
-  async function tap(kind: RsvpKind) {
+  async function tap(kind: RsvpKind, resume = false) {
     if (status === 'loading' || busy) return;
     if (!authed) {
-      setNudge(true);
+      requestAuthGate({ kind, itemKey, token: null });
       return;
     }
+    const id = ++flight.current;
     const prevMine = mine;
     const prevStats = stats;
     const nextMine = applyRsvpToggle(mine, kind);
@@ -119,15 +126,18 @@ function MotherStatsBlock({ itemKey }: { itemKey: string }) {
         credentials: 'same-origin',
         body: JSON.stringify({ kind, itemKey }),
       });
+      if (flight.current !== id) return;
       if (res.status === 401) {
         setMine(prevMine);
         setStats(prevStats);
-        setNudge(true);
+        if (resume) showAuthResumeRetry();
+        else requestAuthGate({ kind, itemKey, token: null });
         return;
       }
       if (!res.ok) {
         setMine(prevMine);
         setStats(prevStats);
+        if (resume) showAuthResumeRetry();
         return;
       }
       const data: unknown = await res.json();
@@ -142,17 +152,35 @@ function MotherStatsBlock({ itemKey }: { itemKey: string }) {
         }),
       );
     } catch {
+      if (flight.current !== id) return;
       setMine(prevMine);
       setStats(prevStats);
+      if (resume) showAuthResumeRetry();
     } finally {
-      setBusy(false);
+      if (flight.current === id) setBusy(false);
     }
   }
+
+  const tapRef = useRef(tap);
+  tapRef.current = tap;
+
+  useEffect(() => {
+    if (!authed) return;
+    if (shouldDeferAuthResume(ownerRef.current)) return;
+    const pending = claimArmedAuthAction({
+      kind: ['envie', 'going'],
+      itemKey,
+      token: null,
+    });
+    if (!pending || (pending.kind !== 'envie' && pending.kind !== 'going')) return;
+    void tapRef.current(pending.kind, true);
+  }, [authed, itemKey]);
 
   const label = stats ? motherCountersLabel(stats.envie, stats.going) : '';
 
   return (
     <section
+      ref={ownerRef}
       data-testid="share-rsvp-mother"
       data-rsvp-pending={settled ? undefined : ''}
       aria-busy={settled ? undefined : true}
@@ -180,21 +208,6 @@ function MotherStatsBlock({ itemKey }: { itemKey: string }) {
           J’y vais
         </button>
       </div>
-      {nudge && !authed ? (
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <p className="text-sm text-culture-ink">{RSVP_LOGIN_ERROR}</p>
-          <button
-            type="button"
-            data-testid="mother-rsvp-login"
-            onClick={() =>
-              signIn('google', { callbackUrl: window.location.href })
-            }
-            className="inline-flex min-h-10 items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-semibold text-white hover:bg-culture-clay"
-          >
-            Continuer avec Google
-          </button>
-        </div>
-      ) : null}
       {label ? (
         <p className="mt-2 text-sm text-culture-muted">{label}</p>
       ) : null}
@@ -208,25 +221,29 @@ function DaughterRsvp({ item, token }: { item: DayItem; token: string }) {
   const [social, setSocial] = useState<TokenSocialPayload | null>(null);
   const [mine, setMine] = useState<RsvpKind | null>(null);
   const [busy, setBusy] = useState(false);
-  const [nudge, setNudge] = useState(false);
   const [settled, setSettled] = useState(false);
+  const ownerRef = useRef<HTMLElement>(null);
+  const flight = useRef(0);
 
   const loadSocial = useCallback(async () => {
+    const seen = flight.current;
     try {
       const res = await fetch(`/api/share/${encodeURIComponent(token)}/social`, {
         credentials: 'same-origin',
       });
+      if (flight.current !== seen) return;
       if (!res.ok) {
         setSettled(true);
         return;
       }
       const data = (await res.json()) as TokenSocialPayload;
+      if (flight.current !== seen) return;
       setSocial(data);
       setMine(data.inCircle ? data.mine : null);
     } catch {
       /* keep last payload */
     } finally {
-      setSettled(true);
+      if (flight.current === seen) setSettled(true);
     }
   }, [token]);
 
@@ -234,12 +251,13 @@ function DaughterRsvp({ item, token }: { item: DayItem; token: string }) {
     void loadSocial();
   }, [loadSocial]);
 
-  async function tap(kind: RsvpKind) {
+  async function tap(kind: RsvpKind, resume = false) {
     if (status === 'loading' || busy) return;
     if (!authed) {
-      setNudge(true);
+      requestAuthGate({ kind, itemKey: item.key, token });
       return;
     }
+    const id = ++flight.current;
     const prevMine = mine;
     const nextMine = applyRsvpToggle(mine, kind);
     setMine(nextMine);
@@ -251,24 +269,44 @@ function DaughterRsvp({ item, token }: { item: DayItem; token: string }) {
         credentials: 'same-origin',
         body: JSON.stringify({ kind, token, itemKey: item.key }),
       });
+      if (flight.current !== id) return;
       if (res.status === 401) {
         setMine(prevMine);
-        setNudge(true);
+        if (resume) showAuthResumeRetry();
+        else requestAuthGate({ kind, itemKey: item.key, token });
         return;
       }
       if (!res.ok) {
         setMine(prevMine);
+        if (resume) showAuthResumeRetry();
         return;
       }
       const data = (await res.json()) as { kind?: RsvpKind | null };
       setMine(data.kind ?? null);
       await loadSocial();
     } catch {
+      if (flight.current !== id) return;
       setMine(prevMine);
+      if (resume) showAuthResumeRetry();
     } finally {
-      setBusy(false);
+      if (flight.current === id) setBusy(false);
     }
   }
+
+  const tapRef = useRef(tap);
+  tapRef.current = tap;
+
+  useEffect(() => {
+    if (!authed || !settled) return;
+    if (shouldDeferAuthResume(ownerRef.current)) return;
+    const pending = claimArmedAuthAction({
+      kind: ['envie', 'going'],
+      itemKey: item.key,
+      token,
+    });
+    if (!pending || (pending.kind !== 'envie' && pending.kind !== 'going')) return;
+    void tapRef.current(pending.kind, true);
+  }, [authed, item.key, settled, token]);
 
   const goingLine =
     social?.inCircle ? circleGoingLine(social.goingNames) : '';
@@ -283,7 +321,7 @@ function DaughterRsvp({ item, token }: { item: DayItem; token: string }) {
   if (!settled) return <SocialSkeleton />;
 
   return (
-    <section data-testid="share-rsvp-daughter" className="mt-2">
+    <section ref={ownerRef} data-testid="share-rsvp-daughter" className="mt-2">
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -304,20 +342,6 @@ function DaughterRsvp({ item, token }: { item: DayItem; token: string }) {
           J’y vais
         </button>
       </div>
-      {nudge && !authed ? (
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <p className="text-sm text-culture-ink">{RSVP_LOGIN_ERROR}</p>
-          <button
-            type="button"
-            onClick={() =>
-              signIn('google', { callbackUrl: window.location.href })
-            }
-            className="inline-flex min-h-10 items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-semibold text-white hover:bg-culture-clay"
-          >
-            Continuer avec Google
-          </button>
-        </div>
-      ) : null}
       {goingLine || envieLine ? (
         <div data-testid="share-rsvp-names" className="mt-2 space-y-0.5">
           {goingLine ? (

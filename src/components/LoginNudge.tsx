@@ -5,6 +5,7 @@ import { signIn, useSession } from 'next-auth/react';
 import { useTastesUi } from './Providers';
 import MailIdeasCheckbox from './MailIdeasCheckbox';
 import { LOGIN_NUDGE_DISMISS_KEY as DISMISS_KEY } from '@/lib/signals';
+import { AUTH_GATE_OPEN_EVENT } from '@/lib/authActionGate';
 
 
 /** Soft, dismissible invite to sign in — guests only, when Google auth is on. */
@@ -20,6 +21,19 @@ export default function LoginNudge() {
     } catch {
       setDismissed(false);
     }
+  }, []);
+
+  useEffect(() => {
+    function onAuthGate() {
+      try {
+        sessionStorage.setItem(DISMISS_KEY, '1');
+      } catch {
+        /* ignore */
+      }
+      setDismissed(true);
+    }
+    window.addEventListener(AUTH_GATE_OPEN_EVENT, onAuthGate);
+    return () => window.removeEventListener(AUTH_GATE_OPEN_EVENT, onAuthGate);
   }, []);
 
   useEffect(() => {

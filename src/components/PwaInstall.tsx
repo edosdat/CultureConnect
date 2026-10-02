@@ -64,6 +64,7 @@ import {
   readShellReloadSignals,
   shellReloadIsSafe,
 } from '@/lib/pwaRefresh';
+import { AUTH_GATE_OPEN_EVENT, authGateHoldsAutoSheets } from '@/lib/authActionGate';
 import {
   canOpenA2hsSheet,
   getOverlayStack,
@@ -635,8 +636,18 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
     setOpen(false);
   }), []);
 
-  /** Account menu and the sticky bar. Never while the digeste is up. */
+  useEffect(() => {
+    function onAuthGate() {
+      setA2hsSheetBlocking(false);
+      setOpen(false);
+    }
+    window.addEventListener(AUTH_GATE_OPEN_EVENT, onAuthGate);
+    return () => window.removeEventListener(AUTH_GATE_OPEN_EVENT, onAuthGate);
+  }, []);
+
+  /** Account menu and the sticky bar. Never while the digeste or the auth gate is up. */
   const openInstall = useCallback(() => {
+    if (authGateHoldsAutoSheets()) return;
     if (!canOpenA2hsSheet({ digestOpen: getOverlayStack().digestOpen })) return;
     setInstallFlags(iosInstallFlags(clientSignals()));
     setA2hsSheetBlocking(true);

@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type ChangeEvent, type FormEvent } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { AUTH_GATE_OPEN_EVENT } from '@/lib/authActionGate';
 import { compressFeedbackCapture } from '@/lib/feedbackCapture';
 import {
   BUG_QUESTION,
@@ -153,6 +154,14 @@ export default function FeedbackChat() {
       if (pending && !urls.current.includes(pending.url)) URL.revokeObjectURL(pending.url);
       for (const url of urls.current) URL.revokeObjectURL(url);
     };
+  }, []);
+
+  useEffect(() => {
+    function onAuthGate() {
+      setOpen(false);
+    }
+    window.addEventListener(AUTH_GATE_OPEN_EVENT, onAuthGate);
+    return () => window.removeEventListener(AUTH_GATE_OPEN_EVENT, onAuthGate);
   }, []);
 
   useEffect(() => {
@@ -529,7 +538,7 @@ export default function FeedbackChat() {
                     </span>
                   ) : null}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-xs text-culture-muted">
+                <span className="min-w-0 flex-1 text-xs text-culture-muted">
                   {CAPTURE_LABEL}
                 </span>
                 <button
