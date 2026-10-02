@@ -441,7 +441,7 @@ export function homeSectionFrameStyle(
 }
 
 /**
- * Stack between the filter band, Voir le mois, list-wait, and Top 3.
+ * Stack between the filter band, list-wait, and Top 3.
  * 6px at every width — `sm:space-y-3` (12px) pushed Ville away from the axes.
  */
 export const HOME_CHROME_STACK_CLASS = 'space-y-1.5';

@@ -102,10 +102,17 @@ describe('Salle chip', () => {
     const moreAt = app.indexOf('cc-axes__more');
     const venueAt = app.indexOf('<VenueFilter');
     const genresAt = app.indexOf('GENRES: second band');
-    const monthAt = app.indexOf('Voir le mois');
+    const calAt = app.indexOf('<MonthCalendarDrawer');
+    const boot = readFileSync(
+      join(here, '../components/HomeBootChrome.tsx'),
+      'utf8',
+    );
     assert.ok(bandAt > 0 && cityAt > bandAt && nearAt > cityAt);
     assert.ok(venueAt > nearAt && moreAt > venueAt);
-    assert.ok(genresAt > moreAt && monthAt > genresAt);
+    assert.ok(genresAt > moreAt && calAt > genresAt);
+    assert.equal(app.includes('Voir le mois'), false);
+    assert.equal(app.includes('Masquer le mois'), false);
+    assert.equal(boot.includes('Voir le mois'), false);
     assert.match(app, /cc-filter-band__place[\s\S]{0,2500}<VenueFilter/);
     assert.match(app, /cc-axes__group cc-axes__group--scroll/);
     assert.match(app, /cc-filter-band__facets/);

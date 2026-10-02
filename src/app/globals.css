@@ -176,7 +176,7 @@ body {
 /* Filter band: Ville + Près de moi + Salle share ONE nowrap line.
    QUAND and QUOI are each one nowrap scroll row (never wrap to 2 lines).
    GENRES stay in the Filtres disclosure, only after a category.
-   Gap 6px (≤8px). Voir le mois stays outside (chrome stack 6px, ≤12px). */
+   Gap 6px (≤8px). Chrome stack under the band is 6px. */
 .cc-filter-band {
   display: flex;
   flex-direction: column;

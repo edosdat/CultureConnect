@@ -44,3 +44,4 @@ Statuts : **À faire** · **En cours** · **Fait (#PR)** · **Bloqué** · **Rem
 | — | tip 1/3 popup 1ère connexion digeste jeudi | En cours | Une fois par compte (`seen`) + drapeau local. Pas de case sur la carte. HOLD merge jusqu'au GO. |
 | — | tip Partager trop long | En cours | Toast / sheet au tap, mint async. POST allégé (guest sans `auth()`, SET NX). HOLD merge jusqu'au GO soft. |
 | — | tip Reset froid admin (1ʳᵉ visite) | En cours | Bouton `/admin` pour `ADMIN_EMAILS`. Client seulement : cookies séparés `cc_vid` + `cc_signals_v1`. KV `cc:vs:*` intact. HOLD merge jusqu’au GO. Soft ne merge pas. |
+| — | retirer le CTA « Voir le mois » | Fait (#228) | Lien hors bande filtres retiré. Calendrier Date… conservé. |

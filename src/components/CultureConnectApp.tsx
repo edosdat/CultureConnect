@@ -3113,26 +3113,14 @@ export default function CultureConnectApp({
           ) : null}
         </div>
 
-        {/* Voir le mois stays outside the dense band. */}
-        <div className="flex min-w-0 items-center justify-end gap-x-2">
-          {showAdminCounts ? (
-            <p
-              className="mr-auto text-[11px] tabular-nums leading-tight text-culture-muted"
-              aria-label="Totaux agenda (debug)"
-            >
-              {adminCountLine}
-            </p>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => setShowMonthPanel((v) => !v)}
-            className="text-sm font-medium text-culture-terracotta hover:underline"
-            aria-expanded={showMonthPanel}
+        {showAdminCounts ? (
+          <p
+            className="text-[11px] tabular-nums leading-tight text-culture-muted"
+            aria-label="Totaux agenda (debug)"
           >
-            {showMonthPanel ? 'Masquer le mois' : 'Voir le mois'}
-            {showMonthPanel ? '' : ` (${monthLabel})`}
-          </button>
-        </div>
+            {adminCountLine}
+          </p>
+        ) : null}
 
         <div className="relative">
         <HomeListWaitSlot active={listSlowWhere === 'top'} />
