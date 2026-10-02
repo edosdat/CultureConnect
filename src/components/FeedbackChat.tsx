@@ -538,7 +538,7 @@ export default function FeedbackChat() {
                     </span>
                   ) : null}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-xs text-culture-muted">
+                <span className="min-w-0 flex-1 text-xs text-culture-muted">
                   {CAPTURE_LABEL}
                 </span>
                 <button
