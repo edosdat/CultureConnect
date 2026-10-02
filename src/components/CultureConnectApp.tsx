@@ -62,6 +62,7 @@ import {
   enfantsRows,
   expoRows,
   fillEmptyCineFromPool,
+  fillEmptyRecoSlots,
   filterItemsByTitleQuery,
   packSourceItems,
   findDayItemByKey,
@@ -275,6 +276,8 @@ type Props = {
   searchSuggest?: SearchSuggestEntry[];
   /** Known salles for NL → chip Salle. */
   searchLieux?: SearchNlLieu[];
+  /** `?enfants=1` — séance-level « Avec les enfants », not the QUOI chip. */
+  initialAvecEnfants?: boolean;
 };
 
 type RecoKind = 'guest' | 'profile' | 'wiped' | 'pending';
@@ -441,6 +444,7 @@ export default function CultureConnectApp({
   initialAutresSlotTotal = 0,
   searchSuggest = [],
   searchLieux = [],
+  initialAvecEnfants = false,
 }: Props) {
   const { track, trackItem, rememberItem, tasteState, sessionStatus } =
     useSignals();
@@ -480,6 +484,10 @@ export default function CultureConnectApp({
     deepLinkBoot.expoFocusKey,
   );
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  /** Mode « Avec les enfants » — not a category chip. */
+  const [avecEnfants, setAvecEnfants] = useState(initialAvecEnfants);
+  /** List payload that was fetched with the mode flag (avoids a stale rail). */
+  const [listAvecEnfants, setListAvecEnfants] = useState(false);
   /** P3 — hide the œuvre before the taste round-trip lands (sheet Mes recos only). */
   const [optimisticNotInterested, setOptimisticNotInterested] = useState<
     ReadonlySet<string>
@@ -650,6 +658,7 @@ export default function CultureConnectApp({
     genres: [] as string[],
     q: '',
     title: '',
+    avecEnfants: initialAvecEnfants,
   });
   bootFiltersRef.current = {
     timeScope,
@@ -657,6 +666,7 @@ export default function CultureConnectApp({
     genres: selectedGenres,
     q: query,
     title: committedTitle,
+    avecEnfants,
   };
 
   useEffect(() => {
@@ -670,7 +680,8 @@ export default function CultureConnectApp({
         f.cats.length ||
         f.genres.length ||
         f.q.trim() ||
-        f.title.trim()
+        f.title.trim() ||
+        f.avecEnfants
       ) {
         return;
       }
@@ -1059,6 +1070,7 @@ export default function CultureConnectApp({
     }
     if (!append) {
       setSettledSearchQ(titleLeftover.trim());
+      setListAvecEnfants(avecEnfants);
     }
     setCatalogueReady(true);
   }
@@ -1118,6 +1130,7 @@ export default function CultureConnectApp({
       q: query,
       title: titleLeftover,
       phraseMode,
+      avecEnfants,
     });
     const params = buildAgendaParams({
       scope: timeScope,
@@ -1132,6 +1145,7 @@ export default function CultureConnectApp({
       includeListMeta: false,
       phraseMode,
       phraseTags,
+      avecEnfants,
     });
     void (async () => {
       try {
@@ -1166,6 +1180,7 @@ export default function CultureConnectApp({
                   q: live.q,
                   title: live.title,
                   phraseMode,
+                  avecEnfants: live.avecEnfants,
                 })
               ) {
                 return;
@@ -1564,7 +1579,7 @@ export default function CultureConnectApp({
       selectedDay,
       skipListFetchScope.current,
     );
-    if (skipBootList) {
+    if (skipBootList && !avecEnfants) {
       skipListFetch.current = false;
       skipListFetchScope.current = null;
       // Snapshot skip still has to drop a genre-facet skeleton.
@@ -1584,6 +1599,7 @@ export default function CultureConnectApp({
         timeScope,
         selectedCategories.length,
         titleLeftover,
+        avecEnfants,
       );
       skipListFetchBootGps.current = false;
       // Boot GPS must not cancel a QUOI fetch — genre chips need that response.
@@ -1634,7 +1650,8 @@ export default function CultureConnectApp({
         month,
         includeListMeta: false,
         phraseMode,
-        phraseTags
+        phraseTags,
+        avecEnfants,
       });
       startListSlowWatch(gen, 'top');
       void (async () => {
@@ -1685,7 +1702,8 @@ export default function CultureConnectApp({
     phraseMode,
     phraseTags,
     genreOptionsKey,
-    markDateChipListPending
+    markDateChipListPending,
+    avecEnfants,
   ]);
 
   // Month badges: own request so a day click never waits on countItemsByDay.
@@ -1702,7 +1720,8 @@ export default function CultureConnectApp({
       selectedDate: null,
       year,
       month,
-      includeCounts: true
+      includeCounts: true,
+      avecEnfants,
     });
     let cancelled = false;
     void (async () => {
@@ -1726,7 +1745,8 @@ export default function CultureConnectApp({
     selectedCommune,
     selectedLieuId,
     selectedCategories,
-    selectedGenres
+    selectedGenres,
+    avecEnfants,
   ]);
 
   useEffect(() => {
@@ -1868,15 +1888,45 @@ export default function CultureConnectApp({
     [weekPourToiFilled],
   );
 
+  const slotFillSource = useMemo(() => {
+    const fromList = filterSeancesForActiveFilters(listItems, activeFilter);
+    const extras = searching
+      ? []
+      : filterSeancesForActiveFilters(
+          [...nouveautesItems, ...vivantItems],
+          activeFilter,
+        );
+    let pool = packSourceItems(fromList, extras, titleLeftover);
+    if (blockedWorks.size > 0) {
+      pool = pool.filter((item) => !itemBlockedByWorkKeys(item, blockedWorks));
+    }
+    if (sessionStatus === 'authenticated' && weekTop3Cards.length > 0) {
+      pool = excludeWorksFromPool(pool, weekTop3Cards);
+    }
+    return pool;
+  }, [
+    listItems,
+    nouveautesItems,
+    vivantItems,
+    activeFilter,
+    searching,
+    titleLeftover,
+    blockedWorks,
+    sessionStatus,
+    weekTop3Cards,
+  ]);
+
   const top3Cards = useMemo(() => {
     // Authenticated: never show Mes recos week sheet works on home Top3
     // (two pools, zéro mélange — even when home chip is also semaine).
+    // QUAND-only still needs 3 slots: refill from the date-scoped catalogue
+    // after the demote, without inventing a form the window does not have.
     const pool =
       sessionStatus === 'authenticated' && weekTop3Cards.length > 0
         ? excludeWorksFromPool(pourToiFilled, weekTop3Cards)
         : pourToiFilled;
-    return visibleTop3Items(pool);
-  }, [pourToiFilled, weekTop3Cards, sessionStatus]);
+    return visibleTop3Items(fillEmptyRecoSlots(pool, slotFillSource));
+  }, [pourToiFilled, weekTop3Cards, sessionStatus, slotFillSource]);
   const top3ImpressionKeys = useMemo(
     () => top3Cards.map(impressionItemKey).filter(Boolean),
     [top3Cards],
@@ -1900,17 +1950,17 @@ export default function CultureConnectApp({
   });
   const showTop3Section = top3Mode !== 'hidden';
   const pourToiKeys = useMemo(
-    () => new Set(pourToiFilled.map((item) => item.key)),
-    [pourToiFilled],
+    () => new Set(top3Cards.map((item) => item.key)),
+    [top3Cards],
   );
   const pourToiFilmIds = useMemo(() => {
     const ids = new Set<string>();
-    for (const item of pourToiFilled) {
+    for (const item of top3Cards) {
       const fid = filmIdOfItem(item);
       if (fid) ids.add(fid);
     }
     return ids;
-  }, [pourToiFilled]);
+  }, [top3Cards]);
   /** Main grid minus pack + Top 3 keys/film_ids so nothing is listed twice. */
   const gridItems = useMemo(() => {
     if (
@@ -1941,8 +1991,8 @@ export default function CultureConnectApp({
   );
   const top3Set = useMemo(() => {
     // Packs / leftover dedup against displayed Top 3 (not Top 3 quota).
-    return top3IdentitySet(pourToiFilled);
-  }, [pourToiFilled]);
+    return top3IdentitySet(top3Cards);
+  }, [top3Cards]);
   const gpsOrigin = nearMeActive ? userPos : null;
   const packFreezeKey = [
     timeScope,
@@ -2111,8 +2161,10 @@ export default function CultureConnectApp({
     expo: expoTotal,
   };
   const sectionVis = homeSectionsVisible(selectedCategories);
-  /** Home rails always — Enfants is a chip, not a séance-mode rail swap. */
-  const showHomeRails = true;
+  /** Home rails stay hidden while the kids list is showing or still loading. */
+  const showHomeRails = !avecEnfants && !listAvecEnfants;
+  const enfantsModeReady = avecEnfants && listAvecEnfants;
+  const enfantsModePending = avecEnfants !== listAvecEnfants;
   /** One register for the whole view — follows the Enfants QUOI chip. */
   const enfantsChipOn = selectedCategories.includes('enfants_famille');
   const register = charteRegister(enfantsChipOn);
@@ -2490,7 +2542,8 @@ export default function CultureConnectApp({
       offset: listItems.length,
       includeCounts: showMonthPanel,
       phraseMode,
-      phraseTags
+      phraseTags,
+      avecEnfants,
     });
     void fetch(`/api/agenda?${params.toString()}`)
       .then((res) => (res.ok ? res.json() : null))
@@ -2520,7 +2573,8 @@ export default function CultureConnectApp({
     year,
     month,
     phraseMode,
-    phraseTags
+    phraseTags,
+    avecEnfants,
   ]);
 
   const handleLivingPackMore = useCallback(
@@ -2556,7 +2610,8 @@ export default function CultureConnectApp({
         month,
         offset: have,
         phraseMode,
-        phraseTags
+        phraseTags,
+        avecEnfants,
       });
       void fetch(`/api/agenda?${params.toString()}`)
         .then((res) => (res.ok ? res.json() : null))
@@ -2593,7 +2648,8 @@ export default function CultureConnectApp({
       year,
       month,
       phraseMode,
-      phraseTags
+      phraseTags,
+      avecEnfants,
     ],
   );
 
@@ -3127,6 +3183,40 @@ export default function CultureConnectApp({
                     onChange={handleCategoriesChange}
                     variant="home"
                   />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAvecEnfants((on) => {
+                        const next = !on;
+                        const url = new URL(window.location.href);
+                        if (next) url.searchParams.set('enfants', '1');
+                        else {
+                          url.searchParams.delete('enfants');
+                          url.searchParams.delete('avec_enfants');
+                        }
+                        window.history.replaceState(
+                          null,
+                          '',
+                          url.pathname + url.search + url.hash,
+                        );
+                        return next;
+                      });
+                    }}
+                    aria-pressed={avecEnfants}
+                    data-enfants-mode=""
+                    className="cc-axes__chip shrink-0 whitespace-nowrap rounded-full font-semibold transition"
+                    style={{
+                      borderWidth: 1.5,
+                      borderStyle: 'solid',
+                      borderColor: 'var(--cat-enfants)',
+                      backgroundColor: avecEnfants
+                        ? 'var(--cat-enfants)'
+                        : 'var(--cc-surface)',
+                      color: avecEnfants ? '#fff' : 'var(--cc-ink)',
+                    }}
+                  >
+                    Avec les enfants
+                  </button>
                   {selectedCategories.length > 0 ? (
                     <div className="cc-axes__more">
                       <button
@@ -3205,7 +3295,7 @@ export default function CultureConnectApp({
 
         <CharteRegisterLine register={register} copy={copy} />
 
-        {showTop3Section ? (
+        {showTop3Section && !avecEnfants ? (
         <section
           className={TOP3_SECTION_CLASS}
           data-top3=""
@@ -3348,6 +3438,43 @@ export default function CultureConnectApp({
           )
         ) : null}
 
+
+        {enfantsModeReady ? (
+          <HomeSection
+            id="avec-enfants"
+            title="Avec les enfants"
+            accentVar={PACK_CAT_CSS_VAR.enfants}
+            count={total}
+            shown={listItems.length}
+            badge={total > 0 ? `${total} séances` : null}
+            expanded={listItems.length >= total}
+            onSeeAll={() => {
+              if (listItems.length < total) handleLoadMore();
+            }}
+          >
+            {listItems.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-culture-line bg-culture-surface px-6 py-8 text-center font-display text-xl text-culture-ink">
+                Rien à venir avec les enfants sur cette période.
+              </p>
+            ) : (
+              <SeanceGrid
+                items={listItems}
+                showDate={showDateLabels || timeScope === 'tous'}
+                onSelectItem={handleSelectHome}
+                onSelectVenue={handleSelectVenue}
+                nouveauFilmIds={nouveauFilmIdSet}
+                origin={gpsOrigin}
+                oneCardPerSeance
+              />
+            )}
+          </HomeSection>
+        ) : null}
+
+        {enfantsModePending ? (
+          <div className="flex justify-center py-10" data-enfants-mode-pending="">
+            <ListWaitDots />
+          </div>
+        ) : null}
 
         {showHomeRails && cineRailPaint === 'rows' ? (
           <HomeSection

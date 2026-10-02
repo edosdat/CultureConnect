@@ -48,6 +48,8 @@ import {
   fillEmptyCineSlot,
   itemBlockedByWorkKeys,
   itemInheritsParentMoods,
+  mergeSlotPicks,
+  pickSoonestPerSlot,
   slotFormOfItem,
   workBlockKeysOfItem,
 } from './reco';
@@ -357,6 +359,20 @@ export function fillEmptyCineFromPool(
   const films = filmPool.filter((item) => slotFormOfItem(item) === 'cine');
   if (films.length === 0) return recoItems;
   return fillEmptyCineSlot(recoItems, films);
+}
+
+/**
+ * Keep slots already chosen. Fill cine / theatre / concert that are missing
+ * from the soonest eligible row in `pool`. Never duplicates a filled slot
+ * and never invents a card the pool does not have.
+ */
+export function fillEmptyRecoSlots(
+  preferred: DayItem[],
+  pool: DayItem[],
+): DayItem[] {
+  if (recoSlotsOf(preferred).size >= DISPLAY_SLOT_ORDER.length) return preferred;
+  if (pool.length === 0) return preferred;
+  return mergeSlotPicks(preferred, pickSoonestPerSlot(pool));
 }
 
 /**

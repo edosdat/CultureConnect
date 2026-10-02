@@ -24,6 +24,8 @@ export type AgendaParamsInput = {
   includeListMeta?: boolean;
   phraseTags?: PhraseTags | null;
   phraseMode?: boolean;
+  /** Mode « Avec les enfants » — query flag `enfants=1`, never a `cat` value. */
+  avecEnfants?: boolean;
 };
 
 /**
@@ -71,14 +73,25 @@ export function listFetchShouldSkipBootGps(
   scope: TimeScopeId,
   selectedCategoryCount: number,
   titleQuery?: string | null,
+  avecEnfants?: boolean,
 ): boolean {
   if (!skipBootGps) return false;
   // A title search must refetch. Deny-GPS leaves this one-shot armed
   // until the next list effect; swallowing that search leaves a blank list.
   if ((titleQuery || '').trim()) return false;
+  // The kids mode has no boot rows — the one-shot must not swallow it.
+  if (avecEnfants) return false;
   if (scope !== 'tous') return false;
   if (selectedCategoryCount > 0) return false;
   return true;
+}
+
+/** `enfants=1` / `avec_enfants=1` (query or JSON). Never read this from `cat`. */
+export function parseAvecEnfantsFlag(raw: unknown): boolean {
+  if (raw === true || raw === 1) return true;
+  if (typeof raw !== 'string') return false;
+  const value = raw.trim().toLowerCase();
+  return value === '1' || value === 'true' || value === 'on';
 }
 
 /**
@@ -160,6 +173,7 @@ export function buildAgendaParams(opts: AgendaParamsInput): URLSearchParams {
     if (opts.genres.length) p.set('genres', opts.genres.join(','));
   }
   if (opts.cats.length) p.set('cat', opts.cats.join(','));
+  if (opts.avecEnfants) p.set('enfants', '1');
   if (opts.lieuId) p.set('lieu', opts.lieuId);
   if (opts.selectedDate && opts.scope !== 'tous') {
     p.set('date', opts.selectedDate);
@@ -185,6 +199,7 @@ export function agendaListCacheKeyParts(input: {
   offset?: number;
   limit?: number;
   includeListMeta?: boolean;
+  avecEnfants?: boolean;
   parisDay: string;
 }): string[] {
   const catKey = [...input.cats]
@@ -212,5 +227,6 @@ export function agendaListCacheKeyParts(input: {
     String(input.offset ?? 0),
     String(input.limit ?? ''),
     input.includeListMeta ? '1' : '0',
+    input.avecEnfants ? 'enfants' : '0',
   ];
 }

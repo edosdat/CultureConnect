@@ -1,5 +1,20 @@
 import type { DayItem } from '@/lib/types';
+import { seancePrixLabel } from '@/lib/cineSeances';
 import { ficheCastLine, ficheDescriptionView } from '@/lib/ficheDescription';
+
+/** Prix only when the catalogue has one. Empty source stays hidden. */
+export function FichePrix({ item }: { item: DayItem }) {
+  const label = seancePrixLabel(item);
+  if (!label) return null;
+  return (
+    <p data-testid="fiche-prix" className="mt-2 text-sm text-culture-ink">
+      <span className="text-xs font-semibold uppercase tracking-wide text-culture-muted">
+        Prix
+      </span>
+      <span className="mt-0.5 block font-medium">{label}</span>
+    </p>
+  );
+}
 
 /** Parked under DESCRIPTION. Hidden when the catalogue has no casting. */
 export function FicheCast({ item }: { item: DayItem }) {

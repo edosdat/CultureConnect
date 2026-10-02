@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import {
   AGENDA_HTTP_CACHE_CONTROL,
   agendaGetIsAddressed,
+  parseAvecEnfantsFlag,
 } from '@/lib/agendaParams';
 import {
   loadHomeWindow,
@@ -162,6 +163,9 @@ export async function GET(req: Request) {
     date_to,
     recoUpcoming,
     recoProfile: null,
+    avecEnfants:
+      parseAvecEnfantsFlag(url.searchParams.get('enfants')) ||
+      parseAvecEnfantsFlag(url.searchParams.get('avec_enfants')),
   });
 
   return agendaJson(result);

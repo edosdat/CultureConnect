@@ -851,7 +851,10 @@ describe('P3 not_interested', () => {
     assert.match(app, /notInterestedBlockKeys/);
     // Home Top3 demotes week sheet works when authenticated (excludeWorksFromPool).
     assert.match(app, /excludeWorksFromPool\(pourToiFilled, weekTop3Cards\)/);
-    assert.match(app, /visibleTop3Items\(pool\)/);
+    assert.match(
+      app,
+      /visibleTop3Items\(fillEmptyRecoSlots\(pool, slotFillSource\)\)/,
+    );
     assert.match(app, /recoPoolKey\('semaine'/);
   });
 });

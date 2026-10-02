@@ -217,7 +217,10 @@ describe('P2 — storage + consent guards (source)', () => {
     // Home slice section intentionally not rendered (hide-home-slice tip).
     assert.equal(app.includes('surface="slice"'), false);
     assert.equal(app.includes('data-slice'), false);
-    assert.match(app, /visibleTop3Items\(pourToiFilled\)/);
+    assert.match(
+      app,
+      /visibleTop3Items\(fillEmptyRecoSlots\(pool, slotFillSource\)\)/,
+    );
     assert.match(app, /reasonFor=\{reasonFor\}/);
   });
 

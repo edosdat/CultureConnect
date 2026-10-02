@@ -74,9 +74,11 @@ export function homeWindowRefreshAllowed(input: {
   q: string;
   title: string;
   phraseMode?: boolean;
+  avecEnfants?: boolean;
 }): boolean {
   if (input.scope !== input.bootScope) return false;
   if (input.phraseMode) return false;
+  if (input.avecEnfants) return false;
   if (input.cats.length > 0 || input.genres.length > 0) return false;
   if (input.q.trim() || input.title.trim()) return false;
   return true;

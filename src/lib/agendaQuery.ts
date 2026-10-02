@@ -99,6 +99,7 @@ import {
 import type { TasteEntry, TasteProfile } from './signals';
 import { normalizeDeepLinkId } from './deepLink';
 import { agendaListCacheKeyParts } from './agendaParams';
+import { applyAvecEnfantsMode, seanceMatchesAvecEnfantsMode } from './enfantsMode';
 import { createDayMemo } from './dayMemo';
 import {
   GUEST_BOOT_RECO_SSR_BUDGET_MS,
@@ -152,6 +153,11 @@ export type AgendaQueryInput = {
    * (`recommendForProfile`, cap 3). Ignored unless `recoUpcoming`.
    */
   digestWindow?: RelanceDigestWindowId;
+  /**
+   * Mode « Avec les enfants ». Request flag, not a `cats` value.
+   * Intersects with category chips and filters each séance.
+   */
+  avecEnfants?: boolean;
 };
 
 export type { AgendaListResponse, AgendaDetailResponse } from './slim';
@@ -819,6 +825,9 @@ function listForRange(
   }
 
   items = hideSeancesBeforeToday(items, paris.iso);
+  if (input.avecEnfants) {
+    items = applyAvecEnfantsMode(items);
+  }
   return { items, searching, rangeDays: range.days };
 }
 
@@ -1383,6 +1392,7 @@ function assembleListFromItems(
   void opts.rangeDays;
 
   const showNouveautes =
+    !input.avecEnfants &&
     !input.recoUpcoming &&
     !searching &&
     !hasPhraseFilters(input) &&
@@ -1478,6 +1488,7 @@ function assembleListFromItems(
       countCats,
       searching ? [] : lieuIds,
       input.genres,
+      input.avecEnfants ? seanceMatchesAvecEnfantsMode : undefined,
     );
     counts = Object.fromEntries(map);
   }
@@ -2243,6 +2254,7 @@ export async function queryAgendaListCached(
     offset: input.offset,
     limit: input.limit,
     includeListMeta: input.includeListMeta,
+    avecEnfants: input.avecEnfants,
     parisDay: day,
   });
   const cacheKey = cacheParts.join('\u001f');

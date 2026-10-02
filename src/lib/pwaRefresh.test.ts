@@ -62,6 +62,7 @@ describe('pwa refresh while open', () => {
     assert.equal(homeWindowRefreshAllowed({ ...open, q: 'balkan' }), false);
     assert.equal(homeWindowRefreshAllowed({ ...open, title: 'balkan' }), false);
     assert.equal(homeWindowRefreshAllowed({ ...open, phraseMode: true }), false);
+    assert.equal(homeWindowRefreshAllowed({ ...open, avecEnfants: true }), false);
   });
 
   it('updates rows in place and appends new keys without dropping a loaded page', () => {

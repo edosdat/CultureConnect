@@ -19,6 +19,7 @@ import {
   homeSectionFrameStyle,
   isPackCatAccentVar,
   fillEmptyCineFromPool,
+  fillEmptyRecoSlots,
   findDayItemByKey,
   enfantsRows,
   expoRows,
@@ -612,6 +613,49 @@ describe('pack rows + date filter', () => {
     assert.deepEqual(
       top.map((row) => row.key),
       ['th', 'cine', 'co'],
+    );
+  });
+
+  it('fills only the reco slots missing after a demote', () => {
+    const keptTheatre = item({ key: 'th-keep', cat: 'theatre', day: '2026-10-03' });
+    const keptConcert = item({ key: 'co-keep', cat: 'concert', day: '2026-10-04' });
+    const preferred = [keptTheatre, keptConcert];
+    const pool = [
+      item({ key: 'cine-soon', cat: 'cinema', day: '2026-10-02', filmId: 'F-SOON' }),
+      item({ key: 'cine-late', cat: 'cinema', day: '2026-10-08', filmId: 'F-LATE' }),
+      item({ key: 'th-other', cat: 'theatre', day: '2026-10-02' }),
+      item({ key: 'co-other', cat: 'concert', day: '2026-10-02' }),
+    ];
+    const filled = fillEmptyRecoSlots(preferred, pool);
+    assert.deepEqual(
+      filled.map((row) => row.key),
+      ['cine-soon', 'th-keep', 'co-keep'],
+    );
+    assert.deepEqual(
+      visibleTop3Items(filled).map((row) => row.key),
+      ['th-keep', 'cine-soon', 'co-keep'],
+    );
+    const already = fillEmptyRecoSlots(
+      [
+        keptTheatre,
+        item({ key: 'cine-have', cat: 'cinema', day: '2026-10-09', filmId: 'F-HAVE' }),
+        keptConcert,
+      ],
+      pool,
+    );
+    assert.deepEqual(
+      already.map((row) => row.key),
+      ['th-keep', 'cine-have', 'co-keep'],
+    );
+    assert.deepEqual(
+      fillEmptyRecoSlots(preferred, []).map((row) => row.key),
+      ['th-keep', 'co-keep'],
+    );
+    assert.deepEqual(
+      fillEmptyRecoSlots(preferred, [
+        item({ key: 'expo', cat: 'exposition', day: '2026-10-02' }),
+      ]).map((row) => row.key),
+      ['th-keep', 'co-keep'],
     );
   });
 
