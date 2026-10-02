@@ -24,6 +24,16 @@ import {
   parseMotherStatsPayload,
   rememberMotherStats,
 } from '@/lib/motherStatsClient';
+import {
+  SOCIAL_TIP_B1_COPY,
+  SOCIAL_TIP_EVENT,
+  claimSocialTipBeat1,
+  claimSocialTipPreview,
+  dismissSocialTip,
+  releaseSocialTipPreview,
+  shareActionOwnsSocialTip,
+  socialTipPreviewRequested,
+} from '@/lib/socialTipBeat1';
 
 type Props = {
   item: DayItem;
@@ -55,6 +65,83 @@ function rsvpButtonClass(active: boolean): string {
   );
 }
 
+function SocialTipLine({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <p
+      data-testid="social-tip-b1"
+      className="mt-2 flex items-baseline justify-between gap-2 text-sm leading-snug text-culture-muted"
+    >
+      <span>{SOCIAL_TIP_B1_COPY}</span>
+      <button
+        type="button"
+        onClick={onDismiss}
+        aria-label="Fermer"
+        data-testid="social-tip-b1-dismiss"
+        className="shrink-0 rounded-full px-1 text-xs text-culture-muted underline-offset-2 hover:text-culture-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta"
+      >
+        ×
+      </button>
+    </p>
+  );
+}
+
+/**
+ * One line under this Envie / J’y vais row.
+ * Guests stay quiet. Preview (`?apercu=social`) does not write the flag.
+ */
+function useSocialTipBeat1(
+  ownerRef: { readonly current: HTMLElement | null },
+  authed: boolean,
+) {
+  const [open, setOpen] = useState(false);
+  const previewRef = useRef(false);
+
+  useEffect(() => {
+    if (!socialTipPreviewRequested(window.location.search)) return;
+    if (!claimSocialTipPreview()) return;
+    previewRef.current = true;
+    setOpen(true);
+    return () => {
+      if (!previewRef.current) return;
+      previewRef.current = false;
+      releaseSocialTipPreview();
+    };
+  }, []);
+
+  useEffect(() => {
+    function onShare(event: Event) {
+      if (!authed) return;
+      if (previewRef.current) return;
+      const root = ownerRef.current;
+      const target = event.target;
+      if (!root || !(target instanceof Node)) return;
+      if (!shareActionOwnsSocialTip(root, target)) return;
+      if (!claimSocialTipBeat1()) return;
+      setOpen(true);
+    }
+    document.addEventListener(SOCIAL_TIP_EVENT, onShare);
+    return () => document.removeEventListener(SOCIAL_TIP_EVENT, onShare);
+  }, [authed, ownerRef]);
+
+  const noteConnectedEnvie = useCallback(() => {
+    if (!authed) return;
+    if (previewRef.current) return;
+    if (!claimSocialTipBeat1()) return;
+    setOpen(true);
+  }, [authed]);
+
+  const dismissSocialTipLine = useCallback(() => {
+    setOpen(false);
+    if (previewRef.current) {
+      previewRef.current = false;
+      return;
+    }
+    dismissSocialTip();
+  }, []);
+
+  return { socialTipOpen: open, noteConnectedEnvie, dismissSocialTipLine };
+}
+
 export default function ShareSocial({ item, token }: Props) {
   if (token) {
     return <DaughterRsvp item={item} token={token} />;
@@ -76,6 +163,8 @@ function MotherStatsBlock({ itemKey }: { itemKey: string }) {
   const [busy, setBusy] = useState(false);
   const ownerRef = useRef<HTMLElement>(null);
   const flight = useRef(0);
+  const { socialTipOpen, noteConnectedEnvie, dismissSocialTipLine } =
+    useSocialTipBeat1(ownerRef, authed);
 
   const applyPayload = useCallback(
     (payload: { envie: number; going: number; mine: RsvpKind | null }) => {
@@ -144,13 +233,13 @@ function MotherStatsBlock({ itemKey }: { itemKey: string }) {
       const raw =
         data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
       // POST returns kind + counters — no second stats round-trip.
-      applyPayload(
-        parseMotherStatsPayload({
-          envie: raw.envie,
-          going: raw.going,
-          mine: raw.kind,
-        }),
-      );
+      const payload = parseMotherStatsPayload({
+        envie: raw.envie,
+        going: raw.going,
+        mine: raw.kind,
+      });
+      applyPayload(payload);
+      if (payload.mine === 'envie') noteConnectedEnvie();
     } catch {
       if (flight.current !== id) return;
       setMine(prevMine);
@@ -208,6 +297,7 @@ function MotherStatsBlock({ itemKey }: { itemKey: string }) {
           J’y vais
         </button>
       </div>
+      {socialTipOpen ? <SocialTipLine onDismiss={dismissSocialTipLine} /> : null}
       {label ? (
         <p className="mt-2 text-sm text-culture-muted">{label}</p>
       ) : null}
@@ -224,6 +314,8 @@ function DaughterRsvp({ item, token }: { item: DayItem; token: string }) {
   const [settled, setSettled] = useState(false);
   const ownerRef = useRef<HTMLElement>(null);
   const flight = useRef(0);
+  const { socialTipOpen, noteConnectedEnvie, dismissSocialTipLine } =
+    useSocialTipBeat1(ownerRef, authed);
 
   const loadSocial = useCallback(async () => {
     const seen = flight.current;
@@ -283,6 +375,7 @@ function DaughterRsvp({ item, token }: { item: DayItem; token: string }) {
       }
       const data = (await res.json()) as { kind?: RsvpKind | null };
       setMine(data.kind ?? null);
+      if (data.kind === 'envie') noteConnectedEnvie();
       await loadSocial();
     } catch {
       if (flight.current !== id) return;
@@ -342,6 +435,7 @@ function DaughterRsvp({ item, token }: { item: DayItem; token: string }) {
           J’y vais
         </button>
       </div>
+      {socialTipOpen ? <SocialTipLine onDismiss={dismissSocialTipLine} /> : null}
       {goingLine || envieLine ? (
         <div data-testid="share-rsvp-names" className="mt-2 space-y-0.5">
           {goingLine ? (
