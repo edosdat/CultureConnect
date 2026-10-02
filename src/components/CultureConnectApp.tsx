@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { readBootCatalogue, signalBootShellReady } from '@/lib/bootShell';
 import type { DayItem, GenreLegend, Lieu } from '@/lib/types';
 import type { AgendaDetailResponse, AgendaListResponse } from '@/lib/slim';
 import { HOME_PACK_WIRE_CAP } from '@/lib/slim';
@@ -722,19 +723,20 @@ export default function CultureConnectApp({
       }
       setCatalogueReady(true);
     };
-    const run = () => {
-      void fetch('/api/agenda?window=home')
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data: AgendaListResponse | null) => {
-          if (cancelled || !data) return;
-          mergeBoot(data);
-        })
-        .catch(() => undefined);
-    };
-    const idle = window.setTimeout(run, 0);
+    // Splash script may already have started this GET. Reuse it so the
+    // rail fills from the in-flight body, then drop the shell.
+    void readBootCatalogue()
+      .then((raw) => {
+        if (cancelled) return;
+        const data = raw as AgendaListResponse | null;
+        if (data) mergeBoot(data);
+        signalBootShellReady();
+      })
+      .catch(() => {
+        if (!cancelled) signalBootShellReady();
+      });
     return () => {
       cancelled = true;
-      window.clearTimeout(idle);
     };
   }, [initialScope]);
   const cinePaintedRef = useRef<DenseRow[]>([]);

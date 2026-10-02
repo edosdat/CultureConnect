@@ -16,6 +16,7 @@ import ShareVisitProvider from './ShareVisitProvider';
 import FavoritesProvider from './FavoritesProvider';
 import PwaInstallProvider from './PwaInstall';
 import AuthActionGate from './AuthActionGate';
+import BootShellReady from './BootShellReady';
 import {
   CLOSE_TASTES_EVENT,
   OPEN_TASTES_EVENT,
@@ -97,6 +98,7 @@ export default function Providers({
           <FavoritesProvider>
             <TastesUiContext.Provider value={value}>
               <PwaInstallProvider>
+                <BootShellReady />
                 {children}
                 <AuthActionGate />
               </PwaInstallProvider>

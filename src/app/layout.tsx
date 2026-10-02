@@ -8,7 +8,13 @@ import { auth, isGoogleAuthConfigured } from '@/auth';
 import type { Session } from 'next-auth';
 import { publicAppOrigin } from '@/lib/sharePreviewImage';
 import { INSTALL_PROMPT_CAPTURE_SCRIPT } from '@/lib/pwaInstall';
-import { PWA_THEME_COLOR } from '@/lib/pwaManifest';
+import { PWA_BACKGROUND_COLOR, PWA_THEME_COLOR } from '@/lib/pwaManifest';
+import {
+  APPLE_SPLASH_SCREENS,
+  appleSplashHref,
+  appleSplashMedia,
+} from '@/lib/appleSplash';
+import { BOOT_SHELL_CSS, BOOT_SHELL_MARKUP, BOOT_SHELL_SCRIPT } from '@/lib/bootShellMarkup';
 import './globals.css';
 
 const sans = DM_Sans({
@@ -87,11 +93,39 @@ export default async function RootLayout({
 }>) {
   const session = await layoutSession();
   return (
-    <html lang="fr">
+    <html
+      lang="fr"
+      suppressHydrationWarning
+      style={{ backgroundColor: PWA_BACKGROUND_COLOR }}
+    >
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `html,body{background-color:${PWA_BACKGROUND_COLOR}}`,
+          }}
+        />
+        {APPLE_SPLASH_SCREENS.map((spec) => (
+          <link
+            key={appleSplashMedia(spec)}
+            rel="apple-touch-startup-image"
+            href={appleSplashHref(spec)}
+            media={appleSplashMedia(spec)}
+          />
+        ))}
       </head>
-      <body className={`${sans.variable} ${display.variable} font-sans antialiased`}>
+      <body
+        className={`${sans.variable} ${display.variable} font-sans antialiased`}
+        suppressHydrationWarning
+        style={{ backgroundColor: PWA_BACKGROUND_COLOR }}
+      >
+        <style dangerouslySetInnerHTML={{ __html: BOOT_SHELL_CSS }} />
+        <div
+          id="cc-boot-root"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: BOOT_SHELL_MARKUP }}
+        />
+        <script dangerouslySetInnerHTML={{ __html: BOOT_SHELL_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: INSTALL_PROMPT_CAPTURE_SCRIPT }} />
         <Providers googleAuthEnabled={isGoogleAuthConfigured()} session={session}>
           <SiteNav />
