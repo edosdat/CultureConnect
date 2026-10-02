@@ -511,8 +511,6 @@ export default function CultureConnectApp({
   const [committedTitle, setCommittedTitle] = useState('');
   const [phraseTags, setPhraseTags] = useState<PhraseTags | null>(null);
   const searchDrivenRef = useRef({ scope: false, cat: false });
-  /** Salle picked from NL confirm — keep it until the user clears QUOI or Salle. */
-  const lieuPinRef = useRef(false);
   const [showMonthPanel, setShowMonthPanel] = useState(false);
   const [facetsOpen, setFacetsOpen] = useState(false);
   useEffect(() => {
@@ -899,6 +897,7 @@ export default function CultureConnectApp({
   /**
    * Confirmer. A named QUAND chip is applied as-is.
    * No date chip → `tous` (full catalogue ≥ today Paris), not semaine / mois / 14j.
+   * Never pins Salle — lieuId from the parse is ignored.
    */
   function handleNlConfirm(parsed: SearchNlParse) {
     const scope = nlTimeScope(parsed);
@@ -918,31 +917,6 @@ export default function CultureConnectApp({
       setUserPos(null);
       setBrowseCommune(parsed.commune);
       setSelectedCommune(parsed.commune);
-    }
-    if (parsed.lieuId) {
-      const lieuId = parsed.lieuId;
-      lieuPinRef.current = true;
-      const label = parsed.lieuLabel || lieuId;
-      const commune = parsed.commune || '';
-      setVenueOptions((prev) =>
-        prev.some((v) => v.lieu_id === lieuId)
-          ? prev
-          : [
-              {
-                lieu_id: lieuId,
-                nom: label,
-                label_affiche: label,
-                commune,
-                type: '',
-                adresse: '',
-                dist_km_capitole: '',
-                site_web: '',
-                notes: '',
-              },
-              ...prev,
-            ],
-      );
-      setSelectedLieuId(lieuId);
     }
     setPhraseTags(null);
     setCommittedTitle(parsed.titleQuery);
@@ -1756,12 +1730,10 @@ export default function CultureConnectApp({
   }, [selectedCategories, genresLegend]);
 
   // Plan C: drop salle when QUOI cleared or salle left category-adapted options.
-  // A salle pinned by NL confirm stays until the user clears QUOI or Salle.
   useEffect(() => {
-    setSelectedLieuId((prev) => {
-      if (lieuPinRef.current && prev) return prev;
-      return retainSelectedLieuId(prev, selectedCategories, venueOptions);
-    });
+    setSelectedLieuId((prev) =>
+      retainSelectedLieuId(prev, selectedCategories, venueOptions),
+    );
   }, [selectedCategories, venueOptions]);
 
   const genreChipSlugs = useMemo(
@@ -2962,7 +2934,6 @@ export default function CultureConnectApp({
   }
 
   function handleCategoriesChange(next: string[]) {
-    lieuPinRef.current = false;
     searchDrivenRef.current.cat = false;
     const added = next.filter((c) => !selectedCategories.includes(c));
     setListFetchInFlight(true);
@@ -3140,10 +3111,7 @@ export default function CultureConnectApp({
             <VenueFilter
               lieux={venueOptions}
               selectedLieuId={selectedLieuId}
-              onChange={(id) => {
-                if (!id) lieuPinRef.current = false;
-                setSelectedLieuId(id);
-              }}
+              onChange={setSelectedLieuId}
               variant="inline"
               selectedMains={selectedCategories}
               hideWhenNoCategory

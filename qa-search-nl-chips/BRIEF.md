@@ -14,6 +14,8 @@
 
 ---
 
+**NL LOCK update (steer #231):** salle OUT of parse → chips. Ville / QUOI / QUAND / genre / Enfants stay.
+
 ## Soft one-liner STEER LOCK
 
 NL sous `#cc-search` → **preview chips déduits** (QUAND / QUOI / Ville / Salle / genre) cream strip + CTA **« Confirmer »** terracotta — pas d’auto-apply · catalogue ≤8 secondaire titre/artiste seulement.

@@ -1,5 +1,7 @@
 # Dig — recherche NL → chips
 
+**NL LOCK (steer #231):** salle / lieu **OUT** of parse → chips. Confirmer ne pose jamais le filtre Salle. Ville seulement si la phrase nomme une commune (pas d’inférence depuis une salle).
+
 Baseline code (avant ce ship) : `#cc-search` commit les chips QUAND / QUOI **à l’Enter** (`parseSearchChips` + `handleSearchSubmit`). Pas de bandeau de preview. Pas de Google Suggest.
 
 ## Vocabulaire déjà dans l’app
@@ -10,9 +12,9 @@ Baseline code (avant ce ship) : `#cc-search` commit les chips QUAND / QUOI **à 
 | QUOI | ciné/film, concert/musique, théâtre/danse/humour, festival, expo/musée, enfants/famille | Cinéma · Musique · Théâtre · Festival · Expo & patrimoine · Enfants |
 | Genre | libellés `genres_legend` (ex. jazz, blues, rock, électro) | Jazz / blues, etc. + QUOI parent (Musique) |
 | Ville | communes du catalogue (Toulouse, Blagnac, Labège, …) | chip Ville |
-| Salle | nom de `lieux.csv` (ex. Bikini) | chip Salle |
+| Salle | — | **OUT** du parse NL (steer #231). Le filtre Salle home reste manuel. |
 
-Lyon n’est pas dans le catalogue métropole : « à Lyon » ne pose pas de chip Ville. Équivalent couvert : « jazz à Blagnac », « au bikini ».
+Lyon n’est pas dans le catalogue métropole : « à Lyon » ne pose pas de chip Ville. Équivalent couvert : « jazz à Blagnac ». « au bikini » ne pose ni chip Salle ni commune.
 
 ## Temps — 0 chip date
 

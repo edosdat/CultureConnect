@@ -37,8 +37,20 @@ const DICT: SearchNlDict = {
       label: 'Ramonville-Saint-Agne — Le Petit Bikini',
       commune: 'Ramonville-Saint-Agne',
     },
+    {
+      id: 'L001',
+      nom: 'Une salle',
+      label: 'Toulouse — Une salle',
+      commune: 'Toulouse',
+    },
   ],
 };
+
+function salleChips(parsed: ReturnType<typeof parseSearchNl>) {
+  return previewChips(parsed, DICT).filter(
+    (c) => c.key.startsWith('salle:') || c.label === 'Le Bikini' || c.label === 'Une salle',
+  );
+}
 
 describe('parseSearchNl', () => {
   it('maps jazz ce week-end to genre + Ce WE, no leftover title', () => {
@@ -81,20 +93,51 @@ describe('parseSearchNl', () => {
     assert.equal(nlTimeScope(cine), 'soir');
   });
 
-  it('maps a known commune and a known salle', () => {
+  it('maps a named commune to a ville chip', () => {
     const city = parseSearchNl('jazz à Blagnac', DICT, NOW);
     assert.equal(city.commune, 'Blagnac');
     assert.deepEqual(city.genres, ['jazz_blues']);
     assert.equal(city.scope, null);
+    assert.equal(city.lieuId, null);
+    const chips = previewChips(city, DICT);
+    assert.ok(chips.some((c) => c.axis === 'ville' && c.label === 'Blagnac'));
+    assert.equal(chips.filter((c) => c.axis === 'genre').length, 1);
+    assert.equal(salleChips(city).length, 0);
+  });
 
+  it('does not pin a salle or infer its commune from a venue name', () => {
     const salle = parseSearchNl('au bikini', DICT, NOW);
-    assert.equal(salle.lieuId, 'L083');
-    assert.equal(salle.lieuLabel, 'Le Bikini');
-    assert.equal(salle.commune, 'Ramonville-Saint-Agne');
+    assert.equal(salle.lieuId, null);
+    assert.equal(salle.lieuLabel, null);
+    assert.equal(salle.commune, null);
     assert.equal(salle.scope, null);
+    assert.equal(nlHasFilter(salle), false);
+    assert.equal(salleChips(salle).length, 0);
+    assert.equal(previewChips(salle, DICT).length, 0);
 
     const petit = parseSearchNl('petit bikini', DICT, NOW);
-    assert.equal(petit.lieuId, 'L093');
+    assert.equal(petit.lieuId, null);
+    assert.equal(petit.lieuLabel, null);
+    assert.equal(petit.commune, null);
+    assert.equal(salleChips(petit).length, 0);
+
+    const vague = parseSearchNl('une salle', DICT, NOW);
+    assert.equal(vague.lieuId, null);
+    assert.equal(vague.lieuLabel, null);
+    assert.equal(vague.commune, null);
+    assert.equal(nlHasFilter(vague), false);
+    assert.equal(salleChips(vague).length, 0);
+    assert.equal(previewChips(vague, DICT).length, 0);
+
+    const withGenre = parseSearchNl('jazz au bikini', DICT, NOW);
+    assert.deepEqual(withGenre.genres, ['jazz_blues']);
+    assert.equal(withGenre.commune, null);
+    assert.equal(withGenre.lieuId, null);
+    const chips = previewChips(withGenre, DICT);
+    assert.ok(chips.some((c) => c.axis === 'genre' && c.label === 'Jazz / blues'));
+    assert.ok(chips.some((c) => c.axis === 'quoi' && c.label === 'Musique'));
+    assert.equal(chips.some((c) => c.axis === 'ville'), false);
+    assert.equal(salleChips(withGenre).length, 0);
   });
 
   it('does not invent QUAND or QUOI for a bare title', () => {
@@ -177,6 +220,26 @@ describe('searchNlMode', () => {
       'hint',
     );
     assert.match(SEARCH_NL_HINT, /On n’a pas trouvé de filtre/);
+  });
+});
+
+describe('NL confirm does not pin salle', () => {
+  it('handleNlConfirm applies commune and categories, never lieu', async () => {
+    const src = await readFile(
+      new URL('../components/CultureConnectApp.tsx', import.meta.url),
+      'utf8',
+    );
+    const start = src.indexOf('function handleNlConfirm');
+    const end = src.indexOf('function handleSuggestTitre');
+    assert.ok(start > 0 && end > start);
+    const body = src.slice(start, end);
+    assert.equal(body.includes('setSelectedLieuId'), false);
+    assert.equal(body.includes('setVenueOptions'), false);
+    assert.equal(body.includes('lieuPinRef'), false);
+    assert.match(body, /setSelectedCommune\(parsed\.commune\)/);
+    assert.match(body, /nlCategoriesToApply\(parsed\)/);
+    assert.match(body, /nlTimeScope\(parsed\)/);
+    assert.equal(src.includes('lieuPinRef'), false);
   });
 });
 
