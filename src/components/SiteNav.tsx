@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import AuthButtons from './AuthButtons';
+import { A2hsDownloadBar } from './PwaInstall';
 import TastesOverlayHost from './TastesOverlayHost';
 
 const LINKS = [
@@ -59,6 +60,7 @@ export default function SiteNav() {
           </div>
         </div>
       </nav>
+      <A2hsDownloadBar />
       {/* Home host lives in CultureConnectApp (stays mounted when the menu closes). */}
       {onHome ? null : <TastesOverlayHost />}
     </>

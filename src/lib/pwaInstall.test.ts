@@ -3,7 +3,15 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import {
-  A2HS_DAY_KEY,
+  A2HS_BAR_HEIGHT_PX,
+  A2HS_BAR_HINT,
+  A2HS_BAR_HINT_MIN_PX,
+  A2HS_BAR_ICON_PX,
+  A2HS_BAR_ICON_SRC,
+  A2HS_BAR_LABEL,
+  A2HS_BAR_LABEL_NARROW,
+  A2HS_BAR_NARROW_PX,
+  A2HS_BAR_OFFSET_VAR,
   CRIOS_COPIED_HINT,
   CRIOS_COPIED_LABEL,
   CRIOS_COPY_LINK_LABEL,
@@ -38,15 +46,23 @@ import {
   isIpadClient,
   isInstalledDisplay,
   isIosClient,
-  localDayStamp,
   nativeInstallTap,
   readInstalledRelated,
   sheetSurfaceWhenOpening,
   safariBottomChromePx,
   safariHandoffUrl,
   shouldAwaitInstallPrompt,
-  shouldShowDailyA2hs,
+  shouldShowA2hsBar,
+  a2hsBarLabel,
+  a2hsBarShowsHint,
 } from './pwaInstall';
+import {
+  canOpenA2hsSheet,
+  feedbackOpenAllowed,
+  pushPromptAllowed,
+  stickyInstallHidden,
+  toastBlockedByModal,
+} from './overlayStack';
 import {
   PWA_BACKGROUND_COLOR,
   PWA_ICONS,
@@ -84,58 +100,50 @@ describe('pwa manifest lock', () => {
   });
 });
 
-describe('daily A2HS', () => {
-  it('stamps a local calendar day', () => {
-    assert.equal(localDayStamp(new Date(2026, 9, 1)), '2026-10-01');
+describe('sticky A2HS bar', () => {
+  it('shows on every web visit until install, phone and desktop', () => {
+    assert.equal(shouldShowA2hsBar({ installed: false }), true);
+    assert.equal(shouldShowA2hsBar({ installed: true }), false);
+    assert.equal(shouldShowA2hsBar({ installed: null }), false);
   });
 
-  it('offers a handheld visitor at most once per day, until install', () => {
-    assert.equal(A2HS_DAY_KEY, 'planc_a2hs_day');
-    assert.equal(
-      shouldShowDailyA2hs({
-        handheld: true,
-        installed: false,
-        lastDay: null,
-        today: '2026-10-01',
-      }),
-      true,
-    );
-    assert.equal(
-      shouldShowDailyA2hs({
-        handheld: true,
-        installed: false,
-        lastDay: '2026-10-01',
-        today: '2026-10-01',
-      }),
-      false,
-    );
-    assert.equal(
-      shouldShowDailyA2hs({
-        handheld: true,
-        installed: false,
-        lastDay: '2026-09-30',
-        today: '2026-10-01',
-      }),
-      true,
-    );
-    assert.equal(
-      shouldShowDailyA2hs({
-        handheld: false,
-        installed: false,
-        lastDay: null,
-        today: '2026-10-01',
-      }),
-      false,
-    );
-    assert.equal(
-      shouldShowDailyA2hs({
-        handheld: true,
-        installed: true,
-        lastDay: null,
-        today: '2026-10-01',
-      }),
-      false,
-    );
+  it('keeps a one-line CTA and drops the hint when the strip is narrow', () => {
+    assert.equal(A2HS_BAR_LABEL, 'Télécharger l’appli');
+    assert.equal(A2HS_BAR_LABEL_NARROW, 'Télécharger');
+    assert.equal(A2HS_BAR_HINT, 'Tu peux télécharger l’appli');
+    assert.equal(a2hsBarLabel(359), A2HS_BAR_LABEL_NARROW);
+    assert.equal(a2hsBarLabel(A2HS_BAR_NARROW_PX), A2HS_BAR_LABEL);
+    assert.equal(a2hsBarLabel(1280), A2HS_BAR_LABEL);
+    assert.equal(a2hsBarLabel(Number.NaN), A2HS_BAR_LABEL);
+    assert.equal(a2hsBarShowsHint(389), false);
+    assert.equal(a2hsBarShowsHint(A2HS_BAR_HINT_MIN_PX), true);
+    assert.equal(a2hsBarShowsHint(Number.NaN), false);
+  });
+
+  it('locks the cream strip height and the violet C', () => {
+    assert.equal(A2HS_BAR_HEIGHT_PX, 44);
+    assert.ok(A2HS_BAR_HEIGHT_PX >= 40 && A2HS_BAR_HEIGHT_PX <= 44);
+    assert.equal(A2HS_BAR_ICON_SRC, '/plan-c-icon-LOCK-v3-violet.jpg');
+    assert.ok(A2HS_BAR_ICON_PX >= 20 && A2HS_BAR_ICON_PX <= 24);
+    assert.equal(A2HS_BAR_OFFSET_VAR, '--a2hs-bar-h');
+  });
+});
+
+describe('overlay stack', () => {
+  it('keeps a single blocking surface and hides the sticky bar under it', () => {
+    assert.equal(stickyInstallHidden({ digestOpen: false, a2hsSheetOpen: false }), false);
+    assert.equal(stickyInstallHidden({ digestOpen: true, a2hsSheetOpen: false }), true);
+    assert.equal(stickyInstallHidden({ digestOpen: false, a2hsSheetOpen: true }), true);
+    assert.equal(canOpenA2hsSheet({ digestOpen: false }), true);
+    assert.equal(canOpenA2hsSheet({ digestOpen: true }), false);
+    assert.equal(feedbackOpenAllowed({ a2hsSheetOpen: false }), true);
+    assert.equal(feedbackOpenAllowed({ a2hsSheetOpen: true }), false);
+    assert.equal(pushPromptAllowed({ digestOpen: false, a2hsSheetOpen: false }), true);
+    assert.equal(pushPromptAllowed({ digestOpen: true, a2hsSheetOpen: false }), false);
+    assert.equal(pushPromptAllowed({ digestOpen: false, a2hsSheetOpen: true }), false);
+    assert.equal(toastBlockedByModal({ digestOpen: false, a2hsSheetOpen: false }), false);
+    assert.equal(toastBlockedByModal({ digestOpen: true, a2hsSheetOpen: false }), true);
+    assert.equal(toastBlockedByModal({ digestOpen: false, a2hsSheetOpen: true }), true);
   });
 });
 
@@ -442,7 +450,9 @@ describe('service worker freshness only', () => {
     assert.doesNotMatch(ui, /Ajouter à l’écran d’accueil/);
     assert.match(ui, /safariIpad \? 'top-mid' : safariIphone \? 'above-bottom' : 'bottom'/);
     assert.match(ui, /paddingTop: IOS_SAFARI_TOP_MIN_GAP_PX/);
-    assert.doesNotMatch(ui, /shareIosInstallPage|navigator\.share|pwa-ios-share-arrow|bg-culture-cream/);
+    assert.doesNotMatch(ui, /shareIosInstallPage|navigator\.share|pwa-ios-share-arrow/);
+    const sheetOnly = ui.slice(ui.indexOf('function InstallSheet'), ui.indexOf('export function A2hsDownloadBar'));
+    assert.doesNotMatch(sheetOnly, /bg-culture-cream/);
     assert.match(ui, /canShowNativeInstallButton/);
     assert.match(ui, /\{showInstall \?/);
     assert.match(ui, /nativeInstallTap/);
@@ -499,5 +509,73 @@ describe('service worker freshness only', () => {
     assert.equal(ui.split('<InstallSheet').length - 1, 1);
     assert.match(ui, /shouldAwaitInstallPrompt/);
     assert.ok(layout.indexOf('INSTALL_PROMPT_CAPTURE_SCRIPT') < layout.indexOf('<Providers'));
+  });
+
+  it('sticks a download strip under the header and never auto-opens the sheet', () => {
+    const ui = readFileSync(path.join(process.cwd(), 'src/components/PwaInstall.tsx'), 'utf8');
+    const nav = readFileSync(path.join(process.cwd(), 'src/components/SiteNav.tsx'), 'utf8');
+    const home = readFileSync(path.join(process.cwd(), 'src/components/CultureConnectApp.tsx'), 'utf8');
+    const boot = readFileSync(path.join(process.cwd(), 'src/components/HomeBootChrome.tsx'), 'utf8');
+    const css = readFileSync(path.join(process.cwd(), 'src/app/globals.css'), 'utf8');
+    const menu = readFileSync(path.join(process.cwd(), 'src/components/AuthButtons.tsx'), 'utf8');
+
+    assert.match(nav, /<A2hsDownloadBar \/>/);
+    assert.ok(nav.indexOf('<A2hsDownloadBar />') > nav.indexOf('</nav>'));
+    assert.match(ui, /data-testid="pwa-download-bar"/);
+    assert.match(ui, /data-testid="pwa-download-bar-action"/);
+    assert.match(ui, /data-testid="pwa-download-bar-icon"/);
+    assert.match(ui, /onClick=\{openInstall\}/);
+    assert.match(ui, /shouldShowA2hsBar/);
+    assert.match(ui, /sticky top-0 z-\[45\]/);
+    assert.match(ui, /stickyInstallHidden/);
+    assert.match(ui, /canOpenA2hsSheet/);
+    assert.ok(ui.indexOf('canOpenA2hsSheet') < ui.indexOf('setOpen(true)'));
+    assert.match(ui, /setA2hsSheetBlocking\(false\)/);
+    assert.match(ui, /h-11/);
+    assert.match(ui, /min-h-9/);
+    assert.match(ui, /px-3/);
+    assert.match(ui, /gap-2\.5/);
+    assert.match(ui, /bg-culture-cream/);
+    assert.match(ui, /bg-culture-terracotta/);
+    assert.match(ui, /border-culture-terracotta\/\[0\.12\]/);
+    assert.match(ui, /A2HS_BAR_ICON_SRC/);
+    assert.match(ui, /min-\[360px\]:hidden/);
+    assert.match(ui, /min-\[360px\]:inline/);
+    assert.match(ui, /min-\[390px\]:block/);
+    assert.equal(ui.split('setOpen(true)').length - 1, 1);
+    const openAt = ui.indexOf('const openInstall = useCallback');
+    assert.ok(openAt >= 0);
+    assert.ok(ui.indexOf('setOpen(true)') > openAt);
+    assert.doesNotMatch(ui, /planc_a2hs_day|shouldShowDailyA2hs|A2HS_DAY_KEY|localStorage|sessionStorage/);
+    assert.doesNotMatch(ui, /data-testid="pwa-download-bar"[\s\S]*aria-label="Fermer"/);
+
+    const barStart = ui.indexOf('export function A2hsDownloadBar');
+    const barEnd = ui.indexOf('function ShellRefreshTip');
+    const bar = ui.slice(barStart, barEnd);
+    assert.doesNotMatch(bar, /Plus tard|Fermer|sessionStorage|localStorage/);
+    assert.match(bar, /A2HS_BAR_LABEL/);
+    const iconClass = bar.match(/data-testid="pwa-download-bar-icon"[\s\S]*?className="([^"]+)"/);
+    assert.ok(iconClass);
+    assert.doesNotMatch(iconClass[1], /terracotta/);
+
+    assert.match(css, /--a2hs-bar-h:\s*0px/);
+    assert.match(home, /top-\[var\(--a2hs-bar-h\)\]/);
+    assert.match(boot, /top-\[var\(--a2hs-bar-h\)\]/);
+    assert.doesNotMatch(home, /data-testid="pwa-download-bar"/);
+    assert.match(menu, /Télécharger l’appli/);
+    assert.match(menu, /openInstall\(\)/);
+
+    const digest = readFileSync(path.join(process.cwd(), 'src/components/DigestTestIntro.tsx'), 'utf8');
+    const feedback = readFileSync(path.join(process.cwd(), 'src/components/FeedbackChat.tsx'), 'utf8');
+    const share = readFileSync(path.join(process.cwd(), 'src/components/ShareButton.tsx'), 'utf8');
+    assert.match(digest, /dismissA2hsSheetForDigest/);
+    assert.match(digest, /setDigestBlocking\(true\)/);
+    assert.match(digest, /z-\[70\]/);
+    assert.match(feedback, /feedbackOpenAllowed/);
+    assert.match(feedback, /z-40/);
+    assert.match(ui, /z-\[160\]/);
+    assert.match(share, /toastBlockedByModal/);
+    assert.match(share, /z-50/);
+    assert.doesNotMatch(share, /z-\[200\]/);
   });
 });

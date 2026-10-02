@@ -7,11 +7,18 @@ import {
   useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  A2HS_DAY_KEY,
+  A2HS_BAR_HEIGHT_PX,
+  A2HS_BAR_HINT,
+  A2HS_BAR_ICON_PX,
+  A2HS_BAR_ICON_SRC,
+  A2HS_BAR_LABEL,
+  A2HS_BAR_LABEL_NARROW,
+  A2HS_BAR_OFFSET_VAR,
   CRIOS_COPIED_HINT,
   CRIOS_COPIED_LABEL,
   CRIOS_COPY_FAILED,
@@ -40,13 +47,11 @@ import {
   iosInstallFlags,
   iosSheetBottomGapPx,
   isChromeIosClient,
-  isHandheldClient,
-  localDayStamp,
   nativeInstallTap,
   safariBottomChromePx,
   safariHandoffUrl,
   shouldAwaitInstallPrompt,
-  shouldShowDailyA2hs,
+  shouldShowA2hsBar,
   type BeforeInstallPromptEvent,
   type IosInstallFlags,
 } from '@/lib/pwaInstall';
@@ -59,15 +64,27 @@ import {
   readShellReloadSignals,
   shellReloadIsSafe,
 } from '@/lib/pwaRefresh';
+import {
+  canOpenA2hsSheet,
+  getOverlayStack,
+  getServerOverlayStack,
+  registerA2hsSheetCloser,
+  setA2hsSheetBlocking,
+  stickyInstallHidden,
+  subscribeOverlayStack,
+} from '@/lib/overlayStack';
 
 type PwaInstallValue = {
   /** `null` until the client has checked standalone / related apps. */
   installed: boolean | null;
+  /** Install sheet is up. The sticky bar hides for that focus. */
+  sheetOpen: boolean;
   openInstall: () => void;
 };
 
 const PwaInstallContext = createContext<PwaInstallValue>({
   installed: null,
+  sheetOpen: false,
   openInstall: () => {},
 });
 
@@ -396,6 +413,71 @@ function InstallSheet({
   );
 }
 
+function useOverlayStack() {
+  return useSyncExternalStore(subscribeOverlayStack, getOverlayStack, getServerOverlayStack);
+}
+
+/**
+ * Sticky strip directly under the site header. Always on while the app
+ * is not installed — phone and desktop. Tap opens the install sheet.
+ * Hidden while the digeste or the install sheet is open; back on dismiss.
+ * No dismiss control on the strip itself.
+ */
+export function A2hsDownloadBar() {
+  const { installed, sheetOpen, openInstall } = usePwaInstall();
+  const overlay = useOverlayStack();
+  const show =
+    shouldShowA2hsBar({ installed }) &&
+    !stickyInstallHidden({
+      digestOpen: overlay.digestOpen,
+      a2hsSheetOpen: sheetOpen || overlay.a2hsSheetOpen,
+    });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!show) {
+      root.style.removeProperty(A2HS_BAR_OFFSET_VAR);
+      return;
+    }
+    root.style.setProperty(A2HS_BAR_OFFSET_VAR, `${A2HS_BAR_HEIGHT_PX}px`);
+    return () => {
+      root.style.removeProperty(A2HS_BAR_OFFSET_VAR);
+    };
+  }, [show]);
+
+  if (!show) return null;
+
+  return (
+    <div
+      data-testid="pwa-download-bar"
+      className="sticky top-0 z-[45] flex h-11 items-center gap-2.5 border-b border-culture-terracotta/[0.12] bg-culture-cream px-3"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={A2HS_BAR_ICON_SRC}
+        alt=""
+        width={A2HS_BAR_ICON_PX}
+        height={A2HS_BAR_ICON_PX}
+        draggable={false}
+        data-testid="pwa-download-bar-icon"
+        className="h-[22px] w-[22px] shrink-0 rounded-[4px] object-cover"
+      />
+      <p className="hidden min-w-0 flex-1 truncate text-[13px] leading-none text-culture-muted min-[390px]:block">
+        {A2HS_BAR_HINT}
+      </p>
+      <button
+        type="button"
+        data-testid="pwa-download-bar-action"
+        onClick={openInstall}
+        className="ml-auto min-h-9 shrink-0 rounded-full bg-culture-terracotta px-3 py-0 text-sm font-semibold leading-none text-white hover:bg-culture-clay focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta"
+      >
+        <span className="min-[360px]:hidden">{A2HS_BAR_LABEL_NARROW}</span>
+        <span className="hidden min-[360px]:inline">{A2HS_BAR_LABEL}</span>
+      </button>
+    </div>
+  );
+}
+
 function ShellRefreshTip({ onRefresh }: { onRefresh: () => void }) {
   return (
     <div
@@ -513,45 +595,15 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
 
   useEffect(() => {
     let cancelled = false;
-    const signals = clientSignals();
 
-    const timer = window.setTimeout(() => {
-      void (async () => {
-        const installedNow = await detectPwaInstalled({
-          displayModeStandalone: window.matchMedia('(display-mode: standalone)').matches,
-          navigatorStandalone: navigator.standalone === true,
-          getInstalledRelatedApps: navigator.getInstalledRelatedApps,
-        });
-        if (cancelled) return;
-        setInstalled(installedNow);
-        const today = localDayStamp(new Date());
-        let lastDay: string | null = null;
-        try {
-          lastDay = localStorage.getItem(A2HS_DAY_KEY);
-        } catch {
-          lastDay = null;
-        }
-        if (
-          !shouldShowDailyA2hs({
-            handheld: isHandheldClient(signals),
-            installed: installedNow,
-            lastDay,
-            today,
-          })
-        ) {
-          return;
-        }
-        try {
-          localStorage.setItem(A2HS_DAY_KEY, today);
-        } catch {
-          /* private mode: still show this once */
-        }
-        if (!cancelled) {
-          setInstallFlags(iosInstallFlags(clientSignals()));
-          setOpen(true);
-        }
-      })();
-    }, 600);
+    void (async () => {
+      const installedNow = await detectPwaInstalled({
+        displayModeStandalone: window.matchMedia('(display-mode: standalone)').matches,
+        navigatorStandalone: navigator.standalone === true,
+        getInstalledRelatedApps: navigator.getInstalledRelatedApps,
+      });
+      if (!cancelled) setInstalled(installedNow);
+    })();
 
     function onVisible() {
       if (document.visibilityState !== 'visible') return;
@@ -567,18 +619,27 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
 
     return () => {
       cancelled = true;
-      window.clearTimeout(timer);
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, []);
 
   useEffect(() => {
-    if (installed) setOpen(false);
+    if (installed) {
+      setA2hsSheetBlocking(false);
+      setOpen(false);
+    }
   }, [installed]);
 
-  /** Account menu. Flags are set in this turn, before the sheet paints. */
+  useEffect(() => registerA2hsSheetCloser(() => {
+    setA2hsSheetBlocking(false);
+    setOpen(false);
+  }), []);
+
+  /** Account menu and the sticky bar. Never while the digeste is up. */
   const openInstall = useCallback(() => {
+    if (!canOpenA2hsSheet({ digestOpen: getOverlayStack().digestOpen })) return;
     setInstallFlags(iosInstallFlags(clientSignals()));
+    setA2hsSheetBlocking(true);
     setOpen(true);
   }, []);
 
@@ -602,8 +663,8 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
   }, [installFlags, promptEvent]);
 
   const value = useMemo(
-    () => ({ installed, openInstall }),
-    [installed, openInstall],
+    () => ({ installed, sheetOpen: open, openInstall }),
+    [installed, open, openInstall],
   );
 
   return (
@@ -614,7 +675,10 @@ export default function PwaInstallProvider({ children }: { children: ReactNode }
           flags={installFlags}
           promptReady={Boolean(promptEvent)}
           onInstall={onInstall}
-          onClose={() => setOpen(false)}
+          onClose={() => {
+            setA2hsSheetBlocking(false);
+            setOpen(false);
+          }}
         />
       ) : null}
       {shellUpdateReady ? (

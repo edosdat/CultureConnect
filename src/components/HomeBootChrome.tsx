@@ -40,7 +40,7 @@ export default function HomeBootChrome({ children }: { children: ReactNode }) {
   return (
     <>
       <div inert aria-hidden data-home-boot-chrome="">
-        <div className="sticky top-0 z-20 -mx-4 mb-2 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-1.5 backdrop-blur sm:-mx-6 sm:px-6">
+        <div className="sticky top-[var(--a2hs-bar-h)] z-20 -mx-4 mb-2 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-1.5 backdrop-blur sm:-mx-6 sm:px-6">
           <div className="relative w-full" role="search">
             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-culture-muted">
               ⌕
