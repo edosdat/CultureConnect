@@ -141,7 +141,7 @@ export default function VenueFilter({
     return base;
   }, [lieux, qNorm, selected]);
 
-  if (hideWhenNoCategory) {
+  if (hideWhenNoCategory && !selectedLieuId) {
     if (
       !venueChipShown({
         selectedMains,
@@ -151,7 +151,7 @@ export default function VenueFilter({
     ) {
       return null;
     }
-  } else if (lieux.length === 0 && !selectedLieuId && !loading) {
+  } else if (!selectedLieuId && lieux.length === 0 && !loading) {
     return null;
   }
 

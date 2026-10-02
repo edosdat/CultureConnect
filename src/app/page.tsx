@@ -4,6 +4,7 @@ import CultureConnectApp from '@/components/CultureConnectApp';
 import DeepLinkFicheFallback from '@/components/DeepLinkFicheFallback';
 import HomeTop3BootFallback from '@/components/HomeTop3BootFallback';
 import { loadHomeFirstPaint, queryAgendaDetail } from '@/lib/agendaQuery';
+import { buildSearchIndex } from '@/lib/searchSuggestCatalogue';
 import { normalizeDeepLinkId } from '@/lib/deepLink';
 import { itemKeyForShareToken } from '@/lib/shareStore';
 import { normalizeShareToken } from '@/lib/shareToken';
@@ -170,6 +171,7 @@ async function HomePageApp({
   openDetail: ReturnType<typeof queryAgendaDetail>;
 }) {
   const boot = await loadHomeFirstPaint();
+  const searchIndex = buildSearchIndex();
 
   return (
     <main>
@@ -208,6 +210,8 @@ async function HomePageApp({
         initialEnfantsSlotTotal={boot.enfantsSlotTotal ?? 0}
         initialExpoSlotTotal={boot.expoSlotTotal ?? 0}
         initialAutresSlotTotal={boot.autresSlotTotal ?? 0}
+        searchSuggest={searchIndex.suggest}
+        searchLieux={searchIndex.lieux}
       />
     </main>
   );

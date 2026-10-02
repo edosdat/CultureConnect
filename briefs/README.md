@@ -46,3 +46,4 @@ Statuts : **À faire** · **En cours** · **Fait (#PR)** · **Bloqué** · **Rem
 | — | tip Partager trop long | En cours | Toast / sheet au tap, mint async. POST allégé (guest sans `auth()`, SET NX). HOLD merge jusqu'au GO soft. |
 | — | tip Reset froid admin (1ʳᵉ visite) | En cours | Bouton `/admin` pour `ADMIN_EMAILS`. Client seulement : cookies séparés `cc_vid` + `cc_signals_v1`. KV `cc:vs:*` intact. HOLD merge jusqu’au GO. Soft ne merge pas. |
 | — | retirer le CTA « Voir le mois » | Fait (#228) | Lien hors bande filtres retiré. Calendrier Date… conservé. |
+| — | tip recherche NL → chips | Fait (#231) | Preview sous `#cc-search` + Confirmer. 0 date = catalogue ≥ today Paris. |

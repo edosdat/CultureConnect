@@ -74,7 +74,6 @@ import {
   musiqueRows,
   deepLinkBootState,
   resolveHomeCardOpen,
-  resolveSearchSubmit,
   shouldInvalidateProfileRecoCache,
   HOME_CHROME_STACK_CLASS,
   HOME_SECTION_TITLE_ACCENT_VAR,
@@ -140,12 +139,14 @@ import {
   phraseUsesTitleQ,
   type PhraseTags,
 } from '@/lib/phraseTags';
+import { leftoverTitleAfterDraftChange } from '@/lib/parseSearchChips';
 import {
-  leftoverTitleAfterDraftChange,
-  searchChipsToUi,
-  searchSubmitAppliesChips,
-  type SearchChipParse,
-} from '@/lib/parseSearchChips';
+  nlCategoriesToApply,
+  nlTimeScope,
+  type SearchNlLieu,
+  type SearchNlParse,
+} from '@/lib/searchNl';
+import type { SearchSuggestEntry } from '@/lib/searchSuggest';
 import { clearDeepLinkUrlParams, normalizeDeepLinkId } from '@/lib/deepLink';
 import DeepLinkFicheFallback from './DeepLinkFicheFallback';
 import {
@@ -270,6 +271,10 @@ type Props = {
   initialEnfantsSlotTotal?: number;
   initialExpoSlotTotal?: number;
   initialAutresSlotTotal?: number;
+  /** Local titre/artiste rows for the secondary suggest list. */
+  searchSuggest?: SearchSuggestEntry[];
+  /** Known salles for NL → chip Salle. */
+  searchLieux?: SearchNlLieu[];
 };
 
 type RecoKind = 'guest' | 'profile' | 'wiped' | 'pending';
@@ -434,6 +439,8 @@ export default function CultureConnectApp({
   initialEnfantsSlotTotal = 0,
   initialExpoSlotTotal = 0,
   initialAutresSlotTotal = 0,
+  searchSuggest = [],
+  searchLieux = [],
 }: Props) {
   const { track, trackItem, rememberItem, tasteState, sessionStatus } =
     useSignals();
@@ -496,7 +503,8 @@ export default function CultureConnectApp({
   const [committedTitle, setCommittedTitle] = useState('');
   const [phraseTags, setPhraseTags] = useState<PhraseTags | null>(null);
   const searchDrivenRef = useRef({ scope: false, cat: false });
-  const lastSearchChipsRef = useRef({ scope: '', date: '', cat: '' });
+  /** Salle picked from NL confirm — keep it until the user clears QUOI or Salle. */
+  const lieuPinRef = useRef(false);
   const [showMonthPanel, setShowMonthPanel] = useState(false);
   const [facetsOpen, setFacetsOpen] = useState(false);
   useEffect(() => {
@@ -864,32 +872,6 @@ export default function CultureConnectApp({
     }
   }
 
-  /** Enter / search submit only. Never unchecks chips (vider ≠ décocher). */
-  function applyParsedChips(parsed: SearchChipParse, raw: string) {
-    if (!searchSubmitAppliesChips(raw, parsed)) return;
-    const ui = searchChipsToUi(parsed, initialParisIso);
-    const scopeKey = ui.scope ?? '';
-    const dateKey = ui.selectedDate ?? '';
-    const catKey = ui.categories.slice().sort().join(',');
-    const prev = lastSearchChipsRef.current;
-
-    if (ui.scope && (prev.scope !== scopeKey || prev.date !== dateKey)) {
-      applyScopeFromSearch(ui.scope, ui.selectedDate);
-      searchDrivenRef.current.scope = true;
-    }
-
-    if (ui.categories.length > 0 && prev.cat !== catKey) {
-      setSelectedCategories(ui.categories);
-      searchDrivenRef.current.cat = true;
-    }
-
-    lastSearchChipsRef.current = {
-      scope: ui.scope ? scopeKey : prev.scope,
-      date: ui.scope ? dateKey : prev.date,
-      cat: ui.categories.length > 0 ? catKey : prev.cat,
-    };
-  }
-
   function handleQueryChange(next: string) {
     setQuery(next);
     // Always apply — empty draft must drop leftover q even if leftover state is stale.
@@ -897,12 +879,75 @@ export default function CultureConnectApp({
     if (!(next || '').trim()) setPhraseTags(null);
   }
 
+  /** Bare title only. Filter chips wait for Confirmer — never on debounce or Enter-before-preview. */
   function handleSearchSubmit(raw: string) {
-    const intent = resolveSearchSubmit(raw);
-    applyParsedChips(intent.parsed, raw);
-    setPhraseTags(intent.phraseTags);
-    setCommittedTitle(intent.titleQuery);
-    if (intent.commune) handleCommuneChange(intent.commune);
+    setPhraseTags(null);
+    setCommittedTitle(raw.trim());
+  }
+
+  /**
+   * Confirmer. A named QUAND chip is applied as-is.
+   * No date chip → `tous` (full catalogue ≥ today Paris), not semaine / mois / 14j.
+   */
+  function handleNlConfirm(parsed: SearchNlParse) {
+    const scope = nlTimeScope(parsed);
+    applyScopeFromSearch(scope, parsed.selectedDate);
+    searchDrivenRef.current.scope = true;
+
+    const cats = nlCategoriesToApply(parsed);
+    if (cats.length > 0) {
+      setSelectedCategories(cats);
+      setSelectedGenres(parsed.genres);
+      searchDrivenRef.current.cat = true;
+    } else if (parsed.genres.length > 0) {
+      setSelectedGenres(parsed.genres);
+    }
+    if (parsed.commune) {
+      setNearMeActive(false);
+      setUserPos(null);
+      setBrowseCommune(parsed.commune);
+      setSelectedCommune(parsed.commune);
+    }
+    if (parsed.lieuId) {
+      const lieuId = parsed.lieuId;
+      lieuPinRef.current = true;
+      const label = parsed.lieuLabel || lieuId;
+      const commune = parsed.commune || '';
+      setVenueOptions((prev) =>
+        prev.some((v) => v.lieu_id === lieuId)
+          ? prev
+          : [
+              {
+                lieu_id: lieuId,
+                nom: label,
+                label_affiche: label,
+                commune,
+                type: '',
+                adresse: '',
+                dist_km_capitole: '',
+                site_web: '',
+                notes: '',
+              },
+              ...prev,
+            ],
+      );
+      setSelectedLieuId(lieuId);
+    }
+    setPhraseTags(null);
+    setCommittedTitle(parsed.titleQuery);
+  }
+
+  function handleSuggestTitre(itemKey: string) {
+    setQuery('');
+    setCommittedTitle('');
+    setPhraseTags(null);
+    setSelectedItemKey(itemKey);
+  }
+
+  function handleSuggestArtiste(name: string) {
+    setQuery(name);
+    setPhraseTags(null);
+    setCommittedTitle(name.trim());
   }
 
   const queryTrimmed = query.trim();
@@ -1691,10 +1736,12 @@ export default function CultureConnectApp({
   }, [selectedCategories, genresLegend]);
 
   // Plan C: drop salle when QUOI cleared or salle left category-adapted options.
+  // A salle pinned by NL confirm stays until the user clears QUOI or Salle.
   useEffect(() => {
-    setSelectedLieuId((prev) =>
-      retainSelectedLieuId(prev, selectedCategories, venueOptions),
-    );
+    setSelectedLieuId((prev) => {
+      if (lieuPinRef.current && prev) return prev;
+      return retainSelectedLieuId(prev, selectedCategories, venueOptions);
+    });
   }, [selectedCategories, venueOptions]);
 
   const genreChipSlugs = useMemo(
@@ -2859,6 +2906,7 @@ export default function CultureConnectApp({
   }
 
   function handleCategoriesChange(next: string[]) {
+    lieuPinRef.current = false;
     searchDrivenRef.current.cat = false;
     const added = next.filter((c) => !selectedCategories.includes(c));
     setListFetchInFlight(true);
@@ -2989,6 +3037,13 @@ export default function CultureConnectApp({
           value={query}
           onChange={handleQueryChange}
           onSubmit={handleSearchSubmit}
+          onConfirm={handleNlConfirm}
+          onPickTitre={handleSuggestTitre}
+          onPickArtiste={handleSuggestArtiste}
+          genres={genresLegend.map((g) => ({ slug: g.slug, label: g.label_fr }))}
+          communes={communes}
+          lieux={searchLieux}
+          suggest={searchSuggest}
         />
       </div>
       <div className={HOME_CHROME_STACK_CLASS}>
@@ -3029,7 +3084,10 @@ export default function CultureConnectApp({
             <VenueFilter
               lieux={venueOptions}
               selectedLieuId={selectedLieuId}
-              onChange={setSelectedLieuId}
+              onChange={(id) => {
+                if (!id) lieuPinRef.current = false;
+                setSelectedLieuId(id);
+              }}
               variant="inline"
               selectedMains={selectedCategories}
               hideWhenNoCategory

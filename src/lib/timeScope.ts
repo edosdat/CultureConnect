@@ -53,7 +53,10 @@ export function parisParts(now = new Date()): {
   return { year, month, day, hour, weekday, iso };
 }
 
-/** Boot / empty parse: no date chip, pool = tout à venir. */
+/**
+ * Boot and NL confirm with 0 date chip: full catalogue ≥ today Paris.
+ * Not « cette semaine », not the calendar month, not a 14-day window.
+ */
 export function bootTimeScope(): TimeScopeId {
   return 'tous';
 }
