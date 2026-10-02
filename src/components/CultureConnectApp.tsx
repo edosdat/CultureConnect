@@ -484,8 +484,8 @@ export default function CultureConnectApp({
     deepLinkBoot.expoFocusKey,
   );
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  /** Mode « Avec les enfants » — not a category chip. */
-  const [avecEnfants, setAvecEnfants] = useState(initialAvecEnfants);
+  /** Deep link `?enfants=1` only. No second QUOI chip. */
+  const avecEnfants = initialAvecEnfants;
   /** List payload that was fetched with the mode flag (avoids a stale rail). */
   const [listAvecEnfants, setListAvecEnfants] = useState(false);
   /** P3 — hide the œuvre before the taste round-trip lands (sheet Mes recos only). */
@@ -3183,40 +3183,6 @@ export default function CultureConnectApp({
                     onChange={handleCategoriesChange}
                     variant="home"
                   />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAvecEnfants((on) => {
-                        const next = !on;
-                        const url = new URL(window.location.href);
-                        if (next) url.searchParams.set('enfants', '1');
-                        else {
-                          url.searchParams.delete('enfants');
-                          url.searchParams.delete('avec_enfants');
-                        }
-                        window.history.replaceState(
-                          null,
-                          '',
-                          url.pathname + url.search + url.hash,
-                        );
-                        return next;
-                      });
-                    }}
-                    aria-pressed={avecEnfants}
-                    data-enfants-mode=""
-                    className="cc-axes__chip shrink-0 whitespace-nowrap rounded-full font-semibold transition"
-                    style={{
-                      borderWidth: 1.5,
-                      borderStyle: 'solid',
-                      borderColor: 'var(--cat-enfants)',
-                      backgroundColor: avecEnfants
-                        ? 'var(--cat-enfants)'
-                        : 'var(--cc-surface)',
-                      color: avecEnfants ? '#fff' : 'var(--cc-ink)',
-                    }}
-                  >
-                    Avec les enfants
-                  </button>
                   {selectedCategories.length > 0 ? (
                     <div className="cc-axes__more">
                       <button

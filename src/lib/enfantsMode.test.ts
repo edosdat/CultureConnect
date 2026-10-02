@@ -108,9 +108,10 @@ describe('Enfants chip stays unitary; mode « Avec les enfants » is a flag', ()
     'utf8',
   );
 
-  it('wires « Avec les enfants » as ?enfants=1, not as the QUOI chip', () => {
-    assert.match(app, /Avec les enfants/);
-    assert.match(app, /data-enfants-mode/);
+  it('keeps ?enfants=1 on the deep link and off the QUOI row', () => {
+    assert.equal(app.includes('data-enfants-mode=""'), false);
+    assert.equal(app.includes('>Avec les enfants<'), false);
+    assert.match(app, /title="Avec les enfants"/);
     assert.match(app, /oneCardPerSeance/);
     assert.match(route, /avecEnfants/);
     assert.match(paramsSrc, /parseAvecEnfantsFlag/);
