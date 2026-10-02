@@ -65,7 +65,7 @@ import EventCtaRow from './EventCtaRow';
 import VivantComplementLinks from './VivantComplementLinks';
 import PressCitation from './PressCitation';
 import CineSeancePicker from './CineSeancePicker';
-import FicheDescription, { FicheCast } from './FicheDescription';
+import FicheDescription, { FicheCast, FichePrix } from './FicheDescription';
 import { fichePressCitation, pressItemForFiche } from '@/lib/pressCitation';
 
 export type CinemaCarouselPack =
@@ -901,7 +901,7 @@ export default function CinemaCarousel({
     </div>
   );
 
-  const titleBlock = (
+  const headingBlock = (
     <>
       <div className="flex items-start justify-between gap-2">
         <span className="flex min-w-0 flex-wrap items-center gap-1.5">
@@ -913,11 +913,9 @@ export default function CinemaCarousel({
       <h3 className="min-w-0 break-words font-display text-base leading-snug text-culture-ink md:text-2xl">
         {rowDisplayTitle(hero)}
       </h3>
-      <p className="text-sm leading-snug text-culture-muted">
-        {[venue, km, when].filter(Boolean).join(pack === 'cine' ? ' · ' : ' • ')}
-      </p>
     </>
   );
+  const metaLine = [venue, km, when].filter(Boolean).join(pack === 'cine' ? ' · ' : ' • ');
 
   return (
     <div className="space-y-3">
@@ -948,7 +946,18 @@ export default function CinemaCarousel({
           />
         </div>
         <div className="flex min-w-0 flex-col gap-2 p-3 md:p-4">
-          {titleBlock}
+          {headingBlock}
+          <FicheDescription
+            item={detailItem ?? item}
+            pending={!detailItem && !listItemHasHeroFicheCopy(item)}
+          />
+          {pack === 'cine' ? <FicheCast item={detailItem ?? item} /> : null}
+          <FichePrix item={active} />
+          {metaLine ? (
+            <p data-fiche-meta="" className="text-sm leading-snug text-culture-muted">
+              {metaLine}
+            </p>
+          ) : null}
           <ShareSocial key={active.key} item={active} token={null} />
           {pack === 'cine' && seances.length > 0 ? (
             <div ref={seancesRef} id={seancesDomId}>
@@ -964,11 +973,6 @@ export default function CinemaCarousel({
               />
             </div>
           ) : null}
-          <FicheDescription
-            item={detailItem ?? item}
-            pending={!detailItem && !listItemHasHeroFicheCopy(item)}
-          />
-          {pack === 'cine' ? <FicheCast item={detailItem ?? item} /> : null}
           {pack === 'theatre' || pack === 'musique' ? (
             <PressCitation
               citation={fichePressCitation(

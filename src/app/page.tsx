@@ -5,6 +5,7 @@ import DeepLinkFicheFallback from '@/components/DeepLinkFicheFallback';
 import HomeTop3BootFallback from '@/components/HomeTop3BootFallback';
 import { loadHomeFirstPaint, queryAgendaDetail } from '@/lib/agendaQuery';
 import { buildSearchIndex } from '@/lib/searchSuggestCatalogue';
+import { parseAvecEnfantsFlag } from '@/lib/agendaParams';
 import { normalizeDeepLinkId } from '@/lib/deepLink';
 import { itemKeyForShareToken } from '@/lib/shareStore';
 import { normalizeShareToken } from '@/lib/shareToken';
@@ -126,7 +127,13 @@ async function openKeyFromSearch(params: {
 export default function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ e?: string; id?: string; t?: string }>;
+  searchParams: Promise<{
+    e?: string;
+    id?: string;
+    t?: string;
+    enfants?: string;
+    avec_enfants?: string;
+  }>;
 }) {
   return (
     <Suspense fallback={<HomeTop3BootFallback />}>
@@ -138,9 +145,18 @@ export default function HomePage({
 async function HomePageGate({
   searchParams,
 }: {
-  searchParams: Promise<{ e?: string; id?: string; t?: string }>;
+  searchParams: Promise<{
+    e?: string;
+    id?: string;
+    t?: string;
+    enfants?: string;
+    avec_enfants?: string;
+  }>;
 }) {
   const params = await searchParams;
+  const initialAvecEnfants =
+    parseAvecEnfantsFlag(firstParam(params?.enfants)) ||
+    parseAvecEnfantsFlag(firstParam(params?.avec_enfants));
   const initialOpenKey = await openKeyFromSearch(params);
   const shareToken = normalizeShareToken(firstParam(params?.t));
   const openDetail = initialOpenKey
@@ -153,22 +169,29 @@ async function HomePageGate({
         <HomePageApp
           initialOpenKey={initialOpenKey}
           openDetail={openDetail}
+          initialAvecEnfants={initialAvecEnfants}
         />
       </Suspense>
     );
   }
 
   return (
-    <HomePageApp initialOpenKey={null} openDetail={null} />
+    <HomePageApp
+      initialOpenKey={null}
+      openDetail={null}
+      initialAvecEnfants={initialAvecEnfants}
+    />
   );
 }
 
 async function HomePageApp({
   initialOpenKey,
   openDetail,
+  initialAvecEnfants = false,
 }: {
   initialOpenKey: string | null;
   openDetail: ReturnType<typeof queryAgendaDetail>;
+  initialAvecEnfants?: boolean;
 }) {
   const boot = await loadHomeFirstPaint();
   const searchIndex = buildSearchIndex();
@@ -212,6 +235,7 @@ async function HomePageApp({
         initialAutresSlotTotal={boot.autresSlotTotal ?? 0}
         searchSuggest={searchIndex.suggest}
         searchLieux={searchIndex.lieux}
+        initialAvecEnfants={initialAvecEnfants}
       />
     </main>
   );

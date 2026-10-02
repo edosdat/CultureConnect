@@ -176,15 +176,26 @@ describe('Relance contract — sheet and home Top 3 stay capped', () => {
     assert.match(app, /visibleTop3Items\(weekPourToiFilled\)/);
     // #204 demotes week-sheet works off home Top 3, then still caps via visibleTop3Items.
     assert.match(app, /excludeWorksFromPool\(pourToiFilled, weekTop3Cards\)/);
-    assert.match(app, /return visibleTop3Items\(pool\)/);
+    assert.match(
+      app,
+      /return visibleTop3Items\(fillEmptyRecoSlots\(pool, slotFillSource\)\)/,
+    );
     assert.match(
       query,
       /agendaRecommend\.forProfile\(\s*pool,\s*\{ signalsRecent: \[\], profile \},\s*3,/,
     );
     assert.match(route, /queryRelanceDigest/);
     assert.match(route, /digest=relance requires reco=1/);
-    assert.equal(route.includes('avecEnfants'), false);
-    assert.equal(query.includes('avecEnfants'), false);
+    const relance = route.slice(
+      route.indexOf("digestMode === 'relance'"),
+      route.indexOf('const scopeRaw'),
+    );
+    assert.equal(relance.includes('avecEnfants'), false);
+    const digestFn = query.slice(
+      query.indexOf('export function queryRelanceDigest'),
+      query.indexOf('export function packTotalsComputeCountForTests'),
+    );
+    assert.equal(digestFn.includes('avecEnfants'), false);
     assert.match(app, /RECO_BOOT_SCOPES = \['tous', 'soir', 'aujourdhui', 'weekend', 'semaine'\]/);
   });
 });

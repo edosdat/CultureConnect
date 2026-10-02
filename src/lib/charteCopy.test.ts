@@ -65,7 +65,8 @@ describe('charte copy is wired once from the Enfants chip', () => {
     assert.match(app, /enfantsChipOn/);
     assert.match(app, /charteRegister\(enfantsChipOn\)/);
     assert.match(app, /charteCopy\(enfantsChipOn\)/);
-    assert.equal(app.includes('avecEnfants'), false);
+    assert.equal(app.includes('charteRegister(avecEnfants)'), false);
+    assert.equal(app.includes('charteCopy(avecEnfants)'), false);
     assert.equal(app.includes("? 'Mes plans'"), false);
     assert.equal(app.includes('? "Mes plans"'), false);
     assert.equal(app.includes('Mes crushs'), false);

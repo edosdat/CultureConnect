@@ -90,7 +90,7 @@ function seance(opts: {
   };
 }
 
-describe('product LOCK — Enfants chip sole path', () => {
+describe('Enfants chip stays unitary; mode « Avec les enfants » is a flag', () => {
   const app = readFileSync(
     new URL('../components/CultureConnectApp.tsx', import.meta.url),
     'utf8',
@@ -108,16 +108,19 @@ describe('product LOCK — Enfants chip sole path', () => {
     'utf8',
   );
 
-  it('removes the « Avec les enfants » mode UI and request flag', () => {
-    assert.equal(app.includes('Avec les enfants'), false);
-    assert.equal(app.includes('data-enfants-mode'), false);
-    assert.equal(app.includes('avecEnfants'), false);
-    assert.equal(app.includes('oneCardPerSeance'), false);
-    assert.equal(route.includes('avecEnfants'), false);
-    assert.equal(paramsSrc.includes('avecEnfants'), false);
-    assert.equal(paramsSrc.includes('parseAvecEnfantsFlag'), false);
-    assert.equal(querySrc.includes('avecEnfants'), false);
-    assert.equal(querySrc.includes('applyAvecEnfantsMode'), false);
+  it('keeps ?enfants=1 on the deep link and off the QUOI row', () => {
+    assert.equal(app.includes('data-enfants-mode=""'), false);
+    assert.equal(app.includes('>Avec les enfants<'), false);
+    assert.match(app, /title="Avec les enfants"/);
+    assert.match(app, /oneCardPerSeance/);
+    assert.match(route, /avecEnfants/);
+    assert.match(paramsSrc, /parseAvecEnfantsFlag/);
+    assert.match(querySrc, /applyAvecEnfantsMode/);
+    const relance = route.slice(
+      route.indexOf("digestMode === 'relance'"),
+      route.indexOf('const scopeRaw'),
+    );
+    assert.equal(relance.includes('avecEnfants'), false);
   });
 
   it('does not send enfants=1 as a mode flag', () => {
@@ -135,11 +138,26 @@ describe('product LOCK — Enfants chip sole path', () => {
     assert.equal(params.get('enfants'), null);
     assert.equal(params.get('avec_enfants'), null);
     assert.equal(params.get('cat'), 'enfants_famille');
+    const mode = buildAgendaParams({
+      scope: 'tous',
+      commune: 'Toulouse',
+      q: '',
+      cats: ['cinema'],
+      genres: [],
+      lieuId: null,
+      selectedDate: null,
+      year: 2026,
+      month: 10,
+      avecEnfants: true,
+    });
+    assert.equal(mode.get('enfants'), '1');
+    assert.equal(mode.get('cat'), 'cinema');
   });
 
-  it('boot GPS skip no longer has a kids-mode escape hatch', () => {
+  it('boot GPS skip still paints « tous », and does not swallow the kids mode', () => {
     assert.equal(listFetchShouldSkipBootGps(true, 'tous', 0), true);
     assert.equal(listFetchShouldSkipBootGps(true, 'tous', 1), false);
+    assert.equal(listFetchShouldSkipBootGps(true, 'tous', 0, '', true), false);
   });
 
   it('Enfants chip densifies same film_id → unitary card (no Cars×5)', () => {

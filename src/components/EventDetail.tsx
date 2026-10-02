@@ -7,6 +7,7 @@ import {
   cineDistanceOrigin,
   defaultCineSeance,
   seanceHeureLabel,
+  seancePrixLabel,
   seancesIncludingShared,
   shareSeancePool,
   shareVisitPickerFilter,
@@ -25,9 +26,7 @@ import SharerActivitySand from './SharerActivitySand';
 import EventCtaRow from './EventCtaRow';
 import {
   formatDateRange,
-  formatItemPrix,
   formatLieuAffiche,
-  formatPrix,
   formatDateFr,
   labelTypeItem,
 } from '@/lib/labels';
@@ -44,7 +43,7 @@ import { fichePressCitation } from '@/lib/pressCitation';
 import { itemKmLabel, type GeoPos } from '@/lib/nearMe';
 import VivantComplementLinks from './VivantComplementLinks';
 import PressCitation from './PressCitation';
-import FicheDescription, { FicheCast } from './FicheDescription';
+import FicheDescription, { FicheCast, FichePrix } from './FicheDescription';
 import CineFicheFrame from './CineFicheFrame';
 import { CineFilmSeances } from './CineSeancePicker';
 import { useShareVisit } from './ShareVisitProvider';
@@ -474,8 +473,14 @@ export default function EventDetail({
                     {ev.titre}
                   </p>
                 )}
+                <FicheDescription item={item} />
+                <FicheCast item={item} />
+                <FichePrix item={filmForSuggestions} />
                 {cineMeta ? (
-                  <p className="mt-1.5 text-sm leading-snug text-culture-muted">
+                  <p
+                    data-fiche-meta=""
+                    className="mt-1.5 text-sm leading-snug text-culture-muted"
+                  >
                     {cineMeta}
                   </p>
                 ) : null}
@@ -505,8 +510,6 @@ export default function EventDetail({
                     />
                   </div>
                 ) : null}
-                <FicheDescription item={item} />
-                <FicheCast item={item} />
                 <div className="mt-3">
                   <VivantComplementLinks
                     film={filmForSuggestions}
@@ -564,12 +567,14 @@ export default function EventDetail({
                     {time || 'Non indiqués'}
                   </dd>
                 </div>
-                <div>
-                  <dt className="text-culture-muted">Prix</dt>
-                  <dd className="font-medium text-culture-ink">
-                    {formatItemPrix(p.prix_item, ev)}
-                  </dd>
-                </div>
+                {seancePrixLabel(item) ? (
+                  <div>
+                    <dt className="text-culture-muted">Prix</dt>
+                    <dd className="font-medium text-culture-ink">
+                      {seancePrixLabel(item)}
+                    </dd>
+                  </div>
+                ) : null}
                 {p.scene_salle && (
                   <div>
                     <dt className="text-culture-muted">Salle / scène</dt>
@@ -579,12 +584,12 @@ export default function EventDetail({
               </dl>
             )}
 
-            {hasFilmSeances && !cinemaFiche ? (
+            {hasFilmSeances && !cinemaFiche && seancePrixLabel(item) ? (
               <dl className="grid gap-3 text-sm sm:grid-cols-2">
                 <div>
                   <dt className="text-culture-muted">Prix</dt>
                   <dd className="font-medium text-culture-ink">
-                    {formatItemPrix(p.prix_item, ev)}
+                    {seancePrixLabel(item)}
                   </dd>
                 </div>
               </dl>
@@ -845,10 +850,12 @@ export default function EventDetail({
                 {time || 'Non indiqués'}
               </dd>
             </div>
-            <div>
-              <dt className="text-culture-muted">Prix</dt>
-              <dd className="font-medium text-culture-ink">{formatPrix(event)}</dd>
-            </div>
+            {seancePrixLabel(item) ? (
+              <div>
+                <dt className="text-culture-muted">Prix</dt>
+                <dd className="font-medium text-culture-ink">{seancePrixLabel(item)}</dd>
+              </div>
+            ) : null}
             <div>
               <dt className="text-culture-muted">Statut</dt>
               <dd className="font-medium capitalize text-culture-ink">

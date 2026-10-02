@@ -803,6 +803,10 @@ describe('B3b source contract', () => {
     assert.match(detail, /key=\{item\.key\}/);
     assert.match(detail, /cineMeta/);
     assert.match(detail, /seanceWhenShort/);
+    const detailPitch = detail.indexOf('<FicheDescription');
+    const detailMeta = detail.indexOf('data-fiche-meta');
+    assert.ok(detailPitch > 0 && detailMeta > detailPitch);
+    assert.match(detail, /FichePrix/);
 
     const carousel = await readFile(
       new URL('../components/CinemaCarousel.tsx', import.meta.url),
@@ -811,6 +815,10 @@ describe('B3b source contract', () => {
     const carouselSocial = carousel.indexOf('<ShareSocial');
     const carouselPicker = carousel.indexOf('<CineSeancePicker');
     assert.ok(carouselSocial > 0 && carouselPicker > 0 && carouselSocial < carouselPicker);
+    const carouselPitch = carousel.indexOf('<FicheDescription');
+    const carouselMeta = carousel.indexOf('data-fiche-meta');
+    assert.ok(carouselPitch > 0 && carouselMeta > carouselPitch);
+    assert.match(carousel, /FichePrix/);
     assert.match(carousel, /token=\{null\}/);
     assert.match(carousel, /key=\{active\.key\}/);
     assert.match(carousel, /data-carousel-hero/);
