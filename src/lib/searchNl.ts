@@ -4,6 +4,8 @@
  *
  * 0 date chip → confirm scope `tous` (full catalogue ≥ today Europe/Paris).
  * A QUAND chip appears only when the phrase itself names a date.
+ * Salle / lieu is out of this path: lieuId stays null, no salle chip.
+ * Ville only when the phrase names a commune — never inferred from a venue.
  */
 
 import type { MainCategoryId } from './categories';
@@ -44,7 +46,7 @@ export type SearchNlParse = SearchChipParse & {
   lieuLabel: string | null;
 };
 
-export type SearchNlChipAxis = 'quand' | 'quoi' | 'genre' | 'ville' | 'salle';
+export type SearchNlChipAxis = 'quand' | 'quoi' | 'genre' | 'ville';
 
 export type SearchNlChip = {
   key: string;
@@ -167,41 +169,6 @@ function matchGenres(
   return { genres: found, phrases: consumed };
 }
 
-function lieuNeedles(lieu: SearchNlLieu): string[] {
-  const out = new Set<string>();
-  for (const raw of [lieu.nom, lieu.label]) {
-    const norm = normalizePhrase(raw);
-    if (norm.length >= 4) out.add(norm);
-    const stripped = norm.replace(/^(le|la|les|l|au|aux)\s+/, '');
-    if (stripped.length >= 4 && stripped !== norm) out.add(stripped);
-  }
-  return [...out];
-}
-
-function matchLieu(
-  norm: string,
-  lieux: readonly SearchNlLieu[],
-): { lieu: SearchNlLieu; phrase: string } | null {
-  let best: { lieu: SearchNlLieu; phrase: string } | null = null;
-  let tie = false;
-  for (const lieu of lieux) {
-    for (const phrase of lieuNeedles(lieu)) {
-      if (!hasPhrase(norm, phrase)) continue;
-      if (!best || phrase.length > best.phrase.length) {
-        best = { lieu, phrase };
-        tie = false;
-      } else if (
-        phrase.length === best.phrase.length &&
-        lieu.id !== best.lieu.id
-      ) {
-        tie = true;
-      }
-    }
-  }
-  if (!best || tie) return null;
-  return best;
-}
-
 function matchCommune(
   norm: string,
   communes: readonly string[],
@@ -253,16 +220,12 @@ export function parseSearchNl(
   const base = parseSearchChips(raw, now);
   const norm = normalizePhrase(raw);
   const genreHit = matchGenres(norm, dict.genres);
-  const lieuHit = matchLieu(norm, dict.lieux);
   const communeHit = matchCommune(norm, dict.communes);
 
   let title = base.titleQuery;
   for (const phrase of genreHit.phrases) title = stripPhrase(title, phrase);
-  if (lieuHit) title = stripPhrase(title, lieuHit.phrase);
   if (communeHit) title = stripPhrase(title, communeHit.phrase);
   title = title.replace(/\s+/g, ' ').trim();
-
-  const commune = communeHit?.commune ?? lieuHit?.lieu.commune ?? null;
 
   return {
     scope: base.scope,
@@ -270,9 +233,9 @@ export function parseSearchNl(
     categories: base.categories,
     titleQuery: title,
     genres: genreHit.genres.map((g) => g.slug),
-    commune,
-    lieuId: lieuHit?.lieu.id ?? null,
-    lieuLabel: lieuHit ? lieuHit.lieu.nom || lieuHit.lieu.label : null,
+    commune: communeHit?.commune ?? null,
+    lieuId: null,
+    lieuLabel: null,
   };
 }
 
@@ -300,8 +263,7 @@ export function nlHasFilter(parsed: SearchNlParse): boolean {
     parsed.scope ||
       parsed.categories.length ||
       parsed.genres.length ||
-      parsed.commune ||
-      parsed.lieuId,
+      parsed.commune,
   );
 }
 
@@ -337,13 +299,6 @@ export function previewChips(
       key: `ville:${parsed.commune}`,
       axis: 'ville',
       label: parsed.commune,
-    });
-  }
-  if (parsed.lieuId && parsed.lieuLabel) {
-    chips.push({
-      key: `salle:${parsed.lieuId}`,
-      axis: 'salle',
-      label: parsed.lieuLabel,
     });
   }
   return chips;
