@@ -73,7 +73,7 @@ export default function MoreActionsMenu({ item, onAgenda, onIcs }: Props) {
               type="button"
               tabIndex={-1}
               aria-label="Fermer plus d’actions"
-              className="absolute inset-0 bg-culture-ink/25"
+              className="absolute inset-0 bg-planc-nuit/25"
               onClick={() => setOpen(false)}
             />
             <div

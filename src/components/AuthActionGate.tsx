@@ -128,7 +128,7 @@ export default function AuthActionGate() {
         type="button"
         tabIndex={-1}
         aria-label={AUTH_GATE_LATER}
-        className="absolute inset-0 bg-culture-ink/40"
+        className="absolute inset-0 bg-planc-nuit/40"
         onClick={() => dismissAuthGate()}
       />
       <div

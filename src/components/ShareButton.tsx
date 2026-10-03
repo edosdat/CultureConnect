@@ -50,7 +50,7 @@ function toastElement(): HTMLDivElement | null {
   el.setAttribute('aria-live', 'polite');
   el.setAttribute('data-testid', TOAST_TESTID);
   el.className =
-    'pointer-events-none fixed bottom-5 left-1/2 z-50 w-[min(92vw,20rem)] -translate-x-1/2 rounded-full bg-culture-ink px-4 py-2.5 text-center text-sm font-medium text-white shadow-lg';
+    'pointer-events-none fixed bottom-5 left-1/2 z-50 w-[min(92vw,20rem)] -translate-x-1/2 rounded-full bg-planc-nuit px-4 py-2.5 text-center text-sm font-medium text-white shadow-lg';
   el.textContent = 'Lien copié';
   document.body.appendChild(el);
   toastNode = el;

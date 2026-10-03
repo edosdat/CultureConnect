@@ -79,7 +79,7 @@ export default function MonthCalendarDrawer({
         tabIndex={-1}
         aria-label="Fermer le calendrier"
         className={
-          'absolute inset-0 bg-culture-ink/20 transition-opacity duration-200 ease-out pointer-events-auto ' +
+          'absolute inset-0 bg-planc-nuit/20 transition-opacity duration-200 ease-out pointer-events-auto ' +
           (visible ? 'opacity-100' : 'opacity-0')
         }
         onPointerDown={dismiss}

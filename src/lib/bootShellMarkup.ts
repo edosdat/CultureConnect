@@ -14,7 +14,7 @@ import {
  */
 export const BOOT_SHELL_CSS = `
 html,body{background-color:${BOOT_SHELL_CREAM}}
-#${BOOT_SHELL_ID}{display:none;position:fixed;inset:0;z-index:300;box-sizing:border-box;margin:0;padding:24px;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:${BOOT_SHELL_CREAM};color:#1A0B1E;font:500 15px/1.35 ui-sans-serif,system-ui,sans-serif;opacity:1;transition:opacity ${BOOT_SHELL_FADE_MS}ms linear}
+#${BOOT_SHELL_ID}{display:none;position:fixed;inset:0;z-index:300;box-sizing:border-box;margin:0;padding:24px;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:${BOOT_SHELL_CREAM};color:#FFF1F4;font:500 15px/1.35 ui-sans-serif,system-ui,sans-serif;opacity:1;transition:opacity ${BOOT_SHELL_FADE_MS}ms linear}
 @media (display-mode:standalone){#${BOOT_SHELL_ID}{display:flex}}
 html[data-cc-boot=on] #${BOOT_SHELL_ID}{display:flex}
 html[data-app-ready] #${BOOT_SHELL_ID}{opacity:0;pointer-events:none}

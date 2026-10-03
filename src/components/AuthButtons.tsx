@@ -70,7 +70,7 @@ function AvatarFace({
     );
   }
   return (
-    <span className="flex h-full w-full items-center justify-center rounded-full bg-culture-ink text-xs font-bold text-white">
+    <span className="flex h-full w-full items-center justify-center rounded-full bg-planc-nuit text-xs font-bold text-white">
       {initial}
     </span>
   );

@@ -120,10 +120,14 @@ describe('S8.1 palette LOCK', () => {
     assert.match(css, /--cat-festival:\s*#be185d/i);
     assert.match(css, /--cat-expo:\s*#334155/i);
     assert.match(css, /--cat-enfants:\s*#ca8a04/i);
-    assert.match(css, /--cc-cream:\s*#faf6fa/i);
-    assert.match(css, /--cc-surface:\s*#fffdff/i);
-    assert.match(css, /--cc-ink:\s*#1a0b1e/i);
+    assert.match(css, /--cc-cream:\s*#1a0b1e/i);
+    assert.match(css, /--cc-surface:\s*#2a1231/i);
+    assert.match(css, /--cc-ink:\s*#fff1f4/i);
     assert.equal(css.includes('#78716c'), false);
+    // Thème nuit : le hex LOCK reste la valeur de référence déclarée sur :root,
+    // mais l'UI consomme les surcharges posées sur body (docs/ton-plan-c.md §4).
+    assert.match(css, /--cat-cine:\s*var\(--planc-peche\)/i);
+    assert.match(css, /--cat-festival:\s*var\(--planc-cerise\)/i);
   });
 });
 

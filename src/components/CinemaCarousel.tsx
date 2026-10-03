@@ -219,7 +219,7 @@ function FilmThumb({
         <span className="absolute left-1.5 top-1.5 flex max-w-[calc(100%-0.75rem)] flex-col items-start gap-1">
           <span className="flex max-w-full flex-wrap items-center gap-1">
             {when ? (
-              <span className="rounded bg-culture-ink/85 px-1.5 py-0.5 text-[11px] font-semibold leading-tight text-white">
+              <span className="rounded bg-planc-nuit/85 px-1.5 py-0.5 text-[11px] font-semibold leading-tight text-white">
                 {when}
               </span>
             ) : null}

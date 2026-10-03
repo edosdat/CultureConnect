@@ -175,7 +175,7 @@ export default function ActivityInbox() {
               type="button"
               tabIndex={-1}
               aria-label="Fermer Mes partages"
-              className="absolute inset-0 bg-culture-ink/25"
+              className="absolute inset-0 bg-planc-nuit/25"
               onClick={() => setOpen(false)}
             />
             <div

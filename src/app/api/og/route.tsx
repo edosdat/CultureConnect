@@ -23,8 +23,8 @@ function ogCard(title: string, venue: string, cat: string) {
         flexDirection: 'column',
         justifyContent: 'space-between',
         padding: '72px',
-        background: 'linear-gradient(145deg, #C9145C 0%, #FF2E7E 45%, #F0E7F0 100%)',
-        color: '#FFFDFF',
+        background: 'linear-gradient(145deg, #C9145C 0%, #FF2E7E 45%, #3A1840 100%)',
+        color: '#2A1231',
         fontFamily: 'Georgia, serif',
       }}
     >

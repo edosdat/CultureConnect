@@ -369,7 +369,7 @@ export default function FeedbackChat() {
                 key={msg.id}
                 className={
                   msg.role === 'user'
-                    ? 'ml-6 rounded-2xl bg-culture-ink px-3 py-2 text-sm text-culture-cream'
+                    ? 'ml-6 rounded-2xl bg-planc-nuit px-3 py-2 text-sm text-culture-cream'
                     : 'mr-6 whitespace-normal break-words rounded-2xl bg-culture-sand px-3 py-2 text-sm text-culture-ink'
                 }
               >
@@ -423,7 +423,7 @@ export default function FeedbackChat() {
                     className={
                       CHIP_CLASS +
                       (on
-                        ? 'bg-culture-ink text-culture-cream'
+                        ? 'bg-planc-nuit text-culture-cream'
                         : 'border border-culture-line bg-white text-culture-muted hover:text-culture-ink')
                     }
                   >
@@ -515,7 +515,7 @@ export default function FeedbackChat() {
               <button
                 type="submit"
                 disabled={sending || (text.trim().length < 2 && !(capture && text.trim().length === 0))}
-                className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-full bg-culture-ink px-4 text-sm font-medium text-culture-cream hover:opacity-90 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta"
+                className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-full bg-planc-nuit px-4 text-sm font-medium text-culture-cream hover:opacity-90 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta"
               >
                 {sending ? 'Envoi…' : 'Envoyer'}
               </button>
@@ -531,7 +531,7 @@ export default function FeedbackChat() {
                   />
                   {sending ? (
                     <span
-                      className="absolute inset-0 grid place-items-center rounded-lg bg-culture-ink/40"
+                      className="absolute inset-0 grid place-items-center rounded-lg bg-planc-nuit/40"
                       aria-hidden="true"
                     >
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-culture-cream border-t-transparent" />

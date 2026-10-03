@@ -269,7 +269,7 @@ function InstallSheet({
         type="button"
         tabIndex={-1}
         aria-label="Fermer"
-        className="absolute inset-x-0 bg-culture-ink/15"
+        className="absolute inset-x-0 bg-planc-nuit/15"
         style={
           safariIpad
             ? { top: IOS_SAFARI_TOP_MIN_GAP_PX, bottom: bottomGap }
