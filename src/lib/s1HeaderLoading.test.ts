@@ -2,6 +2,49 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
+describe('PR 4 — nom Plan C et titres', () => {
+  it('wordmark, métadonnées et échelle mobile des titres', async () => {
+    const nav = await readFile(
+      new URL('../components/SiteNav.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(nav, /aria-label="Plan C, accueil"/);
+    assert.match(nav, /text-\[22px\]/);
+    assert.match(nav, /sm:text-\[24px\]/);
+    assert.match(nav, /font-extrabold/);
+    assert.match(nav, /tracking-tight/);
+    assert.match(nav, /text-planc-creme/);
+    assert.match(nav, /italic text-planc-rose/);
+    assert.equal(nav.includes('>CultureConnect<'), false);
+
+    const layout = await readFile(
+      new URL('../app/layout.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.match(layout, /weight: \['500', '600', '700', '800'\]/);
+    assert.match(layout, /style: \['normal', 'italic'\]/);
+    assert.match(layout, /title: 'Plan C — Agenda culturel Toulouse'/);
+    assert.match(layout, /siteName: 'Plan C'/);
+    assert.equal(layout.includes("siteName: 'CultureConnect'"), false);
+
+    const page = await readFile(new URL('../app/page.tsx', import.meta.url), 'utf8');
+    assert.match(page, /Plan C — Agenda culturel Toulouse/);
+    assert.match(page, /\$\{title\} — Plan C/);
+
+    const css = await readFile(new URL('../app/globals.css', import.meta.url), 'utf8');
+    assert.match(css, /letter-spacing: -0\.015em/);
+    assert.match(css, /line-height: 1\.1/);
+    assert.match(css, /max-width: 639px/);
+    assert.match(css, /font-size: 20px/);
+    assert.match(css, /font-size: 24px/);
+    assert.match(css, /font-size: 28px/);
+    assert.match(css, /font-size: 34px/);
+    assert.match(css, /font-size: 40px/);
+    assert.match(css, /#event-detail-title\.font-display\.text-2xl/);
+    assert.match(css, /font-size: 1\.5rem/);
+  });
+});
+
 describe('S1 header 380 — avatar + cloche, Mes goûts in menu', () => {
   it('drops the Mes goûts chip from the header; menu + Artistes stay', async () => {
     const auth = await readFile(

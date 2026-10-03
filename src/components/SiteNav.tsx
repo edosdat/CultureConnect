@@ -31,9 +31,10 @@ export default function SiteNav() {
         <div className="mx-auto flex max-w-7xl min-w-0 items-center gap-2 px-2.5 py-2 sm:gap-3 sm:px-6 sm:py-3">
           <Link
             href="/"
-            className="mr-auto shrink-0 font-display text-[13px] font-bold text-culture-terracotta hover:text-culture-clay sm:mr-3 sm:text-lg sm:font-normal"
+            aria-label="Plan C, accueil"
+            className="mr-auto shrink-0 font-display text-[22px] font-extrabold tracking-tight text-planc-creme sm:mr-3 sm:text-[24px]"
           >
-            CultureConnect
+            Plan <span className="italic text-planc-rose">C</span>
           </Link>
           <div className="flex min-w-0 shrink-0 flex-nowrap items-center gap-2 sm:flex-1 sm:gap-1">
             {LINKS.map(({ href, label }) => {

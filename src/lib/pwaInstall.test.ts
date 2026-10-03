@@ -120,10 +120,10 @@ describe('sticky A2HS bar', () => {
     assert.equal(a2hsBarShowsHint(Number.NaN), false);
   });
 
-  it('locks the cream strip height and the violet C', () => {
+  it('locks the strip height and the neon app icon', () => {
     assert.equal(A2HS_BAR_HEIGHT_PX, 44);
     assert.ok(A2HS_BAR_HEIGHT_PX >= 40 && A2HS_BAR_HEIGHT_PX <= 44);
-    assert.equal(A2HS_BAR_ICON_SRC, '/plan-c-icon-LOCK-v3-violet.jpg');
+    assert.equal(A2HS_BAR_ICON_SRC, '/icon-192.png');
     assert.ok(A2HS_BAR_ICON_PX >= 20 && A2HS_BAR_ICON_PX <= 24);
     assert.equal(A2HS_BAR_OFFSET_VAR, '--a2hs-bar-h');
   });
