@@ -1,18 +1,27 @@
 # Briefs : file d'attente pour l'agent de code
 
-Les briefs de ce dossier sont écrits par Claude (conception, revue) et codés par Cursor.
-Ce fichier est **la seule file d'attente officielle**. Tout brief qui n'est pas listé ici n'est pas à traiter.
+Les briefs de ce dossier sont écrits par Claude (conception, revue) ou par l'équipe, et codés par Cursor.
+Ce fichier est **la seule file d'attente officielle**.
 
-## Protocole
+## Prochain brief
 
-1. Au début de chaque tâche, lis ce fichier et prends le premier brief au statut **À faire** (ou celui que l'humain désigne).
-2. Passe-le en **En cours** dans ce tableau, dans la même PR que le code.
-3. Quand la PR est mergée, passe-le en **Fait** avec le numéro de PR.
-4. Un brief qui te paraît faux, flou ou contredit le code : ne devine pas. Passe-le en **Bloqué**, écris la question en une ligne dans la colonne Notes, et arrête-toi.
-5. Tes propres consignes de travail (lots, sous-tickets) vont aussi dans `briefs/`, pas seulement dans ton espace de travail : sinon Claude ne les voit pas.
-6. Les briefs sont en lecture seule pour toi, sauf ce tableau. Pour les corriger, signale-le dans Notes.
+> **`tags-mix-curseurs.md` : EN ATTENTE** (GO de Katia et Steph sur la nouvelle grille de tags). Ne pas coder.
+> En attendant : les tickets de `feuille-de-route-tags-reco.md` §3 encore **À faire** (voir sa section 1, mise à jour le 03/10).
 
-Statuts : **À faire** · **En cours** · **Fait (#PR)** · **Bloqué** · **Remplacé**
+L'humain lance une tâche avec une seule phrase : **« Prends le prochain brief de `briefs/README.md` »**, ou en nommant un fichier de `briefs/`.
+
+## Protocole (v2, 03/10)
+
+1. **Pas de code sans fichier de brief.** Si la consigne arrive par le chat (tip, QA, « Manager »), crée d'abord `briefs/AAAA-MM-JJ-sujet.md` à partir de `briefs/_modele.md`, en 10 lignes s'il le faut, dans la même PR que le code. Sinon personne d'autre ne sait ce qui a été demandé.
+2. Au début de chaque tâche : lis ce fichier, puis le brief, puis les fichiers de référence du domaine.
+3. Passe le brief en **En cours** dans le tableau, dans la PR du code. Le titre de la PR commence par l'identifiant du brief (ex. `M1 mixFadersOf : …`).
+4. À la fin de la PR, coche dans la description de la PR chaque critère d'acceptation du brief : `[x]` fait, `[ ]` pas fait + pourquoi.
+5. Une fois mergé : **Fait (#PR)** ici, **et** dans le tableau d'état du brief s'il en a un (ex. `feuille-de-route-tags-reco.md` §1).
+6. Brief faux, flou, ou en contradiction avec le code **ou avec une consigne du chat** : ne devine pas. **Bloqué** + la question en une ligne dans Notes, et arrête-toi. En cas de conflit entre le chat et un brief, c'est la question qui gagne, pas la consigne la plus récente.
+7. Un brief **En attente** ne se code pas, même en partie.
+8. Les briefs écrits par Claude sont en lecture seule pour toi, sauf leur tableau d'état. Pour les corriger, Notes ou commentaire de PR.
+
+Statuts : **À faire** · **En attente (de qui)** · **En cours** · **Fait (#PR)** · **Bloqué** · **Remplacé**
 
 ## Référence (à lire avant de toucher au domaine concerné)
 
@@ -31,8 +40,8 @@ Statuts : **À faire** · **En cours** · **Fait (#PR)** · **Bloqué** · **Rem
 
 | # | Brief | Statut | Notes |
 |---|---|---|---|
-| 1 | `feuille-de-route-tags-reco.md` §3, tickets 1 à 14 dans l'ordre | À faire | Mettre à jour le tableau §1 « Ce qui est fait » du brief à chaque ticket mergé. |
-| 1 bis | `tags-mix-curseurs.md` (M1 → M3) | À faire | M1 et M2 faisables tout de suite, en parallèle du ticket 1. M3 après C1. |
+| 1 | `feuille-de-route-tags-reco.md` §3, tickets 1 à 14 dans l'ordre | En cours | L1 fait (#174, #177, #192). Ticket 13 (L8.1) mergé hors ordre (#181). Tags v2 (C1 → PR 5) en attente de la nouvelle grille. État détaillé : §1 du brief. |
+| 1 bis | `tags-mix-curseurs.md` (M1 → M3) | En attente (Katia, Steph) | Dépend de la nouvelle grille de tags. Ne pas coder avant GO. |
 | 2 | `v1-beta/fiche-cine-web-split.md` | À confirmer | Écrit avant ce protocole : indiquer Fait (#PR) s'il est déjà livré. |
 | 3 | `top3-compact-no-desc.md` | À confirmer | idem |
 | 4 | `top3-hauteur-uniforme.md` | À confirmer | idem |

@@ -1,5 +1,7 @@
 # Tags pour « Ton mix » : 5 curseurs d'humeur
 
+> **Statut : EN ATTENTE** du GO de Katia et Steph sur la nouvelle grille de tags. Ne pas coder : la table `MOOD_TO_FADER` changera avec leur grille.
+
 Brief pour l'agent de code. Rédigé le 03/10/2026. Complète `tags-v2-evenements-et-profils.md` et `tags-v2-addendum-ponderation.md`, sans les remplacer.
 
 ## 0. Contexte
