@@ -63,12 +63,17 @@ Elle a été poussée sans brief. Elle remappe les couleurs, mais laisse **53 `b
 2. Les ~100 couleurs hexadécimales en dur dans `src/` : remplacer celles du thème clair par les tokens. Ne pas toucher aux couleurs de données (affiches, cartes).
 3. `pwaManifest.ts` : `theme_color` et `background_color` = `#1A0B1E`. Images Open Graph (`src/app/api/og`, `opengraph-image.tsx`) : fond nuit, texte crème, accent rose.
 
-### PR 3 · Écran de démarrage (après réponse à la question ci-dessous)
-- Fond du splash et du `#cc-boot-shell` : nuit au lieu de crème ; régénérer les PNG `public/splash/` avec `scripts/gen-apple-splash.py`.
+### PR 3 · Logo C rose et écran de démarrage
+**Décision du propriétaire (03/10) : le C passe en rose #FF2E7E** (variante B). Il remplace le C violet LOCK v3. La forme du C ne change pas, seulement sa couleur.
+1. Écran de démarrage (`src/lib/bootShellMarkup.ts`) : fond nuit au lieu de crème ; trait du C `#AF7DDE` → `#FF2E7E` ; texte « On prépare ton agenda… » en `muted` ; pistes animées en `sable` / `ligne`.
+2. Régénérer les PNG `public/splash/` avec `scripts/gen-apple-splash.py` : fond nuit, C rose centré.
+3. Icônes d'appli : `icon-192.png`, `icon-512.png`, leurs versions `maskable`, `apple-touch-icon.png`, `favicon.ico`. Fond nuit, C rose. Garder les mêmes tailles, noms et zones de sécurité (maskable).
+4. Partout ailleurs où le C violet apparaît (rechercher `#AF7DDE` et `plan-c-icon-LOCK-v3-violet` dans `src/` et `public/`, dont `feedback-welcome-c-wink.svg` et le bouton du compositeur de retours) : C rose. Ajouter la nouvelle image sous le nom `plan-c-icon-LOCK-v4-rose`, sans supprimer l'ancienne.
+5. Sur une pastille pleine rose, le C passe en nuit (jamais blanc).
 
 ## LOCK
 - Textes, mises en page, tailles, comportements : **inchangés**. Seules les couleurs changent.
-- Le **C violet (LOCK v3)** reste tel quel, dans sa forme et sa couleur, tant que la question ci-dessous n'est pas tranchée.
+- La **forme** du C reste celle du LOCK v3 ; seule sa couleur change (rose, PR 3). PR 1 et PR 2 ne touchent pas au logo.
 - Pas de renommage des classes `culture-*` dans ces PR (alias seulement). Le renommage en `planc-*` viendra dans un brief séparé.
 
 ## HOLD
@@ -88,5 +93,5 @@ Elle a été poussée sans brief. Elle remappe les couleurs, mais laisse **53 `b
 - [ ] `npm test` et `tsc` sans nouvelle erreur.
 - [ ] Captures avant / après des 4 écrans de la liste Soft Design.
 
-## Question ouverte
-- Le **C violet** du logo sur fond nuit : on le garde violet (il ressort bien), ou on passe au **C rose** des maquettes ? Tant que ce n'est pas tranché : violet, LOCK.
+## Décidé
+- C du logo : **rose #FF2E7E** (variante B, choisie le 03/10 sur comparaison visuelle). Contraste sur nuit 5,35:1.
