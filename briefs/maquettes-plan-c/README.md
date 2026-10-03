@@ -49,7 +49,7 @@ Rien à coder directement. Ce dossier sert de **référence** aux agents de code
 - Rien à merger. Les fonctionnalités se coderont à partir de briefs dédiés, chacun avec Soft Design puis GO.
 
 ## Questions ouvertes (décision de l'équipe)
-- C du logo : violet (LOCK v3) ou rose des maquettes, sur fond nuit ?
+- (tranché le 03/10) C du logo : rose #FF2E7E sur fond nuit.
 - Où accéder au mix : bouton à côté de la recherche, ou 4e onglet ?
 - Un mix réglé change-t-il le profil, ou seulement la soirée ?
 - Quelqu'un qui arrive par un lien vers un film : il atterrit où ?
