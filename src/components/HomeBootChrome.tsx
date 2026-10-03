@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import MixHomeLink from './MixHomeLink';
 import {
   EXTRA_CATEGORY_CHIPS,
   HOME_CATEGORY_CHIPS,
@@ -14,7 +15,8 @@ import { HomeListWaitSlot } from './ListWaitDots';
  * streaming Suspense fallback does not leave [data-top3] too high.
  *
  * Reserved at ~380px (Design LAYOUT_JUMP):
- * - sticky search: h-10 + py-1.5 + border-b + mb-2 (~61px); ↵ always visible
+ * - sticky search: h-10 + py-1.5 + border-b + mb-2 (~61px); ↵ always visible.
+ *   At ≤390px the ↵ target is 44px. « Mon mix » keeps its label; the field narrows.
  * - no SEARCH_EXAMPLES (retired)
  * - .cc-filter-band: Ville + Près de moi on one nowrap line, then QUAND → QUOI
  *   each as one scroll row (›). No Filtres and no Salle (no category yet).
@@ -32,22 +34,25 @@ export default function HomeBootChrome({ children }: { children: ReactNode }) {
     <>
       <div inert aria-hidden data-home-boot-chrome="">
         <div className="sticky top-[var(--a2hs-bar-h)] z-20 -mx-4 mb-2 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-1.5 backdrop-blur sm:-mx-6 sm:px-6">
-          <div className="relative w-full" role="search">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-culture-muted">
-              ⌕
-            </span>
-            <input
-              readOnly
-              tabIndex={-1}
-              placeholder={SEARCH_PLACEHOLDER}
-              aria-label={SEARCH_PLACEHOLDER}
-              className="h-10 w-full rounded-full border border-planc-controle bg-culture-surface py-0 pl-9 pr-11 text-sm text-culture-ink shadow-sm placeholder:truncate placeholder:text-culture-muted/70"
-            />
-            <div className="absolute inset-y-0 right-1 flex items-center">
-              <span className="grid h-8 w-8 place-items-center rounded-full text-base font-medium leading-none text-culture-terracotta">
-                ↵
+          <div className="flex items-start gap-2">
+            <div className="relative min-w-0 flex-1" role="search">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-culture-muted">
+                ⌕
               </span>
+              <input
+                readOnly
+                tabIndex={-1}
+                placeholder={SEARCH_PLACEHOLDER}
+                aria-label={SEARCH_PLACEHOLDER}
+                className="h-10 w-full rounded-full border border-planc-controle bg-culture-surface py-0 pl-9 pr-11 text-sm text-culture-ink shadow-sm placeholder:truncate placeholder:text-culture-muted/70 max-[390px]:pr-14"
+              />
+              <div className="absolute inset-y-0 right-1 flex items-center">
+                <span className="grid h-8 w-8 place-items-center rounded-full text-base font-medium leading-none text-culture-terracotta max-[390px]:h-11 max-[390px]:w-11 max-[390px]:min-h-[44px] max-[390px]:min-w-[44px]">
+                  ↵
+                </span>
+              </div>
             </div>
+            <MixHomeLink />
           </div>
         </div>
       </div>

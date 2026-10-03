@@ -305,7 +305,9 @@ export default function SearchOmnibox({
         enterKeyHint="search"
         className={
           'h-10 w-full rounded-full border border-planc-controle bg-culture-surface py-0 pl-9 text-sm text-culture-ink shadow-sm placeholder:truncate placeholder:text-culture-muted/70 focus:border-culture-terracotta focus:outline-none focus:ring-2 focus:ring-culture-terracotta/30 ' +
-          (value ? 'pr-[4.5rem]' : 'pr-11')
+          (value
+            ? 'pr-[4.5rem] max-[390px]:pr-[5.5rem]'
+            : 'pr-11 max-[390px]:pr-14')
         }
       />
       <div className="absolute inset-y-0 right-1 flex items-center">
@@ -323,7 +325,7 @@ export default function SearchOmnibox({
         ) : null}
         <button
           type="submit"
-          className="grid h-8 w-8 place-items-center rounded-full text-base font-medium leading-none text-culture-terracotta hover:bg-planc-nuit"
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-base font-medium leading-none text-culture-terracotta hover:bg-planc-nuit max-[390px]:h-11 max-[390px]:w-11 max-[390px]:min-h-[44px] max-[390px]:min-w-[44px]"
           aria-label="Rechercher"
         >
           ↵

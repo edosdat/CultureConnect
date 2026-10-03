@@ -13,6 +13,7 @@ import {
   queryAgendaDetail,
   queryAgendaListCached,
   queryAgendaReco,
+  queryMixWeek,
   queryRelanceDigest,
 } from '@/lib/agendaQuery';
 import { relanceDigestMode } from '@/lib/mesRecosWeek';
@@ -137,6 +138,14 @@ export async function GET(req: Request) {
   // Title q is ignored when phrase params are present (tag-to-tag).
   if (!agendaGetIsAddressed(url.searchParams)) {
     return agendaJson({ error: 'Use window=home, id, or scope' }, 400);
+  }
+
+  // /mix only. Home list responses stay slim and capped.
+  if (url.searchParams.get('mix') === '1') {
+    if (parseTimeScope(url.searchParams.get('scope')) !== 'semaine') {
+      return agendaJson({ error: 'mix=1 requires scope=semaine' }, 400);
+    }
+    return agendaJson(queryMixWeek());
   }
 
   const recoUpcoming = url.searchParams.get('reco') === '1';

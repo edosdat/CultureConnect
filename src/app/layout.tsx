@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { DM_Sans, Fraunces } from 'next/font/google';
+import HideOnMix from '@/components/HideOnMix';
 import SiteNav from '@/components/SiteNav';
 import Providers from '@/components/Providers';
 import SiteFooter from '@/components/SiteFooter';
@@ -129,10 +130,16 @@ export default async function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: BOOT_SHELL_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: INSTALL_PROMPT_CAPTURE_SCRIPT }} />
         <Providers googleAuthEnabled={isGoogleAuthConfigured()} session={session}>
-          <SiteNav />
+          <HideOnMix>
+            <SiteNav />
+          </HideOnMix>
           {children}
-          <SiteFooter />
-          <FeedbackChat />
+          <HideOnMix>
+            <SiteFooter />
+          </HideOnMix>
+          <HideOnMix>
+            <FeedbackChat />
+          </HideOnMix>
         </Providers>
       </body>
     </html>
