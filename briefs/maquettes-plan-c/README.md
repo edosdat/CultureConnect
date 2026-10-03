@@ -32,7 +32,7 @@ Rien à coder directement. Ce dossier sert de **référence** aux agents de code
 
 ## Recommandations design (par priorité)
 
-1. **Couleurs : à trancher avant tout chantier visuel.** Les maquettes sont en **thème sombre** (nuit #1A0B1E, rose #FF2E7E). Le site est en **thème clair** (crème #F7F0E8, terracotta #E85D3B, C violet). Tant que l'équipe n'a pas choisi, **reprendre la mise en page, les textes et les comportements des maquettes, mais garder les couleurs du site**. Ne pas recolorer le site à partir de ce dossier.
+1. **Couleurs : thème nuit, décidé le 03/10.** L'appli passe sur la palette sombre des maquettes (nuit #1A0B1E, velours, rose #FF2E7E, aubergine, couleurs vives par ambiance). Le chantier est décrit dans son propre brief : `briefs/2026-10-03-theme-nuit-plan-c.md`. Ne pas recolorer à partir de ce dossier.
 2. **Lisibilité, quel que soit le thème.**
    - Texte normal : contraste d'au moins 4,5:1.
    - **Jamais de texte blanc sur le rose #FF2E7E** (3,5:1) ni sur la terracotta #E85D3B (3,47:1). Sur ces couleurs, texte foncé ; pour un bouton plein avec texte blanc, une couleur plus foncée (voir PR #246).
@@ -49,7 +49,7 @@ Rien à coder directement. Ce dossier sert de **référence** aux agents de code
 - Rien à merger. Les fonctionnalités se coderont à partir de briefs dédiés, chacun avec Soft Design puis GO.
 
 ## Questions ouvertes (décision de l'équipe)
-- Thème clair ou sombre pour Plan C (recommandation n° 1).
+- C du logo : violet (LOCK v3) ou rose des maquettes, sur fond nuit ?
 - Où accéder au mix : bouton à côté de la recherche, ou 4e onglet ?
 - Un mix réglé change-t-il le profil, ou seulement la soirée ?
 - Quelqu'un qui arrive par un lien vers un film : il atterrit où ?
