@@ -368,3 +368,39 @@ body {
   }
 }
 
+/* PR 4 — titres Fraunces. Graisse 700, chasse −0.015em, interligne 1.1.
+   Le guillemet presse (.leading-none) garde son interligne.
+   Un cran plus gros sous sm seulement. text-4xl : 40px et graisse 800. */
+html .font-display:not(.leading-none) {
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
+}
+
+html .font-display.font-extrabold {
+  font-weight: 800;
+}
+
+html .font-display.tracking-tight {
+  letter-spacing: -0.025em;
+}
+
+@media (max-width: 639px) {
+  html .font-display.text-lg {
+    font-size: 20px;
+  }
+  html .font-display.text-xl {
+    font-size: 24px;
+  }
+  html .font-display.text-2xl {
+    font-size: 28px;
+  }
+  html .font-display.text-3xl {
+    font-size: 34px;
+  }
+  html .font-display.text-4xl {
+    font-size: 40px;
+    font-weight: 800;
+  }
+}
+
