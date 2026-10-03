@@ -28,6 +28,16 @@ function lieu(): Lieu {
   };
 }
 
+/** Numbered press cells (`citation_2`, …) that collectFromRow reads off the row. */
+type IndexedPressCells = {
+  citation_2?: string;
+  source_2?: string;
+  source_url_2?: string;
+  citation_3?: string;
+  source_3?: string;
+  source_url_3?: string;
+};
+
 function ev(
   p: Partial<Evenement> & Pick<Evenement, 'event_id' | 'categorie' | 'titre'>,
 ): Evenement {
@@ -73,10 +83,18 @@ function item(opts: {
   filmId?: string;
   form?: string;
   genre?: string;
-  evenement?: Partial<Evenement>;
+  evenement?: Partial<Evenement> & IndexedPressCells;
   programme?: Partial<ProgrammeItem>;
 }): DayItem {
   const eventId = opts.key;
+  const evenement = ev({
+    event_id: eventId,
+    categorie: opts.cat,
+    titre: opts.key,
+    form: opts.form,
+    genre: opts.genre ?? '',
+  });
+  if (opts.evenement) Object.assign(evenement, opts.evenement);
   return {
     kind: 'programme',
     key: opts.key,
@@ -90,14 +108,7 @@ function item(opts: {
       film_id: opts.filmId,
       ...opts.programme,
     }),
-    evenement: ev({
-      event_id: eventId,
-      categorie: opts.cat,
-      titre: opts.key,
-      form: opts.form,
-      genre: opts.genre ?? '',
-      ...opts.evenement,
-    }),
+    evenement,
     lieu: lieu(),
   };
 }

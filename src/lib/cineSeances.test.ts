@@ -62,7 +62,7 @@ function item(opts: {
   langue?: string;
   evLangue?: string;
   commune?: string;
-}): DayItem {
+}): Extract<DayItem, { kind: 'programme' }> {
   const evenement: Evenement = {
     event_id: opts.key,
     lieu_id: opts.lieuId,

@@ -261,7 +261,9 @@ describe('densify visible-card identity', () => {
     assert.equal(densifyGroupKey(seances[0]!), 't:la bulle');
     assert.equal(rows[0]!.seances.length, 12);
     assert.equal(rows[0]!.item.dayIso, '2026-08-31');
-    assert.equal(rows[0]!.item.programme.heure_debut, '09:30');
+    const card = rows[0]!.item;
+    assert.equal(card.kind, 'programme');
+    assert.equal(card.programme.heure_debut, '09:30');
   });
 
   it('collapses weekly En live clones that mint a new event_id each night', () => {

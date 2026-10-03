@@ -150,23 +150,26 @@ describe('sharePreviewOgImage', () => {
 describe('publicAppOrigin', () => {
   it('prefers AUTH_URL then NEXTAUTH_URL then VERCEL_URL', () => {
     assert.equal(
-      publicAppOrigin({ AUTH_URL: 'https://auth.example' }),
+      publicAppOrigin({ NODE_ENV: 'test', AUTH_URL: 'https://auth.example' }),
       'https://auth.example',
     );
     assert.equal(
-      publicAppOrigin({ NEXTAUTH_URL: 'https://next.example' }),
+      publicAppOrigin({ NODE_ENV: 'test', NEXTAUTH_URL: 'https://next.example' }),
       'https://next.example',
     );
     assert.equal(
-      publicAppOrigin({ VERCEL_URL: 'preview.vercel.app' }),
+      publicAppOrigin({ NODE_ENV: 'test', VERCEL_URL: 'preview.vercel.app' }),
       'https://preview.vercel.app',
     );
-    assert.equal(publicAppOrigin({}), SHARE_OG_FALLBACK_ORIGIN);
+    assert.equal(publicAppOrigin({ NODE_ENV: 'test' }), SHARE_OG_FALLBACK_ORIGIN);
   });
 
   it('forces https on public hosts', () => {
     assert.equal(
-      publicAppOrigin({ NEXTAUTH_URL: 'http://culture-connect.example' }),
+      publicAppOrigin({
+        NODE_ENV: 'test',
+        NEXTAUTH_URL: 'http://culture-connect.example',
+      }),
       'https://culture-connect.example',
     );
   });

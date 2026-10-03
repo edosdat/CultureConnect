@@ -21,12 +21,18 @@ import type {
   Evenement,
   EventWithDetails,
   Lieu,
+  GenreLegend,
   ProgrammeItem,
   ProgrammeWithContext,
 } from './types';
 
 const BIJOU_TITLE = "Qu'ouis-je - Le Blind-Test Décalé";
 const BETTY_TITLE = 'Malchance aux chansons — Blindtest qui dérape';
+const JAZZ_BLUES: GenreLegend = {
+  slug: 'jazz_blues',
+  famille: 'musique',
+  label_fr: 'Jazz / blues',
+};
 
 function lieu(): Lieu {
   return {
@@ -163,11 +169,7 @@ describe('genre chips loading vs empty', () => {
 
 describe('sticky Jazz selection after filter shrinks chip slugs', () => {
   it('does not drop Jazz when the filtered slug list omits it', () => {
-    const kept = retainSelectedGenreChips(
-      ['jazz'],
-      ['musique'],
-      [{ slug: 'jazz_blues', famille: 'musique', label_fr: 'Jazz / blues' }],
-    );
+    const kept = retainSelectedGenreChips(['jazz'], ['musique'], [JAZZ_BLUES]);
     assert.deepEqual(kept, ['jazz']);
     assert.deepEqual(visibleGenreChipSlugs(['jazz_blues'], ['jazz']), [
       'jazz_blues',
@@ -178,9 +180,7 @@ describe('sticky Jazz selection after filter shrinks chip slugs', () => {
 
   it('clears Jazz only when Musique is cleared', () => {
     assert.deepEqual(
-      retainSelectedGenreChips(['jazz'], [], [
-        { slug: 'jazz_blues', famille: 'musique', label_fr: 'Jazz / blues' },
-      ]),
+      retainSelectedGenreChips(['jazz'], [], [JAZZ_BLUES]),
       [],
     );
   });

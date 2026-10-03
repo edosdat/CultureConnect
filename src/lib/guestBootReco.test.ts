@@ -22,6 +22,7 @@ import {
   guestBootRecoInput,
   mergeGuestBootReco,
   readGuestBootMemo,
+  type RecoByScope,
   rememberGuestBootMemo,
   stopAgendaRecoTraceForTests,
   traceAgendaRecoForTests,
@@ -267,7 +268,9 @@ describe('guest boot reco hard reload', () => {
 
 describe('guest boot reco merge', () => {
   it('fills boot scope tous and keeps the no-city pool separate', () => {
-    const cold = { recoByScope: deferredRecoByScope() };
+    const cold: { recoByScope: RecoByScope; guestMetroTop3?: DayItem[] } = {
+      recoByScope: deferredRecoByScope(),
+    };
     assert.equal(mergeGuestBootReco(cold, []), cold);
     const card = { key: 'p:guest' } as DayItem;
     const warm = mergeGuestBootReco(cold, [card]);

@@ -31,11 +31,13 @@ function read(rel: string): string {
 describe('cold reset cookies stay separate', () => {
   it('lists cc_vid and cc_signals_v1 as two deletes', () => {
     const planned = coldResetCookieDeletes();
-    assert.equal(planned[0]?.name, VID_COOKIE);
+    const vidName = planned[0]?.name;
+    const signalsName = planned[1]?.name;
+    assert.equal(vidName === signalsName, false);
+    assert.equal(vidName, VID_COOKIE);
     assert.equal(planned[0]?.httpOnly, true);
-    assert.equal(planned[1]?.name, GUEST_STORAGE_KEY);
+    assert.equal(signalsName, GUEST_STORAGE_KEY);
     assert.equal(planned[1]?.httpOnly, false);
-    assert.equal(planned[0]?.name === planned[1]?.name, false);
     assert.equal(ACCOUNT_TASTE_CACHE_COOKIE, ACCOUNT_TASTE_COOKIE);
     assert.deepEqual(
       planned.map((cookie) => cookie.name),
