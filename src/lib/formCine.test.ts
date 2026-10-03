@@ -45,7 +45,7 @@ function item(opts: {
   cat: string;
   filmId?: string;
   form?: string;
-}): DayItem {
+}): Extract<DayItem, { kind: 'programme' }> {
   const evenement = ev({
     event_id: opts.key,
     categorie: opts.cat,

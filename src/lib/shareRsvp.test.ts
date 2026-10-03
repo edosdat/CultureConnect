@@ -71,8 +71,12 @@ describe('B3b RSVP helpers', () => {
     // Stale-card path: a later 0/0 must omit, not keep the previous 1.
     let shown = visibleMotherStats({ envie: 0, going: 1 });
     shown = visibleMotherStats({ envie: 0, going: 0 });
+    const omittedLabel = motherCountersLabel(
+      shown?.envie ?? 0,
+      shown?.going ?? 0,
+    );
     assert.equal(shown, null);
-    assert.equal(motherCountersLabel(shown?.envie ?? 0, shown?.going ?? 0), '');
+    assert.equal(omittedLabel, '');
     assert.equal(circleNamesCopy(['Marie'], ['Léa']), 'Marie y va · Léa a envie');
     assert.equal(
       circleNamesCopy(['Marie', 'Paul'], ['Léa', 'Tom']),

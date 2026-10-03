@@ -185,9 +185,24 @@ describe('P8 — bandeau equal Refuser / Accepter + notice Art.21 + registre', (
     const RealDate = Date;
     function withFrozenNow<T>(iso: string, fn: () => T): T {
       const frozen = RealDate.parse(iso);
-      function FrozenDate(this: Date, ...args: ConstructorParameters<typeof Date>) {
+      // ConstructorParameters<typeof Date> keeps only the last overload
+      // (`new (value)`), so a zero-arg `new Date()` would be typed as impossible.
+      type DateCtorArgs =
+        | []
+        | [value: number | string | Date]
+        | [
+            year: number,
+            monthIndex: number,
+            date?: number,
+            hours?: number,
+            minutes?: number,
+            seconds?: number,
+            ms?: number,
+          ];
+      function FrozenDate(this: Date, ...args: DateCtorArgs) {
         if (!new.target) return RealDate();
         if (args.length === 0) return new RealDate(frozen);
+        if (args.length === 1) return new RealDate(args[0]);
         return new RealDate(...args);
       }
       FrozenDate.now = () => frozen;

@@ -73,7 +73,12 @@ function item(opts: {
   genre?: string;
   form?: string;
   kind?: 'programme' | 'fallback';
-}): DayItem {
+}):
+  | (Extract<DayItem, { kind: 'programme' }> & {
+      evenement: Evenement;
+      lieu: Lieu;
+    })
+  | (Extract<DayItem, { kind: 'fallback' }> & { lieu: Lieu }) {
   const evenement = ev({
     event_id: opts.key,
     categorie: opts.cat,

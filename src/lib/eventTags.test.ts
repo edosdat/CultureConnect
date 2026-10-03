@@ -88,7 +88,7 @@ function seance(opts: {
   evenement?: Evenement | null;
   programme?: Partial<ProgrammeItem>;
   lieu?: Lieu | null;
-} = {}): DayItem {
+} = {}): Extract<DayItem, { kind: 'programme' }> {
   const ev = opts.evenement === undefined ? evenement() : opts.evenement;
   return {
     kind: 'programme',
@@ -106,7 +106,7 @@ function seance(opts: {
 function fallback(opts: {
   evenement?: Partial<Evenement>;
   lieu?: Lieu | null;
-} = {}): DayItem {
+} = {}): Extract<DayItem, { kind: 'fallback' }> {
   const ev = evenement(opts.evenement);
   return {
     kind: 'fallback',

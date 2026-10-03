@@ -104,8 +104,10 @@ describe('slimDayItem list wire', () => {
     if (slim.kind !== 'programme') assert.fail('expected programme');
     assert.equal(slim.programme.url, '');
     assert.equal(slim.programme.billetterie_url, undefined);
-    assert.ok(slim.programme.description_item.length < LONG.length);
-    assert.ok(slim.programme.description_item.includes('Première phrase'));
+    const description = slim.programme.description_item;
+    if (typeof description !== 'string') assert.fail('description_item');
+    assert.ok(description.length < LONG.length);
+    assert.ok(description.includes('Première phrase'));
     assert.equal(slim.evenement?.description_courte, '');
     assert.equal(listItemHasHeroFicheCopy(slim), false);
   });

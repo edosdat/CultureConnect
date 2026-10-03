@@ -70,7 +70,7 @@ function item(opts: {
   heure?: string;
   form?: string;
   eventTitre?: string;
-}): DayItem {
+}): Extract<DayItem, { kind: 'programme' }> {
   const day = opts.day ?? '2026-09-11';
   const heure = opts.heure ?? '20:00';
   const eventId = opts.eventId ?? opts.key;
