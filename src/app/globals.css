@@ -395,6 +395,11 @@ html .font-display.tracking-tight {
   html .font-display.text-2xl {
     font-size: 28px;
   }
+  /* Fiche hors ciné : à 28 px, « L'Église à l'Opéra… » passe de 3 à 4 lignes
+     à 360 px. Taille actuelle (24 px) gardée pour ce titre. */
+  html #event-detail-title.font-display.text-2xl {
+    font-size: 1.5rem;
+  }
   html .font-display.text-3xl {
     font-size: 34px;
   }

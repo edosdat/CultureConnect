@@ -40,6 +40,8 @@ describe('PR 4 — nom Plan C et titres', () => {
     assert.match(css, /font-size: 28px/);
     assert.match(css, /font-size: 34px/);
     assert.match(css, /font-size: 40px/);
+    assert.match(css, /#event-detail-title\.font-display\.text-2xl/);
+    assert.match(css, /font-size: 1\.5rem/);
   });
 });
 
