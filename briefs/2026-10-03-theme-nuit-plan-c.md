@@ -13,7 +13,7 @@
 | PR | Contenu | État |
 |---|---|---|
 | 1 | Couleurs de base + lisibilité | **Fait (#254)**, vérifié par Claude : 0 `bg-white`, 0 blanc sur rose, fond nuit, test de contraste présent |
-| 3 | Logo C rose + écran de démarrage | **À faire maintenant** (en parallèle de la 4 : fichiers différents) |
+| 3 | Icône néon D + logo C rose + écran de démarrage | **À faire maintenant**, fichiers d'icône fournis (en parallèle de la 4 : fichiers différents) |
 | 4 | Nom « Plan C » + typographie | **À faire maintenant** (en parallèle de la 3) |
 | 2 | Couleurs de catégories + images de partage | Après le GO de la 4 (les deux touchent aux images de partage) |
 | 5 | Hiérarchie « un seul rose » | Après le GO de la 2 |
@@ -80,13 +80,29 @@ Elle a été poussée sans brief. Elle remappe les couleurs, mais laisse **53 `b
 2. Les ~100 couleurs hexadécimales en dur dans `src/` : remplacer celles du thème clair par les tokens. Ne pas toucher aux couleurs de données (affiches, cartes).
 3. Images Open Graph (`src/app/api/og`, `opengraph-image.tsx`) : fond nuit, texte crème, accent rose.
 
-### PR 3 · Logo C rose et écran de démarrage
-**Décision du propriétaire (03/10) : le C passe en rose #FF2E7E** (variante B). Il remplace le C violet LOCK v3. La forme du C ne change pas, seulement sa couleur.
-1. Écran de démarrage (`src/lib/bootShellMarkup.ts`) : fond nuit au lieu de crème ; trait du C `#AF7DDE` → `#FF2E7E` ; texte « On prépare ton agenda… » en `muted` ; pistes animées en `sable` / `ligne`.
-2. Régénérer les PNG `public/splash/` avec `scripts/gen-apple-splash.py` : fond nuit, C rose centré.
-3. Icônes d'appli : `icon-192.png`, `icon-512.png`, leurs versions `maskable`, `apple-touch-icon.png`, `favicon.ico`. Fond nuit, C rose. Garder les mêmes tailles, noms et zones de sécurité (maskable).
-4. Partout ailleurs où le C violet apparaît (rechercher `#AF7DDE` et `plan-c-icon-LOCK-v3-violet` dans `src/` et `public/`, dont `feedback-welcome-c-wink.svg` et le bouton du compositeur de retours) : C rose. Ajouter la nouvelle image sous le nom `plan-c-icon-LOCK-v4-rose`, sans supprimer l'ancienne.
-5. Sur une pastille pleine rose, le C passe en nuit (jamais blanc).
+### PR 3 · Icône « néon » (variante D), logo C rose et écran de démarrage
+**Décisions du propriétaire (03/10) :** C rose #FF2E7E (variante B) ; **icône d'appli variante D** : tuile violet sombre en léger dégradé, **liseré violet néon fin** (#B98CFF) à l'intérieur, **C rose lumineux** au centre. Choix fait sur `briefs/2026-10-03-theme-nuit-ref/icone-v4/variantes-choix-D.png` (colonne D).
+
+**Fichiers prêts à poser** (générés par Claude, dans `briefs/2026-10-03-theme-nuit-ref/icone-v4/`). **Ne pas redessiner** : copier.
+
+| Fichier fourni | Remplace dans `public/` | Usage |
+|---|---|---|
+| `icon-512.png`, `icon-192.png` | mêmes noms | icônes du manifeste (`purpose: any`) |
+| `icon-512-maskable.png`, `icon-192-maskable.png` | mêmes noms | Android (`purpose: maskable`) : néon en cercle dans la zone sûre, pour ne pas être coupé par la forme du téléphone |
+| `apple-touch-icon.png` (180 px) | même nom | iPhone (iOS arrondit lui-même les coins) |
+| `favicon-16/32/48.png` | regénérer `favicon.ico` à partir de ces trois tailles (ou servir le PNG 32 via `<link rel="icon">`) | onglet du navigateur : sans halo, trait plus épais pour rester lisible |
+| `plan-c-icon-LOCK-v4-neon.svg`, `plan-c-icon-maskable-v4.svg`, `favicon-v4.svg` | ajouter dans `public/` (sources) | référence vectorielle ; `plan-c-icon-LOCK-v3-violet.jpg` reste en place, non supprimé |
+
+**Le reste de la PR 3**
+1. Écran de démarrage (`src/lib/bootShellMarkup.ts`) : fond nuit (déjà fait en PR 1) ; trait du C `#AF7DDE` → `#FF2E7E` avec un léger halo (`filter: drop-shadow(0 0 6px rgba(255,46,126,.6))`) ; pistes animées en `sable` / `ligne`.
+2. Régénérer les PNG `public/splash/` avec `scripts/gen-apple-splash.py` : fond nuit, C rose lumineux centré (sans le liseré : le liseré est réservé à l'icône).
+3. Partout ailleurs où le C violet apparaît (rechercher `#AF7DDE` et `plan-c-icon-LOCK-v3-violet` dans `src/` et `public/`, dont `feedback-welcome-c-wink.svg` et la bulle du compositeur de retours en bas à droite) : C rose. Pour la bulle : fond velours, C rose, sans liseré.
+4. Sur une pastille pleine rose, le C passe en nuit (jamais blanc).
+
+**Soft Design** :
+- installer la preview sur un iPhone et un Android, puis comparer l'icône sur l'écran d'accueil (fond clair et fond sombre) avec la colonne D de `variantes-choix-D.png` ;
+- vérifier sur Android que le néon n'est pas coupé ;
+- vérifier que le favicon reste lisible dans l'onglet.
 
 ### PR 4 · Nom « Plan C » et typographie plus percutante
 **Décisions du propriétaire (03/10) :** le nom affiché devient **Plan C**, et les titres doivent être plus percutants, comme dans les maquettes. Mêmes polices qu'aujourd'hui (Fraunces pour les titres, DM Sans pour le texte), seul l'usage change. Peut se faire en parallèle de la PR 2, après le GO de la PR 1.
@@ -155,6 +171,7 @@ Les polices de cette dernière image sont des polices de remplacement (rendu hor
 - [ ] Captures avant / après des 4 écrans de la liste Soft Design.
 
 ## Décidé
+- Icône d'appli : **variante D** (violet sombre, liseré néon violet, C rose lumineux), fichiers fournis (03/10).
 - Hiérarchie « un seul rose plein par écran » et simplification (PR 5), proposée et validée le 03/10.
 - Nom affiché : **Plan C**, C en italique rose (03/10).
 - Titres : mêmes polices, plus gras et un cran plus gros (03/10).
