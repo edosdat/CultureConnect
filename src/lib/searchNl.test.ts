@@ -8,6 +8,7 @@ import {
   nlTimeScope,
   parseSearchNl,
   previewChips,
+  queryNamesKnownLieu,
   SEARCH_NL_HINT,
   searchNlMode,
   type SearchNlDict,
@@ -41,6 +42,12 @@ const DICT: SearchNlDict = {
       id: 'L001',
       nom: 'Une salle',
       label: 'Toulouse — Une salle',
+      commune: 'Toulouse',
+    },
+    {
+      id: 'L075',
+      nom: 'Le Taquin',
+      label: 'Toulouse — Le Taquin',
       commune: 'Toulouse',
     },
   ],
@@ -138,6 +145,24 @@ describe('parseSearchNl', () => {
     assert.ok(chips.some((c) => c.axis === 'quoi' && c.label === 'Musique'));
     assert.equal(chips.some((c) => c.axis === 'ville'), false);
     assert.equal(salleChips(withGenre).length, 0);
+  });
+
+  it('keeps a venue name as text, with no salle chip', () => {
+    for (const raw of ['taquin', 'TAQUIN', 'Taquin']) {
+      const parsed = parseSearchNl(raw, DICT, NOW);
+      assert.equal(queryNamesKnownLieu(raw, DICT.lieux), true);
+      assert.equal(parsed.lieuId, null);
+      assert.equal(parsed.lieuLabel, null);
+      assert.equal(parsed.scope, null);
+      assert.equal(parsed.commune, null);
+      assert.equal(nlHasFilter(parsed), false);
+      assert.equal(previewChips(parsed, DICT).length, 0);
+    }
+    assert.equal(queryNamesKnownLieu('zzzzqxqqqq', DICT.lieux), false);
+    const noise = parseSearchNl('zzzzqxqqqq', DICT, NOW);
+    assert.equal(nlHasFilter(noise), false);
+    assert.equal(previewChips(noise, DICT).length, 0);
+    assert.equal(noise.lieuId, null);
   });
 
   it('does not invent QUAND or QUOI for a bare title', () => {

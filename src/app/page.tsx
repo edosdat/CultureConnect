@@ -207,7 +207,6 @@ async function HomePageApp({
         initialDensifiedTotal={boot.densifiedTotal}
         initialCsvEvents={boot.csvEvents}
         initialCsvProgramme={boot.csvProgramme}
-        initialVenues={boot.venues}
         initialGenreSlugs={boot.genreSlugs}
         communes={boot.communes}
         genresLegend={boot.genresLegend}

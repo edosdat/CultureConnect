@@ -17,6 +17,7 @@ import {
   SEARCH_NL_MIN_CHARS,
   parseSearchNl,
   previewChips,
+  queryNamesKnownLieu,
   searchNlMode,
   type SearchNlDict,
   type SearchNlParse,
@@ -33,6 +34,11 @@ type Props = {
   onChange: (value: string) => void;
   /** Bare title commit (no filter chips on screen). */
   onSubmit?: (value: string) => void;
+  /**
+   * Settled text with no NL chips. Venue names and unknown queries
+   * filter the list under the field. Never applies a chip.
+   */
+  onBareQuery?: (value: string) => void;
   /** Preview is open with ≥1 chip — same path as the Confirmer button. */
   onConfirm?: (parsed: SearchNlParse) => void;
   onPickTitre?: (itemKey: string) => void;
@@ -54,6 +60,7 @@ export default function SearchOmnibox({
   value,
   onChange,
   onSubmit,
+  onBareQuery,
   onConfirm,
   onPickTitre,
   onPickArtiste,
@@ -98,14 +105,26 @@ export default function SearchOmnibox({
     if (!ready || chips.length > 0) return [];
     return suggestLocal(suggest, settled);
   }, [ready, chips.length, suggest, settled]);
-  const mode = searchNlMode({
-    query: trimmed,
-    settled: ready,
-    chipCount: chips.length,
-    hitCount: hits.length,
-    dismissed: dismissedFor === trimmed,
-  });
+  const namesVenue =
+    ready && chips.length === 0 && queryNamesKnownLieu(settled, lieux);
+  const mode = namesVenue
+    ? 'closed'
+    : searchNlMode({
+        query: trimmed,
+        settled: ready,
+        chipCount: chips.length,
+        hitCount: hits.length,
+        dismissed: dismissedFor === trimmed,
+      });
   const open = mode !== 'closed';
+
+  useEffect(() => {
+    if (!ready || chips.length > 0) return;
+    // Title hits keep the catalogue dropdown (Enter opens one fiche).
+    // A venue name, or a query with no hit, filters the cards underneath.
+    if (!namesVenue && hits.length > 0) return;
+    onBareQuery?.(trimmed);
+  }, [ready, chips.length, namesVenue, hits.length, trimmed, onBareQuery]);
 
   useEffect(() => {
     setActive(0);
