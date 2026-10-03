@@ -241,7 +241,7 @@ describe('cine seances cinema-then-time', () => {
       ),
       '23 € Prévente',
     );
-    const bare = item({
+    const emptySeance = item({
       key: 'E647',
       lieuId: 'L1',
       nom: 'Salle',
@@ -264,9 +264,12 @@ describe('cine seances cinema-then-time', () => {
       heure: '20:00',
       prix: '8€',
     });
-    assert.equal(seancePrixLabel(bare), null);
-    assert.equal(seancePrixLabel(fichePrixSource(bare, sameEvent)), 'Tarif unique : 28€');
-    assert.equal(fichePrixSource(bare, otherEvent), bare);
+    assert.equal(seancePrixLabel(emptySeance), null);
+    assert.equal(
+      seancePrixLabel(fichePrixSource(emptySeance, sameEvent)),
+      'Tarif unique : 28€',
+    );
+    assert.equal(fichePrixSource(emptySeance, otherEvent), emptySeance);
     assert.equal(
       seancePrixLabel(fichePrixSource(sameEvent, otherEvent)),
       'Tarif unique : 28€',
