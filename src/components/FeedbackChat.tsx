@@ -572,7 +572,7 @@ export default function FeedbackChat() {
         }}
       >
         <svg className="h-7 w-7" viewBox="0 0 64 64" aria-hidden="true">
-          <g transform="skewX(-12) translate(8 0)">
+          <g transform="translate(-5.6 0) skewX(-12) translate(8 0)">
             <path
               d="M48 16a18 18 0 1 0 0 32"
               fill="none"

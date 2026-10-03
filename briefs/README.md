@@ -51,4 +51,4 @@ Statuts : **À faire** · **En cours** · **Fait (#PR)** · **Bloqué** · **Rem
 | — | splash PWA cold open V0 | En cours | Path A+B brandé + prefetch `window=home` pendant le splash. HOLD soft+GO. Soft tip No merge. |
 | — | tip social beat 1 | En cours | Une ligne sous Envie / J’y vais, 1ʳᵉ Envie ou Partager connecté, drapeau `cc_social_tip_b1_seen`. HOLD soft+GO. Soft ne merge pas. |
 | — | thème nuit PR 1 (brief `2026-10-03-theme-nuit-plan-c.md` sur #252) | Fait (#254) | Couleurs de base + lisibilité. |
-| — | thème nuit PR 3 icône néon D (même brief, #252 non mergée) | En cours | Icône D + C rose + écran de démarrage, depuis main. HOLD merge : Soft Design puis GO Eloi. Pas de PR 4. |
+| — | thème nuit PR 3 icône néon D (même brief, #252 non mergée) | En cours | #259. C rose centré dans le carré (demande Eloi). HOLD merge : Soft Design puis GO Eloi. Pas de PR 4. |

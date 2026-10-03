@@ -260,16 +260,17 @@ describe('apple startup images', () => {
 });
 
 describe('variant D icons', () => {
-  it('copies the provided files and packs the favicon from those sizes', () => {
+  it('keeps the same C, centered in the square, and packs the favicon', () => {
+    assert.match(BOOT_SHELL_MARKUP, /translate\(-5\.6 0\) skewX\(-12\) translate\(8 0\)/);
     const expected: Record<string, string> = {
-      'public/icon-192.png': 'df6c3768f870bf45d78e2ca08e134768825cff59',
-      'public/icon-512.png': 'aba2ed003679bba342c865e7d9d9406e5fc3ea85',
-      'public/icon-192-maskable.png': 'b0bd56adf02c853ceb21a52aaac93e190f13a6f5',
-      'public/icon-512-maskable.png': '1ac28f115eacb6a36aeb13c5d0dce5d2a3daccbd',
-      'public/apple-touch-icon.png': '31986e5eac1dffe7251109d4c3bbe3ac0219ad14',
-      'public/plan-c-icon-LOCK-v4-neon.svg': 'c36d7943424a35d5698e02a02f0bc49ec49c58f3',
-      'public/plan-c-icon-maskable-v4.svg': 'bb636632ed9c2adb9b8aa2c0fb8bac2975e30180',
-      'public/favicon-v4.svg': '8d65ccae6bda6084c21cc43df0e4074b4e4cfe56',
+      'public/icon-192.png': '996bbbb7504f69a56e4f8e53388a6fe54e0b8d22',
+      'public/icon-512.png': 'd9f9275a938f1be6223d896b19f6472b1218f7a0',
+      'public/icon-192-maskable.png': '1b8fcdf436ec6d7fe1707270f3ce8628aa86e34a',
+      'public/icon-512-maskable.png': '54712cc86a58f9d196b70350e07dde919acdd140',
+      'public/apple-touch-icon.png': '04f935bba2890c2aef14f97236230f660a8b9c2a',
+      'public/plan-c-icon-LOCK-v4-neon.svg': '91259f783cc20bd05b5cf90f5e48d9c9ccece0d4',
+      'public/plan-c-icon-maskable-v4.svg': '3593e9d871352a286c0a65a793a7a03cb24c5c57',
+      'public/favicon-v4.svg': '1c59f2bb1492875e2fd1f06d7105acd9cfac2c37',
     };
     for (const [file, sha] of Object.entries(expected)) {
       assert.equal(gitBlobSha1(path.join(process.cwd(), file)), sha, file);
@@ -280,7 +281,7 @@ describe('variant D icons', () => {
     assert.equal(ico.readUInt16LE(2), 1);
     assert.equal(ico.readUInt16LE(4), 3);
     const sizes = [16, 32, 48];
-    const lengths = [758, 1813, 2953];
+    const lengths = [779, 1765, 2730];
     for (let i = 0; i < 3; i += 1) {
       assert.equal(ico.readUInt8(6 + i * 16), sizes[i]);
       assert.equal(ico.readUInt8(7 + i * 16), sizes[i]);

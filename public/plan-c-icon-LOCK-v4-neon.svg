@@ -5,5 +5,5 @@
 </defs>
 <rect width="512" height="512" fill="url(#g)"/>
 <rect x="14" y="14" width="484" height="484" rx="104" fill="none" stroke="#B98CFF" stroke-width="9" filter="url(#glowN)"/>
-<g transform="translate(52 58) scale(6.6)"><g transform="skewX(-12) translate(8 0)"><path d="M48 16a18 18 0 1 0 0 32" fill="none" stroke="#FF2E7E" stroke-width="8" stroke-linecap="round" filter="url(#glowC)"/></g></g>
+<g transform="translate(8.01 44.8) scale(6.6)"><g transform="skewX(-12) translate(8 0)"><path d="M48 16a18 18 0 1 0 0 32" fill="none" stroke="#FF2E7E" stroke-width="8" stroke-linecap="round" filter="url(#glowC)"/></g></g>
 </svg>
