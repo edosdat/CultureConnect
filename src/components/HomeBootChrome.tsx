@@ -16,7 +16,7 @@ import { HomeListWaitSlot } from './ListWaitDots';
  *
  * Reserved at ~380px (Design LAYOUT_JUMP):
  * - sticky search: h-10 + py-1.5 + border-b + mb-2 (~61px); ↵ always visible.
- *   At ≤390px the ↵ target is 44px and Mon mix is icon-only beside the field.
+ *   At ≤390px the ↵ target is 44px. « Mon mix » keeps its label; the field narrows.
  * - no SEARCH_EXAMPLES (retired)
  * - .cc-filter-band: Ville + Près de moi on one nowrap line, then QUAND → QUOI
  *   each as one scroll row (›). No Filtres and no Salle (no category yet).
