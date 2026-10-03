@@ -9,6 +9,13 @@ import type { TimeScopeId } from './timeScope';
 export const AGENDA_HTTP_CACHE_CONTROL =
   'private, no-cache, no-store, max-age=0, must-revalidate';
 
+/**
+ * A picked salle lists every upcoming séance at that lieu in one response.
+ * Above the home page (50) and the title-suggest sample (8). The biggest
+ * venue in the catalogue is a few hundred séances.
+ */
+export const AGENDA_VENUE_PAGE_MAX = 400;
+
 export type AgendaParamsInput = {
   scope: TimeScopeId;
   commune: string | null;

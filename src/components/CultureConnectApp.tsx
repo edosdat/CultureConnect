@@ -156,6 +156,7 @@ import {
 } from './openFicheEvents';
 import { peekPrefetchedAgendaItem } from '@/lib/agendaItemPrefetch';
 import {
+  AGENDA_VENUE_PAGE_MAX,
   buildAgendaParams,
   dateChipListGate,
   listFetchShouldSkipBoot,
@@ -496,8 +497,14 @@ export default function CultureConnectApp({
   const optimisticNotInterestedRef = useRef(optimisticNotInterested);
   optimisticNotInterestedRef.current = optimisticNotInterested;
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-  /** Salle chip is gone. A typed venue name stays text (`q`), never a lieu id. */
-  const selectedLieuId = null;
+  /**
+   * Salle chip is gone. Typing a venue stays text (`q`).
+   * Choosing the salle suggestion pins this lieu and lists its events.
+   */
+  const [pickedLieuId, setPickedLieuId] = useState<string | null>(null);
+  const [pickedLieuLabel, setPickedLieuLabel] = useState<string | null>(null);
+  const pickedLieuRef = useRef<string | null>(null);
+  const selectedLieuId = pickedLieuId;
   const [selectedCommune, setSelectedCommune] = useState<string | null>('Toulouse');
   /** User city chip only — boot GPS must not reset painted pack order. */
   const [browseCommune, setBrowseCommune] = useState<string | null>('Toulouse');
@@ -878,7 +885,14 @@ export default function CultureConnectApp({
     }
   }
 
+  function clearVenuePick() {
+    pickedLieuRef.current = null;
+    setPickedLieuId(null);
+    setPickedLieuLabel(null);
+  }
+
   function handleQueryChange(next: string) {
+    if (pickedLieuRef.current) clearVenuePick();
     setQuery(next);
     // Always apply — empty draft must drop leftover q even if leftover state is stale.
     setCommittedTitle((current) => leftoverTitleAfterDraftChange(next, current));
@@ -887,12 +901,14 @@ export default function CultureConnectApp({
 
   /** Bare title only. Filter chips wait for Confirmer — never on debounce or Enter-before-preview. */
   function handleSearchSubmit(raw: string) {
+    if (pickedLieuRef.current) return;
     setPhraseTags(null);
     setCommittedTitle(raw.trim());
   }
 
   /** Venue name or unknown text: filter the cards. No date, QUOI, or salle chip. */
   const handleBareQuery = useCallback((raw: string) => {
+    if (pickedLieuRef.current) return;
     setPhraseTags(null);
     setCommittedTitle(raw.trim());
   }, []);
@@ -903,6 +919,7 @@ export default function CultureConnectApp({
    * Never pins Salle — lieuId from the parse is ignored.
    */
   function handleNlConfirm(parsed: SearchNlParse) {
+    clearVenuePick();
     const scope = nlTimeScope(parsed);
     applyScopeFromSearch(scope, parsed.selectedDate);
     searchDrivenRef.current.scope = true;
@@ -926,6 +943,7 @@ export default function CultureConnectApp({
   }
 
   function handleSuggestTitre(itemKey: string) {
+    clearVenuePick();
     setQuery('');
     setCommittedTitle('');
     setPhraseTags(null);
@@ -933,9 +951,23 @@ export default function CultureConnectApp({
   }
 
   function handleSuggestArtiste(name: string) {
+    clearVenuePick();
     setQuery(name);
     setPhraseTags(null);
     setCommittedTitle(name.trim());
+  }
+
+  /** Salle suggestion: every upcoming event at that lieu. No filter-band chip. */
+  function handlePickSalle(id: string, label: string) {
+    const nextId = id.trim();
+    const nom = label.trim();
+    if (!nextId || !nom) return;
+    pickedLieuRef.current = nextId;
+    setPickedLieuId(nextId);
+    setPickedLieuLabel(nom);
+    setQuery(nom);
+    setCommittedTitle('');
+    setPhraseTags(null);
   }
 
   const queryTrimmed = query.trim();
@@ -2462,13 +2494,14 @@ export default function CultureConnectApp({
 
   // Reset infinite-scroll window when scope / filters / query change.
   useEffect(() => {
-    setVisibleCount(AGENDA_PAGE_SIZE);
+    const venueWindow = Boolean(selectedLieuId);
+    setVisibleCount(venueWindow ? AGENDA_VENUE_PAGE_MAX : AGENDA_PAGE_SIZE);
     setCineExpanded(false);
-    setCineLimit(cineFirstPaint(narrowHome));
-    setTheatreLimit(HOME_PACK_WIRE_CAP);
-    setMusiqueLimit(HOME_PACK_WIRE_CAP);
-    setEnfantsLimit(HOME_PACK_WIRE_CAP);
-    setExpoLimit(HOME_PACK_WIRE_CAP);
+    setCineLimit(venueWindow ? AGENDA_VENUE_PAGE_MAX : cineFirstPaint(narrowHome));
+    setTheatreLimit(venueWindow ? AGENDA_VENUE_PAGE_MAX : HOME_PACK_WIRE_CAP);
+    setMusiqueLimit(venueWindow ? AGENDA_VENUE_PAGE_MAX : HOME_PACK_WIRE_CAP);
+    setEnfantsLimit(venueWindow ? AGENDA_VENUE_PAGE_MAX : HOME_PACK_WIRE_CAP);
+    setExpoLimit(venueWindow ? AGENDA_VENUE_PAGE_MAX : HOME_PACK_WIRE_CAP);
   }, [
     timeScope,
     selectedDay,
@@ -3035,6 +3068,8 @@ export default function CultureConnectApp({
           onConfirm={handleNlConfirm}
           onPickTitre={handleSuggestTitre}
           onPickArtiste={handleSuggestArtiste}
+          onPickSalle={handlePickSalle}
+          venueLock={pickedLieuId ? pickedLieuLabel : null}
           genres={genresLegend.map((g) => ({ slug: g.slug, label: g.label_fr }))}
           communes={communes}
           lieux={searchLieux}

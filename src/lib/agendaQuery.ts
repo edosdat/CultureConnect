@@ -98,7 +98,7 @@ import {
 } from './reco';
 import type { TasteEntry, TasteProfile } from './signals';
 import { normalizeDeepLinkId } from './deepLink';
-import { agendaListCacheKeyParts } from './agendaParams';
+import { AGENDA_VENUE_PAGE_MAX, agendaListCacheKeyParts } from './agendaParams';
 import { applyAvecEnfantsMode, seanceMatchesAvecEnfantsMode } from './enfantsMode';
 import { createDayMemo } from './dayMemo';
 import {
@@ -1413,7 +1413,11 @@ function assembleListFromItems(
   const offset = Math.max(0, input.offset ?? 0);
   const dayPage =
     input.scope === 'date' && Boolean((input.selectedDate || '').trim());
-  const pageMax = dayPage ? AGENDA_DAY_PAGE_MAX : AGENDA_PAGE_MAX;
+  const pageMax = dayPage
+    ? AGENDA_DAY_PAGE_MAX
+    : !searching && input.lieuId
+      ? AGENDA_VENUE_PAGE_MAX
+      : AGENDA_PAGE_MAX;
   const requested = input.limit ?? pageMax;
   const cap = Math.min(Math.max(requested, 0), pageMax);
 

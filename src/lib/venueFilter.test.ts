@@ -5,6 +5,11 @@ import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { queryAgenda } from './agendaQuery';
 import { normalizeCommune } from './commune';
+import { SEARCH_SUGGEST_CAP, suggestLocal, suggestSalles } from './searchSuggest';
+import {
+  buildSearchIndex,
+  clearSearchIndexMemoForTests,
+} from './searchSuggestCatalogue';
 import type { DayItem } from './types';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -33,8 +38,16 @@ describe('Salle chip is gone', () => {
     assert.equal(app.includes('Toutes les salles'), false);
     assert.equal(app.includes('data-salle-chip'), false);
     assert.equal(app.includes('Filtrer par salle'), false);
+    assert.equal(app.includes('Salle▾'), false);
     assert.equal(app.includes('setSelectedLieuId'), false);
-    assert.equal(search.includes('salle'), false);
+    assert.match(app, /onPickSalle=\{handlePickSalle\}/);
+    assert.equal(search.includes('Toutes les salles'), false);
+    assert.equal(search.includes('Filtrer par salle'), false);
+    assert.equal(search.includes('Salle▾'), false);
+    assert.equal(search.includes('data-salle-chip'), false);
+    assert.match(search, /suggestSalles/);
+    assert.match(search, /\[\.\.\.salleHits, \.\.\.titleHits\]/);
+    assert.match(search, /salle: 'Salle'/);
     assert.equal(boot.includes('>Salle<'), false);
     const bandAt = app.indexOf('className="cc-filter-band"');
     const cityAt = app.indexOf('<CityFilter');
@@ -95,6 +108,62 @@ describe('search text lists a venue without a salle chip', () => {
     const noise = queryAgenda({ ...base, q: 'zzzzqxqqqq', lieuId: null }, now);
     assert.equal(noise.total, 0);
     assert.equal(noise.items.some((item) => itemLieuId(item) === 'L075'), false);
+  });
+});
+
+describe('search proposes a known salle, then lists every upcoming event', () => {
+  const now = new Date('2026-10-03T12:00:00+02:00');
+  const base = {
+    scope: 'tous' as const,
+    commune: 'Toulouse',
+    cats: [] as string[],
+    genres: [] as string[],
+    lieuId: null,
+    selectedDate: null,
+    year: 2026,
+    month: 10,
+    q: '',
+  };
+
+  it('offers Le Taquin, Le Metronum and Le Rex from the typed name, any case', () => {
+    clearSearchIndexMemoForTests();
+    const index = buildSearchIndex(now);
+    const cases: [string, string][] = [
+      ['taquin', 'Le Taquin'],
+      ['Taquin', 'Le Taquin'],
+      ['TAQUIN', 'Le Taquin'],
+      ['metronum', 'Le Metronum'],
+      ['rex', 'Le Rex'],
+    ];
+    for (const [query, label] of cases) {
+      const hits = suggestSalles(index.lieux, query);
+      const hit = hits.find((row) => row.label === label);
+      assert.ok(hit, `${query} proposes ${label}`);
+      assert.equal(hit.kind, 'salle');
+      assert.notEqual(hit.kind, 'titre');
+      const titles = suggestLocal(index.suggest, query);
+      assert.ok(titles.length <= SEARCH_SUGGEST_CAP);
+      assert.ok(titles.every((row) => row.kind !== 'salle'));
+      const listed = queryAgenda({ ...base, q: '', lieuId: hit.id }, now);
+      assert.ok(
+        listed.total > SEARCH_SUGGEST_CAP,
+        `${label} is the full set, not the ${SEARCH_SUGGEST_CAP}-card sample`,
+      );
+      assert.equal(listed.items.length, listed.total);
+      assert.ok(listed.items.every((item) => itemLieuId(item) === hit.id));
+    }
+    const bikini = suggestSalles(index.lieux, 'bikini').map((row) => row.label);
+    assert.ok(bikini.includes('Le Bikini'));
+    assert.ok(bikini.includes('Le Petit Bikini'));
+    assert.deepEqual(suggestSalles(index.lieux, 'zzzzqxqqqq'), []);
+    const city = suggestSalles(index.lieux, 'toulouse');
+    assert.equal(
+      city.some((row) => row.label === 'Le Taquin'),
+      false,
+    );
+    assert.ok(city.some((row) => row.label.includes('Toulouse')));
+    const noise = queryAgenda({ ...base, q: 'zzzzqxqqqq', lieuId: null }, now);
+    assert.equal(noise.total, 0);
   });
 });
 
