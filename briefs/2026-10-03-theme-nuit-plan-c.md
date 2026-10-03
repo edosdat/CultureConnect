@@ -76,8 +76,24 @@ Elle a été poussée sans brief. Elle remappe les couleurs, mais laisse **53 `b
 4. Partout ailleurs où le C violet apparaît (rechercher `#AF7DDE` et `plan-c-icon-LOCK-v3-violet` dans `src/` et `public/`, dont `feedback-welcome-c-wink.svg` et le bouton du compositeur de retours) : C rose. Ajouter la nouvelle image sous le nom `plan-c-icon-LOCK-v4-rose`, sans supprimer l'ancienne.
 5. Sur une pastille pleine rose, le C passe en nuit (jamais blanc).
 
+### PR 4 · Nom « Plan C » et typographie plus percutante
+**Décisions du propriétaire (03/10) :** le nom affiché devient **Plan C**, et les titres doivent être plus percutants, comme dans les maquettes. Mêmes polices qu'aujourd'hui (Fraunces pour les titres, DM Sans pour le texte), seul l'usage change. Peut se faire en parallèle de la PR 2, après le GO de la PR 1.
+1. **Nom en haut de page** (`src/components/SiteNav.tsx`) : « CultureConnect » → `Plan <span class="italic">C</span>`.
+   - Fraunces 800, 22 px sur mobile (24 px à partir de `sm`), lettres serrées (`tracking-tight`), texte crème ;
+   - le **C en italique et en rose** ;
+   - `aria-label="Plan C, accueil"` sur le lien.
+2. **Nom partout ailleurs** : titre et métadonnées de `src/app/layout.tsx`, images de partage (`opengraph-image.tsx`, `api/og`). Ne pas toucher aux identifiants techniques, au nom du repo ni aux URL.
+3. **Fraunces** (`layout.tsx`) : charger aussi le poids 800 et l'italique (`weight: ['500','600','700','800']`, `style: ['normal','italic']`).
+4. **Titres** (`.font-display`), dans `globals.css` ou en classes :
+   - graisse **700** par défaut (aujourd'hui ils tombent sur 500) ;
+   - lettres légèrement serrées (`-0.015em`), interligne 1,1 ;
+   - **un cran plus gros** sur mobile : `text-lg` 20 px, `text-xl` 24 px, `text-2xl` 28 px, `text-3xl` 34 px, `text-4xl` 40 px et graisse 800.
+5. Vérifier que rien ne déborde ni ne passe sur trois lignes à 360 px de large (titres de fiche, Top 3, Mes crushs, Ciné). Sinon, garder la taille actuelle pour ce titre-là et le noter dans la PR.
+
+**Soft Design** : comparer l'en-tête, l'accueil et une fiche avant / après sur téléphone. Référence visuelle : l'aperçu du 03/10 joint au fil de discussion du propriétaire (nom « Plan *C* », titres gras).
+
 ## LOCK
-- Textes, mises en page, tailles, comportements : **inchangés**. Seules les couleurs changent.
+- PR 1 à 3 : textes, mises en page, tailles, comportements **inchangés** ; seules les couleurs changent. La PR 4 change seulement le nom affiché et la typographie des titres.
 - La **forme** du C reste celle du LOCK v3 ; seule sa couleur change (rose, PR 3). PR 1 et PR 2 ne touchent pas au logo.
 - Pas de renommage des classes `culture-*` dans ces PR (alias seulement). Le renommage en `planc-*` viendra dans un brief séparé.
 
@@ -99,4 +115,6 @@ Elle a été poussée sans brief. Elle remappe les couleurs, mais laisse **53 `b
 - [ ] Captures avant / après des 4 écrans de la liste Soft Design.
 
 ## Décidé
+- Nom affiché : **Plan C**, C en italique rose (03/10).
+- Titres : mêmes polices, plus gras et un cran plus gros (03/10).
 - C du logo : **rose #FF2E7E** (variante B, choisie le 03/10 sur comparaison visuelle). Contraste sur nuit 5,35:1.
