@@ -25,8 +25,10 @@ import {
 import {
   highlightLabel,
   suggestLocal,
+  suggestSalles,
   type SearchSuggestEntry,
 } from '@/lib/searchSuggest';
+import { normalizeSearch } from '@/lib/searchText';
 
 type Props = {
   value: string;
@@ -43,6 +45,13 @@ type Props = {
   onConfirm?: (parsed: SearchNlParse) => void;
   onPickTitre?: (itemKey: string) => void;
   onPickArtiste?: (name: string) => void;
+  /** Venue row: id + display name. Lists that lieu, never a filter-band chip. */
+  onPickSalle?: (id: string, label: string) => void;
+  /**
+   * After a salle pick, the field shows this name and the dropdown stays shut
+   * so the debounce does not turn the name back into a text query.
+   */
+  venueLock?: string | null;
   genres?: SearchNlDict['genres'];
   communes?: readonly string[];
   lieux?: SearchNlDict['lieux'];
@@ -54,7 +63,7 @@ function isSearchCommitKey(e: KeyboardEvent<HTMLInputElement>): boolean {
   return e.key === 'Enter' && !e.repeat && !e.nativeEvent.isComposing;
 }
 
-const KIND_LABEL = { titre: 'Titre', artiste: 'Artiste' } as const;
+const KIND_LABEL = { titre: 'Titre', artiste: 'Artiste', salle: 'Salle' } as const;
 
 export default function SearchOmnibox({
   value,
@@ -64,6 +73,8 @@ export default function SearchOmnibox({
   onConfirm,
   onPickTitre,
   onPickArtiste,
+  onPickSalle,
+  venueLock = null,
   genres = [],
   communes = [],
   lieux = [],
@@ -101,13 +112,24 @@ export default function SearchOmnibox({
     () => (parsed ? previewChips(parsed, dict) : []),
     [parsed, dict],
   );
-  const hits = useMemo(() => {
-    if (!ready || chips.length > 0) return [];
+  const locked =
+    Boolean(venueLock) &&
+    normalizeSearch(trimmed) === normalizeSearch(venueLock || '');
+  const titleHits = useMemo(() => {
+    if (!ready || chips.length > 0 || locked) return [];
     return suggestLocal(suggest, settled);
-  }, [ready, chips.length, suggest, settled]);
+  }, [ready, chips.length, locked, suggest, settled]);
+  const salleHits = useMemo(() => {
+    if (!ready || chips.length > 0 || locked) return [];
+    return suggestSalles(lieux, settled);
+  }, [ready, chips.length, locked, lieux, settled]);
+  const hits = useMemo(
+    () => [...salleHits, ...titleHits],
+    [salleHits, titleHits],
+  );
   const namesVenue =
     ready && chips.length === 0 && queryNamesKnownLieu(settled, lieux);
-  const mode = namesVenue
+  const mode = locked
     ? 'closed'
     : searchNlMode({
         query: trimmed,
@@ -119,12 +141,14 @@ export default function SearchOmnibox({
   const open = mode !== 'closed';
 
   useEffect(() => {
+    if (locked) return;
     if (!ready || chips.length > 0) return;
     // Title hits keep the catalogue dropdown (Enter opens one fiche).
-    // A venue name, or a query with no hit, filters the cards underneath.
-    if (!namesVenue && hits.length > 0) return;
+    // A venue name still filters underneath, and stays in the dropdown
+    // so the salle can be chosen beside any matching titles.
+    if (!namesVenue && titleHits.length > 0) return;
     onBareQuery?.(trimmed);
-  }, [ready, chips.length, namesVenue, hits.length, trimmed, onBareQuery]);
+  }, [locked, ready, chips.length, namesVenue, titleHits.length, trimmed, onBareQuery]);
 
   useEffect(() => {
     setActive(0);
@@ -178,7 +202,8 @@ export default function SearchOmnibox({
   function activateHit(index: number) {
     const hit = hits[index];
     if (!hit) return;
-    if (hit.kind === 'titre') onPickTitre?.(hit.id);
+    if (hit.kind === 'salle') onPickSalle?.(hit.id, hit.label);
+    else if (hit.kind === 'titre') onPickTitre?.(hit.id);
     else onPickArtiste?.(hit.id);
     setDismissedFor(trimmed);
   }
@@ -382,6 +407,7 @@ export default function SearchOmnibox({
                 type="button"
                 id={`cc-suggest-${index}`}
                 role="option"
+                data-suggest-kind={hit.kind}
                 aria-selected={index === active}
                 onPointerDown={keepFocus}
                 onClick={() => activateHit(index)}
