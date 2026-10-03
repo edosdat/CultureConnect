@@ -36,7 +36,6 @@ const MODEL_LINE = 'Texte → modèle (US) pour une réponse courte.';
 const RETENTION =
   'On garde ce texte 90 jours. N’écris pas ton e-mail dedans.';
 const LAUNCHER_LABEL = 'Un avis ?';
-const ICON_SRC = '/plan-c-icon-LOCK-v3-violet.jpg';
 /** Swap the file in /public. Static, ≤64px, no sound. Hidden under `sm`. */
 const WELCOME_STICKER_SRC = '/feedback-welcome-c-wink.svg';
 
@@ -566,21 +565,23 @@ export default function FeedbackChat() {
         aria-expanded={panelOpen}
         aria-controls={panelOpen ? panelId : undefined}
         aria-label={LAUNCHER_LABEL}
-        className="pointer-events-auto grid h-12 w-12 place-items-center overflow-hidden rounded-full border border-culture-line bg-culture-surface p-0 shadow-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta"
+        className="pointer-events-auto grid h-12 w-12 place-items-center overflow-hidden rounded-full bg-culture-surface p-0 shadow-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta"
         onClick={() => {
           if (!feedbackOpenAllowed({ a2hsSheetOpen })) return;
           setOpen((v) => !v);
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={ICON_SRC}
-          alt=""
-          width={48}
-          height={48}
-          draggable={false}
-          className="h-12 w-12 object-cover"
-        />
+        <svg className="h-7 w-7" viewBox="0 0 64 64" aria-hidden="true">
+          <g transform="skewX(-12) translate(8 0)">
+            <path
+              d="M48 16a18 18 0 1 0 0 32"
+              fill="none"
+              stroke="#FF2E7E"
+              strokeWidth="7"
+              strokeLinecap="round"
+            />
+          </g>
+        </svg>
       </button>
     </div>
   );

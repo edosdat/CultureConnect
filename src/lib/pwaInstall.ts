@@ -13,8 +13,8 @@ export const A2HS_BAR_NARROW_PX = 360;
 /** Optional left hint. Hidden below this width so the strip does not wrap. */
 export const A2HS_BAR_HINT = 'Tu peux télécharger l’appli';
 export const A2HS_BAR_HINT_MIN_PX = 390;
-/** LOCK lettermark « C » v3 violet — not a terracotta glyph. */
-export const A2HS_BAR_ICON_SRC = '/plan-c-icon-LOCK-v3-violet.jpg';
+/** Installed app icon, variant D. The rose letter sits on the night tile. */
+export const A2HS_BAR_ICON_SRC = '/icon-192.png';
 export const A2HS_BAR_ICON_PX = 22;
 /** Strip content height. Search stick offset uses the same pixel value. */
 export const A2HS_BAR_HEIGHT_PX = 44;
