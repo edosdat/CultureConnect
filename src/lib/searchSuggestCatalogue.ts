@@ -71,6 +71,26 @@ export function buildSearchIndex(now = new Date()): SearchIndex {
   if (memo?.day === day) return memo.value;
   const data = loadCultureData();
   const titles = new Map<string, TitlePick>();
+  const knownArtists = new Map<string, string>();
+  for (const artist of data.artistes) {
+    const nom = (artist.nom || '').trim();
+    const norm = normalizeSearch(nom);
+    if (norm.length < 2 || knownArtists.has(norm)) continue;
+    knownArtists.set(norm, nom);
+  }
+  const namedArtists = new Map<string, { nom: string; sub?: string; date: string }>();
+
+  function rememberArtistLabel(label: string, venue: string, date: string) {
+    const head = normalizeSearch((label || '').split(/\s+[—–-]\s+/)[0] || '');
+    const full = normalizeSearch(label || '');
+    const norm = knownArtists.has(head) ? head : knownArtists.has(full) ? full : '';
+    if (!norm) return;
+    const prev = namedArtists.get(norm);
+    if (!prev || date < prev.date) {
+      const sub = venue.trim();
+      namedArtists.set(norm, { nom: knownArtists.get(norm)!, sub: sub || undefined, date });
+    }
+  }
 
   for (const row of data.programmeWithContext) {
     if (!programmeOk(row) || row.programme.date < day) continue;
@@ -92,6 +112,9 @@ export function buildSearchIndex(now = new Date()): SearchIndex {
         row.programme.date,
       );
     }
+    const venueNom = (row.lieu?.nom || '').trim();
+    rememberArtistLabel(row.programme.nom_item, venueNom, row.programme.date);
+    if (eventTitle) rememberArtistLabel(eventTitle, venueNom, row.programme.date);
   }
 
   for (const ev of data.events) {
@@ -107,6 +130,7 @@ export function buildSearchIndex(now = new Date()): SearchIndex {
       formatLieuAffiche(lieu),
       start,
     );
+    rememberArtistLabel(ev.titre, (lieu?.nom || '').trim(), start);
   }
 
   const suggest: SearchSuggestEntry[] = [];
@@ -132,6 +156,19 @@ export function buildSearchIndex(now = new Date()): SearchIndex {
       label: nom,
       sub: next?.venueName || undefined,
       id: nom,
+    });
+  }
+
+  // Upcoming title equals a catalogue artist, even when programme.artiste_id
+  // is empty (TAQP0020 / Cuarteto Tafi). Does not invent a name.
+  for (const [norm, pick] of namedArtists) {
+    if (seenArtist.has(norm)) continue;
+    seenArtist.add(norm);
+    suggest.push({
+      kind: 'artiste',
+      label: pick.nom,
+      sub: pick.sub,
+      id: pick.nom,
     });
   }
 

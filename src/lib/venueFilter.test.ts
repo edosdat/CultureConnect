@@ -46,7 +46,7 @@ describe('Salle chip is gone', () => {
     assert.equal(search.includes('Salle▾'), false);
     assert.equal(search.includes('data-salle-chip'), false);
     assert.match(search, /suggestSalles/);
-    assert.match(search, /\[\.\.\.salleHits, \.\.\.titleHits\]/);
+    assert.match(search, /\[\.\.\.salleHits, \.\.\.artistHits, \.\.\.titleHits\]/);
     assert.match(search, /salle: 'Salle'/);
     assert.equal(boot.includes('>Salle<'), false);
     const bandAt = app.indexOf('className="cc-filter-band"');

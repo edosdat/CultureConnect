@@ -24,6 +24,7 @@ import {
 } from '@/lib/searchNl';
 import {
   highlightLabel,
+  suggestArtistes,
   suggestLocal,
   suggestSalles,
   type SearchSuggestEntry,
@@ -52,6 +53,11 @@ type Props = {
    * so the debounce does not turn the name back into a text query.
    */
   venueLock?: string | null;
+  /**
+   * After an artist pick, the field shows the catalogue name and the dropdown
+   * stays shut. The list is that name, not the spelling that was typed.
+   */
+  artistLock?: string | null;
   genres?: SearchNlDict['genres'];
   communes?: readonly string[];
   lieux?: SearchNlDict['lieux'];
@@ -75,6 +81,7 @@ export default function SearchOmnibox({
   onPickArtiste,
   onPickSalle,
   venueLock = null,
+  artistLock = null,
   genres = [],
   communes = [],
   lieux = [],
@@ -113,19 +120,29 @@ export default function SearchOmnibox({
     [parsed, dict],
   );
   const locked =
-    Boolean(venueLock) &&
-    normalizeSearch(trimmed) === normalizeSearch(venueLock || '');
+    (Boolean(venueLock) &&
+      normalizeSearch(trimmed) === normalizeSearch(venueLock || '')) ||
+    (Boolean(artistLock) &&
+      normalizeSearch(trimmed) === normalizeSearch(artistLock || ''));
+  const titleSource = useMemo(
+    () => suggest.filter((entry) => entry.kind === 'titre'),
+    [suggest],
+  );
   const titleHits = useMemo(() => {
     if (!ready || chips.length > 0 || locked) return [];
-    return suggestLocal(suggest, settled);
+    return suggestLocal(titleSource, settled);
+  }, [ready, chips.length, locked, titleSource, settled]);
+  const artistHits = useMemo(() => {
+    if (!ready || chips.length > 0 || locked) return [];
+    return suggestArtistes(suggest, settled);
   }, [ready, chips.length, locked, suggest, settled]);
   const salleHits = useMemo(() => {
     if (!ready || chips.length > 0 || locked) return [];
     return suggestSalles(lieux, settled);
   }, [ready, chips.length, locked, lieux, settled]);
   const hits = useMemo(
-    () => [...salleHits, ...titleHits],
-    [salleHits, titleHits],
+    () => [...salleHits, ...artistHits, ...titleHits],
+    [salleHits, artistHits, titleHits],
   );
   const namesVenue =
     ready && chips.length === 0 && queryNamesKnownLieu(settled, lieux);
@@ -143,12 +160,21 @@ export default function SearchOmnibox({
   useEffect(() => {
     if (locked) return;
     if (!ready || chips.length > 0) return;
-    // Title hits keep the catalogue dropdown (Enter opens one fiche).
+    // Title or artist hits keep the catalogue dropdown (Enter opens the row).
     // A venue name still filters underneath, and stays in the dropdown
     // so the salle can be chosen beside any matching titles.
-    if (!namesVenue && titleHits.length > 0) return;
+    if (!namesVenue && (titleHits.length > 0 || artistHits.length > 0)) return;
     onBareQuery?.(trimmed);
-  }, [locked, ready, chips.length, namesVenue, titleHits.length, trimmed, onBareQuery]);
+  }, [
+    locked,
+    ready,
+    chips.length,
+    namesVenue,
+    titleHits.length,
+    artistHits.length,
+    trimmed,
+    onBareQuery,
+  ]);
 
   useEffect(() => {
     setActive(0);
