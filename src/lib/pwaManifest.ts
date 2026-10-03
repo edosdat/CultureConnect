@@ -1,6 +1,6 @@
 /**
  * Plan C web app manifest fields.
- * Icon files stay the LOCK lettermark « C » v3 violet (PR 3 recolore le C).
+ * Icon files are the provided variant D (night tile, neon ring, rose C).
  * theme_color and background_color are the night ground so the top of home
  * and the installed chrome do not flash cream.
  */

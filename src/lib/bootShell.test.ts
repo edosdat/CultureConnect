@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -28,6 +29,29 @@ import { PWA_BACKGROUND_COLOR } from './pwaManifest';
 function pngSize(buf: Buffer): { width: number; height: number } {
   assert.equal(buf.subarray(12, 16).toString('ascii'), 'IHDR');
   return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
+}
+
+function gitBlobSha1(file: string): string {
+  const buf = readFileSync(file);
+  return createHash('sha1').update(`blob ${buf.length}\0`).update(buf).digest('hex');
+}
+
+function pngPalette(buf: Buffer): Array<[number, number, number]> {
+  let offset = 8;
+  while (offset + 8 < buf.length) {
+    const length = buf.readUInt32BE(offset);
+    const type = buf.subarray(offset + 4, offset + 8).toString('ascii');
+    const data = buf.subarray(offset + 8, offset + 8 + length);
+    if (type === 'PLTE') {
+      const colors: Array<[number, number, number]> = [];
+      for (let i = 0; i < data.length; i += 3) {
+        colors.push([data[i], data[i + 1], data[i + 2]]);
+      }
+      return colors;
+    }
+    offset += 12 + length;
+  }
+  throw new Error('PNG has no palette');
 }
 
 describe('boot shell hide timing', () => {
@@ -160,6 +184,12 @@ describe('boot shell markup', () => {
     assert.ok(fetchAt > 0 && capAt > fetchAt);
     assert.match(BOOT_SHELL_SCRIPT, /__ccHomeWindowPrefetch/);
     assert.equal(BOOT_SHELL_SCRIPT.includes('caches.'), false);
+    assert.match(BOOT_SHELL_MARKUP, /stroke="#FF2E7E"/);
+    assert.equal(BOOT_SHELL_MARKUP.includes('#AF7DDE'), false);
+    assert.match(BOOT_SHELL_CSS, /drop-shadow\(0 0 6px rgba\(255,46,126,\.6\)\)/);
+    assert.match(BOOT_SHELL_CSS, /background:#3A1840/);
+    assert.match(BOOT_SHELL_CSS, /background:#4A2350/);
+    assert.equal(BOOT_SHELL_CSS.includes('#C4A882'), false);
   });
 
   it('is wired before Providers and does not replace the home skeletons', () => {
@@ -214,5 +244,48 @@ describe('apple startup images', () => {
       }
     }
     assert.ok(total < 500_000, `startup images total ${total} bytes`);
+    const phone = readFileSync(
+      path.join(process.cwd(), 'public/splash/apple-1170x2532.png'),
+    );
+    const palette = pngPalette(phone);
+    assert.deepEqual(palette[0], [26, 11, 30]);
+    assert.ok(
+      palette.some((color) => color[0] === 255 && color[1] === 46 && color[2] === 126),
+    );
+    assert.equal(
+      palette.some((color) => color[2] > color[0] && color[2] > 140),
+      false,
+    );
+  });
+});
+
+describe('variant D icons', () => {
+  it('keeps the same C, centered in the square, and packs the favicon', () => {
+    assert.match(BOOT_SHELL_MARKUP, /translate\(-5\.6 0\) skewX\(-12\) translate\(8 0\)/);
+    const expected: Record<string, string> = {
+      'public/icon-192.png': '996bbbb7504f69a56e4f8e53388a6fe54e0b8d22',
+      'public/icon-512.png': 'd9f9275a938f1be6223d896b19f6472b1218f7a0',
+      'public/icon-192-maskable.png': '1b8fcdf436ec6d7fe1707270f3ce8628aa86e34a',
+      'public/icon-512-maskable.png': '54712cc86a58f9d196b70350e07dde919acdd140',
+      'public/apple-touch-icon.png': '04f935bba2890c2aef14f97236230f660a8b9c2a',
+      'public/plan-c-icon-LOCK-v4-neon.svg': '91259f783cc20bd05b5cf90f5e48d9c9ccece0d4',
+      'public/plan-c-icon-maskable-v4.svg': '3593e9d871352a286c0a65a793a7a03cb24c5c57',
+      'public/favicon-v4.svg': '1c59f2bb1492875e2fd1f06d7105acd9cfac2c37',
+    };
+    for (const [file, sha] of Object.entries(expected)) {
+      assert.equal(gitBlobSha1(path.join(process.cwd(), file)), sha, file);
+    }
+    assert.ok(readFileSync(path.join(process.cwd(), 'public/plan-c-icon-LOCK-v3-violet.jpg')).byteLength > 0);
+    const ico = readFileSync(path.join(process.cwd(), 'public/favicon.ico'));
+    assert.equal(ico.readUInt16LE(0), 0);
+    assert.equal(ico.readUInt16LE(2), 1);
+    assert.equal(ico.readUInt16LE(4), 3);
+    const sizes = [16, 32, 48];
+    const lengths = [779, 1765, 2730];
+    for (let i = 0; i < 3; i += 1) {
+      assert.equal(ico.readUInt8(6 + i * 16), sizes[i]);
+      assert.equal(ico.readUInt8(7 + i * 16), sizes[i]);
+      assert.equal(ico.readUInt32LE(14 + i * 16), lengths[i]);
+    }
   });
 });

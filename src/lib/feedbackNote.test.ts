@@ -663,7 +663,9 @@ describe('feedback surfaces', () => {
     assert.match(widget, /hidden h-12 w-12 shrink-0 sm:block/);
     assert.match(widget, /Un avis \?/);
     assert.match(widget, /aria-label=\{LAUNCHER_LABEL\}/);
-    assert.match(widget, /plan-c-icon-LOCK-v3-violet\.jpg/);
+    assert.doesNotMatch(widget, /plan-c-icon-LOCK-v3-violet\.jpg/);
+    assert.match(widget, /stroke="#FF2E7E"/);
+    assert.doesNotMatch(widget, /#B98CFF|#AF7DDE/);
     assert.match(widget, /Suggestion/);
     assert.match(widget, /Bug/);
     assert.ok(widget.indexOf("label: 'Bug'") < widget.indexOf("label: 'Suggestion'"));

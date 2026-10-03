@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Cream full-bleed startup images with the LOCK v3 violet C centered.
+"""Night full-bleed startup images with the LOCK v3 C, recolored rose.
 
 Reads src/lib/appleSplashScreens.json and writes public/splash/apple-{w}x{h}.png.
 Phone screens are portrait. iPad screens include landscape (upright C).
+The shape stays the v3 letter. No neon ring: that edge belongs to the app icon.
 """
 
 from __future__ import annotations
@@ -10,15 +11,17 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "public" / "plan-c-icon-LOCK-v3-violet.jpg"
 SCREENS = ROOT / "src" / "lib" / "appleSplashScreens.json"
 OUT = ROOT / "public" / "splash"
-CREAM = (247, 240, 232)  # #F7F0E8
-# Core of the LOCK v3 letter, also used by the inline shell stroke.
-VIOLET = (175, 125, 222)  # #AF7DDE
+NUIT = (26, 11, 30)  # #1A0B1E
+ROSE = (255, 46, 126)  # #FF2E7E
+# Same halo as the inline shell: drop-shadow(0 0 6px rgba(255,46,126,.6)) on an 88px mark.
+HALO_PX_AT_88 = 6
+HALO_ALPHA = 0.6
 
 
 def is_violet(rgb: tuple[int, int, int]) -> bool:
@@ -27,7 +30,7 @@ def is_violet(rgb: tuple[int, int, int]) -> bool:
 
 
 def lettermark_mask() -> Image.Image:
-    """L mask of the LOCK v3 C. Flat violet keeps the PNGs small."""
+    """L mask of the LOCK v3 C. The startup images recolor it; they do not redraw it."""
     im = Image.open(SRC).convert("RGB")
     w, h = im.size
     px = im.load()
@@ -69,31 +72,37 @@ def pixels(spec: dict) -> tuple[int, int]:
 
 def render(mask: Image.Image, size: tuple[int, int]) -> Image.Image:
     width, height = size
-    canvas = Image.new("RGB", size, CREAM)
     short = min(width, height)
     target_h = min(int(short * 0.34), 560)
     target_h = max(target_h, 180)
     scale = target_h / mask.height
-    target_w = max(1, int(mask.width * scale))
+    target_w = max(1, int(round(mask.width * scale)))
     resized = mask.resize((target_w, target_h), Image.Resampling.LANCZOS)
-    src = resized.load()
-    dst = canvas.load()
+    canvas = Image.new("RGBA", size, NUIT + (255,))
+    blur_r = max(1, round(target_h * HALO_PX_AT_88 / 88))
+    blurred = resized.filter(ImageFilter.GaussianBlur(radius=blur_r))
+    halo = Image.new("RGBA", (target_w, target_h), ROSE + (0,))
+    halo.putalpha(blurred.point(lambda p: int(p * HALO_ALPHA)))
     ox = (width - target_w) // 2
     oy = (height - target_h) // 2
-    for y in range(target_h):
-        for x in range(target_w):
-            alpha = src[x, y]
-            if not alpha:
-                continue
-            t = alpha / 255
-            dst[ox + x, oy + y] = tuple(
-                int(CREAM[i] * (1 - t) + VIOLET[i] * t) for i in range(3)
-            )
-    # 8-color palette: cream stays exact, the edge stays smooth, files stay small.
-    indexed = canvas.quantize(colors=8, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
-    rgb = indexed.convert("RGB")
-    if rgb.getpixel((0, 0)) != CREAM:
-        raise SystemExit(f"cream drifted to {rgb.getpixel((0, 0))} for {size}")
+    canvas.alpha_composite(halo, (ox, oy))
+    core = Image.new("RGBA", (target_w, target_h), ROSE + (0,))
+    core.putalpha(resized)
+    canvas.alpha_composite(core, (ox, oy))
+    rgb = canvas.convert("RGB")
+    if rgb.getpixel((0, 0)) != NUIT:
+        raise SystemExit(f"night drifted to {rgb.getpixel((0, 0))} for {size}")
+    # Eight steps from night to rose. Night and the letter stay exact, files stay small.
+    steps = []
+    for t in (0, 0.12, 0.24, 0.4, 0.55, 0.7, 0.85, 1):
+        steps.extend(int(NUIT[i] * (1 - t) + ROSE[i] * t) for i in range(3))
+    steps.extend([0] * (768 - len(steps)))
+    palette = Image.new("P", (1, 1))
+    palette.putpalette(steps)
+    indexed = rgb.quantize(palette=palette, dither=Image.Dither.NONE)
+    out = indexed.convert("RGB")
+    if out.getpixel((0, 0)) != NUIT:
+        raise SystemExit(f"night drifted to {out.getpixel((0, 0))} for {size}")
     return indexed
 
 
