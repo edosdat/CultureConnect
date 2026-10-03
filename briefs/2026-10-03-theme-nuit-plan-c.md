@@ -41,14 +41,19 @@ Elle a été poussée sans brief. Elle remappe les couleurs, mais laisse **53 `b
    - les 35 `text-white` : sur le rose → `text-planc-nuit` ; sur une photo ou un voile sombre → `text-planc-creme` ;
    - ombres `rgba(28,25,23,…)` → `rgba(0,0,0,…)` plus marquées (le noir léger ne se voit pas sur fond nuit).
 5. **Champs de saisie et bordures qui délimitent un contrôle** (champ de recherche, boutons en contour Envie / J'y vais) : contraste de la bordure d'au moins 3:1 sur leur fond. `ligne` (#4A2350) ne suffit pas (1,34:1 sur velours) : utiliser `muted` à 60 % ou une couleur plus claire, à mesurer.
-6. **Test automatique de contraste** (nouveau fichier de test, sans dépendance) : calcul WCAG des paires suivantes, qui doit échouer sous le seuil :
+6. **Pièges trouvés en faisant tourner l'appli avec ce thème (aperçu du 03/10)** : sans ces points, des zones restent claires avec du texte clair dessus.
+   - **Fond de page** : il est posé en dur par `PWA_BACKGROUND_COLOR` (`src/lib/pwaManifest.ts`), repris dans `src/app/layout.tsx` (style du `<html>` et du `<body>`) et par l'écran de démarrage. Le passer à `#1A0B1E` **dès la PR 1** (et `PWA_THEME_COLOR` aussi), sinon le haut de l'accueil reste crème.
+   - **Couleurs claires en dur dans `globals.css`** : `#e8e0d6` (6 fois), `#f5f0ea`, `#fff8f0`, `#f0c4b4`, `#b8d4d5`, et les `rgba(232, 93, 59, …)` / `rgba(95, 122, 90, …)` des dégradés de fond. Les remplacer par sable, velours ou rose / aubergine translucides.
+   - `bg-[#fff8f4]` dans `ActivityInbox.tsx` → `bg-culture-surface`.
+   - **`bg-culture-ink` (19 fois)** sert de voile sombre sur les images (dates, « VO », « VOSTFR » sur les vignettes ciné). Comme `ink` devient crème, ces pastilles deviennent claires avec du texte blanc : remplacer par `bg-planc-nuit` (avec la même opacité). Même chose pour `text-culture-cream` / `text-culture-surface` (4 fois) → `text-planc-creme`.
+7. **Test automatique de contraste** (nouveau fichier de test, sans dépendance) : calcul WCAG des paires suivantes, qui doit échouer sous le seuil :
    - texte : creme et muted sur nuit, velours, sable ≥ 4,5 ;
    - texte : rose sur nuit et velours ≥ 4,5 (**pas de petit texte rose sur sable** : 4,29) ;
    - nuit sur rose et sur rose-hover ≥ 4,5 ;
    - bordures de contrôle sur leur fond ≥ 3.
 
 ### PR 2 · Couleurs de catégories, images de partage, appli installée
-1. Couleurs de catégories (`culture.cat.*`), lisibles sur fond sombre :
+1. Couleurs de catégories, **dans `tailwind.config.ts` (`culture.cat.*`) ET dans `globals.css` (`--cat-*`)**. Attention : `globals.css` marque cette palette « LOCK — do not change » ; **ce brief lève ce LOCK** (décision du propriétaire du 03/10 pour le thème nuit). Valeurs, lisibles sur fond sombre :
 
    | Catégorie | Avant | Après |
    |---|---|---|
@@ -61,7 +66,7 @@ Elle a été poussée sans brief. Elle remappe les couleurs, mais laisse **53 `b
 
    Ces couleurs servent en texte, bordure ou pastille. Si une pastille pleine porte du texte : **texte nuit**. Ajouter ces paires au test de contraste (≥ 4,5 sur nuit et velours ; toutes passent).
 2. Les ~100 couleurs hexadécimales en dur dans `src/` : remplacer celles du thème clair par les tokens. Ne pas toucher aux couleurs de données (affiches, cartes).
-3. `pwaManifest.ts` : `theme_color` et `background_color` = `#1A0B1E`. Images Open Graph (`src/app/api/og`, `opengraph-image.tsx`) : fond nuit, texte crème, accent rose.
+3. Images Open Graph (`src/app/api/og`, `opengraph-image.tsx`) : fond nuit, texte crème, accent rose.
 
 ### PR 3 · Logo C rose et écran de démarrage
 **Décision du propriétaire (03/10) : le C passe en rose #FF2E7E** (variante B). Il remplace le C violet LOCK v3. La forme du C ne change pas, seulement sa couleur.
