@@ -219,7 +219,7 @@ function FilmThumb({
         <span className="absolute left-1.5 top-1.5 flex max-w-[calc(100%-0.75rem)] flex-col items-start gap-1">
           <span className="flex max-w-full flex-wrap items-center gap-1">
             {when ? (
-              <span className="rounded bg-culture-ink/85 px-1.5 py-0.5 text-[11px] font-semibold leading-tight text-white">
+              <span className="rounded bg-planc-nuit/85 px-1.5 py-0.5 text-[11px] font-semibold leading-tight text-planc-creme">
                 {when}
               </span>
             ) : null}
@@ -1039,7 +1039,7 @@ export default function CinemaCarousel({
                       value={active.key}
                       onChange={(e) => setPickedKey(e.target.value)}
                       aria-label="Choisir une séance"
-                      className="h-11 min-w-0 w-full rounded-lg border border-culture-line bg-culture-surface px-3 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta md:flex-1"
+                      className="h-11 min-w-0 w-full rounded-lg border border-planc-controle bg-culture-surface px-3 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta md:flex-1"
                     >
                       {seances.map((rel) => (
                         <option key={rel.key} value={rel.key}>

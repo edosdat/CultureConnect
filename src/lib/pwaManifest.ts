@@ -1,12 +1,13 @@
 /**
  * Plan C web app manifest fields.
- * Icon files are the LOCK lettermark « C » v3 violet (not a generated terracotta set).
- * theme_color stays the live terracotta chrome; the glyph itself is violet.
+ * Icon files stay the LOCK lettermark « C » v3 violet (PR 3 recolore le C).
+ * theme_color and background_color are the night ground so the top of home
+ * and the installed chrome do not flash cream.
  */
 
 export const PWA_NAME = 'Plan C';
-export const PWA_THEME_COLOR = '#e85d3b';
-export const PWA_BACKGROUND_COLOR = '#F7F0E8';
+export const PWA_THEME_COLOR = '#1A0B1E';
+export const PWA_BACKGROUND_COLOR = '#1A0B1E';
 export const PWA_START_URL = '/';
 /** Stable id across preview hosts. Resolved against the manifest URL. */
 export const PWA_ID = '/';

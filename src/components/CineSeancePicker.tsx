@@ -72,7 +72,7 @@ export default function CineSeancePicker({
               if (next) onPick(next.key);
             }}
             aria-label="Choisir un cinéma"
-            className="h-10 w-full min-w-0 rounded-lg border border-culture-line bg-culture-surface px-2.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta min-[900px]:w-auto min-[900px]:min-w-[9rem] min-[900px]:flex-1"
+            className="h-10 w-full min-w-0 rounded-lg border border-planc-controle bg-culture-surface px-2.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta min-[900px]:w-auto min-[900px]:min-w-[9rem] min-[900px]:flex-1"
           >
             {groups.map((g) => (
               <option key={g.lieuId} value={g.lieuId}>
@@ -84,7 +84,7 @@ export default function CineSeancePicker({
             value={timeValue}
             onChange={(e) => onPick(e.target.value)}
             aria-label="Choisir un horaire"
-            className="h-10 w-full min-w-0 rounded-lg border border-culture-line bg-culture-surface px-2.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta min-[900px]:w-auto min-[900px]:min-w-[8rem] min-[900px]:flex-1"
+            className="h-10 w-full min-w-0 rounded-lg border border-planc-controle bg-culture-surface px-2.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta min-[900px]:w-auto min-[900px]:min-w-[8rem] min-[900px]:flex-1"
           >
             {horaireRows.map((rel) => (
               <option

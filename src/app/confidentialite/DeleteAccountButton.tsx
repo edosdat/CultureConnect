@@ -52,7 +52,7 @@ export default function DeleteAccountButton() {
         type="button"
         disabled={deleting}
         onClick={() => void handleDeleteAccount()}
-        className="inline-flex h-9 items-center rounded-full border border-culture-terracotta/50 bg-white px-4 text-sm font-medium text-culture-terracotta transition hover:border-culture-terracotta hover:bg-culture-terracotta/10 disabled:opacity-50"
+        className="inline-flex h-9 items-center rounded-full border border-culture-terracotta/50 bg-culture-surface px-4 text-sm font-medium text-culture-terracotta transition hover:border-culture-terracotta hover:bg-culture-terracotta/10 disabled:opacity-50"
       >
         {deleting ? 'Suppression…' : 'Supprimer mon compte'}
       </button>

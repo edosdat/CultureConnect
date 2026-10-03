@@ -3115,7 +3115,7 @@ export default function CultureConnectApp({
                       >
                         Filtres
                         {filterBadge > 0 ? (
-                          <span className="rounded-full bg-culture-terracotta px-1.5 text-xs text-white">
+                          <span className="rounded-full bg-culture-terracotta px-1.5 text-xs text-planc-nuit">
                             {filterBadge}
                           </span>
                         ) : null}
@@ -3263,7 +3263,7 @@ export default function CultureConnectApp({
                   <button
                     type="button"
                     onClick={() => handleScopeChange('tous')}
-                    className="min-h-10 rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-white hover:bg-culture-clay"
+                    className="min-h-10 rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-planc-nuit hover:bg-culture-clay"
                   >
                     Même ambiance, une autre date
                   </button>
@@ -3274,7 +3274,7 @@ export default function CultureConnectApp({
                     onClick={() =>
                       setPhraseTags({ ...phraseTags, form: undefined })
                     }
-                    className="min-h-10 rounded-full border border-culture-terracotta bg-white px-5 py-2.5 text-sm font-semibold text-culture-terracotta hover:bg-culture-soft"
+                    className="min-h-10 rounded-full border border-culture-terracotta bg-culture-surface px-5 py-2.5 text-sm font-semibold text-culture-terracotta hover:bg-planc-nuit"
                   >
                     Autre forme, même ambiance
                   </button>
@@ -3303,7 +3303,7 @@ export default function CultureConnectApp({
                 <button
                   type="button"
                   onClick={() => handleScopeChange('aujourdhui')}
-                  className="mt-5 mr-2 min-h-10 rounded-full border border-culture-terracotta bg-white px-5 py-2.5 text-sm font-semibold text-culture-terracotta hover:bg-culture-soft"
+                  className="mt-5 mr-2 min-h-10 rounded-full border border-culture-terracotta bg-culture-surface px-5 py-2.5 text-sm font-semibold text-culture-terracotta hover:bg-planc-nuit"
                 >
                   Voir aujourd&apos;hui
                 </button>
@@ -3312,7 +3312,7 @@ export default function CultureConnectApp({
                 <button
                   type="button"
                   onClick={fallbackToWeekend}
-                  className="mt-5 min-h-10 rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-white hover:bg-culture-clay"
+                  className="mt-5 min-h-10 rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-planc-nuit hover:bg-culture-clay"
                 >
                   Voir ce week-end
                 </button>

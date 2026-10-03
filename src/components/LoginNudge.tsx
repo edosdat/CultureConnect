@@ -90,7 +90,7 @@ export default function LoginNudge() {
           <button
             type="button"
             onClick={() => signIn('google', { callbackUrl: '/' })}
-            className="rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-culture-clay"
+            className="rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-planc-nuit shadow-sm transition hover:bg-culture-clay"
           >
             Continuer avec Google
           </button>

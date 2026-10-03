@@ -52,7 +52,7 @@ export default function EventCtaRow({
             trackItem(item, 'outbound_click', tagSource);
             onReserve?.(item);
           }}
-          className="inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-culture-terracotta px-3 text-sm font-semibold text-white hover:bg-culture-clay"
+          className="inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-culture-terracotta px-3 text-sm font-semibold text-planc-nuit hover:bg-culture-clay"
         >
           Réserver
         </a>

@@ -52,7 +52,7 @@ export default function ConfidentialitePage() {
           2026, seuls les comptes qui ont coché la case le reçoivent. La case
           sert aussi à le recevoir à nouveau après un désabonnement.
         </p>
-        <div className="rounded-2xl border border-culture-line bg-white px-4 py-3">
+        <div className="rounded-2xl border border-culture-line bg-culture-surface px-4 py-3">
           <MailIdeasCheckbox className="flex items-start gap-2 text-sm leading-snug text-culture-ink" />
         </div>
         <p>

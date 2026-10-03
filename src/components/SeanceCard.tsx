@@ -176,7 +176,7 @@ export default function SeanceCard({
         </span>
       ) : null}
       {nouveau ? (
-        <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-culture-terracotta px-2 py-0.5 text-[11px] font-medium leading-none text-culture-cream">
+        <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-culture-terracotta px-2 py-0.5 text-[11px] font-medium leading-none text-planc-nuit">
           Nouveau
         </span>
       ) : isPeriod && resolved !== 'rail' ? (

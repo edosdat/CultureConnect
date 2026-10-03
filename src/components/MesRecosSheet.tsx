@@ -102,7 +102,7 @@ export default function MesRecosSheet({
         type="button"
         tabIndex={-1}
         aria-label="Fermer Mes recos de la semaine"
-        className="absolute inset-0 bg-culture-ink/45"
+        className="absolute inset-0 bg-planc-nuit/45"
         onPointerDown={(e) => {
           e.preventDefault();
           e.stopPropagation();

@@ -128,7 +128,7 @@ export default function AuthActionGate() {
         type="button"
         tabIndex={-1}
         aria-label={AUTH_GATE_LATER}
-        className="absolute inset-0 bg-culture-ink/40"
+        className="absolute inset-0 bg-planc-nuit/40"
         onClick={() => dismissAuthGate()}
       />
       <div
@@ -138,7 +138,7 @@ export default function AuthActionGate() {
         aria-describedby="auth-gate-why"
         data-testid="auth-action-gate"
         data-auth-gate-kind={view.kind}
-        className="relative w-full max-w-md rounded-t-2xl bg-culture-cream px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_28px_rgba(28,25,23,0.18)]"
+        className="relative w-full max-w-md rounded-t-2xl bg-culture-cream px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_28px_rgba(0,0,0,0.55)]"
       >
         <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-culture-line" aria-hidden />
         <h2
@@ -169,7 +169,7 @@ export default function AuthActionGate() {
           data-testid="auth-gate-google"
           disabled={busy}
           onClick={() => void onGoogle()}
-          className="mt-4 min-h-11 w-full rounded-full bg-culture-terracotta px-4 py-3 text-sm font-semibold text-white hover:bg-culture-clay focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta disabled:opacity-60"
+          className="mt-4 min-h-11 w-full rounded-full bg-culture-terracotta px-4 py-3 text-sm font-semibold text-planc-nuit hover:bg-culture-clay focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta disabled:opacity-60"
         >
           {AUTH_GATE_GOOGLE}
         </button>

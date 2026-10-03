@@ -26,7 +26,7 @@ export default function SiteNav() {
     <>
       <nav
         aria-label="Navigation principale"
-        className="relative z-30 overflow-visible border-b border-culture-line bg-white"
+        className="relative z-30 overflow-visible border-b border-culture-line bg-culture-surface"
       >
         <div className="mx-auto flex max-w-7xl min-w-0 items-center gap-2 px-2.5 py-2 sm:gap-3 sm:px-6 sm:py-3">
           <Link
@@ -46,7 +46,7 @@ export default function SiteNav() {
                   className={
                     'shrink-0 rounded-full px-1.5 py-1 text-[11px] transition sm:px-3 sm:py-1.5 sm:text-sm ' +
                     (active
-                      ? 'bg-culture-terracotta text-white shadow-sm'
+                      ? 'bg-culture-terracotta text-planc-nuit shadow-sm'
                       : 'text-culture-muted hover:bg-culture-cream hover:text-culture-ink')
                   }
                 >

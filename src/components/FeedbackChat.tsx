@@ -369,7 +369,7 @@ export default function FeedbackChat() {
                 key={msg.id}
                 className={
                   msg.role === 'user'
-                    ? 'ml-6 rounded-2xl bg-culture-ink px-3 py-2 text-sm text-culture-cream'
+                    ? 'ml-6 rounded-2xl bg-planc-nuit px-3 py-2 text-sm text-planc-creme'
                     : 'mr-6 whitespace-normal break-words rounded-2xl bg-culture-sand px-3 py-2 text-sm text-culture-ink'
                 }
               >
@@ -423,8 +423,8 @@ export default function FeedbackChat() {
                     className={
                       CHIP_CLASS +
                       (on
-                        ? 'bg-culture-ink text-culture-cream'
-                        : 'border border-culture-line bg-white text-culture-muted hover:text-culture-ink')
+                        ? 'bg-planc-nuit text-planc-creme'
+                        : 'border border-culture-line bg-culture-surface text-culture-muted hover:text-culture-ink')
                     }
                   >
                     {chip.label}
@@ -454,7 +454,7 @@ export default function FeedbackChat() {
                         CHIP_CLASS +
                         (on
                           ? 'border border-culture-terracotta bg-culture-terracotta text-culture-ink'
-                          : 'border border-culture-line bg-white text-culture-muted hover:text-culture-ink')
+                          : 'border border-culture-line bg-culture-surface text-culture-muted hover:text-culture-ink')
                       }
                     >
                       {label}
@@ -474,7 +474,7 @@ export default function FeedbackChat() {
                 aria-label={ATTACH_LABEL}
                 disabled={sending}
                 onClick={openPicker}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-culture-line bg-white text-culture-ink hover:text-culture-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta disabled:opacity-50"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-culture-line bg-culture-surface text-culture-ink hover:text-culture-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta disabled:opacity-50"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -510,12 +510,12 @@ export default function FeedbackChat() {
                 disabled={sending}
                 placeholder="Quelques mots"
                 onChange={(ev) => setText(ev.target.value)}
-                className="min-w-0 flex-1 resize-none rounded-xl border border-culture-line bg-white px-3 py-2 text-sm text-culture-ink placeholder:text-culture-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta disabled:opacity-60"
+                className="min-w-0 flex-1 resize-none rounded-xl border border-planc-controle bg-culture-surface px-3 py-2 text-sm text-culture-ink placeholder:text-culture-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta disabled:opacity-60"
               />
               <button
                 type="submit"
                 disabled={sending || (text.trim().length < 2 && !(capture && text.trim().length === 0))}
-                className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-full bg-culture-ink px-4 text-sm font-medium text-culture-cream hover:opacity-90 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta"
+                className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-full bg-planc-nuit px-4 text-sm font-medium text-planc-creme hover:opacity-90 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta"
               >
                 {sending ? 'Envoi…' : 'Envoyer'}
               </button>
@@ -531,7 +531,7 @@ export default function FeedbackChat() {
                   />
                   {sending ? (
                     <span
-                      className="absolute inset-0 grid place-items-center rounded-lg bg-culture-ink/40"
+                      className="absolute inset-0 grid place-items-center rounded-lg bg-planc-nuit/40"
                       aria-hidden="true"
                     >
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-culture-cream border-t-transparent" />

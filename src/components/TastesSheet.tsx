@@ -73,7 +73,7 @@ export default function TastesSheet({ open, onClose }: Props) {
         type="button"
         tabIndex={-1}
         aria-label="Fermer Mes goûts"
-        className="absolute inset-0 bg-culture-ink/20"
+        className="absolute inset-0 bg-planc-nuit/20"
         onPointerDown={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -164,7 +164,7 @@ export default function TastesSheet({ open, onClose }: Props) {
             setDraft('');
           }}
         >
-          <label className="flex items-center gap-2 rounded-full border border-culture-line bg-culture-cream px-3 py-2">
+          <label className="flex items-center gap-2 rounded-full border border-planc-controle bg-culture-cream px-3 py-2">
             <span className="text-sm text-culture-muted" aria-hidden>
               +
             </span>

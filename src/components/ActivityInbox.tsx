@@ -175,7 +175,7 @@ export default function ActivityInbox() {
               type="button"
               tabIndex={-1}
               aria-label="Fermer Mes partages"
-              className="absolute inset-0 bg-culture-ink/25"
+              className="absolute inset-0 bg-planc-nuit/25"
               onClick={() => setOpen(false)}
             />
             <div
@@ -184,7 +184,7 @@ export default function ActivityInbox() {
               aria-label={ACTIVITY_SHEET_TITLE}
               data-testid="share-activity-sheet"
               className={
-                'absolute inset-x-0 bottom-0 flex h-[85dvh] max-h-[85dvh] w-full flex-col rounded-t-2xl bg-white shadow-[0_-8px_28px_rgba(0,0,0,.18)] ' +
+                'absolute inset-x-0 bottom-0 flex h-[85dvh] max-h-[85dvh] w-full flex-col rounded-t-2xl bg-culture-surface shadow-[0_-8px_28px_rgba(0,0,0,.18)] ' +
                 'pb-[env(safe-area-inset-bottom,0px)] sm:inset-x-auto sm:left-1/2 sm:w-full sm:max-w-[420px] sm:-translate-x-1/2'
               }
             >
@@ -239,7 +239,7 @@ export default function ActivityInbox() {
                           (pressedToken === item.token
                             ? 'bg-culture-sand/70'
                             : unreadRow
-                              ? 'bg-[#fff8f4]'
+                              ? 'bg-culture-surface'
                               : '')
                         }
                       >
@@ -309,13 +309,13 @@ export default function ActivityInbox() {
         onClick={() => void openSheet()}
         aria-label={aria}
         data-testid="share-activity-bell"
-        className="relative grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full border border-culture-line bg-white"
+        className="relative grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full border border-culture-line bg-culture-surface"
       >
         <BellIcon muted={!badge} />
         {badge ? (
           <span
             data-testid="share-activity-badge"
-            className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-culture-terracotta px-1 text-[10px] font-bold text-white"
+            className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-culture-terracotta px-1 text-[10px] font-bold text-planc-nuit"
           >
             {badge}
           </span>

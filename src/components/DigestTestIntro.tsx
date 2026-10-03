@@ -166,7 +166,7 @@ export default function DigestTestIntro() {
         <button
           type="button"
           onClick={dismiss}
-          className="mt-3 w-full rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-culture-clay focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta"
+          className="mt-3 w-full rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-planc-nuit shadow-sm transition hover:bg-culture-clay focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta"
         >
           {COPY.dismiss}
         </button>

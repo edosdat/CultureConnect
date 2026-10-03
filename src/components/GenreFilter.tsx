@@ -99,7 +99,7 @@ export default function GenreFilter({
         className={
           'cc-axes__chip shrink-0 whitespace-nowrap rounded-full border transition ' +
           (active
-            ? 'border-culture-sage bg-culture-sage text-white shadow-sm'
+            ? 'border-culture-sage bg-culture-sage text-planc-nuit shadow-sm'
             : 'border-culture-line bg-culture-surface text-culture-ink hover:border-culture-sage/60')
         }
       >

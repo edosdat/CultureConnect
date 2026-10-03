@@ -31,8 +31,8 @@ function favoriButtonClass(active: boolean): string {
   return (
     'inline-flex min-h-10 items-center justify-center rounded-full border px-4 py-2 text-sm font-medium ' +
     (active
-      ? 'border-culture-terracotta bg-culture-terracotta text-white'
-      : 'border-culture-line bg-white text-culture-ink hover:bg-culture-sand')
+      ? 'border-culture-terracotta bg-culture-terracotta text-planc-nuit'
+      : 'border-culture-line bg-culture-surface text-culture-ink hover:bg-culture-sand')
   );
 }
 
@@ -56,7 +56,7 @@ export function ArtisteFavoriBadge({ artisteId }: { artisteId: string }) {
 }
 
 const loginButtonClass =
-  'inline-flex w-max max-w-full min-h-10 shrink-0 items-center self-end justify-center whitespace-normal rounded-full bg-culture-terracotta px-4 py-2 text-center text-sm font-semibold text-white hover:bg-culture-clay sm:self-auto';
+  'inline-flex w-max max-w-full min-h-10 shrink-0 items-center self-end justify-center whitespace-normal rounded-full bg-culture-terracotta px-4 py-2 text-center text-sm font-semibold text-planc-nuit hover:bg-culture-clay sm:self-auto';
 
 function LoginCluster({
   sheet,

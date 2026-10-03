@@ -41,13 +41,13 @@ export default function DeepLinkFicheFallback({
     <>
       {showCatalogueShell ? <HomeTop3BootFallback /> : null}
       <div
-        className="fixed inset-0 z-50 flex items-end justify-center bg-culture-ink/40 p-0 sm:items-center sm:p-6"
+        className="fixed inset-0 z-50 flex items-end justify-center bg-planc-nuit/40 p-0 sm:items-center sm:p-6"
         role="dialog"
         aria-modal="true"
         aria-labelledby="event-detail-title"
         data-deeplink-fiche-boot=""
       >
-        <div className="fiche mx-2 mb-2 max-h-[92vh] w-full max-w-2xl min-w-0 overflow-y-auto overflow-x-hidden rounded-xl border border-culture-line bg-white shadow-xl sm:mx-0 sm:mb-0 sm:rounded-3xl">
+        <div className="fiche mx-2 mb-2 max-h-[92vh] w-full max-w-2xl min-w-0 overflow-y-auto overflow-x-hidden rounded-xl border border-culture-line bg-culture-surface shadow-xl sm:mx-0 sm:mb-0 sm:rounded-3xl">
           <div className="hero relative h-40 overflow-hidden bg-culture-sand">
             <EventImage
               src={photo}
@@ -61,7 +61,7 @@ export default function DeepLinkFicheFallback({
           <div className="fp min-w-0 break-words px-3 py-3 sm:px-5">
             {catLabel ? (
               <span
-                className="inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
+                className="inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-planc-creme"
                 style={{
                   backgroundColor: `var(${catCssVarOfKey(catKey ?? 'theatre')})`,
                 }}

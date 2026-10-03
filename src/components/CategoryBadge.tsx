@@ -31,7 +31,7 @@ export default function CategoryBadge({
     <span
       data-cat-badge={resolved}
       className={
-        'inline-flex w-fit max-w-full whitespace-nowrap rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white ' +
+        'inline-flex w-fit max-w-full whitespace-nowrap rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-planc-creme ' +
         className
       }
       style={{ backgroundColor: `var(${catCssVarOfKey(resolved)})` }}

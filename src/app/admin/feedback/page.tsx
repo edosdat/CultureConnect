@@ -76,7 +76,7 @@ export default async function AdminFeedbackPage() {
           {notes.map((note) => (
             <li
               key={note.id}
-              className="rounded-2xl border border-culture-line bg-white px-4 py-3"
+              className="rounded-2xl border border-culture-line bg-culture-surface px-4 py-3"
             >
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
                 {KIND_LABEL[note.kind]} · {formatWhen(note.createdAt)} · {actorLabel(note)}

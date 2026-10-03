@@ -99,8 +99,8 @@ export default function ArtistesApp({ artistes, genresLegend, mode }: Props) {
                 className={
                   'rounded-full border px-3 py-1.5 text-sm transition ' +
                   (active
-                    ? 'border-culture-sage bg-culture-sage text-white shadow-sm'
-                    : 'border-culture-sand bg-white text-culture-ink hover:border-culture-sage/60')
+                    ? 'border-culture-sage bg-culture-sage text-planc-nuit shadow-sm'
+                    : 'border-culture-sand bg-culture-surface text-culture-ink hover:border-culture-sage/60')
                 }
               >
                 {g.label_fr}
@@ -123,7 +123,7 @@ export default function ArtistesApp({ artistes, genresLegend, mode }: Props) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Nom de l’artiste…"
-          className="w-full max-w-md rounded-2xl border border-culture-sand bg-white px-4 py-2.5 text-culture-ink placeholder:text-culture-muted/60 outline-none ring-culture-sage/40 focus:ring-2"
+          className="w-full max-w-md rounded-2xl border border-planc-controle bg-culture-surface px-4 py-2.5 text-culture-ink placeholder:text-culture-muted/60 outline-none ring-culture-sage/40 focus:ring-2"
         />
       </div>
 
@@ -135,7 +135,7 @@ export default function ArtistesApp({ artistes, genresLegend, mode }: Props) {
       </div>
 
       {filtered.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-culture-sand bg-white/50 px-4 py-8 text-center text-culture-muted">
+        <p className="rounded-2xl border border-dashed border-culture-sand bg-culture-surface/50 px-4 py-8 text-center text-culture-muted">
           Aucun artiste pour cette sélection.
         </p>
       ) : (
@@ -145,7 +145,7 @@ export default function ArtistesApp({ artistes, genresLegend, mode }: Props) {
               <button
                 type="button"
                 onClick={() => setSelectedId(a.artiste_id)}
-                className="flex h-full w-full flex-col rounded-2xl border border-culture-sand bg-white p-4 text-left shadow-sm transition hover:border-culture-terracotta/40 hover:shadow-md"
+                className="flex h-full w-full flex-col rounded-2xl border border-culture-sand bg-culture-surface p-4 text-left shadow-sm transition hover:border-culture-terracotta/40 hover:shadow-md"
               >
                 <span className="flex flex-wrap items-center gap-2">
                   <span className="font-display text-xl text-culture-ink">

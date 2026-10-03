@@ -3,9 +3,15 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-const CREAM = '#F7F1E8';
-const TERRACOTTA = '#C45C3E';
-const INK = '#2C241B';
+const VELOURS = '#2A1231';
+const NUIT = '#1A0B1E';
+const CREME = '#FFF1F4';
+const ROSE = '#FF2E7E';
+const MUTED = '#D3B3CE';
+const LIGNE = '#4A2350';
+const CONTROLE = '#8F738F';
+const SABLE = '#3A1840';
+const MENTHE = '#5EEAD4';
 
 type MatchPreview = {
   eventId: string;
@@ -30,7 +36,7 @@ function VenueMark() {
     <svg
       aria-hidden
       viewBox="0 0 88 72"
-      className="mx-auto h-16 w-20 text-[#C45C3E]"
+      className="mx-auto h-16 w-20 text-planc-rose"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.4"
@@ -71,7 +77,7 @@ function BranchMark() {
     <svg
       aria-hidden
       viewBox="0 0 180 120"
-      className="mx-auto h-28 w-44 text-[#C45C3E]/70"
+      className="mx-auto h-28 w-44 text-planc-rose/70"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.3"
@@ -101,8 +107,8 @@ export function ProposeEmptyCard({ onPropose }: { onPropose: () => void }) {
     <section
       data-propose="empty"
       aria-label="Pas encore sur CultureConnect"
-      className="rounded-2xl border border-[#2C241B]/10 px-5 py-8 text-center shadow-[0_10px_28px_rgba(44,36,27,0.06)]"
-      style={{ background: CREAM, color: INK }}
+      className="rounded-2xl border border-planc-ligne px-5 py-8 text-center shadow-[0_10px_28px_rgba(0,0,0,0.45)]"
+      style={{ background: VELOURS, color: CREME }}
     >
       <VenueMark />
       <h2 className="mt-3 font-display text-[1.65rem] leading-tight">
@@ -116,11 +122,11 @@ export function ProposeEmptyCard({ onPropose }: { onPropose: () => void }) {
         data-propose-cta="empty"
         onClick={onPropose}
         className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold"
-        style={{ background: TERRACOTTA, color: CREAM }}
+        style={{ background: ROSE, color: NUIT }}
       >
         Proposer un spectacle
       </button>
-      <p className="mt-4 text-[13px] italic" style={{ color: `${INK}99` }}>
+      <p className="mt-4 text-[13px] italic" style={{ color: MUTED }}>
         Tu aides les salles qu’on rate encore.
       </p>
     </section>
@@ -133,9 +139,9 @@ export function ProposeListFooter({ onPropose }: { onPropose: () => void }) {
       <div
         aria-hidden
         className="mb-4 h-px w-full"
-        style={{ background: `${INK}14` }}
+        style={{ background: LIGNE }}
       />
-      <p className="text-[13px]" style={{ color: `${INK}99` }}>
+      <p className="text-[13px]" style={{ color: MUTED }}>
         Tu ne trouves pas ce que tu cherches ?
       </p>
       <button
@@ -143,7 +149,7 @@ export function ProposeListFooter({ onPropose }: { onPropose: () => void }) {
         data-propose-cta="footer"
         onClick={onPropose}
         className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-full border bg-transparent px-4 py-2 text-sm font-semibold"
-        style={{ borderColor: TERRACOTTA, color: TERRACOTTA }}
+        style={{ borderColor: ROSE, color: ROSE }}
       >
         <LightbulbIcon />
         Proposer un spectacle
@@ -154,14 +160,14 @@ export function ProposeListFooter({ onPropose }: { onPropose: () => void }) {
 
 function FieldLabel({ children }: { children: string }) {
   return (
-    <label className="mb-1 block text-[13px] font-medium" style={{ color: INK }}>
+    <label className="mb-1 block text-[13px] font-medium" style={{ color: CREME }}>
       {children}
     </label>
   );
 }
 
 const inputClass =
-  'h-11 w-full rounded-xl border border-[#2C241B]/15 bg-white px-3 text-[15px] text-[#2C241B] outline-none focus:border-[#C45C3E]';
+  'h-11 w-full rounded-xl border border-planc-controle bg-culture-surface px-3 text-[15px] text-culture-ink outline-none focus:border-culture-terracotta';
 
 export function ProposeSpectacleSheet({
   open,
@@ -315,7 +321,7 @@ export function ProposeSpectacleSheet({
       <button
         type="button"
         aria-label="Fermer"
-        className="absolute inset-0 bg-[#2C241B]/30"
+        className="absolute inset-0 bg-black/50"
         onClick={onClose}
       />
       <div
@@ -323,14 +329,14 @@ export function ProposeSpectacleSheet({
         aria-modal="true"
         aria-labelledby="propose-spectacle-title"
         data-propose-sheet={phase}
-        className="absolute inset-x-0 bottom-0 flex h-[85dvh] max-h-[85dvh] flex-col rounded-t-3xl border border-[#2C241B]/10 shadow-xl"
-        style={{ background: CREAM, color: INK }}
+        className="absolute inset-x-0 bottom-0 flex h-[85dvh] max-h-[85dvh] flex-col rounded-t-3xl border border-planc-ligne shadow-xl"
+        style={{ background: VELOURS, color: CREME }}
       >
         <div className="flex shrink-0 justify-center pt-2">
           <span
             aria-hidden
             className="h-1.5 w-10 rounded-full"
-            style={{ background: `${INK}22` }}
+            style={{ background: SABLE }}
           />
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-3">
@@ -365,7 +371,7 @@ export function ProposeSpectacleSheet({
                       aria-label="Effacer le titre"
                       onClick={() => setTitle('')}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-sm"
-                      style={{ color: `${INK}88` }}
+                      style={{ color: MUTED }}
                     >
                       ×
                     </button>
@@ -381,7 +387,7 @@ export function ProposeSpectacleSheet({
                   className={inputClass}
                   autoComplete="off"
                 />
-                <p className="mt-1 text-[12px]" style={{ color: `${INK}99` }}>
+                <p className="mt-1 text-[12px]" style={{ color: MUTED }}>
                   Nouveau lieu OK — bars et salles petites bienvenus.
                 </p>
               </div>
@@ -415,7 +421,7 @@ export function ProposeSpectacleSheet({
                 />
               </div>
               {note ? (
-                <p className="mt-3 text-sm" style={{ color: INK }} role="status">
+                <p className="mt-3 text-sm" style={{ color: CREME }} role="status">
                   {note}
                 </p>
               ) : null}
@@ -424,15 +430,15 @@ export function ProposeSpectacleSheet({
                   type="submit"
                   disabled={busy}
                   className="inline-flex min-h-11 items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold disabled:opacity-60"
-                  style={{ background: TERRACOTTA, color: CREAM }}
+                  style={{ background: ROSE, color: NUIT }}
                 >
                   Envoyer <span aria-hidden>→</span>
                 </button>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="inline-flex min-h-11 items-center rounded-xl border bg-white px-5 py-2.5 text-sm font-semibold"
-                  style={{ borderColor: `${INK}22`, color: INK }}
+                  className="inline-flex min-h-11 items-center rounded-xl border bg-culture-surface px-5 py-2.5 text-sm font-semibold"
+                  style={{ borderColor: CONTROLE, color: CREME }}
                 >
                   Annuler
                 </button>
@@ -456,10 +462,10 @@ export function ProposeSpectacleSheet({
               >
                 On a trouvé ça — c’est bien ?
               </h2>
-              <p className="mt-2 text-sm" style={{ color: `${INK}aa` }}>
+              <p className="mt-2 text-sm" style={{ color: MUTED }}>
                 Vérifions ensemble pour affiner nos suggestions.
               </p>
-              <article className="mt-4 flex gap-3 rounded-2xl border border-[#2C241B]/10 bg-white/70 p-3">
+              <article className="mt-4 flex gap-3 rounded-2xl border border-planc-ligne bg-planc-sable p-3">
                 {match.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -471,25 +477,25 @@ export function ProposeSpectacleSheet({
                   <div
                     aria-hidden
                     className="h-20 w-20 shrink-0 rounded-xl"
-                    style={{ background: `${INK}10` }}
+                    style={{ background: SABLE }}
                   />
                 )}
                 <div className="min-w-0 text-left">
                   <p className="font-display text-lg leading-snug">{match.title}</p>
                   {match.venue ? (
-                    <p className="mt-1 text-sm" style={{ color: `${INK}cc` }}>
+                    <p className="mt-1 text-sm" style={{ color: MUTED }}>
                       {match.venue}
                     </p>
                   ) : null}
                   {match.whenLabel ? (
-                    <p className="mt-0.5 text-sm" style={{ color: `${INK}cc` }}>
+                    <p className="mt-0.5 text-sm" style={{ color: MUTED }}>
                       {match.whenLabel}
                     </p>
                   ) : null}
                   {match.categoryLabel ? (
                     <p
                       className="mt-2 inline-flex rounded-full px-2 py-0.5 text-xs"
-                      style={{ background: '#E7F0E4', color: '#3E6B45' }}
+                      style={{ background: SABLE, color: MENTHE }}
                     >
                       {match.categoryLabel}
                     </p>
@@ -506,7 +512,7 @@ export function ProposeSpectacleSheet({
                 disabled={busy}
                 onClick={() => void onConfirm(true)}
                 className="mt-4 flex min-h-11 w-full items-center justify-center rounded-xl text-sm font-semibold disabled:opacity-60"
-                style={{ background: TERRACOTTA, color: CREAM }}
+                style={{ background: ROSE, color: NUIT }}
               >
                 Oui, c’est ça
               </button>
@@ -514,8 +520,8 @@ export function ProposeSpectacleSheet({
                 type="button"
                 disabled={busy}
                 onClick={() => void onConfirm(false)}
-                className="mt-2 flex min-h-11 w-full items-center justify-center rounded-xl border bg-white text-sm font-semibold disabled:opacity-60"
-                style={{ borderColor: `${INK}22`, color: INK }}
+                className="mt-2 flex min-h-11 w-full items-center justify-center rounded-xl border bg-culture-surface text-sm font-semibold disabled:opacity-60"
+                style={{ borderColor: CONTROLE, color: CREME }}
               >
                 Non, continuer la vérif
               </button>
@@ -528,14 +534,14 @@ export function ProposeSpectacleSheet({
                 type="button"
                 onClick={onClose}
                 className="text-sm font-medium"
-                style={{ color: TERRACOTTA }}
+                style={{ color: ROSE }}
               >
                 ← Retour
               </button>
               <h2
                 id="propose-spectacle-title"
                 className="mt-4 font-display text-5xl"
-                style={{ color: TERRACOTTA }}
+                style={{ color: ROSE }}
               >
                 Merci.
               </h2>
@@ -543,16 +549,16 @@ export function ProposeSpectacleSheet({
                 On vérifie avant de l’ajouter à l’agenda.
               </p>
               <BranchMark />
-              <div className="rounded-2xl border border-[#C45C3E]/25 bg-white/80 p-4 text-left">
-                <p className="text-sm font-semibold" style={{ color: TERRACOTTA }}>
+              <div className="rounded-2xl border border-planc-rose/25 bg-planc-sable p-4 text-left">
+                <p className="text-sm font-semibold" style={{ color: ROSE }}>
                   Proposition reçue
                 </p>
-                <p className="mt-1 text-sm leading-relaxed" style={{ color: `${INK}cc` }}>
+                <p className="mt-1 text-sm leading-relaxed" style={{ color: MUTED }}>
                   Merci pour votre suggestion. Nous vous tiendrons informé dès que
                   c’est ajouté.
                 </p>
               </div>
-              <p className="mt-6 text-center text-sm" style={{ color: TERRACOTTA }}>
+              <p className="mt-6 text-center text-sm" style={{ color: ROSE }}>
                 ♥ Votre participation tisse des ponts culturels.
               </p>
             </div>
@@ -563,7 +569,7 @@ export function ProposeSpectacleSheet({
             role="status"
             data-propose-toast=""
             className="pointer-events-none absolute inset-x-4 bottom-4 rounded-full px-4 py-2 text-center text-sm shadow-md"
-            style={{ background: INK, color: CREAM }}
+            style={{ background: NUIT, color: CREME }}
           >
             {toast}
           </p>

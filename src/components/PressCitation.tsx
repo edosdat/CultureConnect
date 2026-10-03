@@ -44,7 +44,7 @@ export default function PressCitation({ citation }: Props) {
         ) : null}
         {citation.rating ? (
           <span
-            className="rounded-full bg-white px-2 py-0.5 text-xs tracking-wide text-culture-cat-theatre"
+            className="rounded-full bg-culture-sand px-2 py-0.5 text-xs tracking-wide text-planc-creme"
             aria-label={`Note presse ${citation.rating}`}
           >
             {citation.rating}
