@@ -102,6 +102,7 @@ import CityFilter from './CityFilter';
 import SeanceGrid from './SeanceGrid';
 import Top3Skeleton from './Top3Skeleton';
 import TimeScopeBar from './TimeScopeBar';
+import MixHomeLink from './MixHomeLink';
 import SearchOmnibox from './SearchOmnibox';
 import ListWaitDots, { HomeListWaitSlot } from './ListWaitDots';
 import Top3GuestCta from './Top3GuestCta';
@@ -3060,21 +3061,26 @@ export default function CultureConnectApp({
 
       {/* Heights: keep HomeBootChrome + HomeListWaitSlot in sync (LAYOUT_JUMP). */}
       <div className="sticky top-[var(--a2hs-bar-h)] z-20 -mx-4 mb-2 border-b border-culture-line/80 bg-culture-cream/95 px-4 py-1.5 backdrop-blur sm:-mx-6 sm:px-6">
-        <SearchOmnibox
-          value={query}
-          onChange={handleQueryChange}
-          onSubmit={handleSearchSubmit}
-          onBareQuery={handleBareQuery}
-          onConfirm={handleNlConfirm}
-          onPickTitre={handleSuggestTitre}
-          onPickArtiste={handleSuggestArtiste}
-          onPickSalle={handlePickSalle}
-          venueLock={pickedLieuId ? pickedLieuLabel : null}
-          genres={genresLegend.map((g) => ({ slug: g.slug, label: g.label_fr }))}
-          communes={communes}
-          lieux={searchLieux}
-          suggest={searchSuggest}
-        />
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <SearchOmnibox
+              value={query}
+              onChange={handleQueryChange}
+              onSubmit={handleSearchSubmit}
+              onBareQuery={handleBareQuery}
+              onConfirm={handleNlConfirm}
+              onPickTitre={handleSuggestTitre}
+              onPickArtiste={handleSuggestArtiste}
+              onPickSalle={handlePickSalle}
+              venueLock={pickedLieuId ? pickedLieuLabel : null}
+              genres={genresLegend.map((g) => ({ slug: g.slug, label: g.label_fr }))}
+              communes={communes}
+              lieux={searchLieux}
+              suggest={searchSuggest}
+            />
+          </div>
+          <MixHomeLink />
+        </div>
       </div>
       <div className={HOME_CHROME_STACK_CLASS}>
         <div

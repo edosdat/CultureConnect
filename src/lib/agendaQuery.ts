@@ -13,6 +13,7 @@ import type {
   ProgrammeWithContext,
 } from './types';
 import { loadCultureData } from './data';
+import { toMixPlans, type MixPlanWire } from './mixWeek';
 import { catsAllowCinemaPack, mainFromForm } from './categories';
 import { filterItemsByCommune } from './commune';
 import {
@@ -2271,4 +2272,32 @@ export async function queryAgendaListCached(
   )();
   agendaListMemo.set(cacheKey, result);
   return result;
+}
+
+/**
+ * Week plans for /mix. Same séance window as GET ?scope=semaine
+ * (no commune chip, no page cap). Moods stay on the row — the home
+ * list wire still drops them via slimDayItem. Called only for mix=1.
+ */
+export function queryMixWeek(now = new Date()): {
+  scope: 'semaine';
+  items: MixPlanWire[];
+} {
+  const data = loadCultureData();
+  const paris = parisParts(now);
+  const { items } = listForRange(
+    {
+      scope: 'semaine',
+      commune: null,
+      q: '',
+      cats: [],
+      genres: [],
+      lieuId: null,
+      selectedDate: null,
+      year: paris.year,
+      month: paris.month,
+    },
+    now,
+  );
+  return { scope: 'semaine', items: toMixPlans(items, data.genresLegend) };
 }
