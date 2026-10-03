@@ -92,6 +92,34 @@ Elle a été poussée sans brief. Elle remappe les couleurs, mais laisse **53 `b
 
 **Soft Design** : comparer l'en-tête, l'accueil et une fiche avant / après sur téléphone. Référence visuelle : l'aperçu du 03/10 joint au fil de discussion du propriétaire (nom « Plan *C* », titres gras).
 
+### PR 5 · Hiérarchie et simplicité (« un seul rose »)
+Proposition design validée par le propriétaire le 03/10 (« vas-y, propose »). Images de référence dans `briefs/2026-10-03-theme-nuit-ref/` :
+- `typo-apres-1.png` : état après PR 1 à 4 ;
+- `propo-1-accueil.png` : les règles ci-dessous appliquées à l'accueil actuel ;
+- `ideal-accueil-fiche.png` : cible à terme (accueil et fiche).
+
+Les polices de cette dernière image sont des polices de remplacement (rendu hors ligne) ; la référence reste Fraunces + DM Sans.
+
+**Règles**
+1. **Couleur 60 / 30 / 10** : nuit et velours pour les fonds, crème pour le texte, rose rare.
+2. **Un seul bouton rose plein par écran** : l'action principale (Connecte-toi sur l'accueil invité, Réserver sur la fiche). Ensuite :
+   - action secondaire = contour crème 1,5 px à 50 % (ex. « Télécharger l'appli », Envie, J'y vais) ;
+   - action tertiaire = texte rose (« voir tout ») ;
+   - le reste sans couleur.
+3. **Onglet actif** (« Agenda ») : texte crème + trait rose de 2 px dessous. Plus de pastille pleine.
+4. **Filtre sélectionné** (`cc-axes__chip` actif, ex. « Toulouse », « Ce soir ») : fond crème, texte nuit, sans bordure. Non sélectionné : contour `ligne`.
+5. **Catégories en touches** : pastille de 8 px ou filet, jamais d'aplat plein ni de cadre épais. Le cadre de 2 px coloré de la section Ciné devient un filet de 1 px `ligne` ; la pastille « THÉÂTRE & DANSE » pleine devient un contour avec point de couleur.
+6. **Titres de section sans soulignement** (`span.border-b-2` sous Mes crushs, Le top 3, Ciné : à retirer). L'accent possible : **un mot en italique rose** (« Mes *crushs* »), avec parcimonie : au plus un par écran.
+7. **Échelle de texte** : 40 (titre de page), 28 (sections), 20 (titres de cartes), 16 (texte), 13 (légendes). Rien d'autre.
+8. **Espacement en multiples de 8 px** (8, 16, 24, 32 entre sections) plutôt que des traits ; cartes velours aux coins de 20 px, sans contour.
+
+**Fiche spectacle (cible `ideal-accueil-fiche.png`, à faire dans une PR à part si c'est trop gros)**
+- Le titre n'apparaît **qu'une fois**, sous l'affiche (aujourd'hui il est à la fois sur l'image et dessous).
+- La barre du bas reste visible au défilement : prix à gauche, **Réserver** (rose plein) à droite.
+- La ligne « qui vient » (Envie / J'y vais des amis) remonte juste sous le titre.
+
+**Soft Design** : comparer avec `propo-1-accueil.png` ; un seul rose plein visible par écran au premier coup d'œil.
+
 ## LOCK
 - PR 1 à 3 : textes, mises en page, tailles, comportements **inchangés** ; seules les couleurs changent. La PR 4 change seulement le nom affiché et la typographie des titres.
 - La **forme** du C reste celle du LOCK v3 ; seule sa couleur change (rose, PR 3). PR 1 et PR 2 ne touchent pas au logo.
@@ -115,6 +143,7 @@ Elle a été poussée sans brief. Elle remappe les couleurs, mais laisse **53 `b
 - [ ] Captures avant / après des 4 écrans de la liste Soft Design.
 
 ## Décidé
+- Hiérarchie « un seul rose plein par écran » et simplification (PR 5), proposée et validée le 03/10.
 - Nom affiché : **Plan C**, C en italique rose (03/10).
 - Titres : mêmes polices, plus gras et un cran plus gros (03/10).
 - C du logo : **rose #FF2E7E** (variante B, choisie le 03/10 sur comparaison visuelle). Contraste sur nuit 5,35:1.
