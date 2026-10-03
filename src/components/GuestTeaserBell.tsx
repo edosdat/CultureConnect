@@ -90,7 +90,7 @@ export default function GuestTeaserBell() {
               aria-modal="true"
               aria-label={title}
               data-testid="guest-teaser-sheet"
-              className="absolute inset-x-0 bottom-0 max-h-[42%] w-full rounded-t-2xl bg-white px-4 pb-4 pt-3 shadow-[0_-8px_28px_rgba(0,0,0,.18)] sm:inset-x-auto sm:left-1/2 sm:max-w-[420px] sm:-translate-x-1/2"
+              className="absolute inset-x-0 bottom-0 max-h-[42%] w-full rounded-t-2xl bg-culture-surface px-4 pb-4 pt-3 shadow-[0_-8px_28px_rgba(0,0,0,.18)] sm:inset-x-auto sm:left-1/2 sm:max-w-[420px] sm:-translate-x-1/2"
             >
               <div className="mx-auto mb-2.5 h-1 w-9 rounded-full bg-culture-line" />
               <h2 className="text-center text-[15px] font-semibold text-culture-ink">
@@ -104,7 +104,7 @@ export default function GuestTeaserBell() {
                 type="button"
                 data-testid="guest-teaser-login"
                 onClick={() => signIn('google', { callbackUrl: '/' })}
-                className="mt-3 w-full rounded-full bg-culture-terracotta px-4 py-3 text-sm font-bold text-white hover:bg-culture-clay"
+                className="mt-3 w-full rounded-full bg-culture-terracotta px-4 py-3 text-sm font-bold text-planc-nuit hover:bg-culture-clay"
               >
                 {GUEST_TEASER_LOGIN}
               </button>
@@ -128,13 +128,13 @@ export default function GuestTeaserBell() {
         onClick={() => setOpen(true)}
         aria-label={aria}
         data-testid="guest-teaser-bell"
-        className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full border border-culture-line bg-white"
+        className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full border border-culture-line bg-culture-surface"
       >
         <BellIcon />
         {badge ? (
           <span
             data-testid="guest-teaser-badge"
-            className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-culture-terracotta px-1 text-[10px] font-bold text-white"
+            className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-culture-terracotta px-1 text-[10px] font-bold text-planc-nuit"
           >
             {badge}
           </span>

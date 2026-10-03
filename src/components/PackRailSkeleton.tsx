@@ -36,7 +36,7 @@ export default function PackRailSkeleton({
         {Array.from({ length: thumbs }, (_, i) => (
           <div
             key={i}
-            className="overflow-hidden rounded-[10px] border border-culture-line bg-white"
+            className="overflow-hidden rounded-[10px] border border-culture-line bg-culture-surface"
           >
             <div
               className={

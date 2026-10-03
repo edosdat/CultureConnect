@@ -70,7 +70,7 @@ function AvatarFace({
     );
   }
   return (
-    <span className="flex h-full w-full items-center justify-center rounded-full bg-culture-ink text-xs font-bold text-white">
+    <span className="flex h-full w-full items-center justify-center rounded-full bg-planc-nuit text-xs font-bold text-planc-creme">
       {initial}
     </span>
   );
@@ -193,7 +193,7 @@ export default function AuthButtons() {
         {menuOpen ? (
           <div
             role="menu"
-            className="absolute right-0 top-full z-[90] mt-1 min-w-[10rem] overflow-hidden rounded-[10px] border border-culture-line bg-white py-1.5 shadow-lg"
+            className="absolute right-0 top-full z-[90] mt-1 min-w-[10rem] overflow-hidden rounded-[10px] border border-culture-line bg-culture-surface py-1.5 shadow-lg"
           >
             <button
               type="button"
@@ -298,7 +298,7 @@ export default function AuthButtons() {
         type="button"
         data-account-control="guest-disabled"
         aria-label="Connexion bientôt disponible"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-culture-line bg-white text-culture-muted"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-culture-line bg-culture-surface text-culture-muted"
         disabled
       >
         <PersonIcon />
@@ -336,7 +336,7 @@ export default function AuthButtons() {
           aria-label="Connecte-toi"
           data-account-control="login"
           onClick={() => signIn('google', { callbackUrl: '/' })}
-          className="shrink-0 rounded-full bg-culture-terracotta px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-culture-clay sm:px-4 sm:py-1.5 sm:text-sm"
+          className="shrink-0 rounded-full bg-culture-terracotta px-2.5 py-1.5 text-xs font-semibold text-planc-nuit shadow-sm transition hover:bg-culture-clay sm:px-4 sm:py-1.5 sm:text-sm"
         >
           Connecte-toi
         </button>

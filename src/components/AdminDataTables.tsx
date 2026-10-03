@@ -63,7 +63,7 @@ function CsvLink({
     <a
       href={href}
       download={suggested}
-      className="inline-block rounded-full bg-culture-terracotta px-3 py-1.5 text-sm font-semibold text-white hover:bg-culture-clay"
+      className="inline-block rounded-full bg-culture-terracotta px-3 py-1.5 text-sm font-semibold text-planc-nuit hover:bg-culture-clay"
     >
       {label}
     </a>
@@ -85,8 +85,8 @@ function Chip({
       onClick={onClick}
       className={`rounded-full px-2.5 py-1 text-xs font-medium ${
         active
-          ? 'bg-culture-terracotta text-white'
-          : 'border border-culture-line bg-white text-culture-ink hover:bg-culture-cream'
+          ? 'bg-culture-terracotta text-planc-nuit'
+          : 'border border-culture-line bg-culture-surface text-culture-ink hover:bg-culture-cream'
       }`}
     >
       {children}
@@ -137,7 +137,7 @@ function HashFilter({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="sha256[:16]"
-        className="mt-1 w-full rounded-xl border border-culture-line bg-white px-3 py-1.5 font-mono text-sm text-culture-ink"
+        className="mt-1 w-full rounded-xl border border-planc-controle bg-culture-surface px-3 py-1.5 font-mono text-sm text-culture-ink"
       />
     </label>
   );
@@ -345,7 +345,7 @@ export default function AdminDataTables({
 
       <section
         id="admin-comptes"
-        className="rounded-2xl border border-culture-line bg-white px-4 py-4"
+        className="rounded-2xl border border-culture-line bg-culture-surface px-4 py-4"
       >
         <h2 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
           {SECTION_COPY.comptesTable.title}
@@ -535,7 +535,7 @@ export default function AdminDataTables({
 
       <section
         id="admin-liens"
-        className="rounded-2xl border border-culture-line bg-white px-4 py-4"
+        className="rounded-2xl border border-culture-line bg-culture-surface px-4 py-4"
       >
         <h2 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
           {SECTION_COPY.tokensTable.title}
@@ -687,7 +687,7 @@ export default function AdminDataTables({
 
       <section
         id="admin-reponses"
-        className="rounded-2xl border border-culture-line bg-white px-4 py-4"
+        className="rounded-2xl border border-culture-line bg-culture-surface px-4 py-4"
       >
         <h2 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
           {SECTION_COPY.rsvpsTable.title}
@@ -839,7 +839,7 @@ export default function AdminDataTables({
 
       <section
         id="admin-lectures"
-        className="rounded-2xl border border-culture-line bg-white px-4 py-4"
+        className="rounded-2xl border border-culture-line bg-culture-surface px-4 py-4"
       >
         <h2 className="text-sm font-semibold uppercase tracking-wide text-culture-muted">
           {SECTION_COPY.visitsTable.title}

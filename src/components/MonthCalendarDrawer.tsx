@@ -79,7 +79,7 @@ export default function MonthCalendarDrawer({
         tabIndex={-1}
         aria-label="Fermer le calendrier"
         className={
-          'absolute inset-0 bg-culture-ink/20 transition-opacity duration-200 ease-out pointer-events-auto ' +
+          'absolute inset-0 bg-planc-nuit/20 transition-opacity duration-200 ease-out pointer-events-auto ' +
           (visible ? 'opacity-100' : 'opacity-0')
         }
         onPointerDown={dismiss}
@@ -113,7 +113,7 @@ export default function MonthCalendarDrawer({
             type="button"
             onPointerDown={dismiss}
             onClick={dismiss}
-            className="shrink-0 rounded-full border border-culture-line bg-culture-cream px-3 py-1.5 text-sm font-medium text-culture-ink hover:bg-white"
+            className="shrink-0 rounded-full border border-culture-line bg-culture-cream px-3 py-1.5 text-sm font-medium text-culture-ink hover:bg-culture-surface"
           >
             Fermer
           </button>

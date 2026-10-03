@@ -269,7 +269,7 @@ function InstallSheet({
         type="button"
         tabIndex={-1}
         aria-label="Fermer"
-        className="absolute inset-x-0 bg-culture-ink/15"
+        className="absolute inset-x-0 bg-planc-nuit/15"
         style={
           safariIpad
             ? { top: IOS_SAFARI_TOP_MIN_GAP_PX, bottom: bottomGap }
@@ -287,8 +287,8 @@ function InstallSheet({
         data-pwa-surface={surface}
         className={
           safariIphone || safariIpad
-            ? 'relative mx-3 mt-[max(0.75rem,env(safe-area-inset-top))] w-full max-w-sm rounded-2xl border border-culture-line/80 bg-white/80 p-4 shadow-card backdrop-blur-md'
-            : 'relative m-3 mb-[max(0.75rem,env(safe-area-inset-bottom))] w-full max-w-sm rounded-2xl border border-culture-line/80 bg-white/80 p-4 shadow-card backdrop-blur-md'
+            ? 'relative mx-3 mt-[max(0.75rem,env(safe-area-inset-top))] w-full max-w-sm rounded-2xl border border-culture-line/80 bg-culture-surface/80 p-4 shadow-card backdrop-blur-md'
+            : 'relative m-3 mb-[max(0.75rem,env(safe-area-inset-bottom))] w-full max-w-sm rounded-2xl border border-culture-line/80 bg-culture-surface/80 p-4 shadow-card backdrop-blur-md'
         }
       >
         <h2 id="pwa-install-title" className="font-display text-lg font-semibold text-culture-ink">
@@ -301,7 +301,7 @@ function InstallSheet({
               type="button"
               data-testid="pwa-install-button"
               onClick={onInstall}
-              className="mt-3 min-h-10 w-full rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-white hover:bg-culture-clay"
+              className="mt-3 min-h-10 w-full rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-planc-nuit hover:bg-culture-clay"
             >
               {ANDROID_INSTALL_LABEL}
             </button>
@@ -319,7 +319,7 @@ function InstallSheet({
                 aria-label="Lien à coller dans Safari"
                 data-testid="pwa-safari-url"
                 onFocus={(e) => e.currentTarget.select()}
-                className="mt-3 w-full rounded-lg border border-culture-line bg-white px-3 py-2 text-sm text-culture-ink"
+                className="mt-3 w-full rounded-lg border border-planc-controle bg-culture-surface px-3 py-2 text-sm text-culture-ink"
               />
             ) : null}
             <button
@@ -328,7 +328,7 @@ function InstallSheet({
               onClick={() => {
                 void onCopyLink();
               }}
-              className="mt-3 min-h-10 w-full rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-white hover:bg-culture-clay"
+              className="mt-3 min-h-10 w-full rounded-full bg-culture-terracotta px-5 py-2.5 text-sm font-semibold text-planc-nuit hover:bg-culture-clay"
             >
               {copyState === 'copied' ? CRIOS_COPIED_LABEL : CRIOS_COPY_LINK_LABEL}
             </button>
@@ -391,7 +391,7 @@ function InstallSheet({
         <div
           data-testid="pwa-ipad-share-arrow"
           data-pwa-arrow="up"
-          className="pointer-events-none absolute left-1/2 z-10 grid h-8 w-8 -translate-x-1/2 place-items-center rounded-full bg-white text-culture-ink shadow-card"
+          className="pointer-events-none absolute left-1/2 z-10 grid h-8 w-8 -translate-x-1/2 place-items-center rounded-full bg-culture-surface text-culture-ink shadow-card"
           style={{ top: 12 }}
           aria-hidden
         >
@@ -402,7 +402,7 @@ function InstallSheet({
         <div
           data-testid="pwa-iphone-share-arrow"
           data-pwa-arrow="down"
-          className="pointer-events-none absolute left-1/2 z-10 grid h-8 w-8 -translate-x-1/2 place-items-center rounded-full bg-white text-culture-ink shadow-card"
+          className="pointer-events-none absolute left-1/2 z-10 grid h-8 w-8 -translate-x-1/2 place-items-center rounded-full bg-culture-surface text-culture-ink shadow-card"
           style={{ bottom: Math.max(12, bottomGap - 44) }}
           aria-hidden
         >
@@ -470,7 +470,7 @@ export function A2hsDownloadBar() {
         type="button"
         data-testid="pwa-download-bar-action"
         onClick={openInstall}
-        className="ml-auto min-h-9 shrink-0 rounded-full bg-culture-terracotta px-3 py-0 text-sm font-semibold leading-none text-white hover:bg-culture-clay focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta"
+        className="ml-auto min-h-9 shrink-0 rounded-full bg-culture-terracotta px-3 py-0 text-sm font-semibold leading-none text-planc-nuit hover:bg-culture-clay focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-culture-terracotta"
       >
         <span className="min-[360px]:hidden">{A2HS_BAR_LABEL_NARROW}</span>
         <span className="hidden min-[360px]:inline">{A2HS_BAR_LABEL}</span>
@@ -485,14 +485,14 @@ function ShellRefreshTip({ onRefresh }: { onRefresh: () => void }) {
       role="status"
       aria-live="polite"
       data-testid="pwa-shell-refresh"
-      className="fixed inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-[170] mx-auto flex w-auto max-w-sm items-center justify-between gap-3 rounded-2xl border border-culture-line/80 bg-white/90 px-4 py-3 shadow-card backdrop-blur-md"
+      className="fixed inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-[170] mx-auto flex w-auto max-w-sm items-center justify-between gap-3 rounded-2xl border border-culture-line/80 bg-culture-surface/90 px-4 py-3 shadow-card backdrop-blur-md"
     >
       <p className="text-sm text-culture-ink">{SHELL_UPDATE_TIP}</p>
       <button
         type="button"
         data-testid="pwa-shell-refresh-action"
         onClick={onRefresh}
-        className="min-h-10 shrink-0 rounded-full bg-culture-terracotta px-4 py-2 text-sm font-semibold text-white hover:bg-culture-clay"
+        className="min-h-10 shrink-0 rounded-full bg-culture-terracotta px-4 py-2 text-sm font-semibold text-planc-nuit hover:bg-culture-clay"
       >
         {SHELL_UPDATE_ACTION}
       </button>

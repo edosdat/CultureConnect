@@ -33,7 +33,7 @@ export default function FilmVersionBadge({
           data-testid="film-version-badge"
           data-langue={label}
           className={
-            'inline-flex max-w-full shrink-0 rounded bg-culture-ink/85 px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-none tracking-wide text-white sm:text-[11px] ' +
+            'inline-flex max-w-full shrink-0 rounded bg-planc-nuit/85 px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-none tracking-wide text-planc-creme sm:text-[11px] ' +
             className
           }
         >

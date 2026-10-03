@@ -12,7 +12,7 @@ describe('S1 header 380 — avatar + cloche, Mes goûts in menu', () => {
     assert.equal(auth.includes('data-account-control="mes-gouts-pending"'), false);
     assert.match(auth, /data-account-control="mes-gouts-menu"/);
     assert.match(auth, /bg-culture-cream/);
-    assert.match(auth, /bg-culture-ink/);
+    assert.match(auth, /bg-planc-nuit/);
     assert.match(auth, /<ActivityInbox \/>/);
     assert.match(auth, /aria-label="Menu compte"/);
     assert.match(auth, /data-account-control="avatar-pending"/);
@@ -24,7 +24,7 @@ describe('S1 header 380 — avatar + cloche, Mes goûts in menu', () => {
     );
     assert.match(nav, /href: '\/artistes', label: 'Artistes'/);
     assert.match(nav, /<AuthButtons \/>/);
-    assert.match(nav, /bg-white/);
+    assert.match(nav, /bg-culture-surface/);
 
     const inbox = await readFile(
       new URL('../components/ActivityInbox.tsx', import.meta.url),

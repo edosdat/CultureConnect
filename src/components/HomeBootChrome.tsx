@@ -41,7 +41,7 @@ export default function HomeBootChrome({ children }: { children: ReactNode }) {
               tabIndex={-1}
               placeholder={SEARCH_PLACEHOLDER}
               aria-label={SEARCH_PLACEHOLDER}
-              className="h-10 w-full rounded-full border border-culture-line bg-culture-surface py-0 pl-9 pr-11 text-sm text-culture-ink shadow-sm placeholder:truncate placeholder:text-culture-muted/70"
+              className="h-10 w-full rounded-full border border-planc-controle bg-culture-surface py-0 pl-9 pr-11 text-sm text-culture-ink shadow-sm placeholder:truncate placeholder:text-culture-muted/70"
             />
             <div className="absolute inset-y-0 right-1 flex items-center">
               <span className="grid h-8 w-8 place-items-center rounded-full text-base font-medium leading-none text-culture-terracotta">

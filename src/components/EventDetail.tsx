@@ -124,7 +124,7 @@ function ReserveControl({
         onReserve?.();
       }}
       className={
-          'inline-flex min-h-10 items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-medium text-white hover:bg-culture-clay' +
+          'inline-flex min-h-10 items-center rounded-full bg-culture-terracotta px-4 py-2 text-sm font-medium text-planc-nuit hover:bg-culture-clay' +
         width
       }
     >
@@ -423,7 +423,7 @@ export default function EventDetail({
 
     return (
       <div
-        className="fixed inset-0 z-50 flex items-end justify-center bg-culture-ink/40 p-0 sm:items-center sm:p-6"
+        className="fixed inset-0 z-50 flex items-end justify-center bg-planc-nuit/40 p-0 sm:items-center sm:p-6"
         role="dialog"
         aria-modal="true"
         aria-labelledby="event-detail-title"
@@ -440,7 +440,7 @@ export default function EventDetail({
             <button
               type="button"
               onClick={onClose}
-              className="shrink-0 rounded-full border border-culture-sand bg-white px-3 py-1 text-sm text-culture-ink hover:bg-culture-sand"
+              className="shrink-0 rounded-full border border-culture-sand bg-culture-surface px-3 py-1 text-sm text-culture-ink hover:bg-culture-sand"
               aria-label="Fermer"
             >
               Fermer
@@ -755,7 +755,7 @@ export default function EventDetail({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-culture-ink/40 p-0 sm:items-center sm:p-6"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-planc-nuit/40 p-0 sm:items-center sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="event-detail-title"
@@ -772,7 +772,7 @@ export default function EventDetail({
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-full border border-culture-sand bg-white px-3 py-1 text-sm text-culture-ink hover:bg-culture-sand"
+            className="shrink-0 rounded-full border border-culture-sand bg-culture-surface px-3 py-1 text-sm text-culture-ink hover:bg-culture-sand"
             aria-label="Fermer"
           >
             Fermer

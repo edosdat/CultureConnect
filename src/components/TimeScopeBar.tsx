@@ -32,7 +32,7 @@ export default function TimeScopeBar({
         className={
           'cc-axes__chip shrink-0 whitespace-nowrap rounded-full border font-medium transition ' +
           (active
-            ? 'border-culture-terracotta bg-culture-terracotta text-white shadow-sm'
+            ? 'border-culture-terracotta bg-culture-terracotta text-planc-nuit shadow-sm'
             : 'border-culture-line bg-culture-surface text-culture-ink hover:border-culture-terracotta/50')
         }
       >

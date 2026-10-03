@@ -10,18 +10,36 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        planc: {
+          nuit: "#1A0B1E",
+          velours: "#2A1231",
+          sable: "#3A1840",
+          ligne: "#4A2350",
+          creme: "#FFF1F4",
+          muted: "#D3B3CE",
+          rose: "#FF2E7E",
+          "rose-hover": "#FF6FA5",
+          peche: "#FF9E6D",
+          aubergine: "#B98CFF",
+          cerise: "#FF4D6D",
+          citron: "#FFD23F",
+          menthe: "#5EEAD4",
+          /* muted #D3B3CE à 60 % sur velours #2A1231 — bordure de contrôle, ≥ 3:1 */
+          controle: "#8F738F",
+        },
+        /* alias temporaire, à renommer en planc.* */
         culture: {
-          cream: "#F7F0E8",
-          surface: "#FFFCF8",
-          sand: "#F3E8DA",
-          terracotta: "#E85D3B",
-          clay: "#C44A2F",
-          ink: "#1C1917",
-          muted: "#57534E",
-          line: "#E7E0D8",
-          sage: "#5F7A5A",
-          gold: "#D97706",
-          soft: "#F6D5C8",
+          cream: "#1A0B1E",
+          surface: "#2A1231",
+          sand: "#3A1840",
+          terracotta: "#FF2E7E",
+          clay: "#FF6FA5",
+          ink: "#FFF1F4",
+          muted: "#D3B3CE",
+          line: "#4A2350",
+          sage: "#5EEAD4",
+          gold: "#FFD23F",
+          soft: "#4A1838",
           cat: {
             cine: "#E85D3B",
             musique: "#6B3FA0",
@@ -43,7 +61,7 @@ const config: Config = {
         "card-lg": "1.25rem",
       },
       boxShadow: {
-        card: "0 8px 24px rgba(28, 25, 23, 0.06)",
+        card: "0 8px 24px rgba(0, 0, 0, 0.45)",
       },
     },
   },

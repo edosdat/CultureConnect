@@ -304,7 +304,7 @@ export default function SearchOmnibox({
         autoComplete="off"
         enterKeyHint="search"
         className={
-          'h-10 w-full rounded-full border border-culture-line bg-culture-surface py-0 pl-9 text-sm text-culture-ink shadow-sm placeholder:truncate placeholder:text-culture-muted/70 focus:border-culture-terracotta focus:outline-none focus:ring-2 focus:ring-culture-terracotta/30 ' +
+          'h-10 w-full rounded-full border border-planc-controle bg-culture-surface py-0 pl-9 text-sm text-culture-ink shadow-sm placeholder:truncate placeholder:text-culture-muted/70 focus:border-culture-terracotta focus:outline-none focus:ring-2 focus:ring-culture-terracotta/30 ' +
           (value ? 'pr-[4.5rem]' : 'pr-11')
         }
       />
@@ -323,7 +323,7 @@ export default function SearchOmnibox({
         ) : null}
         <button
           type="submit"
-          className="grid h-8 w-8 place-items-center rounded-full text-base font-medium leading-none text-culture-terracotta hover:bg-culture-soft"
+          className="grid h-8 w-8 place-items-center rounded-full text-base font-medium leading-none text-culture-terracotta hover:bg-planc-nuit"
           aria-label="Rechercher"
         >
           ↵
@@ -368,7 +368,7 @@ export default function SearchOmnibox({
                 type="button"
                 onPointerDown={keepFocus}
                 onClick={confirm}
-                className="inline-flex h-9 items-center rounded-full bg-culture-terracotta px-3 text-sm font-medium text-culture-ink focus:outline-none focus:ring-2 focus:ring-culture-terracotta"
+                className="inline-flex h-9 items-center rounded-full bg-culture-terracotta px-3 text-sm font-medium text-planc-nuit focus:outline-none focus:ring-2 focus:ring-culture-terracotta"
               >
                 Confirmer
               </button>

@@ -51,7 +51,7 @@ function Card({
   const copy = KPI_COPY[kpi];
   const title = copy?.title ?? `KPI ${kpi}`;
   return (
-    <section className="rounded-2xl border border-culture-line bg-white px-4 py-3">
+    <section className="rounded-2xl border border-culture-line bg-culture-surface px-4 py-3">
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-culture-muted">
         KPI {kpi} · {title}
         {approx ? <ApproxBadge /> : null}
@@ -457,7 +457,7 @@ export default function AdminAnalyticsView({
               <a
                 href="/admin/analytics/export"
                 download={tastesCsvName}
-                className="inline-block rounded-full bg-culture-terracotta px-3 py-1.5 text-sm font-semibold text-white hover:bg-culture-clay"
+                className="inline-block rounded-full bg-culture-terracotta px-3 py-1.5 text-sm font-semibold text-planc-nuit hover:bg-culture-clay"
               >
                 Télécharger CSV interne
               </a>

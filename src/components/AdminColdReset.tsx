@@ -53,7 +53,7 @@ export default function AdminColdReset() {
   return (
     <div className="mx-auto max-w-5xl px-4 pt-6 sm:px-6">
       <section
-        className="rounded-2xl border border-culture-line bg-white px-4 py-3"
+        className="rounded-2xl border border-culture-line bg-culture-surface px-4 py-3"
         aria-labelledby="cold-reset-title"
       >
         <h2
@@ -71,7 +71,7 @@ export default function AdminColdReset() {
           disabled={busy}
           aria-describedby="cold-reset-note"
           onClick={() => void onReset()}
-          className="mt-3 inline-flex h-9 items-center rounded-full border border-culture-terracotta/50 bg-white px-4 text-sm font-medium text-culture-terracotta transition hover:border-culture-terracotta hover:bg-culture-terracotta/10 disabled:opacity-50"
+          className="mt-3 inline-flex h-9 items-center rounded-full border border-culture-terracotta/50 bg-culture-surface px-4 text-sm font-medium text-culture-terracotta transition hover:border-culture-terracotta hover:bg-culture-terracotta/10 disabled:opacity-50"
         >
           {busy ? 'Reset en cours…' : COLD_RESET_LABEL}
         </button>

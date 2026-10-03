@@ -73,7 +73,7 @@ export default function MoreActionsMenu({ item, onAgenda, onIcs }: Props) {
               type="button"
               tabIndex={-1}
               aria-label="Fermer plus d’actions"
-              className="absolute inset-0 bg-culture-ink/25"
+              className="absolute inset-0 bg-planc-nuit/25"
               onClick={() => setOpen(false)}
             />
             <div
@@ -81,7 +81,7 @@ export default function MoreActionsMenu({ item, onAgenda, onIcs }: Props) {
               aria-modal="true"
               aria-label="Plus d’actions"
               data-testid="event-more-sheet"
-              className="absolute inset-x-0 bottom-0 w-full rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-8px_28px_rgba(0,0,0,.18)] sm:inset-x-auto sm:left-1/2 sm:max-w-[420px] sm:-translate-x-1/2"
+              className="absolute inset-x-0 bottom-0 w-full rounded-t-2xl bg-culture-surface pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-8px_28px_rgba(0,0,0,.18)] sm:inset-x-auto sm:left-1/2 sm:max-w-[420px] sm:-translate-x-1/2"
             >
               <div className="mx-auto mt-2 h-1 w-9 rounded-full bg-culture-line" />
               <div className="py-2">
@@ -172,7 +172,7 @@ export default function MoreActionsMenu({ item, onAgenda, onIcs }: Props) {
         data-testid="event-more"
         aria-label="Plus"
         onClick={() => setOpen(true)}
-        className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-culture-line bg-white text-xl font-bold leading-none text-culture-muted hover:bg-culture-sand hover:text-culture-ink"
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-culture-line bg-culture-surface text-xl font-bold leading-none text-culture-muted hover:bg-culture-sand hover:text-culture-ink"
       >
         ⋯
       </button>

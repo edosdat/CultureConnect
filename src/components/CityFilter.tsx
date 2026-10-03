@@ -79,7 +79,7 @@ export default function CityFilter({
               onChange(v);
               if (!v) setOpen(false);
             }}
-            className="max-w-full min-w-[10rem] flex-1 rounded-full border border-culture-line bg-culture-surface px-3 py-1.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta sm:max-w-xs"
+            className="max-w-full min-w-[10rem] flex-1 rounded-full border border-planc-controle bg-culture-surface px-3 py-1.5 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta sm:max-w-xs"
             aria-label="Filtrer par ville"
           >
             <option value="">Toute l&apos;agglo</option>
@@ -113,7 +113,7 @@ export default function CityFilter({
       <select
         value={selectedCommune ?? ''}
         onChange={(e) => onChange(e.target.value || null)}
-        className="w-full rounded-xl border border-culture-line bg-culture-surface px-3 py-2 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
+        className="w-full rounded-xl border border-planc-controle bg-culture-surface px-3 py-2 text-sm text-culture-ink shadow-sm focus:border-culture-terracotta focus:outline-none focus:ring-1 focus:ring-culture-terracotta"
         aria-label="Filtrer par ville"
       >
         <option value="">Toute l&apos;agglo</option>

@@ -34,7 +34,7 @@ function DateRow({
   const href = externalPageUrl(url);
   const when = compactTimeRangeFromFields(heure_debut, heure_fin);
   return (
-    <li className="rounded-2xl border border-culture-sand bg-white px-4 py-3">
+    <li className="rounded-2xl border border-culture-sand bg-culture-surface px-4 py-3">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="font-medium text-culture-ink">
           {formatDateFr(date)}
@@ -84,7 +84,7 @@ export default function ArtisteDetail({ artiste, legend, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-culture-ink/40 p-0 sm:items-center sm:p-6"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-planc-nuit/40 p-0 sm:items-center sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="artiste-detail-title"
@@ -126,7 +126,7 @@ export default function ArtisteDetail({ artiste, legend, onClose }: Props) {
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-full border border-culture-sand bg-white px-3 py-1 text-sm text-culture-ink hover:bg-culture-sand"
+                className="rounded-full border border-culture-sand bg-culture-surface px-3 py-1 text-sm text-culture-ink hover:bg-culture-sand"
                 aria-label="Fermer"
               >
                 Fermer

@@ -671,7 +671,7 @@ describe('feedback surfaces', () => {
     assert.match(widget, /kind: 'bug'/);
     assert.match(widget, /fieldForTrack/);
     assert.match(widget, /clearStub/);
-    assert.match(widget, /bg-culture-terracotta text-culture-ink/);
+    assert.match(widget, /bg-culture-terracotta text-planc-nuit/);
     assert.match(widget, /BUG_QUESTION/);
     assert.match(widget, /SUGGESTION_QUESTION/);
     assert.ok(

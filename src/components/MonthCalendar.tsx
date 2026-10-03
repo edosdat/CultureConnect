@@ -105,7 +105,7 @@ export default function MonthCalendar({
           const selected = tone === 'selected';
           const isToday = tone === 'today';
           const cellToneClass = selected
-            ? 'border-culture-terracotta bg-culture-terracotta text-white shadow'
+            ? 'border-culture-terracotta bg-culture-terracotta text-planc-nuit shadow'
             : isToday
               ? count > 0
                 ? 'border-culture-terracotta bg-culture-cream text-culture-ink ring-2 ring-culture-terracotta ring-offset-1 ring-offset-culture-surface hover:border-culture-terracotta'
@@ -126,7 +126,7 @@ export default function MonthCalendar({
                 <span
                   className={
                     'mt-0.5 text-[10px] leading-none ' +
-                    (selected ? 'text-white/90' : 'text-culture-terracotta')
+                    (selected ? 'text-planc-nuit/90' : 'text-culture-terracotta')
                   }
                 >
                   {count}
