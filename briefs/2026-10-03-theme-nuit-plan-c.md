@@ -8,6 +8,18 @@
 | Source | Maquettes Plan C (PR « brief seulement » #251, `briefs/maquettes-plan-c/`) ; tokens de `docs/ton-plan-c.md` (section palette) |
 | Remplace | PR #246 (contraste terracotta), devenue sans objet |
 
+## État (mis à jour le 03/10, 17 h 30)
+
+| PR | Contenu | État |
+|---|---|---|
+| 1 | Couleurs de base + lisibilité | **Fait (#254)**, vérifié par Claude : 0 `bg-white`, 0 blanc sur rose, fond nuit, test de contraste présent |
+| 3 | Logo C rose + écran de démarrage | **À faire maintenant** (en parallèle de la 4 : fichiers différents) |
+| 4 | Nom « Plan C » + typographie | **À faire maintenant** (en parallèle de la 3) |
+| 2 | Couleurs de catégories + images de partage | Après le GO de la 4 (les deux touchent aux images de partage) |
+| 5 | Hiérarchie « un seul rose » | Après le GO de la 2 |
+
+Constaté sur `main` après la PR 1 : les pastilles de catégories gardent leurs anciennes couleurs (ex. « THÉÂTRE & DANSE » en aplat sarcelle, contour Musique violet foncé peu visible sur fond nuit) : c'est attendu, la PR 2 les traite.
+
 ## Pourquoi
 L'appli est aujourd'hui crème et terracotta. Plan C doit ressembler à ses maquettes : fond nuit, accents rose et aubergine, couleurs vives par ambiance. Le changement doit rester **lisible partout** : c'est le seul vrai risque d'un thème sombre.
 
