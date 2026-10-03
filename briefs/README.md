@@ -23,6 +23,7 @@ Statuts : **À faire** · **En cours** · **Fait (#PR)** · **Bloqué** · **Rem
 | `briefs/tags-v2-addendum-ponderation.md` | Pondération par rang × confiance |
 | `briefs/tags-v2-correctifs-revue-1.md` | Correctifs C1–C3 sur #172 / #173 |
 | `briefs/duels-signal-compare.md` | Signal `duel_*` et tirage des paires |
+| `briefs/tags-mix-curseurs.md` | 5 curseurs d'humeur (écran « Ton mix ») : mapping des moods, mesures |
 | `docs/ton-plan-c.md` | **Tout texte affiché** : ton, lexique, couleurs Plan C |
 | `docs/bibliographie-culture.md` | Sources (lecture humaine, rien à coder) |
 
@@ -31,6 +32,7 @@ Statuts : **À faire** · **En cours** · **Fait (#PR)** · **Bloqué** · **Rem
 | # | Brief | Statut | Notes |
 |---|---|---|---|
 | 1 | `feuille-de-route-tags-reco.md` §3, tickets 1 à 14 dans l'ordre | À faire | Mettre à jour le tableau §1 « Ce qui est fait » du brief à chaque ticket mergé. |
+| 1 bis | `tags-mix-curseurs.md` (M1 → M3) | À faire | M1 et M2 faisables tout de suite, en parallèle du ticket 1. M3 après C1. |
 | 2 | `v1-beta/fiche-cine-web-split.md` | À confirmer | Écrit avant ce protocole : indiquer Fait (#PR) s'il est déjà livré. |
 | 3 | `top3-compact-no-desc.md` | À confirmer | idem |
 | 4 | `top3-hauteur-uniforme.md` | À confirmer | idem |
