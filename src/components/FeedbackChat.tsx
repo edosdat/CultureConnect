@@ -453,7 +453,7 @@ export default function FeedbackChat() {
                       className={
                         CHIP_CLASS +
                         (on
-                          ? 'border border-culture-terracotta bg-culture-terracotta text-culture-ink'
+                          ? 'border border-culture-terracotta bg-culture-terracotta text-planc-nuit'
                           : 'border border-culture-line bg-culture-surface text-culture-muted hover:text-culture-ink')
                       }
                     >

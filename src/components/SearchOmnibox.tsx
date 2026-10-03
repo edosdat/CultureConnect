@@ -343,7 +343,7 @@ export default function SearchOmnibox({
                 type="button"
                 onPointerDown={keepFocus}
                 onClick={confirm}
-                className="inline-flex h-9 items-center rounded-full bg-culture-terracotta px-3 text-sm font-medium text-culture-ink focus:outline-none focus:ring-2 focus:ring-culture-terracotta"
+                className="inline-flex h-9 items-center rounded-full bg-culture-terracotta px-3 text-sm font-medium text-planc-nuit focus:outline-none focus:ring-2 focus:ring-culture-terracotta"
               >
                 Confirmer
               </button>
