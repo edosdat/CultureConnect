@@ -140,8 +140,8 @@ describe('boot shell gate', () => {
 
 describe('boot shell markup', () => {
   it('stays a small inline shell on the cream ground', () => {
-    assert.equal(BOOT_SHELL_CREAM, '#F7F0E8');
-    assert.equal(PWA_BACKGROUND_COLOR, '#F7F0E8');
+    assert.equal(BOOT_SHELL_CREAM, '#FAF6FA');
+    assert.equal(PWA_BACKGROUND_COLOR, '#FAF6FA');
     assert.equal(BOOT_SHELL_HINT, 'On prépare ton agenda…');
     const bytes = Buffer.byteLength(BOOT_SHELL_CSS + BOOT_SHELL_MARKUP, 'utf8');
     assert.ok(bytes <= 3072, `critical shell is ${bytes} bytes`);

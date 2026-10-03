@@ -23,8 +23,8 @@ function ogCard(title: string, venue: string, cat: string) {
         flexDirection: 'column',
         justifyContent: 'space-between',
         padding: '72px',
-        background: 'linear-gradient(145deg, #c44a2f 0%, #e85d3b 45%, #f3e8da 100%)',
-        color: '#fffcf8',
+        background: 'linear-gradient(145deg, #C9145C 0%, #FF2E7E 45%, #F0E7F0 100%)',
+        color: '#FFFDFF',
         fontFamily: 'Georgia, serif',
       }}
     >
@@ -44,7 +44,7 @@ function ogCard(title: string, venue: string, cat: string) {
           style={{
             fontSize: 22,
             fontFamily: 'sans-serif',
-            background: 'rgba(28,25,23,0.2)',
+            background: 'rgba(26, 11, 30,0.2)',
             padding: '8px 16px',
             borderRadius: 8,
             width: 'auto',

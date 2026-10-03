@@ -11,17 +11,17 @@ const config: Config = {
     extend: {
       colors: {
         culture: {
-          cream: "#F7F0E8",
-          surface: "#FFFCF8",
-          sand: "#F3E8DA",
-          terracotta: "#E85D3B",
-          clay: "#C44A2F",
-          ink: "#1C1917",
-          muted: "#57534E",
-          line: "#E7E0D8",
-          sage: "#5F7A5A",
+          cream: "#FAF6FA",
+          surface: "#FFFDFF",
+          sand: "#F0E7F0",
+          terracotta: "#FF2E7E",
+          clay: "#C9145C",
+          ink: "#1A0B1E",
+          muted: "#6B5A68",
+          line: "#E8DEE8",
+          sage: "#7A5A8E",
           gold: "#D97706",
-          soft: "#F6D5C8",
+          soft: "#FFD9E7",
           cat: {
             cine: "#E85D3B",
             musique: "#6B3FA0",
@@ -43,7 +43,7 @@ const config: Config = {
         "card-lg": "1.25rem",
       },
       boxShadow: {
-        card: "0 8px 24px rgba(28, 25, 23, 0.06)",
+        card: "0 8px 24px rgba(26, 11, 30, 0.06)",
       },
     },
   },

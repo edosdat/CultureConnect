@@ -76,8 +76,8 @@ describe('pwa manifest lock', () => {
   it('names Plan C and keeps terracotta chrome on the cream ground', () => {
     assert.equal(PWA_NAME, 'Plan C');
     assert.equal(PWA_ID, '/');
-    assert.equal(PWA_THEME_COLOR, '#e85d3b');
-    assert.equal(PWA_BACKGROUND_COLOR, '#F7F0E8');
+    assert.equal(PWA_THEME_COLOR, '#FF2E7E');
+    assert.equal(PWA_BACKGROUND_COLOR, '#FAF6FA');
   });
 
   it('points related_applications at this manifest without preferring a store app', () => {

@@ -4,15 +4,15 @@
 
 :root {
   color-scheme: light;
-  --cc-cream: #f7f0e8;
-  --cc-surface: #fffcf8;
-  --cc-terracotta: #e85d3b;
-  --cc-clay: #c44a2f;
-  --cc-ink: #1c1917;
-  --cc-muted: #57534e;
-  --cc-line: #e7e0d8;
-  --cc-soft: #f6d5c8;
-  --cc-sand: #f3e8da;
+  --cc-cream: #FAF6FA;
+  --cc-surface: #FFFDFF;
+  --cc-terracotta: #FF2E7E;
+  --cc-clay: #C9145C;
+  --cc-ink: #1A0B1E;
+  --cc-muted: #6B5A68;
+  --cc-line: #E8DEE8;
+  --cc-soft: #FFD9E7;
+  --cc-sand: #F0E7F0;
   /* 0 until the A2HS strip mounts; then 44px so the home search sticks under it. */
   --a2hs-bar-h: 0px;
 
@@ -42,14 +42,14 @@ html {
 body {
   min-height: 100vh;
   background:
-    radial-gradient(ellipse at top left, rgba(232, 93, 59, 0.10), transparent 45%),
-    radial-gradient(ellipse at bottom right, rgba(95, 122, 90, 0.10), transparent 40%),
+    radial-gradient(ellipse at top left, rgba(255, 46, 126, 0.10), transparent 45%),
+    radial-gradient(ellipse at bottom right, rgba(122, 90, 142, 0.10), transparent 40%),
     var(--cc-cream);
   color: var(--cc-ink);
 }
 
 ::selection {
-  background: rgba(232, 93, 59, 0.28);
+  background: rgba(255, 46, 126, 0.28);
 }
 
 :focus-visible {
@@ -111,7 +111,7 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #e85d3b;
+  background: #FF2E7E;
   border: 0;
   outline: none;
   box-shadow: none;
@@ -322,7 +322,7 @@ body {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: rgba(28, 25, 23, 0.22);
+  background: rgba(26, 11, 30, 0.22);
   pointer-events: none;
 }
 .cine-hero-poster {

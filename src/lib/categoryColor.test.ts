@@ -120,9 +120,9 @@ describe('S8.1 palette LOCK', () => {
     assert.match(css, /--cat-festival:\s*#be185d/i);
     assert.match(css, /--cat-expo:\s*#334155/i);
     assert.match(css, /--cat-enfants:\s*#ca8a04/i);
-    assert.match(css, /--cc-cream:\s*#f7f0e8/i);
-    assert.match(css, /--cc-surface:\s*#fffcf8/i);
-    assert.match(css, /--cc-ink:\s*#1c1917/i);
+    assert.match(css, /--cc-cream:\s*#faf6fa/i);
+    assert.match(css, /--cc-surface:\s*#fffdff/i);
+    assert.match(css, /--cc-ink:\s*#1a0b1e/i);
     assert.equal(css.includes('#78716c'), false);
   });
 });

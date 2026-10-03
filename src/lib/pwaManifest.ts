@@ -5,8 +5,8 @@
  */
 
 export const PWA_NAME = 'Plan C';
-export const PWA_THEME_COLOR = '#e85d3b';
-export const PWA_BACKGROUND_COLOR = '#F7F0E8';
+export const PWA_THEME_COLOR = '#FF2E7E';
+export const PWA_BACKGROUND_COLOR = '#FAF6FA';
 export const PWA_START_URL = '/';
 /** Stable id across preview hosts. Resolved against the manifest URL. */
 export const PWA_ID = '/';

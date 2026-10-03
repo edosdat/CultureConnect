@@ -1240,7 +1240,7 @@ export function moodFallbackHex(item: DayItem, categoryHex?: string): string {
   for (const m of moods) {
     if (MOOD_HEX[m]) return MOOD_HEX[m];
   }
-  return categoryHex || '#e85d3b';
+  return categoryHex || '#FF2E7E';
 }
 
 export function sharePrefill(item: DayItem, pageUrl: string): {
