@@ -2293,10 +2293,6 @@ export default function CultureConnectApp({
   });
   function openProposeFlow() {
     if (authStatus === 'loading') return;
-    if (authStatus !== 'authenticated') {
-      void signIn('google', { callbackUrl: '/' });
-      return;
-    }
     setProposeOpen(true);
   }
   const crossSellPool = useMemo(
@@ -3285,10 +3281,7 @@ export default function CultureConnectApp({
         </div>
 
         {proposePlace === 'empty' ? (
-          <ProposeEmptyCard
-            signedIn={authStatus === 'authenticated'}
-            onPropose={openProposeFlow}
-          />
+          <ProposeEmptyCard onPropose={openProposeFlow} />
         ) : null}
 
         {showHomeRails &&

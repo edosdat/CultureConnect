@@ -13,6 +13,7 @@ import {
   ACTIVE_PROPOSAL_STATUSES,
   matchPreviewOf,
   matchVenueId,
+  normalizeProposalOwner,
   parseProposalBody,
   pickProposalMatch,
   proposalDedupeKey,
@@ -325,8 +326,8 @@ export async function submitEventProposal(
     lieux?: readonly { id: string; name: string }[];
   },
 ): Promise<SubmitProposalResult> {
-  const email = emailRaw.trim().toLowerCase();
-  if (!email || !email.includes('@')) {
+  const email = normalizeProposalOwner(emailRaw);
+  if (!email) {
     return { ok: false, status: 400, error: 'Email requis' };
   }
   const parsed = parseProposalBody(body);
@@ -395,7 +396,7 @@ export async function confirmEventProposal(
   | { ok: true; body: ProposalPublic }
   | { ok: false; status: 400 | 404 | 503; error: string }
 > {
-  const email = emailRaw.trim().toLowerCase();
+  const email = normalizeProposalOwner(emailRaw);
   const proposalId = id.trim();
   if (!email || !proposalId) {
     return { ok: false, status: 400, error: 'Identifiant requis' };

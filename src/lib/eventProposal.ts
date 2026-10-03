@@ -3,6 +3,7 @@
  * Pending store only — never writes programme.csv or the live catalogue.
  */
 import { createHash } from 'crypto';
+import { isValidVid } from './guestId';
 import { labelCategorie } from './labels';
 import { normalizeSearch } from './searchText';
 import { externalPageUrl } from './externalUrl';
@@ -93,6 +94,45 @@ export function officialProgUrl(raw: string | null | undefined): string | null {
   } catch {
     return null;
   }
+}
+
+const GUEST_OWNER_RE = /^guest:v_[a-z0-9]{8,12}$/;
+
+/**
+ * Account email, or a guest device key. Never both: a guest row has no e-mail.
+ */
+export function normalizeProposalOwner(raw: string | null | undefined): string | null {
+  const s = (raw || '').trim().toLowerCase();
+  if (!s) return null;
+  if (GUEST_OWNER_RE.test(s)) return s;
+  if (!s.includes('@') || s.includes(' ') || s.length > 320) return null;
+  return s;
+}
+
+export function guestProposalOwner(vid: string | null | undefined): string | null {
+  const v = (vid || '').trim();
+  if (!isValidVid(v)) return null;
+  return normalizeProposalOwner(`guest:${v}`);
+}
+
+/**
+ * Signed-in e-mail wins. Otherwise the existing or freshly minted `cc_vid`.
+ * `vidToSet` is only the vid we just minted (so the response can set the cookie).
+ */
+export function resolveProposalActor(opts: {
+  sessionEmail?: string | null;
+  cookieVid?: string | null;
+  mintedVid?: string | null;
+}): { owner: string; vidToSet: string | null } | null {
+  const email = normalizeProposalOwner(opts.sessionEmail);
+  if (email && email.includes('@')) return { owner: email, vidToSet: null };
+  const existing = guestProposalOwner(opts.cookieVid);
+  if (existing) return { owner: existing, vidToSet: null };
+  const minted = guestProposalOwner(opts.mintedVid);
+  if (minted && opts.mintedVid) {
+    return { owner: minted, vidToSet: opts.mintedVid.trim() };
+  }
+  return null;
 }
 
 export function proposalDedupeKey(input: {
