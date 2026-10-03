@@ -19,6 +19,12 @@ En cas de contradiction, **ce document prime**. Chiffre du lot 3 revérifié le 
 | N1 `demoteChainFor`, N2 parité des chargeurs, N3 audit catalogue | ✅ (lot 3 §0) |
 | Tests | ✅ 749 / 750 |
 | `tsc` | ❌ 25 erreurs (dont 3 dans `eventTags.test.ts`, code tags v2) |
+| **Mise à jour du 03/10 (Claude, lecture de `main`)** | |
+| L1 `isJunkTitle` + filtre au chargement | ✅ #174, complété par #177 et #192 (#193 ouvert) |
+| L2 annuler #158 | ❌ pas fait : `itemInheritsParentMoods` est toujours dans `reco.ts` |
+| L8.1 brancher `recommendSlice` (ticket 13) | ⚠ mergé **hors ordre** (#181) avant le Banc 4 : à mesurer au prochain banc |
+| C1 (#176), tagueur + gold (#173) | ⏸ en attente : nouvelle grille de tags en préparation (Katia, Steph) |
+| `data/tags_evenements.csv` | vide : aucune passe v2 n'a tourné |
 
 ## 2. Arbitrages entre les deux séries
 

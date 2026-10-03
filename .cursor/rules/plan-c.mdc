@@ -3,7 +3,11 @@ description: Plan C (ex-CultureConnect) : briefs, file d'attente et ton
 alwaysApply: true
 ---
 
-- Au début de chaque tâche, lis `briefs/README.md` : c'est la file d'attente des briefs et le protocole à suivre (statuts, où écrire tes questions).
-- Avant de toucher aux tags, à la reco, aux profils ou aux duels, lis `briefs/feuille-de-route-tags-reco.md` et respecte son ordre d'exécution.
-- Tout texte affiché à l'utilisateur suit `docs/ton-plan-c.md`.
-- Un brief flou ou en contradiction avec le code : statut **Bloqué** dans `briefs/README.md` avec la question, pas de supposition.
+- Au début de chaque tâche, lis `briefs/README.md` (file d'attente + protocole v2) avant tout le reste.
+- Pas de code sans fichier de brief : une consigne reçue par le chat devient d'abord `briefs/AAAA-MM-JJ-sujet.md` (modèle `briefs/_modele.md`), dans la même PR.
+- Titre de PR = identifiant du brief ; description = critères d'acceptation cochés.
+- Après merge : statut **Fait (#PR)** dans `briefs/README.md` et dans le tableau d'état du brief.
+- Brief flou, ou consigne du chat qui contredit un brief : **Bloqué** + question, pas de supposition.
+- Un brief **En attente** ne se code pas.
+- Tags, reco, profils, duels : `briefs/feuille-de-route-tags-reco.md`, dans l'ordre de son §3.
+- Tout texte affiché suit `docs/ton-plan-c.md`.
