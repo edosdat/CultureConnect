@@ -505,6 +505,8 @@ export default function CultureConnectApp({
   const [pickedLieuLabel, setPickedLieuLabel] = useState<string | null>(null);
   const pickedLieuRef = useRef<string | null>(null);
   const selectedLieuId = pickedLieuId;
+  const [pickedArtiste, setPickedArtiste] = useState<string | null>(null);
+  const pickedArtisteRef = useRef<string | null>(null);
   const [selectedCommune, setSelectedCommune] = useState<string | null>('Toulouse');
   /** User city chip only — boot GPS must not reset painted pack order. */
   const [browseCommune, setBrowseCommune] = useState<string | null>('Toulouse');
@@ -891,8 +893,14 @@ export default function CultureConnectApp({
     setPickedLieuLabel(null);
   }
 
+  function clearArtistePick() {
+    pickedArtisteRef.current = null;
+    setPickedArtiste(null);
+  }
+
   function handleQueryChange(next: string) {
     if (pickedLieuRef.current) clearVenuePick();
+    if (pickedArtisteRef.current) clearArtistePick();
     setQuery(next);
     // Always apply — empty draft must drop leftover q even if leftover state is stale.
     setCommittedTitle((current) => leftoverTitleAfterDraftChange(next, current));
@@ -902,6 +910,7 @@ export default function CultureConnectApp({
   /** Bare title only. Filter chips wait for Confirmer — never on debounce or Enter-before-preview. */
   function handleSearchSubmit(raw: string) {
     if (pickedLieuRef.current) return;
+    if (pickedArtisteRef.current) return;
     setPhraseTags(null);
     setCommittedTitle(raw.trim());
   }
@@ -909,6 +918,7 @@ export default function CultureConnectApp({
   /** Venue name or unknown text: filter the cards. No date, QUOI, or salle chip. */
   const handleBareQuery = useCallback((raw: string) => {
     if (pickedLieuRef.current) return;
+    if (pickedArtisteRef.current) return;
     setPhraseTags(null);
     setCommittedTitle(raw.trim());
   }, []);
@@ -920,6 +930,7 @@ export default function CultureConnectApp({
    */
   function handleNlConfirm(parsed: SearchNlParse) {
     clearVenuePick();
+    clearArtistePick();
     const scope = nlTimeScope(parsed);
     applyScopeFromSearch(scope, parsed.selectedDate);
     searchDrivenRef.current.scope = true;
@@ -944,21 +955,28 @@ export default function CultureConnectApp({
 
   function handleSuggestTitre(itemKey: string) {
     clearVenuePick();
+    clearArtistePick();
     setQuery('');
     setCommittedTitle('');
     setPhraseTags(null);
     setSelectedItemKey(itemKey);
   }
 
+  /** Artist suggestion: every upcoming event for that catalogue name. */
   function handleSuggestArtiste(name: string) {
+    const nom = name.trim();
+    if (!nom) return;
     clearVenuePick();
-    setQuery(name);
+    pickedArtisteRef.current = nom;
+    setPickedArtiste(nom);
+    setQuery(nom);
     setPhraseTags(null);
-    setCommittedTitle(name.trim());
+    setCommittedTitle(nom);
   }
 
   /** Salle suggestion: every upcoming event at that lieu. No filter-band chip. */
   function handlePickSalle(id: string, label: string) {
+    clearArtistePick();
     const nextId = id.trim();
     const nom = label.trim();
     if (!nextId || !nom) return;
@@ -3070,6 +3088,7 @@ export default function CultureConnectApp({
           onPickArtiste={handleSuggestArtiste}
           onPickSalle={handlePickSalle}
           venueLock={pickedLieuId ? pickedLieuLabel : null}
+          artistLock={pickedArtiste}
           genres={genresLegend.map((g) => ({ slug: g.slug, label: g.label_fr }))}
           communes={communes}
           lieux={searchLieux}

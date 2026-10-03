@@ -1,8 +1,14 @@
 /**
  * Secondary catalogue suggest (bare title / artist) plus a salle row.
- * Titles stay capped at 8. A matching salle is a separate row, so a
- * title sample cannot hide the venue. Not used when NL already deduced
- * a filter chip.
+ * Titles stay capped at 8. A matching salle, and a matching artist, are
+ * separate rows, so a title sample cannot hide the venue or the artist.
+ * Not used when NL already deduced a filter chip.
+ *
+ * Artist match: same accent fold as the rest of search, then either the
+ * folded query sits inside the folded name, or one query word is a single
+ * insert / delete / substitution away from a name word of 4 letters or
+ * more. "quarteto" hits the word "cuarteto". Names that are not in the
+ * catalogue are never returned.
  */
 
 import { normalizeSearch } from './searchText';
@@ -11,6 +17,9 @@ export const SEARCH_SUGGEST_CAP = 8;
 
 /** Salle rows beside the title sample — not the event list under the field. */
 export const SALLE_SUGGEST_CAP = 8;
+
+/** Artist rows beside the title sample — not the event list under the field. */
+export const ARTIST_SUGGEST_CAP = 8;
 
 export type SearchSuggestKind = 'titre' | 'artiste' | 'salle';
 
@@ -136,6 +145,95 @@ export function suggestLocal(
       a.entry.label.localeCompare(b.entry.label, 'fr'),
   );
   return scored.slice(0, SEARCH_SUGGEST_CAP).map((row) => row.entry);
+}
+
+/**
+ * One insertion, deletion, or substitution. Equal strings match.
+ * Longer gaps do not: dropping or swapping a single letter is the bar.
+ */
+function withinOneEdit(a: string, b: string): boolean {
+  if (a === b) return true;
+  const la = a.length;
+  const lb = b.length;
+  if (Math.abs(la - lb) > 1) return false;
+  if (la > lb) return withinOneEdit(b, a);
+  let i = 0;
+  let j = 0;
+  let edits = 0;
+  while (i < la && j < lb) {
+    if (a[i] === b[j]) {
+      i += 1;
+      j += 1;
+      continue;
+    }
+    edits += 1;
+    if (edits > 1) return false;
+    if (la === lb) {
+      i += 1;
+      j += 1;
+    } else {
+      j += 1;
+    }
+  }
+  if (i < la || j < lb) edits += 1;
+  return edits <= 1;
+}
+
+function artistNameTokens(name: string): string[] {
+  return name.split(' ').filter((token) => token.length >= 4);
+}
+
+function tokenWithinOneEdit(token: string, name: string): boolean {
+  if (token.length < 4) return false;
+  return artistNameTokens(name).some((nameToken) => withinOneEdit(token, nameToken));
+}
+
+/**
+ * Known artists whose name matches the typed text, including one typo.
+ * « quarteto » → Cuarteto Tafi (the C and the Q trade places: one edit
+ * on the word « cuarteto »). Same rule for every catalogue artist.
+ * The event list is the later name query, not this cap.
+ */
+export function suggestArtistes(
+  entries: readonly SearchSuggestEntry[],
+  query: string,
+): SearchSuggestEntry[] {
+  const q = normalizeSearch(query);
+  if (q.length < 2) return [];
+  const scored: { entry: SearchSuggestEntry; score: number }[] = [];
+  const seen = new Set<string>();
+  for (const entry of entries) {
+    if (entry.kind !== 'artiste') continue;
+    const label = (entry.label || '').trim();
+    const id = (entry.id || label).trim();
+    if (!label || !id || seen.has(id)) continue;
+    const folded = normalizeSearch(label);
+    if (!folded) continue;
+    let score = scoreLabel(label, q);
+    if (score == null) {
+      const qTokens = q.split(' ').filter(Boolean);
+      if (
+        qTokens.length >= 2 &&
+        qTokens.every(
+          (token) => folded.includes(token) || tokenWithinOneEdit(token, folded),
+        )
+      ) {
+        score = 500;
+      } else if (qTokens.length === 1 && tokenWithinOneEdit(q, folded)) {
+        score = 300;
+      } else {
+        continue;
+      }
+    }
+    seen.add(id);
+    scored.push({ entry, score });
+  }
+  scored.sort(
+    (a, b) =>
+      a.score - b.score ||
+      a.entry.label.localeCompare(b.entry.label, 'fr'),
+  );
+  return scored.slice(0, ARTIST_SUGGEST_CAP).map((row) => row.entry);
 }
 
 function venueTokens(nom: string): string[] {

@@ -2,9 +2,11 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import {
+  ARTIST_SUGGEST_CAP,
   highlightLabel,
   SALLE_SUGGEST_CAP,
   SEARCH_SUGGEST_CAP,
+  suggestArtistes,
   suggestLocal,
   suggestSalles,
   type SearchSuggestEntry,
@@ -49,6 +51,36 @@ const LIEUX: SalleSuggestLieu[] = [
   { id: 'L-bikini', nom: 'Le Bikini', commune: 'Ramonville' },
   { id: 'L-petit', nom: 'Le Petit Bikini', commune: 'Ramonville' },
 ];
+
+const ARTISTS: SearchSuggestEntry[] = [
+  { kind: 'artiste', label: 'Cuarteto Tafi', id: 'Cuarteto Tafi', sub: 'Le Taquin' },
+  { kind: 'artiste', label: 'Dune Orchestra', id: 'Dune Orchestra' },
+  { kind: 'titre', label: 'Cuarteto Tafi', id: 'p:TAQP0020' },
+];
+
+describe('suggestArtistes', () => {
+  it('proposes the catalogue artist when one letter is wrong', () => {
+    for (const query of ['quarteto', 'Quarteto', 'QUARTETO', 'cuartéto', 'uarteto']) {
+      const hits = suggestArtistes(ARTISTS, query);
+      assert.equal(hits.length, 1);
+      assert.equal(hits[0]?.kind, 'artiste');
+      assert.equal(hits[0]?.label, 'Cuarteto Tafi');
+      assert.equal(hits[0]?.id, 'Cuarteto Tafi');
+    }
+    assert.equal(suggestArtistes(ARTISTS, 'cuarteto')[0]?.label, 'Cuarteto Tafi');
+    assert.ok(suggestArtistes(ARTISTS, 'jazz').length <= ARTIST_SUGGEST_CAP);
+    assert.deepEqual(suggestArtistes(ARTISTS, 'zzzzqxqqqq'), []);
+    assert.deepEqual(suggestArtistes(ARTISTS, 'q'), []);
+  });
+
+  it('does not turn a title row into an artist', () => {
+    const hits = suggestArtistes(
+      [{ kind: 'titre', label: 'Cuarteto Tafi', id: 'p:1' }],
+      'quarteto',
+    );
+    assert.deepEqual(hits, []);
+  });
+});
 
 describe('suggestSalles', () => {
   it('proposes the venue for any case, including a 3-letter name', () => {
