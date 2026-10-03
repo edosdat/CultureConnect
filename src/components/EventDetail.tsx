@@ -7,6 +7,7 @@ import {
   cineDistanceOrigin,
   defaultCineSeance,
   seanceHeureLabel,
+  fichePrixSource,
   seancePrixLabel,
   seancesIncludingShared,
   shareSeancePool,
@@ -475,7 +476,7 @@ export default function EventDetail({
                 )}
                 <FicheDescription item={item} />
                 <FicheCast item={item} />
-                <FichePrix item={filmForSuggestions} />
+                <FichePrix item={fichePrixSource(filmForSuggestions, item)} />
                 {cineMeta ? (
                   <p
                     data-fiche-meta=""

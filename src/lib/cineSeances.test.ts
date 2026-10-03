@@ -19,8 +19,10 @@ import {
   shareSeancePool,
   shareVisitPickerFilter,
   filmVersionLabels,
+  fichePrixSource,
   seanceHeureLabel,
   seanceMetaLabel,
+  seancePrixLabel,
   seanceVersionLabel,
   seancesAtCinema,
 } from './cineSeances';
@@ -225,6 +227,53 @@ describe('cine seances cinema-then-time', () => {
     assert.equal(seanceHeureLabel(bare), '18:00');
     assert.equal(knownPrixLabel('', { prix: '', gratuit: 'non' }), null);
     assert.equal(knownPrixLabel('', { prix: '', gratuit: '' }), null);
+    assert.equal(knownPrixLabel('Tarif unique : 28€', null), 'Tarif unique : 28€');
+    assert.equal(
+      seancePrixLabel(
+        item({
+          key: 'priced',
+          lieuId: 'L1',
+          nom: 'Salle',
+          day: '2026-10-03',
+          heure: '18:45',
+          prix: '23 € Prévente',
+        }),
+      ),
+      '23 € Prévente',
+    );
+    const emptySeance = item({
+      key: 'E647',
+      lieuId: 'L1',
+      nom: 'Salle',
+      day: '2026-10-03',
+      heure: '18:45',
+    });
+    const sameEvent = item({
+      key: 'E647',
+      lieuId: 'L1',
+      nom: 'Salle',
+      day: '2026-10-03',
+      heure: '18:45',
+      prix: 'Tarif unique : 28€',
+    });
+    const otherEvent = item({
+      key: 'E999',
+      lieuId: 'L2',
+      nom: 'Autre',
+      day: '2026-10-03',
+      heure: '20:00',
+      prix: '8€',
+    });
+    assert.equal(seancePrixLabel(emptySeance), null);
+    assert.equal(
+      seancePrixLabel(fichePrixSource(emptySeance, sameEvent)),
+      'Tarif unique : 28€',
+    );
+    assert.equal(fichePrixSource(emptySeance, otherEvent), emptySeance);
+    assert.equal(
+      seancePrixLabel(fichePrixSource(sameEvent, otherEvent)),
+      'Tarif unique : 28€',
+    );
     assert.equal(filmVersionLabel(''), null);
     assert.equal(filmVersionLabel('fr'), null);
     assert.equal(filmVersionLabel('VOSTFR'), 'VOSTFR');
@@ -238,6 +287,29 @@ describe('cine seances cinema-then-time', () => {
     assert.deepEqual(filmVersionLabels([bare]), []);
     assert.equal(seanceVersionLabel(ABC_SOON), 'VF');
     assert.equal(seanceVersionLabel(bare), null);
+  });
+
+  it('fiche keeps the pitch before the price and does not invent an empty one', () => {
+    const detail = fs.readFileSync(
+      path.join(process.cwd(), 'src/components/EventDetail.tsx'),
+      'utf8',
+    );
+    const carousel = fs.readFileSync(
+      path.join(process.cwd(), 'src/components/CinemaCarousel.tsx'),
+      'utf8',
+    );
+    const sheet = detail.slice(detail.indexOf('export default function'));
+    const pitch = sheet.indexOf('<FicheDescription');
+    const price = sheet.search(/<FichePrix|\{seancePrixLabel\(item\)/);
+    assert.ok(pitch > 0 && price > pitch);
+    assert.equal(sheet.includes('formatItemPrix'), false);
+    assert.equal(sheet.includes('formatPrix('), false);
+    assert.equal(sheet.includes('Tarif non indiqué'), false);
+    const heroPitch = carousel.indexOf('<FicheDescription');
+    const heroPrice = carousel.indexOf('<FichePrix');
+    const heroMeta = carousel.indexOf('data-fiche-meta');
+    assert.ok(heroPitch > 0 && heroPrice > heroPitch && heroMeta > heroPrice);
+    assert.match(carousel, /fichePrixSource\(active, detailItem\)/);
   });
 
   it('catalogue version/price columns are langue + prix, not invented vo/vost/version', () => {

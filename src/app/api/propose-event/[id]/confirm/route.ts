@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { resolveProposalActor } from '@/lib/eventProposal';
 import { confirmEventProposal } from '@/lib/eventProposalStore';
-import { isAllowedSignalOrigin } from '@/lib/guestSignals';
-import { sessionSharerEmail } from '@/lib/shareToken';
+import { VID_COOKIE } from '@/lib/guestId';
+import {
+  isAllowedSignalOrigin,
+  readCookieValue,
+  resolveVidFromCookie,
+} from '@/lib/guestSignals';
+import { hasAuthSessionCookie, sessionSharerEmail } from '@/lib/shareToken';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,11 +24,20 @@ export async function POST(
   if (!isAllowedSignalOrigin(req)) {
     return NextResponse.json({ error: 'Origine non autorisée' }, { status: 403 });
   }
-  const session = await auth();
-  const email = sessionSharerEmail(session?.user);
-  if (!session?.user || !email) {
+  const cookieHeader = req.headers.get('cookie');
+  let sessionEmail: string | null = null;
+  if (hasAuthSessionCookie(cookieHeader)) {
+    const session = await auth();
+    sessionEmail = sessionSharerEmail(session?.user);
+  }
+  const actor = resolveProposalActor({
+    sessionEmail,
+    cookieVid: resolveVidFromCookie(readCookieValue(cookieHeader, VID_COOKIE)),
+  });
+  if (!actor) {
     return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
   }
+  const email = actor.owner;
   const { id } = await params;
   let body: unknown = {};
   try {

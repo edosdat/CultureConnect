@@ -119,6 +119,30 @@ export function seancePrixLabel(item: DayItem): string | null {
   return knownPrixLabel(undefined, item.evenement);
 }
 
+function eventIdOfItem(item: DayItem): string {
+  if (item.kind === 'programme') {
+    return item.programme.event_id || item.evenement?.event_id || '';
+  }
+  return item.evenement.event_id || '';
+}
+
+/**
+ * Catalogue price for the sheet. Keep the séance the visitor is looking at
+ * when it has a price. If that row is empty, use the same event's price
+ * from the detail payload. Never borrow a price from another event.
+ */
+export function fichePrixSource(
+  primary: DayItem,
+  alternate?: DayItem | null,
+): DayItem {
+  if (seancePrixLabel(primary)) return primary;
+  if (!alternate || !seancePrixLabel(alternate)) return primary;
+  const a = eventIdOfItem(primary);
+  const b = eventIdOfItem(alternate);
+  if (a && b && a === b) return alternate;
+  return primary;
+}
+
 export function seanceVersionLabel(item: DayItem): string | null {
   if (item.kind === 'programme') {
     return filmVersionLabel(item.programme.langue, item.evenement?.langue);

@@ -14,6 +14,7 @@ import {
   pickProposalMatch,
   proposalDedupeKey,
   proposalRateLimited,
+  resolveProposalActor,
   type CatalogueMatchCandidate,
 } from './eventProposal';
 import type { ProgrammeWithContext } from './types';
@@ -231,6 +232,51 @@ describe('pending store', { concurrency: 1 }, () => {
     assert.equal(quotedCsv.test(src), false);
     assert.equal(quotedCsv.test(route), false);
     assert.match(route, /sessionSharerEmail/);
+    assert.match(route, /resolveProposalActor/);
+    const beforeBody = route.slice(0, route.indexOf('let body'));
+    const actorAt = beforeBody.indexOf('resolveProposalActor(');
+    const unauthAt = beforeBody.indexOf("error: 'Non authentifié'");
+    assert.ok(actorAt > 0 && unauthAt > actorAt);
+    assert.match(beforeBody, /generateVid\(\)/);
+    assert.match(beforeBody, /if \(!actor\)/);
+  });
+
+  it('stores a guest proposal without an email and without a login', async () => {
+    const owner = resolveProposalActor({
+      mintedVid: 'v_abcd1234',
+    });
+    assert.equal(owner?.owner, 'guest:v_abcd1234');
+    assert.equal(owner?.vidToSet, 'v_abcd1234');
+    assert.equal(
+      resolveProposalActor({
+        sessionEmail: 'ada@example.com',
+        cookieVid: 'v_abcd1234',
+      })?.owner,
+      'ada@example.com',
+    );
+    const row = await submitEventProposal(
+      'guest:v_abcd1234',
+      { title: 'Bar inconnu du vendredi' },
+      { candidates: [], now: new Date('2026-10-03T10:00:00Z') },
+    );
+    assert.equal(row.ok, true);
+    if (!row.ok) return;
+    assert.equal(row.body.status, 'needs_review');
+    const ui = await readFile(
+      new URL('../components/ProposeSpectacle.tsx', import.meta.url),
+      'utf8',
+    );
+    const app = await readFile(
+      new URL('../components/CultureConnectApp.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.equal(ui.includes('Connexion pour proposer'), false);
+    assert.match(ui, /data-propose-cta="empty"/);
+    assert.match(ui, /Proposer un spectacle/);
+    const flowStart = app.indexOf('function openProposeFlow');
+    const flow = app.slice(flowStart, app.indexOf('const crossSellPool', flowStart));
+    assert.match(flow, /setProposeOpen\(true\)/);
+    assert.equal(flow.includes('signIn'), false);
   });
 
   it('returns a confirmable candidate only with an official prog url', async () => {

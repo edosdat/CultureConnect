@@ -50,7 +50,11 @@ import {
   seanceWhenShort,
 } from '@/lib/displayHome';
 import { itemKmLabel, minKmLabel, type GeoPos } from '@/lib/nearMe';
-import { cineDistanceOrigin, defaultCineSeance } from '@/lib/cineSeances';
+import {
+  cineDistanceOrigin,
+  defaultCineSeance,
+  fichePrixSource,
+} from '@/lib/cineSeances';
 import { isCinemaDayItem } from '@/lib/nouveautesCine';
 import { pickFilmVivantComplements } from '@/lib/filmVivantComplements';
 import EventImage from './EventImage';
@@ -952,7 +956,7 @@ export default function CinemaCarousel({
             pending={!detailItem && !listItemHasHeroFicheCopy(item)}
           />
           {pack === 'cine' ? <FicheCast item={detailItem ?? item} /> : null}
-          <FichePrix item={active} />
+          <FichePrix item={fichePrixSource(active, detailItem)} />
           {metaLine ? (
             <p data-fiche-meta="" className="text-sm leading-snug text-culture-muted">
               {metaLine}

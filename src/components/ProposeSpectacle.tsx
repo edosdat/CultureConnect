@@ -96,13 +96,7 @@ function calmError(status: number, fallback: string): string {
   return fallback;
 }
 
-export function ProposeEmptyCard({
-  signedIn,
-  onPropose,
-}: {
-  signedIn: boolean;
-  onPropose: () => void;
-}) {
+export function ProposeEmptyCard({ onPropose }: { onPropose: () => void }) {
   return (
     <section
       data-propose="empty"
@@ -117,27 +111,15 @@ export function ProposeEmptyCard({
       <p className="mx-auto mt-3 max-w-[18rem] text-[15px] leading-relaxed">
         Un bar, un concert, une date — propose-la, on vérifie.
       </p>
-      {signedIn ? (
-        <button
-          type="button"
-          data-propose-cta="member"
-          onClick={onPropose}
-          className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold"
-          style={{ background: TERRACOTTA, color: CREAM }}
-        >
-          Proposer un spectacle
-        </button>
-      ) : (
-        <button
-          type="button"
-          data-propose-cta="guest"
-          onClick={onPropose}
-          className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full border bg-transparent px-6 py-2.5 text-sm font-semibold"
-          style={{ borderColor: TERRACOTTA, color: TERRACOTTA }}
-        >
-          Connexion pour proposer
-        </button>
-      )}
+      <button
+        type="button"
+        data-propose-cta="empty"
+        onClick={onPropose}
+        className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold"
+        style={{ background: TERRACOTTA, color: CREAM }}
+      >
+        Proposer un spectacle
+      </button>
       <p className="mt-4 text-[13px] italic" style={{ color: `${INK}99` }}>
         Tu aides les salles qu’on rate encore.
       </p>

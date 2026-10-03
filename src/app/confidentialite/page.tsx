@@ -191,9 +191,11 @@ export default function ConfidentialitePage() {
         </p>
         <p>
           <span className="font-medium">Proposition.</span> Tu peux proposer un
-          spectacle manquant. On garde le titre, le lieu, la date et le lien le
-          temps de vérifier. Ça n’entre pas dans l’agenda tant qu’on n’a pas
-          vérifié. Supprimer le compte retire aussi ces propositions.
+          spectacle manquant, avec ou sans compte. On garde le titre, le lieu,
+          la date et le lien le temps de vérifier. Ça n’entre pas dans l’agenda
+          tant qu’on n’a pas vérifié. Sans compte, la proposition reste sur cet
+          appareil : on ne la relie pas à un e-mail. Supprimer le compte retire
+          les propositions faites avec ce compte.
         </p>
 
         <section aria-labelledby="registre-title" className="pt-2">
