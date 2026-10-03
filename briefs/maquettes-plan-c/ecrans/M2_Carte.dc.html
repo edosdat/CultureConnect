@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Variante : la carte d'humeur</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,700&amp;display=swap">
+<style>
+body{margin:0;font-family:'DM Sans',system-ui,sans-serif;background:#1A0B1E;color:#FFF1F4}
+button{font-family:inherit;cursor:pointer}
+a{color:#FF2E7E}a:hover{color:#FF6FA5}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #1A0B1E; color: #FFF1F4; position: relative; overflow: hidden; font-family: 'DM Sans', system-ui, sans-serif; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+  <div style="display: flex; flex-direction: column; gap: 2px">
+    <h1 style="margin: 0; font-family: Fraunces, Georgia, serif; font-size: 24px; font-weight: 700">T’es d’humeur comment&nbsp;?</h1>
+    <span style="font-size: 13px; color: #D3B3CE">Glisse le point. Les petits ronds, ce sont les plans de la semaine.</span>
+  </div>
+
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 4px">
+    <span style="font-size: 12px; font-weight: 700; color: #FFD23F">Fête</span>
+    <div style="display: flex; align-items: center; gap: 6px">
+      <span style="font-size: 12px; font-weight: 700; color: #FF9E6D; width: 30px; text-align: right">Rire</span>
+      <div role="slider" tabindex="0" aria-label="Humeur : de rire à intense, de fête à écoute" aria-valuetext="{{posLabel}}" onPointerDown="{{down}}" onPointerMove="{{move}}" onPointerUp="{{up}}" onPointerCancel="{{up}}" onKeyDown="{{key}}" style="position: relative; width: 270px; height: 270px; border-radius: 22px; overflow: hidden; touch-action: none; user-select: none; cursor: crosshair; background: linear-gradient(135deg, rgba(255,158,109,0.35), rgba(255,210,63,0.25) 45%, rgba(255,77,109,0.3)), linear-gradient(0deg, rgba(94,234,212,0.3), rgba(26,11,30,0) 60%), #2A1231; border: 1px solid #4A2350">
+        <div aria-hidden="true" style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(255,241,244,0.12)"></div>
+        <div aria-hidden="true" style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(255,241,244,0.12)"></div>
+        <sc-for list="{{dots}}" as="d" hint-placeholder-count="21">
+          <span aria-hidden="true" style="position: absolute; left: {{d.x}}px; top: {{d.y}}px; width: 10px; height: 10px; border-radius: 5px; background: {{d.color}}; opacity: {{d.op}}; transform: translate(-50%, -50%)"></span>
+        </sc-for>
+        <span aria-hidden="true" style="position: absolute; left: {{meX}}px; top: {{meY}}px; transform: translate(-50%, -50%); font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 999px; border: 1px dashed #D3B3CE; color: #D3B3CE">toi</span>
+        <span aria-hidden="true" style="position: absolute; left: {{px}}px; top: {{py}}px; width: 30px; height: 30px; border-radius: 15px; transform: translate(-50%, -50%); background: #FF2E7E; border: 3px solid #FFF1F4; box-shadow: 0 0 0 8px rgba(255,46,126,0.25)"></span>
+      </div>
+      <span style="font-size: 12px; font-weight: 700; color: #FF4D6D; width: 44px">Intense</span>
+    </div>
+    <span style="font-size: 12px; font-weight: 700; color: #5EEAD4">Écoute</span>
+  </div>
+
+  <div style="display: flex; align-items: center; justify-content: space-between">
+    <span style="font-family: Fraunces, Georgia, serif; font-size: 18px; font-weight: 700">Tout près de ton humeur</span>
+    <button type="button" onClick="{{reset}}" style="min-height: 44px; border: none; background: transparent; color: #FF2E7E; font-size: 13px; font-weight: 700">Revenir à mon type</button>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 8px">
+    <sc-for list="{{results}}" as="r" hint-placeholder-count="5">
+      <div style="display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 12px; background: #2A1231">
+        <span style="width: 10px; height: 10px; border-radius: 5px; background: {{r.color}}; flex-shrink: 0"></span>
+        <span style="display: flex; flex-direction: column; min-width: 0; flex-grow: 1">
+          <span style="font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.title}}</span>
+          <span style="font-size: 12px; color: #D3B3CE; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.meta}}</span>
+        </span>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.S = 270;
+    this.typeColor = { vivant: '#FF2E7E', musique: '#B98CFF', cine: '#5EEAD4' };
+    // v = [Rire, Frisson, Émotion, Fête, Cérébral] : mêmes valeurs que la table de mixage
+    this.items = [
+      ['Toulouse j’adore !', 'vivant', 'Comédie · La Comédie de Toulouse', [1, 0, 0, 0.2, 0]],
+      ['Portrait de Rita', 'vivant', 'Théâtre · Théâtre Sorano', [0, 1, 0.3, 0, 0.5]],
+      ['Naine Rouge', 'vivant', 'Clown · Espace Roguet', [1, 0, 0.6, 0, 0.2]],
+      ['L’Esprit d’entreprise', 'vivant', 'Satire · Théâtre du Pavé', [1, 0.3, 0, 0, 0.5]],
+      ['Mara Moreno', 'vivant', 'Stand-up · La Comédie de Toulouse', [1, 0, 0, 0.4, 0]],
+      ['Maudite Répétition', 'vivant', 'Cabaret · Le Kalinka', [1, 0, 0, 0.5, 0]],
+      ['Secrets', 'vivant', 'Cirque · Le Kiwi', [0.2, 0.3, 0.4, 1, 0]],
+      ['Les Gaulois', 'vivant', 'Théâtre · Théâtre Sorano', [0.6, 0, 0.7, 0, 0.4]],
+      ['Pierre-Emmanuel Barré', 'vivant', 'Humour · Halle aux Grains', [1, 0, 0, 0.3, 0.4]],
+      ['DJ Pone, 30 ans de platines', 'musique', 'Électro · Le Rex', [0, 0, 0, 1, 0]],
+      ['Superpêche', 'musique', 'Impro · Théâtre du Pavé', [0, 0, 1, 0, 0.5]],
+      ['Primal Fear', 'musique', 'Metal · Le Rex', [0, 1, 0, 0.6, 0]],
+      ['Peltokoski · Lozakovich', 'musique', 'Symphonique · Halle aux Grains', [0, 0.3, 0.9, 0, 0.6]],
+      ['Talisco', 'musique', 'Rock · Le Rex', [0, 0.3, 0.3, 0.8, 0]],
+      ['La Providence et la Guitare', 'cine', 'Film · Le Cratère', [0, 0.3, 1, 0.6, 0]],
+      ['Romería', 'cine', 'Film · Le Cratère', [0, 0, 1, 0, 0.4]],
+      ['Los Tigres', 'cine', 'Film · Le Cratère', [0, 1, 0.2, 0, 0.2]],
+      ['Septembre sans attendre', 'cine', 'Film · Le Cratère', [0.4, 0, 0.6, 1, 0]],
+      ['Fenêtre sur cour', 'cine', 'Hitchcock · Pathé Labège', [0, 1, 0, 0, 0.5]],
+      ['Queen Budapest', 'cine', 'Concert filmé · Pathé Wilson', [0, 0, 0, 1, 0]],
+      ['Histoires de la bonne vallée', 'cine', 'Documentaire · Le Cratère', [0, 0, 1, 0, 0.6]]
+    ].map(([title, cat, meta, v]) => ({ title, cat, meta, v, pos: this.place(v) }));
+    this.me = this.place([0.8, 0.2, 0.6, 0.5, 0.3]);
+    this.state = { x: this.me.x, y: this.me.y };
+  }
+  // x : 0 = rire, 1 = intense ; y : 0 = fête, 1 = écoute (émotion + cérébral)
+  place(v) {
+    const ecoute = v[2] + 0.6 * v[4];
+    const x = (v[1] + 0.001) / (v[0] + v[1] + 0.002);
+    const y = (ecoute + 0.001) / (v[3] + ecoute + 0.002);
+    return { x: 0.08 + 0.84 * x, y: 0.08 + 0.84 * y };
+  }
+  setPos(x, y) {
+    const c = (n) => Math.max(0.04, Math.min(0.96, n));
+    this.setState({ x: c(x), y: c(y) });
+  }
+  fromPointer(e) {
+    const el = e.currentTarget;
+    if (!el || !el.getBoundingClientRect) return;
+    const r = el.getBoundingClientRect();
+    this.setPos((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+  }
+  renderVals() {
+    const { x, y } = this.state;
+    const S = this.S;
+    const d2 = (p) => (p.x - x) * (p.x - x) + (p.y - y) * (p.y - y);
+    const ranked = this.items.slice().sort((a, b) => d2(a.pos) - d2(b.pos));
+    const near = new Set(ranked.slice(0, 5).map((it) => it.title));
+    const side = x < 0.4 ? 'plutôt rire' : (x > 0.6 ? 'plutôt intense' : 'entre rire et intense');
+    const vert = y < 0.4 ? 'plutôt fête' : (y > 0.6 ? 'plutôt écoute' : 'entre fête et écoute');
+    return {
+      dots: this.items.map((it) => ({ x: Math.round(it.pos.x * S), y: Math.round(it.pos.y * S), color: this.typeColor[it.cat], op: near.has(it.title) ? 1 : 0.45 })),
+      meX: Math.round(this.me.x * S),
+      meY: Math.round(this.me.y * S),
+      px: Math.round(x * S),
+      py: Math.round(y * S),
+      posLabel: side + ', ' + vert,
+      down: (e) => { this.dragOn = true; if (e.currentTarget && e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId); this.fromPointer(e); },
+      move: (e) => { if (this.dragOn) this.fromPointer(e); },
+      up: () => { this.dragOn = false; },
+      key: (e) => {
+        const m = { ArrowLeft: [-0.05, 0], ArrowRight: [0.05, 0], ArrowUp: [0, -0.05], ArrowDown: [0, 0.05] }[e.key];
+        if (!m) return;
+        if (e.preventDefault) e.preventDefault();
+        this.setPos(x + m[0], y + m[1]);
+      },
+      reset: () => this.setState({ x: this.me.x, y: this.me.y }),
+      results: ranked.slice(0, 5).map((it) => ({ title: it.title, meta: it.meta, color: this.typeColor[it.cat] }))
+    };
+  }
+}
+</script>
+</body>
+</html>

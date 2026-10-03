@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Duel de calibrage dans le fil</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,700&amp;display=swap">
+<style>
+body{margin:0;font-family:'DM Sans',system-ui,sans-serif;background:#1A0B1E;color:#FFF1F4}
+button{font-family:inherit;cursor:pointer}
+a{color:#FF2E7E}a:hover{color:#FF6FA5}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #1A0B1E; color: #FFF1F4; position: relative; overflow: hidden; font-family: 'DM Sans', system-ui, sans-serif; padding: 16px 16px 20px 16px; display: flex; flex-direction: column; gap: 12px">
+  <div style="display: flex; align-items: baseline; justify-content: space-between">
+    <span style="font-family: Fraunces, Georgia, serif; font-size: 20px; font-weight: 700">Tes 5 plans de la semaine</span>
+    <span style="font-size: 13px; font-weight: 700; color: #D3B3CE">4 / 5</span>
+  </div>
+
+  <div style="border-radius: 24px; background: #2A1231; border: 2px solid #FFD23F; padding: 14px; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <span style="align-self: flex-start; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 5px 10px; border-radius: 999px; background: #FFD23F; color: #1A0B1E">Aide-nous à te cerner</span>
+      <span style="font-family: Fraunces, Georgia, serif; font-size: 24px; font-weight: 700; line-height: 1.1">Toi, t’hésites entre deux types. Lequel te tente&nbsp;?</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+      <sc-for list="{{opts}}" as="o" hint-placeholder-count="2">
+        <button type="button" onClick="{{o.pick}}" aria-pressed="{{o.on}}" style="border: 3px solid {{o.border}}; border-radius: 18px; padding: 0; overflow: hidden; background: #1A0B1E; color: #FFF1F4; text-align: left; opacity: {{o.opacity}}; display: flex; flex-direction: column">
+          <img src="{{o.img}}" alt="Affiche de {{o.title}}" style="width: 100%; height: 230px; object-fit: cover; display: block">
+          <span style="padding: 10px; display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: 15px; font-weight: 700; line-height: 1.15">{{o.title}}</span>
+            <span style="font-size: 12px; color: #D3B3CE">{{o.when}}</span>
+            <span style="font-size: 12px; color: #D3B3CE">{{o.venue}}</span>
+          </span>
+        </button>
+      </sc-for>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+      <button type="button" onClick="{{none}}" style="height: 42px; border-radius: 21px; border: 1px solid #4A2350; background: transparent; color: #FFF1F4; font-size: 14px; font-weight: 600">Aucun</button>
+      <button type="button" onClick="{{both}}" style="height: 42px; border-radius: 21px; border: 1px solid #4A2350; background: transparent; color: #FFF1F4; font-size: 14px; font-weight: 600">Les deux</button>
+    </div>
+  </div>
+
+  <sc-if value="{{answered}}" hint-placeholder-val="{{ false }}">
+    <div style="border-radius: 20px; background: #3A1840; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+      <span style="font-family: Fraunces, Georgia, serif; font-style: italic; font-size: 20px; font-weight: 700; color: #FFD23F">{{headline}}</span>
+      <span style="font-size: 14px; line-height: 1.4">{{body}}</span>
+      <a href="W2_Swipe.dc.html" style="align-self: flex-start; height: 44px; padding: 0 18px; border-radius: 22px; background: #FF2E7E; color: #1A0B1E; font-size: 14px; font-weight: 700; text-decoration: none; display: flex; align-items: center">Continuer mes plans</a>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { pick: null };
+    this.items = [
+      { key: 'a', img: '/_blob/08ea9aa420132e519b69caa172cadfec', title: 'Mara Moreno', when: 'Sam 3 oct · 20:30', venue: 'La Comédie de Toulouse' },
+      { key: 'b', img: '/_blob/e8a9568f354770dcbd51d0e28416356c', title: '≈ [Presque égal à]', when: 'Mar 13 oct · 20:30', venue: 'Théâtre du Pavé' }
+    ];
+  }
+  renderVals() {
+    const p = this.state.pick;
+    const copy = {
+      a: ['C’est confirmé : Machine à rire.', 'On arrête de te poser la question. Place au rire, sans modération.'],
+      b: ['Ton type se précise : Neurones en ébullition.', 'Tendance Machine à rire. On te glissera plus de pièces qui font réfléchir.'],
+      both: ['Les deux, on note.', 'Tu es plus éclectique qu’on pensait. On te reposera la question plus tard, avec une autre paire.'],
+      none: ['Ni l’un ni l’autre, c’est une info aussi.', 'On baisse un peu les deux. Prochain duel dans quelques jours, pas avant.']
+    };
+    const on = (k) => p === k || p === 'both';
+    return {
+      opts: this.items.map((it) => ({
+        ...it,
+        on: on(it.key),
+        border: on(it.key) ? '#FF2E7E' : '#4A2350',
+        opacity: (p === 'none' || (p && p !== 'both' && p !== it.key)) ? 0.4 : 1,
+        pick: () => this.setState({ pick: it.key })
+      })),
+      none: () => this.setState({ pick: 'none' }),
+      both: () => this.setState({ pick: 'both' }),
+      answered: p !== null,
+      headline: p ? copy[p][0] : '',
+      body: p ? copy[p][1] : ''
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,442 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "AQuoiTattendre.dc.html": {
+      "h": 844,
+      "page": "archives",
+      "title": "E · À quoi t’attendre",
+      "w": 390,
+      "x": 470,
+      "y": 2600
+    },
+    "AVoir.dc.html": {
+      "h": 844,
+      "page": "archives",
+      "title": "6 · Mes crushs",
+      "w": 390,
+      "x": 2350,
+      "y": 0
+    },
+    "ApresSpectacle.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "archives",
+      "title": "F · Alors, c’était comment ?",
+      "w": 390,
+      "x": 940,
+      "y": 2600
+    },
+    "Charte.dc.html": {
+      "h": 844,
+      "page": "parcours",
+      "title": "Charte Plan C",
+      "w": 880,
+      "x": 1890,
+      "y": 2600
+    },
+    "Detail.dc.html": {
+      "h": 844,
+      "page": "archives",
+      "title": "7 · Fiche spectacle",
+      "w": 390,
+      "x": 2820,
+      "y": 0
+    },
+    "Duel.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "archives",
+      "title": "B · Duel dans le swipe",
+      "w": 390,
+      "x": 470,
+      "y": 1300
+    },
+    "DuelIntro.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "archives",
+      "title": "A · Lequel te fait de l’effet (onboarding)",
+      "w": 390,
+      "x": 0,
+      "y": 1300
+    },
+    "Filtres.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "parcours",
+      "title": "2.4 · Filtres",
+      "w": 390,
+      "x": 1410,
+      "y": 1300
+    },
+    "Invite.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "archives",
+      "title": "4 · Ton pote reçoit le plan",
+      "w": 390,
+      "x": 1410,
+      "y": 0
+    },
+    "Main.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "archives",
+      "title": "2 · Swipe → Mes crushs",
+      "w": 390,
+      "x": 470,
+      "y": 0
+    },
+    "Onboarding.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "archives",
+      "title": "1 · T’as un plan ?",
+      "w": 390,
+      "x": 0,
+      "y": 0
+    },
+    "Partage.dc.html": {
+      "h": 844,
+      "page": "archives",
+      "title": "3 · Proposer un plan",
+      "w": 390,
+      "x": 940,
+      "y": 0
+    },
+    "Partages.dc.html": {
+      "h": 844,
+      "page": "archives",
+      "title": "5 · Mes plans (qui est partant)",
+      "w": 390,
+      "x": 1880,
+      "y": 0
+    },
+    "PremierPlan.dc.html": {
+      "h": 844,
+      "page": "archives",
+      "title": "D · Ton premier plan",
+      "w": 390,
+      "x": 0,
+      "y": 2600
+    },
+    "ProfilType.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "parcours",
+      "title": "1.4 · C’est quoi ton type ?",
+      "w": 390,
+      "x": 1410,
+      "y": 0
+    },
+    "Recherche.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "parcours",
+      "title": "2.3 · Recherche en tapant",
+      "w": 390,
+      "x": 940,
+      "y": 1300
+    },
+    "W1_Bienvenue.dc.html": {
+      "h": 844,
+      "page": "parcours",
+      "title": "1.1 · Bienvenue",
+      "w": 390,
+      "x": -161,
+      "y": 0
+    },
+    "W1_Duels.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "parcours",
+      "title": "1.2 · 3 duels (le + ouvre la fiche)",
+      "w": 390,
+      "x": 470,
+      "y": 0
+    },
+    "W1_Fiche.dc.html": {
+      "h": 844,
+      "page": "parcours",
+      "title": "1.3 · Le « + » en plein écran",
+      "w": 390,
+      "x": 940,
+      "y": 0
+    },
+    "W2_Fiche.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "parcours",
+      "title": "2.5 · Fiche (depuis mes plans)",
+      "w": 390,
+      "x": 1880,
+      "y": 1300
+    },
+    "W2_Semaine.dc.html": {
+      "h": 844,
+      "page": "parcours",
+      "title": "2.2 · Recherche : la semaine par défaut",
+      "w": 390,
+      "x": 470,
+      "y": 1300
+    },
+    "W2_Swipe.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "parcours",
+      "title": "2.1 · Tes 5 plans (swipe)",
+      "w": 390,
+      "x": 0,
+      "y": 1300
+    },
+    "W3_Calibrage.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "parcours",
+      "title": "3.2 · Duel de calibrage dans le fil",
+      "w": 390,
+      "x": 960,
+      "y": 2600
+    },
+    "W3_Logique.dc.html": {
+      "h": 844,
+      "page": "parcours",
+      "title": "3.1 · La logique de calibrage",
+      "w": 880,
+      "x": 0,
+      "y": 2600
+    },
+    "W4_LienRecu.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "parcours",
+      "title": "4.2 · Le lien reçu (sans appli)",
+      "w": 390,
+      "x": 470,
+      "y": 4000
+    },
+    "W4_MaBande.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "parcours",
+      "title": "4.3 · Ma bande : qui vient",
+      "w": 390,
+      "x": 940,
+      "y": 4000
+    },
+    "W4_Partage.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "parcours",
+      "title": "4.1 · Inviter à un plan C",
+      "w": 390,
+      "x": 0,
+      "y": 4000
+    },
+    "M1_Mix.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "mood",
+      "title": "5.1 · Ton mix de ce soir (table de mixage)",
+      "w": 390,
+      "x": 0,
+      "y": 0
+    },
+    "M2_Carte.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "page": "mood",
+      "title": "5.2 · Variante : la carte d’humeur",
+      "w": 390,
+      "x": 470,
+      "y": 0
+    },
+    "M3_Logique.dc.html": {
+      "h": 844,
+      "page": "mood",
+      "title": "5.3 · Comment marche ton mix",
+      "w": 880,
+      "x": 940,
+      "y": 0
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-09-28T09:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "page": "parcours",
+    "view": "canvas"
+  },
+  "notes": {
+    "duels": {
+      "kind": "title1",
+      "maxW": 860,
+      "page": "archives",
+      "text": "Ton type · duels",
+      "w": 240,
+      "x": 0,
+      "y": 1000
+    },
+    "flow": {
+      "kind": "title1",
+      "maxW": 3210,
+      "page": "archives",
+      "text": "Plan C · swipe, propose un plan, vois qui est partant",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "premier": {
+      "kind": "title1",
+      "maxW": 1330,
+      "page": "archives",
+      "text": "Premier plan · oser le théâtre",
+      "w": 240,
+      "x": 0,
+      "y": 2300
+    },
+    "s1": {
+      "fill": "pink",
+      "page": "parcours",
+      "text": "Première connexion\n\n• Que du spectacle vivant, pas de cinéma : c’est un choix assumé. Le vivant est bien mieux tagué que le ciné, on y apprend le goût, puis on s’en sert aussi pour recommander des films.\n• 3 duels : celui du haut ou celui du bas. On garde les 3 axes qui séparent le mieux le catalogue : rire / intensité, fête / écoute, grande / petite salle. Cirque / texte, cabaret / poésie et metal / symphonique sont retirés (ils recoupent les deux premiers).\n• « Aucun » et « Les deux » restent : jamais de choix forcé.\n• Le « + » ouvre la fiche plein écran sans perdre le duel.\n• À la fin : « C’est quoi ton type ? ».\n\nÀ décider : quelqu’un qui arrive par un lien vers un film, il atterrit où ?",
+      "w": 380,
+      "x": 1880,
+      "y": 0
+    },
+    "s2": {
+      "fill": "blue",
+      "page": "parcours",
+      "text": "Connexion classique\n\n• À l’ouverture : 5 plans choisis pour ton type, cette semaine. La liste de la semaine porte le reste.\n• Droite = ça me tente. Gauche = pas mon genre. Vers le haut ou bouton horloge = plus tard (pas ce soir, on n’en tire rien sur tes goûts).\n• La barre de recherche est toujours en haut. « Passer » saute les 5 plans.\n• Avant de taper : toute la semaine, ce soir en premier.\n• En tapant : titre, artiste ou envie (« humour ce week-end »).\n• Les filtres sont les mêmes partout.",
+      "w": 380,
+      "x": 2350,
+      "y": 1300
+    },
+    "s3": {
+      "fill": "orange",
+      "page": "parcours",
+      "text": "Calibrage\n\n• Uniquement si le profil hésite (moins de 15 points entre les 2 premières familles) ou si une famille n’a jamais été testée.\n• Un duel glissé dans les 5 plans, au plus 1 par série, 3 par semaine.\n• Toujours 2 vrais spectacles réservables de la semaine.\n• On arrête dès qu’une famille dépasse 55 %.\n\nLes seuils sont des exemples : à vérifier sur les 25 profils du banc avant le dev (si presque tous déclenchent un duel, c’est trop lâche ; si aucun, la règle ne sert à rien).",
+      "w": 380,
+      "x": 1430,
+      "y": 2600
+    },
+    "s4": {
+      "fill": "gray",
+      "page": "parcours",
+      "text": "Affiches : visuels d’illustration générés pour la maquette. Le catalogue a déjà la vraie affiche (image_url) pour la plupart des spectacles ; elle remplacera ces visuels dans l’appli.",
+      "w": 560,
+      "x": 1890,
+      "y": 3500
+    },
+    "s5": {
+      "fill": "green",
+      "page": "parcours",
+      "text": "Partage\n\n• Le bouton « Inviter à un plan C » est partout : sur la carte du swipe, après un « Ça me tente », dans la fiche.\n• Un message tout prêt (3 choix), l’affiche en aperçu, WhatsApp en un tap. Copier le lien ou autres apps en secours.\n• Le lien s’ouvre sans l’appli : affiche, Envie / J’y vais, qui vient.\n• « Ma bande » montre qui a répondu et permet de relancer.\n• Boucle : le lien reçu propose « Et toi, c’est quoi ton type ? » → première connexion.\n\nDécidé :\n• Le prénom de celui qui invite s’affiche (« Julie t’invite à un plan C »). Il en est prévenu au moment d’envoyer.\n• « Envie » / « J’y vais » : connexion Google en un tap (c’est gratuit, ça reste comme aujourd’hui). Pas de compte Google ? On répond juste avec un prénom.",
+      "w": 380,
+      "x": 1410,
+      "y": 4000
+    },
+    "w1": {
+      "kind": "title1",
+      "maxW": 1800,
+      "page": "parcours",
+      "text": "1 · Première connexion : 3 duels, ton type, puis tes plans",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "w2": {
+      "kind": "title1",
+      "maxW": 1800,
+      "page": "parcours",
+      "text": "2 · Connexion classique : 5 plans, swipe, recherche",
+      "w": 240,
+      "x": 0,
+      "y": 1000
+    },
+    "w3": {
+      "kind": "title1",
+      "maxW": 2770,
+      "page": "parcours",
+      "text": "3 · Calibrage : quand on doute, on demande",
+      "w": 240,
+      "x": 0,
+      "y": 2300
+    },
+    "w4": {
+      "kind": "title1",
+      "maxW": 1800,
+      "page": "parcours",
+      "text": "4 · Inviter à un plan C : un tap, un lien, on voit qui vient",
+      "w": 240,
+      "x": 0,
+      "y": 3700
+    },
+    "w5": {
+      "kind": "title1",
+      "maxW": 1820,
+      "page": "mood",
+      "text": "5 · Mood du moment : ton type, plus l’envie de ce soir",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "s6": {
+      "fill": "pink",
+      "page": "mood",
+      "w": 380,
+      "x": 1900,
+      "y": 0,
+      "text": "Mood du moment\n\n• Table de mixage : 5 curseurs (Rire, Frisson, Émotion, Fête, Cérébral), réglés au départ sur ton type. Le trait gris = ton type.\n• Mix tout prêts en un tap : Soirée fou rire, Un truc qui secoue, Tout doux, Ça va danser, Surprends-moi (l’inverse de ton type).\n• Crossfader « Mon type ↔ Ce soir » : combien l’envie du soir pèse face à ton type. 70 % par défaut.\n• 10 plans qui bougent en direct, filtrables Tout / Vivant / Musique / Ciné.\n• Variante 5.2 : un seul point à glisser sur une carte rire ↔ intense, fête ↔ écoute.\n\nÀ décider :\n• Où on y accède : bouton à côté de la recherche, ou 4e onglet ?\n• Un mix réglé modifie-t-il ton profil, ou seulement la soirée ?\n• Garder ses mix (« mon mix du vendredi ») ?\n• Ciné dans le mix seulement quand il sera mieux tagué ?"
+    }
+  },
+  "order": [
+    "Onboarding.dc.html",
+    "Main.dc.html",
+    "Partage.dc.html",
+    "Invite.dc.html",
+    "Partages.dc.html",
+    "AVoir.dc.html",
+    "Detail.dc.html",
+    "DuelIntro.dc.html",
+    "Duel.dc.html",
+    "PremierPlan.dc.html",
+    "AQuoiTattendre.dc.html",
+    "ApresSpectacle.dc.html",
+    "W1_Bienvenue.dc.html",
+    "W1_Duels.dc.html",
+    "W1_Fiche.dc.html",
+    "ProfilType.dc.html",
+    "W2_Swipe.dc.html",
+    "W2_Semaine.dc.html",
+    "Recherche.dc.html",
+    "Filtres.dc.html",
+    "W2_Fiche.dc.html",
+    "W3_Logique.dc.html",
+    "W3_Calibrage.dc.html",
+    "Charte.dc.html",
+    "W4_MaBande.dc.html",
+    "W4_LienRecu.dc.html",
+    "W4_Partage.dc.html",
+    "M1_Mix.dc.html",
+    "M2_Carte.dc.html",
+    "M3_Logique.dc.html"
+  ],
+  "pages": [
+    {
+      "id": "parcours",
+      "name": "Parcours v2 · 3 workflows"
+    },
+    {
+      "id": "mood",
+      "name": "Mood du moment"
+    },
+    {
+      "id": "archives",
+      "name": "Anciennes versions"
+    }
+  ],
+  "title": "Plan C"
+}

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Comment marche ton mix</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,700&amp;display=swap">
+<style>
+body{margin:0;font-family:'DM Sans',system-ui,sans-serif;background:#1A0B1E;color:#FFF1F4}
+</style>
+</helmet>
+<div style="width: 880px; height: 844px; box-sizing: border-box; background: #1A0B1E; color: #FFF1F4; padding: 36px 40px; display: flex; flex-direction: column; gap: 24px; font-family: 'DM Sans', system-ui, sans-serif">
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <h1 style="margin: 0; font-family: Fraunces, Georgia, serif; font-size: 36px; font-weight: 700">Comment marche ton mix</h1>
+    <p style="margin: 0; font-size: 16px; color: #D3B3CE">Ton type reste la base. Le mix dit seulement ce que tu veux en plus, ou en moins, ce soir.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px">
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <div style="font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #D3B3CE">5 curseurs, tous les tags derrière</div>
+      <div style="display: grid; grid-template-columns: 100px minmax(0, 1fr); row-gap: 10px; column-gap: 12px; font-size: 14px; background: #2A1231; border: 1px solid #4A2350; border-radius: 16px; padding: 16px">
+        <strong style="color: #FF9E6D">Rire</strong><span>rigolo, absurde, léger</span>
+        <strong style="color: #FF4D6D">Frisson</strong><span>intense, angoissant, sombre, brutal, épique</span>
+        <strong style="color: #5EEAD4">Émotion</strong><span>tendre, poétique, intimiste, contemplatif</span>
+        <strong style="color: #FFD23F">Fête</strong><span>festif, dansant</span>
+        <strong style="color: #B98CFF">Cérébral</strong><span>cerveau, critique</span>
+      </div>
+      <div style="font-size: 13px; line-height: 1.5; color: #D3B3CE">Les 16 tags d’ambiance du catalogue tiennent dans 5 curseurs (« sortie » n’est pas une ambiance, il est ignoré). Personne ne voit jamais la liste complète.</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <div style="font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #D3B3CE">Le calcul, en 4 temps</div>
+      <div style="display: flex; flex-direction: column; gap: 10px; font-size: 14px; line-height: 1.45">
+        <span><strong style="color: #FF2E7E">1.</strong> Chaque plan reçoit une note par curseur, tirée de ses tags (1er tag 1, 2e 0,6, 3e 0,3 : la pondération des tags v2). Dans la maquette, ces notes sont arrondies à la main.</span>
+        <span><strong style="color: #FF2E7E">2.</strong> Le crossfader dose : à gauche ton type seul, à droite ton envie de ce soir seule. Par défaut 70 % ce soir.</span>
+        <span><strong style="color: #FF2E7E">3.</strong> On classe les plans du plus proche au plus loin de ce mélange et on montre les 10 premiers.</span>
+        <span><strong style="color: #FF2E7E">4.</strong> L’étiquette de couleur dit quel curseur a le plus compté pour ce plan.</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <div style="font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #D3B3CE">Ce que disent les données (catalogue au 03/10)</div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+      <div style="background: #2A1231; border: 1px solid #4A2350; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 6px">
+        <span style="font-family: Fraunces, Georgia, serif; font-size: 30px; font-weight: 700; color: #FF2E7E">64 % / 14 %</span>
+        <span style="font-size: 14px; line-height: 1.4">des spectacles vivants / des films à venir ont des tags d’ambiance. Sans tags, un film ne bouge pas avec les curseurs : il faut taguer le ciné avant de le mélanger.</span>
+      </div>
+      <div style="background: #2A1231; border: 1px solid #4A2350; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 6px">
+        <span style="font-family: Fraunces, Georgia, serif; font-size: 30px; font-weight: 700; color: #FFD23F">« estimé »</span>
+        <span style="font-size: 14px; line-height: 1.4">Les Gaulois, Talisco, le symphonique et Queen Budapest n’ont pas de tag exploitable : leurs notes sont estimées pour la maquette et marquées comme telles.</span>
+      </div>
+      <div style="background: #2A1231; border: 1px solid #4A2350; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 6px">
+        <span style="font-family: Fraunces, Georgia, serif; font-size: 30px; font-weight: 700; color: #5EEAD4">Zones vides</span>
+        <span style="font-size: 14px; line-height: 1.4">Certaines semaines, aucun plan « très intense et très festif ». La carte le montre avec ses petits ronds ; la table devra dire « peu de plans pour ce mix » plutôt que de remplir avec n’importe quoi.</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":880,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
