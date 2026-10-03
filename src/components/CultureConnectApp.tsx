@@ -53,7 +53,6 @@ import {
   retainSelectedGenreChips,
   visibleGenreChipSlugs,
 } from '@/lib/genreChipMatch';
-import { retainSelectedLieuId } from '@/lib/venueFilter';
 import {
   cineFirstPaint,
   cineRows,
@@ -100,7 +99,6 @@ import {
 import CategoryFilter from './CategoryFilter';
 import GenreFilter from './GenreFilter';
 import CityFilter from './CityFilter';
-import VenueFilter from './VenueFilter';
 import SeanceGrid from './SeanceGrid';
 import Top3Skeleton from './Top3Skeleton';
 import TimeScopeBar from './TimeScopeBar';
@@ -212,7 +210,6 @@ type Props = {
   initialDensifiedTotal: number;
   initialCsvEvents?: number;
   initialCsvProgramme?: number;
-  initialVenues: Lieu[];
   initialGenreSlugs: string[];
   communes: string[];
   genresLegend: GenreLegend[];
@@ -275,7 +272,7 @@ type Props = {
   initialAutresSlotTotal?: number;
   /** Local titre/artiste rows for the secondary suggest list. */
   searchSuggest?: SearchSuggestEntry[];
-  /** Known salles for NL → chip Salle. */
+  /** Known venues so a typed name lists that salle's events (no chip). */
   searchLieux?: SearchNlLieu[];
   /** `?enfants=1` — séance-level « Avec les enfants », not the QUOI chip. */
   initialAvecEnfants?: boolean;
@@ -416,7 +413,6 @@ export default function CultureConnectApp({
   initialDensifiedTotal,
   initialCsvEvents = 0,
   initialCsvProgramme = 0,
-  initialVenues,
   initialGenreSlugs,
   communes,
   genresLegend,
@@ -500,7 +496,8 @@ export default function CultureConnectApp({
   const optimisticNotInterestedRef = useRef(optimisticNotInterested);
   optimisticNotInterestedRef.current = optimisticNotInterested;
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-  const [selectedLieuId, setSelectedLieuId] = useState<string | null>(null);
+  /** Salle chip is gone. A typed venue name stays text (`q`), never a lieu id. */
+  const selectedLieuId = null;
   const [selectedCommune, setSelectedCommune] = useState<string | null>('Toulouse');
   /** User city chip only — boot GPS must not reset painted pack order. */
   const [browseCommune, setBrowseCommune] = useState<string | null>('Toulouse');
@@ -540,7 +537,6 @@ export default function CultureConnectApp({
   );
   const [csvEvents, setCsvEvents] = useState(initialCsvEvents);
   const [csvProgramme, setCsvProgramme] = useState(initialCsvProgramme);
-  const [venueOptions, setVenueOptions] = useState<Lieu[]>(initialVenues);
   const [availableGenreSlugs, setAvailableGenreSlugs] =
     useState<string[]>(initialGenreSlugs);
   const [genreOptionsReadyKey, setGenreOptionsReadyKey] = useState(() =>
@@ -703,7 +699,6 @@ export default function CultureConnectApp({
           return extra.length ? [...prev, ...extra] : prev;
         });
       }
-      if (data.venues?.length) setVenueOptions(data.venues);
       if (typeof data.vivantTotal === 'number') setVivantTotal(data.vivantTotal);
       if (typeof data.cineTotal === 'number') setCineTotal(data.cineTotal);
       if (typeof data.theatreTotal === 'number') setTheatreTotal(data.theatreTotal);
@@ -896,6 +891,12 @@ export default function CultureConnectApp({
     setCommittedTitle(raw.trim());
   }
 
+  /** Venue name or unknown text: filter the cards. No date, QUOI, or salle chip. */
+  const handleBareQuery = useCallback((raw: string) => {
+    setPhraseTags(null);
+    setCommittedTitle(raw.trim());
+  }, []);
+
   /**
    * Confirmer. A named QUAND chip is applied as-is.
    * No date chip → `tous` (full catalogue ≥ today Paris), not semaine / mois / 14j.
@@ -1029,7 +1030,6 @@ export default function CultureConnectApp({
       setDensifiedTotalApi(data.densifiedTotal);
       if (typeof data.csvEvents === 'number') setCsvEvents(data.csvEvents);
       if (typeof data.csvProgramme === 'number') setCsvProgramme(data.csvProgramme);
-      setVenueOptions(data.venues ?? []);
       setAvailableGenreSlugs(data.genreSlugs ?? []);
       setGenreOptionsReadyKey(genreOptionsKeyRef.current);
     } else {
@@ -1083,7 +1083,6 @@ export default function CultureConnectApp({
     if (typeof data.densifiedTotal === 'number') setDensifiedTotalApi(data.densifiedTotal);
     if (typeof data.csvEvents === 'number') setCsvEvents(data.csvEvents);
     if (typeof data.csvProgramme === 'number') setCsvProgramme(data.csvProgramme);
-    if (data.venues?.length) setVenueOptions(data.venues);
     if (data.genreSlugs && data.genreSlugs.length > 0) {
       setAvailableGenreSlugs(data.genreSlugs);
     }
@@ -1730,13 +1729,6 @@ export default function CultureConnectApp({
       retainSelectedGenreChips(prev, selectedCategories, genresLegend),
     );
   }, [selectedCategories, genresLegend]);
-
-  // Plan C: drop salle when QUOI cleared or salle left category-adapted options.
-  useEffect(() => {
-    setSelectedLieuId((prev) =>
-      retainSelectedLieuId(prev, selectedCategories, venueOptions),
-    );
-  }, [selectedCategories, venueOptions]);
 
   const genreChipSlugs = useMemo(
     () => visibleGenreChipSlugs(availableGenreSlugs, selectedGenres),
@@ -2766,7 +2758,6 @@ export default function CultureConnectApp({
         );
         setTotal(snap.total);
         setDensifiedTotalApi(snap.densifiedTotal);
-        setVenueOptions(snap.venues ?? []);
         armBootListSkip(scope);
         setCatalogueReady(true);
         return true;
@@ -2803,7 +2794,6 @@ export default function CultureConnectApp({
         );
         setTotal(initialTotal);
         setDensifiedTotalApi(initialDensifiedTotal);
-        setVenueOptions(initialVenues);
         armBootListSkip('tous');
         setCatalogueReady(true);
       }
@@ -2865,10 +2855,6 @@ export default function CultureConnectApp({
     setShowMonthPanel(true);
   }
 
-  function handleSelectVenue(lieuId: string) {
-    setSelectedLieuId(lieuId);
-  }
-
   function applyNearMeState(next: {
     active: boolean;
     pos: GeoPos | null;
@@ -2920,15 +2906,6 @@ export default function CultureConnectApp({
     setUserPos(null);
     setBrowseCommune(next);
     setSelectedCommune(next);
-    if (selectedLieuId) {
-      const lieu = venueOptions.find((l) => l.lieu_id === selectedLieuId);
-      if (
-        next != null &&
-        (!lieu || normalizeCommune(lieu.commune) !== normalizeCommune(next))
-      ) {
-        setSelectedLieuId(null);
-      }
-    }
   }
 
   function handleCategoriesChange(next: string[]) {
@@ -2938,13 +2915,6 @@ export default function CultureConnectApp({
     setSelectedCategories(next);
     if (next.length === 0) {
       setSelectedGenres([]);
-      setSelectedLieuId(null);
-      setVenueOptions(initialVenues);
-    } else {
-      // Drop stale all-cat / previous-cat salle list until agenda responds
-      // with venues that have upcoming events in the active category.
-      setSelectedLieuId(null);
-      setVenueOptions([]);
     }
     // Grid filter only — L() must not increment cats (chip stays chip_cat).
     for (const chip of added) {
@@ -2997,7 +2967,6 @@ export default function CultureConnectApp({
 
   const filterBadge =
     selectedGenres.length +
-    (selectedLieuId ? 1 : 0) +
     (selectedCommune !== 'Toulouse' ? 1 : 0) +
     (nearMeActive ? 1 : 0);
 
@@ -3062,6 +3031,7 @@ export default function CultureConnectApp({
           value={query}
           onChange={handleQueryChange}
           onSubmit={handleSearchSubmit}
+          onBareQuery={handleBareQuery}
           onConfirm={handleNlConfirm}
           onPickTitre={handleSuggestTitre}
           onPickArtiste={handleSuggestArtiste}
@@ -3075,7 +3045,7 @@ export default function CultureConnectApp({
         <div
           className="cc-filter-band"
           role="group"
-          aria-label="Ville, salle, quand et quoi"
+          aria-label="Ville, quand et quoi"
         >
           <div className="cc-filter-band__place">
             <CityFilter
@@ -3103,21 +3073,6 @@ export default function CultureConnectApp({
               active={nearMeActive}
               pending={nearMePending}
               onToggle={handleNearMeToggle}
-            />
-            {/* Salle shares the Ville line (#205: null until a category).
-                Menu flips via placeVenueMenu (#221). */}
-            <VenueFilter
-              lieux={venueOptions}
-              selectedLieuId={selectedLieuId}
-              onChange={setSelectedLieuId}
-              variant="inline"
-              selectedMains={selectedCategories}
-              hideWhenNoCategory
-              loading={
-                listFetchInFlight &&
-                selectedCategories.length > 0 &&
-                venueOptions.length === 0
-              }
             />
           </div>
           <div className="cc-axes-row">
@@ -3268,7 +3223,6 @@ export default function CultureConnectApp({
               items={top3Cards}
               showDate={showDateLabels}
               onSelectItem={handleSelectTop3}
-              onSelectVenue={handleSelectVenue}
               empty={null}
               nouveauFilmIds={nouveauFilmIdSet}
               fixedSlots
@@ -3390,7 +3344,6 @@ export default function CultureConnectApp({
                 items={listItems}
                 showDate={showDateLabels || timeScope === 'tous'}
                 onSelectItem={handleSelectHome}
-                onSelectVenue={handleSelectVenue}
                 nouveauFilmIds={nouveauFilmIdSet}
                 origin={gpsOrigin}
                 oneCardPerSeance
@@ -3698,7 +3651,6 @@ export default function CultureConnectApp({
               items={leftoverRows.map((r) => r.item)}
               showDate={showDateLabels}
               onSelectItem={handleSelectHome}
-              onSelectVenue={handleSelectVenue}
               nouveauFilmIds={nouveauFilmIdSet}
               origin={gpsOrigin}
             />
@@ -3752,7 +3704,6 @@ export default function CultureConnectApp({
             setFicheSeed(null);
             clearDeepLinkUrlParams();
           }}
-          onSelectVenue={handleSelectVenue}
           relatedItems={relatedFilmItems}
           aussiCeSoirItems={aussiCeSoirItems}
           onSelectItem={handleSelectHome}

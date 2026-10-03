@@ -21,9 +21,8 @@ import { HomeListWaitSlot } from './ListWaitDots';
  *   Gap 6px, no empty row.
  * - HomeListWaitSlot: overlay (no flow well; dots are 12px)
  *
- * SiteNav is already in the root layout. GenreFilter and the Salle chip
- * are absent here (no QUOI yet). Live: Salle + GENRES share one disclosure
- * row after Filtres is opened (#205/#221 menu flip unchanged).
+ * SiteNav is already in the root layout. Genre chips sit in Filtres
+ * after a QUOI category. There is no Salle chip.
  * Chips / wait slot are siblings of [data-top3].
  */
 export default function HomeBootChrome({ children }: { children: ReactNode }) {

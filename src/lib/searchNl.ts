@@ -15,10 +15,29 @@ import {
   parseSearchChips,
   type SearchChipParse,
 } from './parseSearchChips';
+import { normalizeSearch } from './searchText';
 import { bootTimeScope, type TimeScopeId } from './timeScope';
 
 export const SEARCH_NL_DEBOUNCE_MS = 200;
 export const SEARCH_NL_MIN_CHARS = 2;
+
+/**
+ * Bare venue text (« taquin ») names a known salle.
+ * Used to list that venue's events under the field — never as a salle chip.
+ * Short fragments (« le », « les ») stay on the normal search path.
+ */
+export function queryNamesKnownLieu(
+  query: string,
+  lieux: readonly SearchNlLieu[],
+): boolean {
+  const q = normalizeSearch(query);
+  if (q.length < 4) return false;
+  return lieux.some((lieu) => {
+    const nom = normalizeSearch(lieu.nom);
+    const label = normalizeSearch(lieu.label);
+    return (nom.length > 0 && nom.includes(q)) || (label.length > 0 && label.includes(q));
+  });
+}
 
 /** Muted one-liner when nothing maps and the query is not a catalogue title. */
 export const SEARCH_NL_HINT =

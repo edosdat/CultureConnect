@@ -5,185 +5,96 @@ import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { queryAgenda } from './agendaQuery';
 import { normalizeCommune } from './commune';
-import {
-  SALLE_ALL_LABEL,
-  SALLE_CHIP_LABEL,
-  VENUE_MENU_MAX_PX,
-  VENUE_MENU_Z,
-  placeVenueMenu,
-  retainSelectedLieuId,
-  venueChipShown,
-  venueFilterVisible,
-} from './venueFilter';
+import type { DayItem } from './types';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
-describe('venueFilterVisible', () => {
-  it('hides Salle when no QUOI category', () => {
-    assert.equal(venueFilterVisible([]), false);
-  });
+function itemLieuId(item: DayItem): string {
+  if (item.lieu?.lieu_id) return item.lieu.lieu_id;
+  if (item.kind === 'programme') return item.programme.lieu_id || '';
+  return item.evenement.lieu_id || '';
+}
 
-  it('shows Salle when a category is on', () => {
-    assert.equal(venueFilterVisible(['cinema']), true);
-  });
-});
-
-describe('Salle chip', () => {
-  it('labels the chip Salle and the clear row Toutes les salles', () => {
-    assert.equal(SALLE_CHIP_LABEL, 'Salle');
-    assert.equal(SALLE_ALL_LABEL, 'Toutes les salles');
-  });
-
-  it('shows on mobile without Filtres once Ciné or Théâtre is on', () => {
-    assert.equal(
-      venueChipShown({
-        selectedMains: ['cinema'],
-        venueCount: 0,
-        loading: true,
-      }),
-      true,
-    );
-    assert.equal(
-      venueChipShown({
-        selectedMains: ['theatre_danse'],
-        venueCount: 4,
-        loading: false,
-      }),
-      true,
-    );
-    assert.equal(
-      venueChipShown({ selectedMains: [], venueCount: 10, loading: true }),
-      false,
-    );
-  });
-
-  it('shows Musique only when that category has salles', () => {
-    assert.equal(
-      venueChipShown({
-        selectedMains: ['musique'],
-        venueCount: 0,
-        loading: true,
-      }),
-      false,
-    );
-    assert.equal(
-      venueChipShown({
-        selectedMains: ['musique'],
-        venueCount: 0,
-        loading: false,
-      }),
-      false,
-    );
-    assert.equal(
-      venueChipShown({
-        selectedMains: ['musique'],
-        venueCount: 2,
-        loading: false,
-      }),
-      true,
-    );
-  });
-
-  it('is a dropdown in the dense band, not a Filtres-gated chip rail', () => {
-    const ui = readFileSync(join(here, '../components/VenueFilter.tsx'), 'utf8');
+describe('Salle chip is gone', () => {
+  it('has no Salle control on home, QUOI, or the search confirm step', () => {
     const app = readFileSync(
       join(here, '../components/CultureConnectApp.tsx'),
       'utf8',
     );
-    assert.match(ui, /aria-haspopup="listbox"/);
-    assert.match(ui, /SALLE_CHIP_LABEL/);
-    assert.match(ui, /SALLE_ALL_LABEL/);
-    assert.match(ui, /data-salle-slot/);
-    assert.equal(ui.includes('basis-full'), false);
-    assert.equal(ui.includes('>Salles<'), false);
-    const bandAt = app.indexOf('className="cc-filter-band"');
-    const cityAt = app.indexOf('<CityFilter');
-    const nearAt = app.indexOf('<NearMeChip');
-    const moreAt = app.indexOf('cc-axes__more');
-    const venueAt = app.indexOf('<VenueFilter');
-    const genresAt = app.indexOf('GENRES: second band');
-    const calAt = app.indexOf('<MonthCalendarDrawer');
+    const search = readFileSync(
+      join(here, '../components/SearchOmnibox.tsx'),
+      'utf8',
+    );
     const boot = readFileSync(
       join(here, '../components/HomeBootChrome.tsx'),
       'utf8',
     );
-    assert.ok(bandAt > 0 && cityAt > bandAt && nearAt > cityAt);
-    assert.ok(venueAt > nearAt && moreAt > venueAt);
+    assert.equal(app.includes('<VenueFilter'), false);
+    assert.equal(app.includes('Toutes les salles'), false);
+    assert.equal(app.includes('data-salle-chip'), false);
+    assert.equal(app.includes('Filtrer par salle'), false);
+    assert.equal(app.includes('setSelectedLieuId'), false);
+    assert.equal(search.includes('salle'), false);
+    assert.equal(boot.includes('>Salle<'), false);
+    const bandAt = app.indexOf('className="cc-filter-band"');
+    const cityAt = app.indexOf('<CityFilter');
+    const nearAt = app.indexOf('<NearMeChip');
+    const moreAt = app.indexOf('cc-axes__more');
+    const genresAt = app.indexOf('GENRES: second band');
+    const calAt = app.indexOf('<MonthCalendarDrawer');
+    assert.ok(bandAt > 0 && cityAt > bandAt && nearAt > cityAt && moreAt > nearAt);
     assert.ok(genresAt > moreAt && calAt > genresAt);
     assert.equal(app.includes('Voir le mois'), false);
-    assert.equal(app.includes('Masquer le mois'), false);
     assert.equal(boot.includes('Voir le mois'), false);
-    assert.match(app, /cc-filter-band__place[\s\S]{0,2500}<VenueFilter/);
     assert.match(app, /cc-axes__group cc-axes__group--scroll/);
-    assert.match(app, /cc-filter-band__facets/);
     assert.match(app, /selectedCategories\.length > 0 && facetsOpen/);
-    assert.match(app, /hideWhenNoCategory/);
-    assert.equal(app.includes("showFiltersMobile ? 'flex' : 'hidden'"), false);
-    assert.equal(app.includes('md:flex'), false);
-    assert.equal(app.includes('md:hidden'), false);
-    assert.equal(app.includes('data-salle-slot'), false);
-    assert.match(ui, /placeVenueMenu/);
-    assert.match(ui, /createPortal/);
-    assert.match(ui, /overflow-y-auto/);
-    assert.match(ui, /VENUE_MENU_Z/);
+    assert.match(app, /onBareQuery=\{handleBareQuery\}/);
+    const confirm = app.slice(
+      app.indexOf('function handleNlConfirm'),
+      app.indexOf('function handleSuggestTitre'),
+    );
+    assert.equal(confirm.includes('setSelectedLieuId'), false);
+    assert.equal(confirm.includes('lieuId'), false);
   });
 });
 
-describe('placeVenueMenu', () => {
-  const view = { viewportWidth: 1200, viewportHeight: 800 };
+describe('search text lists a venue without a salle chip', () => {
+  const now = new Date('2026-10-03T12:00:00+02:00');
+  const base = {
+    scope: 'tous' as const,
+    commune: 'Toulouse',
+    cats: [] as string[],
+    genres: [] as string[],
+    lieuId: null,
+    selectedDate: null,
+    year: 2026,
+    month: 10,
+    q: '',
+  };
 
-  it('opens under the chip when there is room below', () => {
-    const box = placeVenueMenu({
-      ...view,
-      rect: { top: 120, bottom: 156, left: 40 },
-    });
-    assert.equal(box.top, 160);
-    assert.equal(box.bottom, null);
-    assert.equal(box.left, 40);
-    assert.equal(box.width, 320);
-    assert.equal(box.maxHeight, VENUE_MENU_MAX_PX);
+  it('taquin (any case) returns every upcoming Le Taquin event', () => {
+    const byLieu = queryAgenda({ ...base, q: '', lieuId: 'L075', limit: 400 }, now);
+    const lower = queryAgenda({ ...base, q: 'taquin', lieuId: null }, now);
+    const upper = queryAgenda({ ...base, q: 'TAQUIN', lieuId: null }, now);
+    assert.ok(byLieu.total > 0, 'catalogue has upcoming events at Le Taquin');
+    assert.equal(byLieu.items.length, byLieu.total);
+    const wanted = new Set(
+      byLieu.items.filter((item) => itemLieuId(item) === 'L075').map((item) => item.key),
+    );
+    assert.equal(wanted.size, byLieu.total);
+    for (const key of wanted) {
+      assert.ok(lower.items.some((item) => item.key === key));
+      assert.ok(upper.items.some((item) => item.key === key));
+    }
+    assert.equal(lower.total, upper.total);
+    assert.ok(lower.total >= wanted.size);
+    assert.equal(lower.items.length, lower.total);
   });
 
-  it('flips above the chip when space below is tight and space above is larger', () => {
-    const box = placeVenueMenu({
-      ...view,
-      rect: { top: 700, bottom: 736, left: 40 },
-    });
-    assert.equal(box.top, null);
-    assert.equal(box.bottom, 800 - 700 + 4);
-    assert.equal(box.maxHeight, VENUE_MENU_MAX_PX);
-  });
-
-  it('stays below and shortens maxHeight when the space above is smaller', () => {
-    const box = placeVenueMenu({
-      viewportWidth: 390,
-      viewportHeight: 700,
-      rect: { top: 80, bottom: 560, left: 16 },
-    });
-    assert.equal(box.top, 564);
-    assert.equal(box.bottom, null);
-    assert.equal(box.maxHeight, 700 - 560 - 4 - 8);
-  });
-
-  it('clamps the menu inside the viewport horizontally', () => {
-    const box = placeVenueMenu({
-      viewportWidth: 400,
-      viewportHeight: 800,
-      rect: { top: 200, bottom: 236, left: 300 },
-    });
-    assert.equal(box.width, 320);
-    assert.equal(box.left, 400 - 320 - 8);
-    const narrow = placeVenueMenu({
-      viewportWidth: 280,
-      viewportHeight: 800,
-      rect: { top: 200, bottom: 236, left: -40 },
-    });
-    assert.equal(narrow.width, 280 - 16);
-    assert.equal(narrow.left, 8);
-  });
-
-  it('keeps the open menu above the cookie banner and the digest intro', () => {
-    assert.ok(VENUE_MENU_Z >= 80);
+  it('a nonsense query does not list Le Taquin', () => {
+    const noise = queryAgenda({ ...base, q: 'zzzzqxqqqq', lieuId: null }, now);
+    assert.equal(noise.total, 0);
+    assert.equal(noise.items.some((item) => itemLieuId(item) === 'L075'), false);
   });
 });
 
@@ -216,30 +127,6 @@ describe('home axes column', () => {
     assert.equal(css.includes('flex-direction: row'), false);
     const outside = css.slice(0, start) + css.slice(end);
     assert.equal(outside.includes('overflow-x: auto'), false);
-  });
-});
-
-describe('retainSelectedLieuId', () => {
-  const venues = [{ lieu_id: 'L017' }, { lieu_id: 'L042' }];
-
-  it('clears when category cleared', () => {
-    assert.equal(retainSelectedLieuId('L017', [], venues), null);
-  });
-
-  it('clears when salle left the category options', () => {
-    assert.equal(retainSelectedLieuId('L099', ['cinema'], venues), null);
-  });
-
-  it('keeps salle still in options', () => {
-    assert.equal(retainSelectedLieuId('L017', ['cinema'], venues), 'L017');
-  });
-
-  it('keeps selection while options are still empty (in-flight)', () => {
-    assert.equal(retainSelectedLieuId('L017', ['cinema'], []), 'L017');
-  });
-
-  it('noop when nothing selected', () => {
-    assert.equal(retainSelectedLieuId(null, ['cinema'], venues), null);
   });
 });
 
