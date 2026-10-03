@@ -38,7 +38,7 @@ function ogCard(title: string, venue: string, cat: string) {
             opacity: 0.9,
           }}
         >
-          CultureConnect
+          Plan C
         </div>
         <div
           style={{
@@ -83,7 +83,7 @@ export async function GET(req: Request) {
       ''
     ).trim();
     const detail = id ? queryAgendaDetail(id) : null;
-    const title = detail ? itemTitle(detail.item) : 'CultureConnect';
+    const title = detail ? itemTitle(detail.item) : 'Plan C';
     const venue = detail ? itemVenue(detail.item) : 'Agenda culturel · Toulouse';
     const cat = detail
       ? labelCategorie(
@@ -94,6 +94,6 @@ export async function GET(req: Request) {
       : 'Toulouse';
     return ogPng(title, venue, cat || 'Toulouse');
   } catch {
-    return ogPng('CultureConnect', 'Agenda culturel · Toulouse', 'Toulouse');
+    return ogPng('Plan C', 'Agenda culturel · Toulouse', 'Toulouse');
   }
 }

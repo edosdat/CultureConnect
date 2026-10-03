@@ -29,7 +29,8 @@ const display = Fraunces({
   variable: '--font-display',
   display: 'swap',
   preload: false,
-  weight: ['500', '600', '700'],
+  weight: ['500', '600', '700', '800'],
+  style: ['normal', 'italic'],
 });
 
 export const viewport: Viewport = {
@@ -54,20 +55,20 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
   },
-  title: 'CultureConnect — Agenda culturel Toulouse',
+  title: 'Plan C — Agenda culturel Toulouse',
   description:
     'Calendrier des évènements culturels autour de Toulouse : expositions, concerts, théâtre, festivals et plus.',
   openGraph: {
-    title: 'CultureConnect — Agenda culturel Toulouse',
+    title: 'Plan C — Agenda culturel Toulouse',
     description:
       'Concerts, théâtre et cinéma autour de Toulouse. Qu’est-ce qui te ferait vibrer ?',
     locale: 'fr_FR',
     type: 'website',
-    siteName: 'CultureConnect',
+    siteName: 'Plan C',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'CultureConnect — Agenda culturel Toulouse',
+    title: 'Plan C — Agenda culturel Toulouse',
     description:
       'Concerts, théâtre et cinéma autour de Toulouse. Qu’est-ce qui te ferait vibrer ?',
   },

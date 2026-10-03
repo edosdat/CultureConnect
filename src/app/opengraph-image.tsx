@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'nodejs';
-export const alt = 'CultureConnect — Agenda culturel Toulouse';
+export const alt = 'Plan C — Agenda culturel Toulouse';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -32,7 +32,7 @@ export default function OpengraphImage() {
           Toulouse & alentours
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ fontSize: 72, lineHeight: 1.05 }}>CultureConnect</div>
+          <div style={{ fontSize: 72, lineHeight: 1.05 }}>Plan C</div>
           <div style={{ fontSize: 32, fontFamily: 'sans-serif', maxWidth: 860 }}>
             Qu’est-ce qui te ferait vibrer ? Concerts, théâtre et cinéma.
           </div>

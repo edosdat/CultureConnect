@@ -25,7 +25,7 @@ import {
 /** Dynamic: do not ISR the embedded programme (stale after Paris midnight). */
 export const dynamic = 'force-dynamic';
 
-const DEFAULT_TITLE = 'CultureConnect — Agenda culturel Toulouse';
+const DEFAULT_TITLE = 'Plan C — Agenda culturel Toulouse';
 const DEFAULT_DESC =
   'Calendrier des évènements culturels autour de Toulouse : expositions, concerts, théâtre, festivals et plus.';
 
@@ -84,7 +84,7 @@ export async function generateMetadata({
     candidates: [itemImageUrl(item)],
     alt: title,
   });
-  const pageTitle = `${title} — CultureConnect`;
+  const pageTitle = `${title} — Plan C`;
   return {
     title: pageTitle,
     description: desc.slice(0, 200),
