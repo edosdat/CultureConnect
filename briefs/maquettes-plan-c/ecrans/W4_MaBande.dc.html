@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Ma bande — qui vient</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,700&amp;display=swap">
+<style>
+body{margin:0;font-family:'DM Sans',system-ui,sans-serif;background:#1A0B1E;color:#FFF1F4}
+button{font-family:inherit;cursor:pointer}
+a{color:#FF2E7E}a:hover{color:#FF6FA5}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #1A0B1E; color: #FFF1F4; position: relative; overflow: hidden; font-family: 'DM Sans', system-ui, sans-serif">
+  <div style="padding: 24px 16px 96px 16px; display: flex; flex-direction: column; gap: 16px">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <h1 style="margin: 0; font-family: Fraunces, Georgia, serif; font-size: 32px; font-weight: 700">Ma bande</h1>
+      <span style="font-size: 15px; color: #D3B3CE">Qui est partant pour tes plans</span>
+    </div>
+
+    <sc-for list="{{plans}}" as="p" hint-placeholder-count="3">
+      <div style="display: flex; gap: 12px; padding: 12px; border-radius: 18px; background: #2A1231; border: 1px solid #4A2350">
+        <a href="W2_Fiche.dc.html" aria-label="Voir {{p.title}}" style="flex-shrink: 0; display: block"><img src="{{p.img}}" alt="" style="width: 64px; height: 86px; border-radius: 10px; object-fit: cover; display: block"></a>
+        <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+          <span style="font-size: 12px; font-weight: 700; color: {{p.statusColor}}">{{p.status}}</span>
+          <span style="font-size: 16px; font-weight: 700">{{p.title}}</span>
+          <span style="font-size: 13px; color: #D3B3CE">{{p.when}}</span>
+          <span style="font-size: 13px; font-weight: 600">{{p.who}}</span>
+          <button type="button" onClick="{{p.nudge}}" style="align-self: flex-start; margin-top: 4px; height: 34px; padding: 0 12px; border-radius: 17px; border: 1px solid {{p.btnBorder}}; background: {{p.btnBg}}; color: {{p.btnFg}}; font-size: 13px; font-weight: 700">{{p.btnLabel}}</button>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  <nav aria-label="Navigation principale" style="position: absolute; left: 0; right: 0; bottom: 0; height: 76px; background: #2A1231; border-top: 1px solid #4A2350; display: flex; justify-content: space-around; align-items: center; padding-bottom: 8px; box-sizing: border-box">
+    <a href="W2_Swipe.dc.html" style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 76px; min-height: 44px; justify-content: center; text-decoration: none; color: #D3B3CE; font-size: 12px; font-weight: 600">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="3"></rect><path d="M9 3.5 7 2M15 3.5 17 2"></path></svg>
+      Mes plans
+    </a>
+    <a href="W2_Semaine.dc.html" style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 76px; min-height: 44px; justify-content: center; text-decoration: none; color: #D3B3CE; font-size: 12px; font-weight: 600">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>
+      Chercher
+    </a>
+    <a href="W4_MaBande.dc.html" aria-current="page" style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 76px; min-height: 44px; justify-content: center; text-decoration: none; color: #FF2E7E; font-size: 12px; font-weight: 700">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"></path><circle cx="17" cy="9" r="2.5"></circle><path d="M17 14c2.6 0 4.5 1.8 4.5 4.5"></path></svg>
+      Ma bande
+    </a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { nudged: {} };
+    this.items = [
+      { id: 'a', img: '/_blob/1e703da754fd2de1871ec8a349cbc131', title: 'Toulouse j’adore !', when: 'Jeu 1 oct · 20:30', who: 'Ludo et Benjamin y vont · Julie a envie', status: '2 nouvelles réponses', statusColor: '#FF2E7E', cta: 'Proposer d’y aller ensemble' },
+      { id: 'b', img: '/_blob/7e221e3fb2e599da71b7640736c19598', title: 'DJ Pone, 30 ans de platines', when: 'Jeu 1 oct · 19:30', who: 'Pas encore de réponse', status: 'Envoyé il y a 3 h', statusColor: '#D3B3CE', cta: 'Relancer la bande' },
+      { id: 'c', img: '/_blob/367ee5682fd0d3ef0c52ee4acdd769cf', title: 'Naine Rouge', when: 'Ven 2 oct · 20:30', who: 'Sarah a envie', status: 'Hier', statusColor: '#D3B3CE', cta: 'Relancer la bande' }
+    ];
+  }
+  renderVals() {
+    const n = this.state.nudged;
+    return {
+      plans: this.items.map((it) => {
+        const done = Boolean(n[it.id]);
+        return Object.assign({}, it, {
+          btnLabel: done ? 'Envoyé' : it.cta,
+          btnBg: done ? 'transparent' : '#FF2E7E',
+          btnFg: done ? '#D3B3CE' : '#1A0B1E',
+          btnBorder: done ? '#4A2350' : '#FF2E7E',
+          nudge: () => this.setState((s) => ({ nudged: Object.assign({}, s.nudged, { [it.id]: true }) }))
+        });
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

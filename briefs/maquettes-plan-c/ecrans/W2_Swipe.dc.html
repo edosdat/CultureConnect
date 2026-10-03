@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Connexion classique — tes 5 plans</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,700&amp;display=swap">
+<style>
+body{margin:0;font-family:'DM Sans',system-ui,sans-serif;background:#1A0B1E;color:#FFF1F4}
+button{font-family:inherit;cursor:pointer}
+a{color:#FF2E7E}a:hover{color:#FF6FA5}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #1A0B1E; color: #FFF1F4; position: relative; overflow: hidden; font-family: 'DM Sans', system-ui, sans-serif">
+  <div style="padding: 16px 16px 0 16px; display: flex; align-items: center; gap: 10px">
+    <a href="W2_Semaine.dc.html" aria-label="Chercher un spectacle" style="flex-grow: 1; height: 46px; border-radius: 23px; background: #2A1231; border: 1px solid #4A2350; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 16px; text-decoration: none; color: #A98AA6; font-size: 15px">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF2E7E" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>
+      Un titre, un artiste, une envie…
+    </a>
+    <a href="W2_Semaine.dc.html" style="flex-shrink: 0; min-height: 44px; display: flex; align-items: center; font-size: 14px; font-weight: 700">Passer</a>
+  </div>
+
+  <div style="height: 50px; padding: 0 16px; display: flex; align-items: center">
+    <sc-if value="{{showToast}}" hint-placeholder-val="{{ false }}">
+      <div style="flex-grow: 1; display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 40px; padding: 0 5px 0 14px; border-radius: 20px; background: #FF2E7E; color: #1A0B1E; font-size: 14px">
+        <span>Nouveau <strong>crush</strong>&nbsp;!</span>
+        <a href="W4_Partage.dc.html" style="height: 30px; padding: 0 12px; border-radius: 15px; background: #1A0B1E; color: #FFF1F4; font-size: 13px; font-weight: 700; text-decoration: none; display: flex; align-items: center">Inviter à un plan C</a>
+      </div>
+    </sc-if>
+    <sc-if value="{{hideToast}}" hint-placeholder-val="{{ true }}">
+      <div style="flex-grow: 1; display: flex; align-items: baseline; justify-content: space-between">
+        <span style="font-family: Fraunces, Georgia, serif; font-size: 20px; font-weight: 700">Tes 5 plans de la semaine</span>
+        <span style="font-size: 13px; font-weight: 700; color: #D3B3CE">{{counter}}</span>
+      </div>
+    </sc-if>
+  </div>
+
+  <div style="position: relative; height: 500px; margin: 0 16px">
+    <sc-if value="{{hasBack}}" hint-placeholder-val="{{ true }}">
+      <div style="position: absolute; left: 12px; right: 12px; top: 12px; bottom: -8px; border-radius: 24px; overflow: hidden; opacity: 0.45; background: #3A1840"><img src="{{back.img}}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block"></div>
+    </sc-if>
+    <sc-if value="{{hasFront}}" hint-placeholder-val="{{ true }}">
+      <div onPointerDown="{{down}}" onPointerMove="{{move}}" onPointerUp="{{up}}" onPointerCancel="{{up}}" style="position: absolute; inset: 0; border-radius: 24px; overflow: hidden; background: #2A1231; box-shadow: 0 14px 34px rgba(0,0,0,0.5); display: flex; flex-direction: column; touch-action: none; user-select: none; cursor: grab; transform: {{cardTransform}}; transition: {{cardTransition}}">
+        <sc-if value="{{isCalib}}" hint-placeholder-val="{{ false }}">
+          <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 12px; padding: 18px; border: 2px solid #FFD23F; border-radius: 24px">
+            <span style="align-self: flex-start; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 5px 10px; border-radius: 999px; background: #FFD23F; color: #1A0B1E">Aide-nous à te cerner</span>
+            <span style="font-family: Fraunces, Georgia, serif; font-size: 26px; font-weight: 700; line-height: 1.1">T’hésites entre deux types. Un duel, 3 secondes&nbsp;?</span>
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; flex-grow: 1">
+              <img src="/_blob/08ea9aa420132e519b69caa172cadfec" alt="Affiche de Mara Moreno" draggable="false" style="width: 100%; height: 100%; min-height: 200px; object-fit: cover; border-radius: 14px; pointer-events: none">
+              <img src="/_blob/e8a9568f354770dcbd51d0e28416356c" alt="Affiche de Presque égal à" draggable="false" style="width: 100%; height: 100%; min-height: 200px; object-fit: cover; border-radius: 14px; pointer-events: none">
+            </div>
+            <a href="W3_Calibrage.dc.html" style="height: 48px; border-radius: 24px; background: #FFD23F; color: #1A0B1E; font-size: 15px; font-weight: 700; text-decoration: none; display: flex; align-items: center; justify-content: center">Je réponds</a>
+          </div>
+        </sc-if>
+        <sc-if value="{{isShow}}" hint-placeholder-val="{{ true }}">
+          <div style="position: relative; height: 310px; flex-shrink: 0">
+            <img src="{{front.img}}" alt="Affiche de {{front.title}}" draggable="false" style="width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none">
+            <span style="position: absolute; left: 14px; top: 14px; font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 999px; background: #FFD23F; color: #1A0B1E">{{front.reason}}</span>
+            <div style="position: absolute; top: 64px; left: 18px; transform: rotate(-12deg); border: 3px solid #FF2E7E; background: rgba(26,11,30,0.85); color: #FF2E7E; border-radius: 10px; padding: 4px 12px; font-size: 22px; font-weight: 700; letter-spacing: 1px; opacity: {{likeOpacity}}">ÇA ME TENTE</div>
+            <div style="position: absolute; top: 64px; right: 18px; transform: rotate(12deg); border: 3px solid #FFF1F4; background: rgba(26,11,30,0.85); color: #FFF1F4; border-radius: 10px; padding: 4px 12px; font-size: 22px; font-weight: 700; letter-spacing: 1px; opacity: {{passOpacity}}">PAS MON GENRE</div>
+            <div style="position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); border: 3px solid #FFD23F; background: rgba(26,11,30,0.85); color: #FFD23F; border-radius: 10px; padding: 4px 12px; font-size: 22px; font-weight: 700; letter-spacing: 1px; white-space: nowrap; opacity: {{laterOpacity}}">PLUS TARD</div>
+          </div>
+          <div style="padding: 12px 16px 10px 16px; display: flex; flex-direction: column; gap: 5px; flex-grow: 1">
+            <span style="font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: {{front.accent}}">{{front.cat}}</span>
+            <span style="font-family: Fraunces, Georgia, serif; font-size: 25px; font-weight: 700; line-height: 1.05">{{front.title}}</span>
+            <span style="font-size: 14px; color: #D3B3CE">{{front.when}} · {{front.venue}}</span>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: auto">
+              <a href="W2_Fiche.dc.html" style="font-size: 14px; font-weight: 700; min-height: 44px; display: flex; align-items: center">En savoir plus</a>
+              <span style="font-size: 17px; font-weight: 700">{{front.price}}</span>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+    <sc-if value="{{isEmpty}}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; inset: 0; border-radius: 24px; border: 2px dashed #6B3A72; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 32px; text-align: center; box-sizing: border-box">
+        <span style="font-family: Fraunces, Georgia, serif; font-size: 26px; font-weight: 700">T’as fait le tour. Ça arrive à tout le monde.</span>
+        <a href="W2_Semaine.dc.html" style="font-size: 15px; font-weight: 700">Voir toute la semaine</a>
+        <button type="button" onClick="{{reset}}" style="height: 44px; padding: 0 18px; border-radius: 22px; border: 1px solid #4A2350; background: transparent; color: #FFF1F4; font-size: 14px; font-weight: 600">Revoir mes plans</button>
+      </div>
+    </sc-if>
+  </div>
+
+  <div style="display: flex; align-items: center; justify-content: center; gap: 16px; padding-top: 16px">
+    <button type="button" onClick="{{pass}}" aria-label="Pas mon genre" style="width: 60px; height: 60px; border-radius: 30px; border: 1px solid #4A2350; background: #2A1231; color: #D3B3CE; display: flex; align-items: center; justify-content: center">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
+    </button>
+    <button type="button" onClick="{{later}}" aria-label="Plus tard, pas ce soir" style="width: 50px; height: 50px; border-radius: 25px; border: 1px solid #4A2350; background: #2A1231; color: #FFD23F; display: flex; align-items: center; justify-content: center">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><polyline points="12 7.5 12 12 15 14"></polyline></svg>
+    </button>
+    <a href="W4_Partage.dc.html" aria-label="Inviter à un plan C" style="width: 50px; height: 50px; box-sizing: border-box; border-radius: 25px; border: 1px solid #4A2350; background: #2A1231; color: #FFF1F4; display: flex; align-items: center; justify-content: center">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z"></path><line x1="9" y1="12" x2="15" y2="12"></line></svg>
+    </a>
+    <button type="button" onClick="{{like}}" aria-label="Ça me tente" style="width: 68px; height: 68px; border-radius: 34px; border: none; background: #FF2E7E; color: #1A0B1E; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 22px rgba(255,46,126,0.5)">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.5-9.2C1 8.3 3.2 4.5 7 4.5c2.1 0 3.6 1.1 5 2.9 1.4-1.8 2.9-2.9 5-2.9 3.8 0 6 3.8 4.5 7.3C19.5 16.4 12 21 12 21z"></path></svg>
+    </button>
+  </div>
+
+  <nav aria-label="Navigation principale" style="position: absolute; left: 0; right: 0; bottom: 0; height: 76px; background: #2A1231; border-top: 1px solid #4A2350; display: flex; justify-content: space-around; align-items: center; padding-bottom: 8px; box-sizing: border-box">
+    <a href="W2_Swipe.dc.html" aria-current="page" style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 76px; min-height: 44px; justify-content: center; text-decoration: none; color: #FF2E7E; font-size: 12px; font-weight: 700">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="3"></rect><path d="M9 3.5 7 2M15 3.5 17 2"></path></svg>
+      Mes plans
+    </a>
+    <a href="W2_Semaine.dc.html" style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 76px; min-height: 44px; justify-content: center; text-decoration: none; color: #D3B3CE; font-size: 12px; font-weight: 600">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>
+      Chercher
+    </a>
+    <a href="W4_MaBande.dc.html" style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 76px; min-height: 44px; justify-content: center; text-decoration: none; color: #D3B3CE; font-size: 12px; font-weight: 600">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"></path><circle cx="17" cy="9" r="2.5"></circle><path d="M17 14c2.6 0 4.5 1.8 4.5 4.5"></path></svg>
+      Ma bande<span style="position: absolute; top: -2px; right: 14px; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: #FF2E7E; color: #1A0B1E; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center">2</span>
+    </a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { idx: 0, dx: 0, dy: 0, anim: true, toast: false };
+    this.deck = [
+      { img: '/_blob/08ea9aa420132e519b69caa172cadfec', title: 'Mara Moreno', cat: 'Stand-up', accent: '#FF2E7E', when: 'Sam 3 oct · 20:30', venue: 'La Comédie de Toulouse', price: 'Prix NC', reason: 'Parce que tu es Machine à rire' },
+      { img: '/_blob/97f0b365080dff95124469ca33d2e9bb', title: 'TOM', cat: 'Théâtre · émotion', accent: '#5EEAD4', when: 'Ven 2 oct · 20:30', venue: 'Le Grenier Théâtre', price: 'dès 14 €', reason: 'Tendance Cœur en velours' },
+      { img: '/_blob/567edf090f7d96b41e4be5ab8963cec8', title: 'Talisco', cat: 'Concert rock', accent: '#FF9E6D', when: 'Sam 3 oct · 19:30', venue: 'Le Rex', price: '23 €', reason: 'Tu as choisi DJ Pone' },
+      { calib: true, img: '/_blob/08ea9aa420132e519b69caa172cadfec', title: 'Duel de calibrage' },
+      { img: '/_blob/aa671ebacee66496c219f5bbbb567ebc', title: 'Les Gaulois', cat: 'Théâtre · poétique', accent: '#FF9E6D', when: 'Mer 7 oct · 20:00', venue: 'Théâtre Garonne', price: 'Prix NC', reason: 'Drôle et poétique, comme tu aimes' },
+      { img: '/_blob/43c715b5d22283f8e9fa1fd67feb7097', title: 'Secrets', cat: 'Cirque contemporain', accent: '#B98CFF', when: 'Mar 13 oct · 20:00', venue: 'Le Kiwi', price: 'dès 5 €', reason: 'Nouveau pour toi : ose le cirque' }
+    ];
+  }
+  // dir: 1 = ça me tente, -1 = pas mon genre, 0 = plus tard (neutre, rien n’est appris)
+  commit(dir) {
+    if (this.state.idx >= this.deck.length) return;
+    const wasShow = !this.deck[this.state.idx].calib;
+    this.setState(dir === 0 ? { dx: 0, dy: -700, anim: true } : { dx: dir * 520, dy: 0, anim: true });
+    setTimeout(() => this.setState((s) => ({ idx: s.idx + 1, dx: 0, dy: 0, anim: false, toast: dir > 0 && wasShow })), 230);
+  }
+  renderVals() {
+    const { idx, dx, dy, anim, toast } = this.state;
+    const front = this.deck[idx] || this.deck[0];
+    const shows = this.deck.slice(0, idx + 1).filter((d) => !d.calib).length;
+    return {
+      front,
+      back: this.deck[idx + 1] || this.deck[0],
+      hasFront: idx < this.deck.length,
+      hasBack: idx + 1 < this.deck.length,
+      isEmpty: idx >= this.deck.length,
+      isCalib: Boolean(front.calib),
+      isShow: !front.calib,
+      showToast: toast,
+      hideToast: !toast,
+      counter: Math.min(Math.max(shows, 1), 5) + ' / 5',
+      cardTransform: 'translate(' + dx + 'px, ' + dy + 'px) rotate(' + (dx / 20) + 'deg)',
+      cardTransition: anim ? 'transform 0.23s ease-out' : 'none',
+      likeOpacity: Math.max(0, Math.min(1, dx / 110)),
+      passOpacity: Math.max(0, Math.min(1, -dx / 110)),
+      laterOpacity: Math.abs(dx) > 40 ? 0 : Math.max(0, Math.min(1, -dy / 110)),
+      like: () => this.commit(1),
+      pass: () => this.commit(-1),
+      later: () => this.commit(0),
+      reset: () => this.setState({ idx: 0, dx: 0, dy: 0, anim: false, toast: false }),
+      down: (e) => { this.startX = e.clientX; this.startY = e.clientY; this.dragOn = true; if (e.currentTarget && e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId); this.setState({ anim: false }); },
+      move: (e) => { if (this.dragOn) this.setState({ dx: e.clientX - this.startX, dy: Math.min(0, e.clientY - this.startY) }); },
+      up: () => {
+        if (!this.dragOn) return;
+        this.dragOn = false;
+        const d = this.state.dx;
+        const v = this.state.dy;
+        if (v < -100 && Math.abs(d) < 60) this.commit(0); else if (d > 100) this.commit(1); else if (d < -100) this.commit(-1); else this.setState({ dx: 0, dy: 0, anim: true });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

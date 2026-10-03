@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Calibrage — la logique</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,700&amp;display=swap">
+<style>
+body{margin:0;font-family:'DM Sans',system-ui,sans-serif;background:#1A0B1E;color:#FFF1F4}
+</style>
+</helmet>
+<div style="width: 880px; height: 844px; box-sizing: border-box; background: #1A0B1E; color: #FFF1F4; padding: 36px 40px; display: flex; flex-direction: column; gap: 24px; font-family: 'DM Sans', system-ui, sans-serif">
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <h1 style="margin: 0; font-family: Fraunces, Georgia, serif; font-size: 40px; font-weight: 700">Quand on doute, on demande.</h1>
+    <p style="margin: 0; font-size: 16px; color: #D3B3CE">Un duel de calibrage n’apparaît que si le profil hésite entre deux familles. Exemple illustratif.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr) 44px minmax(0, 1fr); align-items: center; gap: 8px">
+    <div style="background: #2A1231; border: 1px solid #4A2350; border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px; height: 280px; box-sizing: border-box">
+      <span style="font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #FFD23F">1 · Le profil hésite</span>
+      <div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 700">Machine à rire</span><div style="height: 10px; border-radius: 5px; background: #3A1840"><div style="width: 46%; height: 10px; border-radius: 5px; background: #FF2E7E"></div></div><span style="font-size: 12px; color: #D3B3CE">46 %</span></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 700">Neurones en ébullition</span><div style="height: 10px; border-radius: 5px; background: #3A1840"><div style="width: 38%; height: 10px; border-radius: 5px; background: #B98CFF"></div></div><span style="font-size: 12px; color: #D3B3CE">38 %</span></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 700">Cœur en velours</span><div style="height: 10px; border-radius: 5px; background: #3A1840"><div style="width: 16%; height: 10px; border-radius: 5px; background: #6B3A72"></div></div><span style="font-size: 12px; color: #D3B3CE">16 %</span></div>
+      <span style="font-size: 13px; line-height: 1.4; margin-top: auto">Écart de 8 points : trop proche pour trancher.</span>
+    </div>
+    <svg width="44" height="24" viewBox="0 0 44 24" fill="none" stroke="#FF2E7E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="2" y1="12" x2="40" y2="12"></line><polyline points="30 3 40 12 30 21"></polyline></svg>
+    <div style="background: #2A1231; border: 1px solid #4A2350; border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px; height: 280px; box-sizing: border-box">
+      <span style="font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #FFD23F">2 · On tire la paire qui sépare</span>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+        <div style="display: flex; flex-direction: column; gap: 4px"><img src="/_blob/08ea9aa420132e519b69caa172cadfec" alt="Affiche de Mara Moreno" style="width: 100%; height: 120px; object-fit: cover; border-radius: 10px"><span style="font-size: 13px; font-weight: 700">Mara Moreno</span><span style="font-size: 11px; color: #D3B3CE">typique Machine à rire</span></div>
+        <div style="display: flex; flex-direction: column; gap: 4px"><img src="/_blob/e8a9568f354770dcbd51d0e28416356c" alt="Affiche de Presque égal à" style="width: 100%; height: 120px; object-fit: cover; border-radius: 10px"><span style="font-size: 13px; font-weight: 700">≈ [Presque égal à]</span><span style="font-size: 11px; color: #D3B3CE">typique Neurones</span></div>
+      </div>
+      <span style="font-size: 13px; line-height: 1.4; margin-top: auto">Même semaine, prix proches. Une seule vraie différence.</span>
+    </div>
+    <svg width="44" height="24" viewBox="0 0 44 24" fill="none" stroke="#FF2E7E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="2" y1="12" x2="40" y2="12"></line><polyline points="30 3 40 12 30 21"></polyline></svg>
+    <div style="background: #2A1231; border: 1px solid #4A2350; border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px; height: 280px; box-sizing: border-box">
+      <span style="font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #FFD23F">3 · Il choisit, on tranche</span>
+      <span style="font-size: 14px">Il choisit <strong>≈ [Presque égal à]</strong>&nbsp;:</span>
+      <div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 700">Neurones en ébullition</span><div style="height: 10px; border-radius: 5px; background: #3A1840"><div style="width: 58%; height: 10px; border-radius: 5px; background: #B98CFF"></div></div><span style="font-size: 12px; color: #D3B3CE">58 %</span></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 700">Machine à rire</span><div style="height: 10px; border-radius: 5px; background: #3A1840"><div style="width: 30%; height: 10px; border-radius: 5px; background: #FF2E7E"></div></div><span style="font-size: 12px; color: #D3B3CE">30 %</span></div>
+      <span style="font-size: 13px; line-height: 1.4; margin-top: auto">Au-dessus de 55 % : on arrête de demander.</span>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+    <div style="background: #3A1840; border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px">
+      <span style="font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #FF2E7E">Quand on déclenche</span>
+      <span style="font-size: 14px; line-height: 1.45">Les deux premières familles sont à moins de 15 points d’écart.</span>
+      <span style="font-size: 14px; line-height: 1.45">Ou une famille n’a jamais été testée (exemple : jamais vu de cirque).</span>
+      <span style="font-size: 14px; line-height: 1.45">Ou le profil n’a pas bougé depuis 30 jours.</span>
+    </div>
+    <div style="background: #3A1840; border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px">
+      <span style="font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #FF2E7E">Garde-fous</span>
+      <span style="font-size: 14px; line-height: 1.45">Au plus 1 duel par série de 5 plans, 3 par semaine.</span>
+      <span style="font-size: 14px; line-height: 1.45">Toujours deux vrais spectacles de la semaine, qu’on peut réserver.</span>
+      <span style="font-size: 14px; line-height: 1.45">« Aucun » et « Les deux » toujours possibles. On s’arrête dès que c’est clair.</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":880,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Ton mix de ce soir</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,700&amp;display=swap">
+<style>
+body{margin:0;font-family:'DM Sans',system-ui,sans-serif;background:#1A0B1E;color:#FFF1F4}
+button{font-family:inherit;cursor:pointer}
+a{color:#FF2E7E}a:hover{color:#FF6FA5}
+.fader:focus-visible{outline:2px solid #FFF1F4;outline-offset:2px;border-radius:8px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #1A0B1E; color: #FFF1F4; position: relative; overflow: hidden; font-family: 'DM Sans', system-ui, sans-serif; display: flex; flex-direction: column">
+  <div style="padding: 14px 16px 0 16px; display: flex; align-items: center; gap: 10px">
+    <a href="W2_Swipe.dc.html" aria-label="Retour à mes plans" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 22px; background: #2A1231; color: #FFF1F4; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="11 6 5 12 11 18"></polyline></svg>
+    </a>
+    <div style="display: flex; flex-direction: column; min-width: 0">
+      <h1 style="margin: 0; font-family: Fraunces, Georgia, serif; font-size: 24px; font-weight: 700; line-height: 1.05">Ton mix de ce soir</h1>
+      <span style="font-size: 13px; color: #D3B3CE">Pousse ce qui te tente, baisse le reste.</span>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 8px; overflow-x: auto; padding: 12px 16px 0 16px; flex-shrink: 0">
+    <sc-for list="{{presets}}" as="p" hint-placeholder-count="6">
+      <button type="button" onClick="{{p.pick}}" aria-pressed="{{p.on}}" style="flex-shrink: 0; height: 34px; padding: 0 12px; border-radius: 17px; font-size: 13px; font-weight: 700; white-space: nowrap; border: 1px solid {{p.border}}; background: {{p.bg}}; color: {{p.fg}}">{{p.label}}</button>
+    </sc-for>
+  </div>
+
+  <div style="margin: 12px 16px 0 16px; padding: 12px 8px 10px 8px; border-radius: 20px; background: #2A1231; border: 1px solid #4A2350; flex-shrink: 0">
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px">
+      <sc-for list="{{faders}}" as="f" hint-placeholder-count="5">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0">
+          <span style="font-size: 13px; font-weight: 700; color: {{f.color}}">{{f.pct}}</span>
+          <div class="fader" role="slider" tabindex="0" aria-label="{{f.label}}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{f.pct}}" onPointerDown="{{f.down}}" onPointerMove="{{f.move}}" onPointerUp="{{f.up}}" onPointerCancel="{{f.up}}" onKeyDown="{{f.key}}" style="position: relative; width: 48px; height: 128px; touch-action: none; user-select: none; cursor: ns-resize">
+            <div style="position: absolute; left: 21px; width: 6px; top: 0; bottom: 0; border-radius: 3px; background: #3A1840"></div>
+            <div style="position: absolute; left: 21px; width: 6px; bottom: 0; height: {{f.fill}}px; border-radius: 3px; background: {{f.color}}"></div>
+            <div aria-hidden="true" style="position: absolute; left: 8px; width: 32px; height: 2px; bottom: {{f.ghost}}px; background: #D3B3CE; opacity: 0.75"></div>
+            <div style="position: absolute; left: 6px; width: 36px; height: 18px; box-sizing: border-box; border-radius: 6px; bottom: {{f.knob}}px; background: #FFF1F4; border: 3px solid {{f.color}}; box-shadow: 0 3px 8px rgba(0,0,0,0.45)"></div>
+          </div>
+          <span style="font-size: 12px; font-weight: 700; text-align: center">{{f.label}}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: center; gap: 6px; padding-top: 6px; font-size: 11px; color: #D3B3CE">
+      <span style="width: 16px; height: 2px; background: #D3B3CE; display: inline-block"></span>ton type
+    </div>
+  </div>
+
+  <div style="margin: 10px 16px 0 16px; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <span style="font-size: 12px; font-weight: 700; color: #D3B3CE; flex-shrink: 0">Mon type</span>
+      <input type="range" min="0" max="100" step="5" value="{{xf}}" onInput="{{setXf}}" onChange="{{setXf}}" aria-label="Dosage entre ton type et ton envie de ce soir" aria-valuetext="{{xfLabel}}" style="flex-grow: 1; min-width: 0; height: 44px; accent-color: #FF2E7E; margin: 0">
+      <span style="font-size: 12px; font-weight: 700; color: #D3B3CE; flex-shrink: 0">Ce soir</span>
+    </div>
+    <span style="font-size: 12px; color: #D3B3CE; text-align: center">{{xfLabel}}</span>
+  </div>
+
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px 6px 16px; flex-shrink: 0">
+    <span style="font-family: Fraunces, Georgia, serif; font-size: 18px; font-weight: 700; white-space: nowrap">{{resultsTitle}}</span>
+    <div style="display: flex; gap: 4px">
+      <sc-for list="{{cats}}" as="c" hint-placeholder-count="4">
+        <button type="button" onClick="{{c.pick}}" aria-pressed="{{c.on}}" style="height: 30px; padding: 0 9px; border-radius: 15px; font-size: 12px; font-weight: 700; border: 1px solid {{c.border}}; background: {{c.bg}}; color: {{c.fg}}">{{c.label}}</button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="flex-grow: 1; overflow-y: auto; padding: 0 16px 16px 16px; display: flex; flex-direction: column; gap: 8px">
+    <sc-for list="{{results}}" as="r" hint-placeholder-count="10">
+      <a href="W2_Fiche.dc.html" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #FFF1F4; padding: 6px; border-radius: 14px; background: #2A1231">
+        <sc-if value="{{r.hasImg}}" hint-placeholder-val="{{ true }}">
+          <img src="{{r.img}}" alt="" style="width: 44px; height: 58px; border-radius: 9px; object-fit: cover; flex-shrink: 0">
+        </sc-if>
+        <sc-if value="{{r.noImg}}" hint-placeholder-val="{{ false }}">
+          <span style="width: 44px; height: 58px; border-radius: 9px; flex-shrink: 0; box-sizing: border-box; border: 2px solid {{r.color}}; background: #3A1840; color: {{r.color}}; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; letter-spacing: 1px">CINÉ</span>
+        </sc-if>
+        <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex-grow: 1">
+          <span style="font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.title}}</span>
+          <span style="font-size: 12px; color: #D3B3CE; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.meta}}</span>
+          <span style="align-self: flex-start; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: {{r.color}}; color: #1A0B1E">{{r.reason}}</span>
+        </span>
+        <span style="font-size: 15px; font-weight: 700; flex-shrink: 0; padding-right: 4px">{{r.match}}</span>
+      </a>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    // Curseurs : Rire, Frisson, Émotion, Fête, Cérébral (chacun regroupe plusieurs tags du catalogue)
+    this.F = [
+      { label: 'Rire', color: '#FF9E6D' },
+      { label: 'Frisson', color: '#FF4D6D' },
+      { label: 'Émotion', color: '#5EEAD4' },
+      { label: 'Fête', color: '#FFD23F' },
+      { label: 'Cérébral', color: '#B98CFF' }
+    ];
+    // Ton type : Machine à rire, tendance Cœur en velours
+    this.P = [0.8, 0.2, 0.6, 0.5, 0.3];
+    this.presetDefs = [
+      { key: 'mix', label: 'Ton mix', v: this.P },
+      { key: 'rire', label: 'Soirée fou rire', v: [0.95, 0.05, 0.2, 0.6, 0.1] },
+      { key: 'secoue', label: 'Un truc qui secoue', v: [0.05, 0.95, 0.4, 0.2, 0.6] },
+      { key: 'doux', label: 'Tout doux', v: [0.2, 0, 0.95, 0, 0.4] },
+      { key: 'danse', label: 'Ça va danser', v: [0.4, 0.1, 0.1, 1, 0] },
+      { key: 'surprise', label: 'Surprends-moi', v: this.P.map((x) => Math.round((1 - x) * 100) / 100) }
+    ];
+    const K = (img) => '/_blob/' + img;
+    // v = [Rire, Frisson, Émotion, Fête, Cérébral], tiré des moods du catalogue (rang 1 / 0,6 / 0,3) ;
+    // est: true = pas de mood dans le catalogue, valeur estimée pour la maquette.
+    this.items = [
+      { title: 'Toulouse j’adore !', cat: 'vivant', meta: 'Comédie · jeu 20:30 · La Comédie de Toulouse', img: K('1e703da754fd2de1871ec8a349cbc131'), v: [1, 0, 0, 0.2, 0] },
+      { title: 'Portrait de Rita', cat: 'vivant', meta: 'Théâtre · mer 20:00 · Théâtre Sorano', img: K('661562f1f8168b0944ee68b51bbb4370'), v: [0, 1, 0.3, 0, 0.5] },
+      { title: 'Naine Rouge', cat: 'vivant', meta: 'Clown · ven 20:30 · Espace Roguet · gratuit', img: K('367ee5682fd0d3ef0c52ee4acdd769cf'), v: [1, 0, 0.6, 0, 0.2] },
+      { title: 'L’Esprit d’entreprise', cat: 'vivant', meta: 'Satire · mar 20:30 · Théâtre du Pavé', img: K('b7d2245e9693e180331517f8980b56ec'), v: [1, 0.3, 0, 0, 0.5] },
+      { title: 'Mara Moreno', cat: 'vivant', meta: 'Stand-up · sam 20:30 · La Comédie de Toulouse', img: K('08ea9aa420132e519b69caa172cadfec'), v: [1, 0, 0, 0.4, 0] },
+      { title: 'Maudite Répétition', cat: 'vivant', meta: 'Cabaret · ven 20:30 · Le Kalinka · 25 €', img: K('bc89e91f535efa65b98059834f87b0e1'), v: [1, 0, 0, 0.5, 0] },
+      { title: 'Secrets', cat: 'vivant', meta: 'Cirque · mar 13 · Le Kiwi · dès 5 €', img: K('43c715b5d22283f8e9fa1fd67feb7097'), v: [0.2, 0.3, 0.4, 1, 0] },
+      { title: 'Les Gaulois', cat: 'vivant', meta: 'Théâtre · mer 20:00 · Théâtre Sorano', img: K('aa671ebacee66496c219f5bbbb567ebc'), v: [0.6, 0, 0.7, 0, 0.4], est: true },
+      { title: 'Pierre-Emmanuel Barré', cat: 'vivant', meta: 'Humour · ven 20:00 · Halle aux Grains', img: K('acd7a464f66a6aca4588fd03f4ba73d5'), v: [1, 0, 0, 0.3, 0.4] },
+      { title: 'DJ Pone, 30 ans de platines', cat: 'musique', meta: 'Électro · jeu 19:30 · Le Rex · 26 €', img: K('7e221e3fb2e599da71b7640736c19598'), v: [0, 0, 0, 1, 0] },
+      { title: 'Superpêche', cat: 'musique', meta: 'Impro · jeu 19:00 · Théâtre du Pavé', img: K('e1946f1f9398d21102a6ddf8a69b09d6'), v: [0, 0, 1, 0, 0.5] },
+      { title: 'Primal Fear', cat: 'musique', meta: 'Metal · mar 19:30 · Le Rex · 33 €', img: K('3ea844a910380cc8aa976bcfe249ca2f'), v: [0, 1, 0, 0.6, 0] },
+      { title: 'Peltokoski · Lozakovich', cat: 'musique', meta: 'Symphonique · jeu 20:00 · Halle aux Grains', img: K('fcd0b7208f96d1af19ad1889349b54aa'), v: [0, 0.3, 0.9, 0, 0.6], est: true },
+      { title: 'Talisco', cat: 'musique', meta: 'Rock · sam 19:30 · Le Rex · 23 €', img: K('567edf090f7d96b41e4be5ab8963cec8'), v: [0, 0.3, 0.3, 0.8, 0], est: true },
+      { title: 'La Providence et la Guitare', cat: 'cine', meta: 'Film · sam 14:20 · Le Cratère', v: [0, 0.3, 1, 0.6, 0] },
+      { title: 'Romería', cat: 'cine', meta: 'Film · sam 20:50 · Le Cratère', v: [0, 0, 1, 0, 0.4] },
+      { title: 'Los Tigres', cat: 'cine', meta: 'Film · lun 16:30 · Le Cratère', v: [0, 1, 0.2, 0, 0.2] },
+      { title: 'Septembre sans attendre', cat: 'cine', meta: 'Film · dim 16:40 · Le Cratère', v: [0.4, 0, 0.6, 1, 0] },
+      { title: 'Fenêtre sur cour', cat: 'cine', meta: 'Hitchcock · lun 19:15 · Pathé Labège', v: [0, 1, 0, 0, 0.5] },
+      { title: 'Queen Budapest', cat: 'cine', meta: 'Concert filmé · jeu 19:00 · Pathé Wilson', v: [0, 0, 0, 1, 0], est: true },
+      { title: 'Histoires de la bonne vallée', cat: 'cine', meta: 'Documentaire · dim 12:00 · Le Cratère', v: [0, 0, 1, 0, 0.6] }
+    ];
+    this.state = { t: this.P.slice(), xf: 70, preset: 'mix', cat: 'tout' };
+  }
+  setFader(k, value) {
+    const v = Math.max(0, Math.min(1, Math.round(value * 20) / 20));
+    this.setState((s) => {
+      const t = s.t.slice();
+      t[k] = v;
+      return { t, preset: null };
+    });
+  }
+  fromPointer(k, e) {
+    const el = e.currentTarget;
+    if (!el || !el.getBoundingClientRect) return;
+    const r = el.getBoundingClientRect();
+    this.setFader(k, 1 - (e.clientY - r.top) / r.height);
+  }
+  target() {
+    const x = this.state.xf / 100;
+    return this.P.map((p, i) => p * (1 - x) + this.state.t[i] * x);
+  }
+  rank() {
+    const tg = this.target();
+    const norm = (a) => Math.sqrt(a.reduce((s, x) => s + x * x, 0)) || 1;
+    const nt = norm(tg);
+    const cat = this.state.cat;
+    return this.items
+      .filter((it) => cat === 'tout' || it.cat === cat)
+      .map((it) => {
+        const dot = it.v.reduce((s, x, i) => s + x * tg[i], 0);
+        let best = 0;
+        it.v.forEach((x, i) => { if (x * tg[i] > it.v[best] * tg[best]) best = i; });
+        return { it, score: dot / (nt * norm(it.v)), best };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+  }
+  renderVals() {
+    const { t, xf, preset, cat } = this.state;
+    const H = 128, KNOB = 18;
+    const chip = (on) => ({ bg: on ? '#FF2E7E' : 'transparent', fg: on ? '#1A0B1E' : '#FFF1F4', border: on ? '#FF2E7E' : '#4A2350' });
+    const ranked = this.rank();
+    const cats = [['tout', 'Tout'], ['vivant', 'Vivant'], ['musique', 'Musique'], ['cine', 'Ciné']];
+    const catName = { vivant: 'spectacles', musique: 'concerts', cine: 'films' };
+    return {
+      presets: this.presetDefs.map((p) => Object.assign({ label: p.label, on: preset === p.key, pick: () => this.setState({ t: p.v.slice(), preset: p.key }) }, chip(preset === p.key))),
+      faders: this.F.map((f, k) => ({
+        label: f.label,
+        color: f.color,
+        pct: Math.round(t[k] * 100),
+        fill: Math.round(t[k] * H),
+        knob: Math.round(t[k] * (H - KNOB)),
+        ghost: Math.round(this.P[k] * (H - 2)),
+        down: (e) => { this.drag = k; if (e.currentTarget && e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId); this.fromPointer(k, e); },
+        move: (e) => { if (this.drag === k) this.fromPointer(k, e); },
+        up: () => { this.drag = null; },
+        key: (e) => {
+          const step = { ArrowUp: 0.1, ArrowRight: 0.1, ArrowDown: -0.1, ArrowLeft: -0.1 }[e.key];
+          if (step === undefined) return;
+          if (e.preventDefault) e.preventDefault();
+          this.setFader(k, t[k] + step);
+        }
+      })),
+      xf,
+      setXf: (e) => this.setState({ xf: Number(e.target.value) }),
+      xfLabel: xf === 0 ? 'Rien que ton type' : (xf === 100 ? 'Rien que ton envie de ce soir' : xf + ' % ce soir, ' + (100 - xf) + ' % ton type'),
+      cats: cats.map(([key, label]) => Object.assign({ label, on: cat === key, pick: () => this.setState({ cat: key }) }, chip(cat === key))),
+      resultsTitle: ranked.length + ' ' + (catName[cat] || 'plans'),
+      results: ranked.map(({ it, score, best }) => ({
+        title: it.title,
+        meta: it.meta,
+        img: it.img || '',
+        hasImg: Boolean(it.img),
+        noImg: !it.img,
+        color: this.F[best].color,
+        reason: this.F[best].label + (it.est ? ' · estimé' : ''),
+        match: Math.round(score * 100) + ' %'
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>
